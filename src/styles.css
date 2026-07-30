@@ -558,6 +558,98 @@ svg.carte {
   line-height: 1.4;
 }
 
+/* ── missions ──────────────────────────────────────────── */
+.missions {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 18;
+  width: 252px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.missions-titre {
+  text-align: left;
+  background: #14273ae8;
+  border: 1px solid var(--bord);
+  border-radius: 9px;
+  padding: 7px 12px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--gold);
+}
+.compte-missions {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+.missions-titre .chevron {
+  float: right;
+  color: var(--muted);
+}
+.mission {
+  background: #14273ae8;
+  border: 1px solid var(--bord);
+  border-left: 3px solid #3a4a5a;
+  border-radius: 9px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 14px #0008;
+}
+.mission.faite {
+  border-left-color: var(--gold);
+  box-shadow: 0 4px 14px #0008, 0 0 12px #e8c04a33;
+}
+.mission-ligne {
+  display: flex;
+  gap: 8px;
+}
+.mission-emoji {
+  font-size: 19px;
+  line-height: 1.2;
+}
+.mission-corps {
+  flex: 1;
+  min-width: 0;
+}
+.mission-nom {
+  font-weight: 700;
+  font-size: 12.5px;
+}
+.mission-compteur {
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.mission-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+  margin: 1px 0 3px;
+}
+.mission-progres {
+  height: 5px;
+  border-radius: 3px;
+  background: #0a141d;
+  overflow: hidden;
+  margin: 3px 0;
+}
+.mission-progres > div {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 3px;
+  transition: width 0.4s;
+}
+.mission-rec {
+  font-size: 11px;
+  color: #cfc4a8;
+}
+.mission-reclamer {
+  width: 100%;
+  margin-top: 7px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+
 .toasts {
   position: absolute;
   left: 12px;

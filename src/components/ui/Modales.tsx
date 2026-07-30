@@ -193,6 +193,14 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
+          <h3>🏅 Les missions</h3>
+          <p>
+            Le panneau en haut à gauche vous guide : chaque mission accomplie rapporte une <b>récompense</b>{' '}
+            (ressources, faveur, villageois). Commencez par réclamer les provisions du voyage — puis suivez le fil,
+            de la première ferme à la cité de légende.
+          </p>
+        </div>
+        <div className="aide-section">
           <h3>Premiers pas</h3>
           <p>
             1. Cliquez un emplacement en pointillés pour construire. 2. Ferme, scierie et carrière d’abord. 3. Puis

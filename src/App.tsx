@@ -3,6 +3,7 @@ import { TICK_MS } from './game/data'
 import { totalEtoiles, useGame } from './game/store'
 import { VillageMap } from './components/map/VillageMap'
 import { BandeauAlerte, BarreRessources, Toasts } from './components/ui/Hud'
+import { MissionsTracker } from './components/ui/Missions'
 import { PanneauBatiment } from './components/ui/PanneauBatiment'
 import { Pantheon } from './components/ui/Pantheon'
 import { ExpeditionScene, PanneauExpeditions } from './components/ui/Expeditions'
@@ -69,6 +70,7 @@ export default function App() {
       <main className="scene">
         <VillageMap />
         <BandeauAlerte />
+        <MissionsTracker />
         <PanneauBatiment />
         <Toasts />
       </main>

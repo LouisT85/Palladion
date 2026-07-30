@@ -74,7 +74,7 @@ const FLEURS: [number, number, string][] = [
   [1120, 620, '#d9a0b0'], [140, 560, '#e8e2d2'],
 ]
 
-export function Terrain({ phase }: { phase: number }) {
+export function Terrain({ phase, paisible = true }: { phase: number; paisible?: boolean }) {
   // position du soleil / de la lune sur un arc
   const jour = phase >= 0.02 && phase < 0.62
   const tAstre = jour ? (phase - 0.02) / 0.6 : ((phase + 1 - 0.62) % 1) / 0.4
@@ -242,6 +242,40 @@ export function Terrain({ phase }: { phase: number }) {
       {ARBRES.map((a, i) => (
         <Arbre key={i} {...a} />
       ))}
+
+      {/* moutons au pré, au sud des champs */}
+      <g>
+        {[
+          [452, 700, 1],
+          [472, 712, 0.85],
+          [492, 702, 0.9],
+        ].map(([x, y, s], i) => (
+          <g key={i} transform={`translate(${x},${y}) scale(${s})`}>
+            <ellipse cx={1} cy={1} rx={5.5} ry={1.6} fill="#241a0c" opacity={0.12} />
+            <ellipse cx={0} cy={-3.6} rx={5} ry={3.2} fill="#ece7d8" stroke="#4a3a28" strokeWidth={0.7} />
+            <circle cx={5} cy={-4.6} r={1.9} fill="#8c8270" />
+            <line x1={-3} y1={-1} x2={-3} y2={0.8} stroke="#4a3a28" strokeWidth={0.9} />
+            <line x1={2.6} y1={-1} x2={2.6} y2={0.8} stroke="#4a3a28" strokeWidth={0.9} />
+          </g>
+        ))}
+      </g>
+
+      {/* char à bœufs sur la route de l'est (à l'abri pendant les assauts) */}
+      <g opacity={paisible ? 0.95 : 0}>
+        <animateMotion dur="30s" repeatCount="indefinite" rotate="auto" path={`M${MAP.porte.x + 14},${MAP.porte.y + 8} C 1000,455 1080,470 ${MAP.w - 6},484`} />
+        <ellipse cx={0} cy={2} rx={13} ry={2.4} fill="#241a0c" opacity={0.14} />
+        {/* bœuf */}
+        <ellipse cx={9} cy={-4} rx={6} ry={3.2} fill="#7d6248" stroke="#4a3a28" strokeWidth={0.8} />
+        <circle cx={14.6} cy={-5.6} r={2.1} fill="#6b533c" stroke="#4a3a28" strokeWidth={0.7} />
+        <line x1={6} y1={-1.4} x2={6} y2={1} stroke="#4a3a28" strokeWidth={1.1} />
+        <line x1={12} y1={-1.4} x2={12} y2={1} stroke="#4a3a28" strokeWidth={1.1} />
+        {/* attelage + charrette */}
+        <line x1={3} y1={-4} x2={-3} y2={-4.6} stroke="#5d4a33" strokeWidth={1.2} />
+        <path d="M-14,-3 L-3,-3 L-4.4,-8.6 L-12.6,-8.6 Z" fill="#93714a" stroke="#4a3a28" strokeWidth={0.9} />
+        <circle cx={-8.5} cy={-2} r={3} fill="#8a6a40" stroke="#4a3a28" strokeWidth={0.9} />
+        <circle cx={-8.5} cy={-2} r={0.9} fill="#4a3a28" />
+        <path d="M-11,-8.6 C-11.4,-11 -9.8,-12.4 -8,-12.4 C-6.2,-12.4 -5,-11 -5.4,-8.6 Z" fill="#cbb289" stroke="#4a3a28" strokeWidth={0.7} />
+      </g>
 
       {/* grain léger sur la plaine */}
       <rect x={0} y={HORIZON - 6} width={MAP.w} height={MAP.h - HORIZON + 6} filter="url(#grain)" opacity={0.9} />

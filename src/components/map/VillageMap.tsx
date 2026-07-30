@@ -1,7 +1,7 @@
 import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, WALL_HP } from '../../game/data'
 import { useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
-import { BatimentArt, Chantier } from './Batiments'
+import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
 import { BatailleLayer } from './BatailleLayer'
 import { Murailles } from './Murailles'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
@@ -71,6 +71,7 @@ function Emplacement({ id, now }: { id: BuildingId; now: number }) {
 
 export function VillageMap() {
   const battle = useGame((s) => s.battle)
+  const warned = useGame((s) => s.warned)
   const wallLevel = useGame((s) => s.buildings.remparts.level)
   const rempartsChantier = useGame((s) => s.buildings.remparts.targetLevel !== undefined)
   const wallHp = useGame((s) => s.wallHp)
@@ -105,10 +106,11 @@ export function VillageMap() {
         <filter id="ombre-batiment" x="-40%" y="-40%" width="180%" height="180%">
           <feDropShadow dx={0} dy={1.6} stdDeviation={1.4} floodColor="#1d1508" floodOpacity={0.3} />
         </filter>
+        <DefsBatiments />
       </defs>
 
       <g clipPath="url(#cadre-carte)">
-        <Terrain phase={phase} />
+        <Terrain phase={phase} paisible={battle === null && !warned} />
 
         <Emplacement id="carriere" now={now} />
         <Emplacement id="scierie" now={now} />

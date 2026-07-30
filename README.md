@@ -18,11 +18,13 @@
 ## ✨ Ce qui rend PALLADION différent
 
 ### 🧱 Une évolution **visuelle** des bâtiments
-Chaque bâtiment est dessiné **en SVG par code**, avec une apparence distincte par niveau.
-Les remparts passent de la palissade de pieux → au muret de pierre sèche → à la muraille
-crénelée → aux hautes murailles « bâties par Poséidon » avec tours de guet et étendards.
-Idem pour les 9 autres bâtiments (temple, agora, forge, port…). Les dégâts se voient :
-fissures, décombres, brèche à la porte.
+Chaque bâtiment est dessiné **en SVG par code**, en volumes texturés (tuiles, pierre,
+chaume, sillons) avec une apparence distincte par niveau. Les remparts passent de la
+palissade de pieux → au muret de pierre sèche → à la muraille crénelée → aux hautes
+murailles « bâties par Poséidon » avec tours de guet et étendards. Idem pour les 9 autres
+bâtiments (temple, agora, forge, port…). Les dégâts se voient : fissures, décombres,
+brèche à la porte. Et le village **vit** : villageois qui flânent, char à bœufs sur la
+route, chèvres à la ferme, moutons au pré, fumées et braseros.
 
 ### ⚔️ Des vagues d'assaut PvE, jouées sous vos yeux
 La prospérité attire les convoitises : des bandes armées (pillards, guerriers achéens,

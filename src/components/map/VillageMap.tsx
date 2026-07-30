@@ -2,12 +2,13 @@ import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, WALL_HP } from '../../game/data'
 import { useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
+import { Ouvriers, Porteurs } from './Ouvriers'
 import { BatailleLayer } from './BatailleLayer'
 import { Murailles } from './Murailles'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
 import { Villageois } from './Villageois'
 
-function Emplacement({ id, now }: { id: BuildingId; now: number }) {
+function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisible?: boolean }) {
   const def = BUILDINGS[id]
   const b = useGame((s) => s.buildings[id])
   const selected = useGame((s) => s.selected)
@@ -49,6 +50,7 @@ function Emplacement({ id, now }: { id: BuildingId; now: number }) {
           {b.level > 0 && (
             <g transform="scale(1.18)" filter="url(#ombre-batiment)">
               <BatimentArt id={id} level={b.level} />
+              {paisible && <Ouvriers id={id} level={b.level} />}
             </g>
           )}
           {enChantier && (
@@ -82,9 +84,14 @@ export function VillageMap() {
   const select = useGame((s) => s.select)
   const selected = useGame((s) => s.selected)
 
+  const scierieLvl = useGame((s) => s.buildings.scierie.level)
+  const fermeLvl = useGame((s) => s.buildings.ferme.level)
+  const carriereLvl = useGame((s) => s.buildings.carriere.level)
+
   const now = lastSeen // rafraîchi par le tick
   const phase = phaseJour(now, createdAt, DAY_MS)
   const wallMax = WALL_HP[wallLevel]
+  const paisible = battle === null && !warned
 
   // ordre du peintre : nord (hors les murs) → mur arrière → intérieur → mur avant → sud
   const dedans = BUILDING_IDS.filter((b) => b !== 'remparts' && BUILDINGS[b].interieur).sort(
@@ -110,15 +117,17 @@ export function VillageMap() {
       </defs>
 
       <g clipPath="url(#cadre-carte)">
-        <Terrain phase={phase} paisible={battle === null && !warned} />
+        <Terrain phase={phase} paisible={paisible} />
 
-        <Emplacement id="carriere" now={now} />
-        <Emplacement id="scierie" now={now} />
+        <Porteurs scierie={scierieLvl > 0} ferme={fermeLvl > 0} carriere={carriereLvl > 0} actif={paisible} />
+
+        <Emplacement id="carriere" now={now} paisible={paisible} />
+        <Emplacement id="scierie" now={now} paisible={paisible} />
 
         <Murailles niveau={wallLevel} hp={wallHp} max={wallMax} breche={battle?.breche ?? false} layer="back" />
 
         {dedans.map((b) => (
-          <Emplacement key={b} id={b} now={now} />
+          <Emplacement key={b} id={b} now={now} paisible={paisible} />
         ))}
 
         <Villageois pop={pop} morale={morale} now={now} enBataille={battle !== null} />
@@ -151,8 +160,8 @@ export function VillageMap() {
           <ellipse cx={0} cy={-6} rx={48} ry={30} fill="transparent" />
         </g>
 
-        <Emplacement id="ferme" now={now} />
-        <Emplacement id="port" now={now} />
+        <Emplacement id="ferme" now={now} paisible={paisible} />
+        <Emplacement id="port" now={now} paisible={paisible} />
 
         {battle && <BatailleLayer battle={battle} now={now} wallHp={wallHp} wallMax={wallMax} />}
 

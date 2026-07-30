@@ -175,6 +175,21 @@ export function Terrain({ phase, paisible = true }: { phase: number; paisible?: 
         <path d="M0,-2 L0,-12 L7,-3 Z" fill="#efe9db" />
       </g>
 
+      {/* mouettes au-dessus de la baie */}
+      {[
+        { p: 'M120,600 a80,30 0 1 0 0.1,0', dur: '21s', s: 1 },
+        { p: 'M80,680 a55,22 0 1 0 0.1,0', dur: '15s', s: 0.8 },
+      ].map((m, i) => (
+        <g key={i} opacity={0.85}>
+          <animateMotion dur={m.dur} repeatCount="indefinite" path={m.p} />
+          <g transform={`scale(${m.s})`} stroke="#f0ede2" strokeWidth={1.5} fill="none" strokeLinecap="round">
+            <path d="M-4,0 Q-2,-2.4 0,0 Q2,-2.4 4,0">
+              <animate attributeName="d" values="M-4,0 Q-2,-2.4 0,0 Q2,-2.4 4,0;M-4,-1 Q-2,0.6 0,-1 Q2,0.6 4,-1;M-4,0 Q-2,-2.4 0,0 Q2,-2.4 4,0" dur="0.7s" repeatCount="indefinite" />
+            </path>
+          </g>
+        </g>
+      ))}
+
       {/* routes : halo doux puis bande */}
       <path
         d={`M${MAP.w},485 C 1080,470 1000,455 ${MAP.porte.x + 8},${MAP.porte.y + 6}`}

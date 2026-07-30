@@ -2,11 +2,18 @@ import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, WALL_HP } from '../../game/data'
 import { useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
-import { Ouvriers, Porteurs } from './Ouvriers'
+import { Batisseur, Ouvriers, Porteurs } from './Ouvriers'
 import { BatailleLayer } from './BatailleLayer'
 import { Murailles } from './Murailles'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
 import { Villageois } from './Villageois'
+
+/** stade d'un chantier : 0 = fondations, puis paliers à 25 / 50 / 75 % de la durée */
+function stadeChantier(progress: number): number {
+  return progress < 0.25 ? 0 : progress < 0.5 ? 1 : progress < 0.75 ? 2 : 3
+}
+/** hauteur bâtie à chaque stade (fraction de la hauteur finale) */
+const STADES_H = [0, 0.4, 0.7, 1]
 
 function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisible?: boolean }) {
   const def = BUILDINGS[id]
@@ -21,6 +28,8 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
     const dur = def.times[b.targetLevel - 1] * 1000
     progress = Math.max(0, Math.min(1, 1 - (b.busyUntil - now) / dur))
   }
+  const stade = stadeChantier(progress)
+  const fracH = STADES_H[stade]
 
   return (
     <g
@@ -50,14 +59,28 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
           {b.level > 0 && (
             <g transform="scale(1.18)" filter="url(#ombre-batiment)">
               <BatimentArt id={id} level={b.level} />
-              {paisible && <Ouvriers id={id} level={b.level} />}
+              {paisible && !enChantier && <Ouvriers id={id} level={b.level} />}
             </g>
           )}
           {enChantier && (
             <g>
               {b.level === 0 && <ellipse cx={0} cy={2} rx={26} ry={9} fill="#c2a76f" opacity={0.8} />}
+              {/* le bâtiment cible s'élève du sol par paliers (25 / 50 / 75 %) */}
+              {fracH > 0 && b.targetLevel !== undefined && (
+                <g transform="scale(1.18)" filter="url(#ombre-batiment)">
+                  <clipPath id={`chantier-${id}`}>
+                    <rect x={-135} y={30 - 108 * fracH} width={270} height={108 * fracH + 4} />
+                  </clipPath>
+                  <g clipPath={`url(#chantier-${id})`}>
+                    <BatimentArt id={id} level={b.targetLevel} />
+                  </g>
+                </g>
+              )}
               <Chantier />
-              <g transform="translate(0,-36)">
+              {/* les ouvriers à l'œuvre — un second renfort dès que les murs sortent de terre */}
+              <Batisseur x={-22} y={9} />
+              {stade >= 1 && <Batisseur x={20} y={5} flip begin="0.7s" />}
+              <g transform="translate(0,-42)">
                 <rect x={-22} y={0} width={44} height={6} rx={3} fill="#1d1d1d" opacity={0.7} />
                 <rect x={-21} y={1} width={Math.max(2, 42 * progress)} height={4} rx={2} fill="#e8c04a" />
               </g>
@@ -75,7 +98,7 @@ export function VillageMap() {
   const battle = useGame((s) => s.battle)
   const warned = useGame((s) => s.warned)
   const wallLevel = useGame((s) => s.buildings.remparts.level)
-  const rempartsChantier = useGame((s) => s.buildings.remparts.targetLevel !== undefined)
+  const remparts = useGame((s) => s.buildings.remparts)
   const wallHp = useGame((s) => s.wallHp)
   const pop = useGame((s) => s.pop)
   const morale = useGame((s) => s.morale)
@@ -92,6 +115,15 @@ export function VillageMap() {
   const phase = phaseJour(now, createdAt, DAY_MS)
   const wallMax = WALL_HP[wallLevel]
   const paisible = battle === null && !warned
+
+  // chantier des remparts : l'enceinte cible se dresse arc par arc (25 / 50 / 75 %)
+  const rempartsChantier = remparts.targetLevel !== undefined && remparts.busyUntil !== undefined
+  let progMur = 0
+  if (rempartsChantier && remparts.targetLevel !== undefined && remparts.busyUntil !== undefined) {
+    const dur = BUILDINGS.remparts.times[remparts.targetLevel - 1] * 1000
+    progMur = Math.max(0, Math.min(1, 1 - (remparts.busyUntil - now) / dur))
+  }
+  const spanMur = [0, 1 / 3, 2 / 3, 1][stadeChantier(progMur)]
 
   // ordre du peintre : nord (hors les murs) → mur arrière → intérieur → mur avant → sud
   const dedans = BUILDING_IDS.filter((b) => b !== 'remparts' && BUILDINGS[b].interieur).sort(
@@ -125,6 +157,9 @@ export function VillageMap() {
         <Emplacement id="scierie" now={now} paisible={paisible} />
 
         <Murailles niveau={wallLevel} hp={wallHp} max={wallMax} breche={battle?.breche ?? false} layer="back" />
+        {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
+          <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="back" span={spanMur} />
+        )}
 
         {dedans.map((b) => (
           <Emplacement key={b} id={b} now={now} paisible={paisible} />
@@ -133,6 +168,9 @@ export function VillageMap() {
         <Villageois pop={pop} morale={morale} now={now} enBataille={battle !== null} />
 
         <Murailles niveau={wallLevel} hp={wallHp} max={wallMax} breche={battle?.breche ?? false} layer="front" />
+        {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
+          <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="front" span={spanMur} />
+        )}
 
         {/* zone cliquable des remparts (sur la porte) */}
         <g
@@ -155,6 +193,16 @@ export function VillageMap() {
               <text x={0} y={8} textAnchor="middle" fontSize={9.5} fill="#3d3a30" fontWeight={700}>
                 ＋ REMPARTS
               </text>
+            </g>
+          )}
+          {rempartsChantier && !battle && (
+            <g>
+              <Batisseur x={-36} y={20} />
+              <Batisseur x={28} y={26} flip begin="0.8s" />
+              <g transform="translate(0,-56)">
+                <rect x={-22} y={0} width={44} height={6} rx={3} fill="#1d1d1d" opacity={0.7} />
+                <rect x={-21} y={1} width={Math.max(2, 42 * progMur)} height={4} rx={2} fill="#e8c04a" />
+              </g>
             </g>
           )}
           <ellipse cx={0} cy={-6} rx={48} ry={30} fill="transparent" />

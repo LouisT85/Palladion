@@ -127,11 +127,14 @@ interface Props {
   layer: 'back' | 'front'
   /** géométrie de l'enceinte — par défaut celle du village du joueur */
   geo?: GeoMur
+  /** fraction d'arc dessinée (chantier en cours) — 1 = enceinte complète */
+  span?: number
 }
 
-export function Murailles({ niveau, hp, max, breche, layer, geo = MAP.mur }: Props) {
+export function Murailles({ niveau, hp, max, breche, layer, geo = MAP.mur, span = 1 }: Props) {
   const a0 = layer === 'back' ? Math.PI : PORTE
-  const a1 = layer === 'back' ? 2 * Math.PI - PORTE : Math.PI
+  const a1Complet = layer === 'back' ? 2 * Math.PI - PORTE : Math.PI
+  const a1 = a0 + (a1Complet - a0) * span
 
   // niveau 0 : bornes de fondation, pour situer la future enceinte
   if (niveau <= 0) {
@@ -247,10 +250,12 @@ export function Murailles({ niveau, hp, max, breche, layer, geo = MAP.mur }: Pro
           {echantillons(geo, a0 + 0.025, a1 - 0.025, 0.045).map((p, i) => (
             <rect key={i} x={p.x - 3} y={p.y - 17} width={6} height={6.5} fill="#cfc7b5" stroke="#6e675c" strokeWidth={0.8} />
           ))}
-          {(layer === 'front' ? [0.85, 2.29] : [3.99, 5.43]).map((a) => {
-            const p = pt(geo, a)
-            return <Tour key={a} x={p.x} y={p.y} flamme />
-          })}
+          {(layer === 'front' ? [0.85, 2.29] : [3.99, 5.43])
+            .filter((a) => a <= a1)
+            .map((a) => {
+              const p = pt(geo, a)
+              return <Tour key={a} x={p.x} y={p.y} flamme />
+            })}
         </g>
       )}
 
@@ -274,7 +279,7 @@ export function Murailles({ niveau, hp, max, breche, layer, geo = MAP.mur }: Pro
         </g>
       )}
 
-      {layer === 'front' && <Porte geo={geo} niveau={niveau} breche={breche} />}
+      {layer === 'front' && span >= 1 && <Porte geo={geo} niveau={niveau} breche={breche} />}
     </g>
   )
 }

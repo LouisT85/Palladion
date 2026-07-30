@@ -138,6 +138,30 @@ function Forgeron({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: b
   )
 }
 
+/** maçon de chantier : coups de maillet + éclats de pierre (exporté pour les chantiers) */
+export function Batisseur({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: boolean; begin?: string }) {
+  return (
+    <g transform={`translate(${x},${y})${flip ? ' scale(-1,1)' : ''}`}>
+      <CorpsOuvrier tunique="#b0846a" />
+      <g>
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          values="-70 1 -9.5;26 1 -9.5;26 1 -9.5;-70 1 -9.5"
+          keyTimes="0;0.4;0.48;1"
+          dur="1.5s"
+          begin={begin}
+          repeatCount="indefinite"
+        />
+        <line x1={1} y1={-9.5} x2={7.5} y2={-6.5} stroke={PEAU} strokeWidth={1.4} />
+        <line x1={7.5} y1={-6.5} x2={10.5} y2={-5.2} stroke="#7a5a35" strokeWidth={1.5} />
+        <rect x={9.6} y={-7.6} width={3.4} height={2.8} rx={0.8} fill="#8f8a7c" stroke={T} strokeWidth={0.5} />
+      </g>
+      <Eclats x={10} y={-2} c="#d8d2c4" dur="1.5s" begin={begin} />
+    </g>
+  )
+}
+
 function Faucheur({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: boolean; begin?: string }) {
   return (
     <g transform={`translate(${x},${y})${flip ? ' scale(-1,1)' : ''}`}>

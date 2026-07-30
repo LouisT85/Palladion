@@ -315,6 +315,18 @@ function plusProche(f: Fighter, cibles: Fighter[]): Fighter | null {
   return best
 }
 
+/** applique des dégâts, marque la mort (dépouille) et fait jaillir un impact */
+function frapper(b: BattleState, cible: Fighter, dmg: number, now: number): void {
+  cible.hp -= dmg
+  if (cible.hp <= 0 && cible.etat !== 'mort') {
+    cible.etat = 'mort'
+    cible.mortAt = now
+  }
+  if (b.effects.length < 40) {
+    b.effects.push({ id: uid('fx'), type: 'impact', x: cible.x + (Math.random() - 0.5) * 4, y: cible.y - 8, until: now + 260 })
+  }
+}
+
 export interface TickBatailleCtx {
   now: number
   dt: number
@@ -378,6 +390,9 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
         } else if (now >= f.nextHit) {
           f.nextHit = now + CADENCE_MUR
           wallHp -= statsDe(f.type).wallDps * multDegats(f)
+          if (Math.random() < 0.22 && b.effects.length < 40) {
+            b.effects.push({ id: uid('fx'), type: 'poussiere', x: f.x - 5, y: f.y - 7, until: now + 650 })
+          }
           if (wallHp <= 0) {
             wallHp = 0
             b.breche = true
@@ -402,8 +417,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
         versCible(f, dt)
       } else if (now >= f.nextHit) {
         f.nextHit = now + CADENCE_MELEE
-        cible.hp -= f.atk * multDegats(f) * multRecus(cible)
-        if (cible.hp <= 0) cible.etat = 'mort'
+        frapper(b, cible, f.atk * multDegats(f) * multRecus(cible), now)
       }
       continue
     }
@@ -460,8 +474,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       versCible(f, dt)
     } else if (now >= f.nextHit) {
       f.nextHit = now + CADENCE_MELEE
-      cible.hp -= f.atk * multDegats(f) * multRecus(cible)
-      if (cible.hp <= 0) cible.etat = 'mort'
+      frapper(b, cible, f.atk * multDegats(f) * multRecus(cible), now)
     }
   }
 
@@ -471,8 +484,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     if (now - p.start >= p.dur) {
       const cible = b.fighters.find((f) => f.id === p.targetId)
       if (cible && cible.etat !== 'mort') {
-        cible.hp -= p.dmg * multRecus(cible)
-        if (cible.hp <= 0) cible.etat = 'mort'
+        frapper(b, cible, p.dmg * multRecus(cible), now)
       }
     } else {
       restants.push(p)
@@ -552,7 +564,10 @@ export function foudreDeZeus(b: BattleState, now: number): number {
     .slice(0, 6)
   for (const c of cibles) {
     c.hp -= 120 / Math.max(1, cibles.length)
-    if (c.hp <= 0) c.etat = 'mort'
+    if (c.hp <= 0 && c.etat !== 'mort') {
+      c.etat = 'mort'
+      c.mortAt = now
+    }
     b.effects.push({ id: uid('fx'), type: 'foudre', x: c.x, y: c.y, until: now + 900 })
   }
   return cibles.length

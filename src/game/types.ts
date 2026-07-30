@@ -171,6 +171,8 @@ export interface Fighter {
   nextHit: number
   /** décalage d'animation */
   seed: number
+  /** instant de la mort (les dépouilles restent visibles quelques secondes) */
+  mortAt?: number
 }
 
 export interface Projectile {
@@ -187,7 +189,7 @@ export interface Projectile {
 
 export interface BattleEffect {
   id: string
-  type: 'foudre' | 'benediction' | 'breche'
+  type: 'foudre' | 'benediction' | 'breche' | 'impact' | 'poussiere'
   x: number
   y: number
   until: number

@@ -87,6 +87,18 @@ function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' {
   }
 }
 
+/** dépouille : la figurine couchée, qui s'efface doucement */
+function Depouille({ f, campJoueur, now }: { f: Fighter; campJoueur: 'attaque' | 'defense'; now: number }) {
+  const t = (now - (f.mortAt ?? now)) / 3800
+  const look = lookDe(f, f.camp === campJoueur)
+  const contenu = look === 'belier' ? <Belier /> : <Bonhomme {...look} />
+  return (
+    <g transform={`translate(${f.x},${f.y})`} opacity={Math.max(0, 0.75 * (1 - t))}>
+      <g transform={`rotate(${f.camp === 'attaque' ? 78 : -78})`}>{contenu}</g>
+    </g>
+  )
+}
+
 function FigurineCombattant({ f, campJoueur }: { f: Fighter; campJoueur: 'attaque' | 'defense' }) {
   const estJoueur = f.camp === campJoueur
   const look = lookDe(f, estJoueur)
@@ -127,10 +139,16 @@ export function BatailleLayer({
 }) {
   const vivants = battle.fighters.filter((f) => f.etat !== 'mort')
   const tries = [...vivants].sort((a, b) => a.y - b.y)
+  const depouilles = battle.fighters.filter(
+    (f) => f.etat === 'mort' && f.hp <= 0 && f.mortAt !== undefined && now - f.mortAt < 3800,
+  )
   const porte = battle.geo.porte
 
   return (
     <g>
+      {depouilles.map((f) => (
+        <Depouille key={f.id} f={f} campJoueur={battle.campJoueur} now={now} />
+      ))}
       {tries.map((f) => (
         <FigurineCombattant key={f.id} f={f} campJoueur={battle.campJoueur} />
       ))}
@@ -166,6 +184,23 @@ export function BatailleLayer({
             <circle key={e.id} cx={e.x} cy={e.y} r={20} fill="none" stroke="#4fa3a5" strokeWidth={3} opacity={Math.max(0, (e.until - now) / 2000)}>
               <animate attributeName="r" values="8;42" dur="2s" fill="freeze" />
             </circle>
+          )
+        }
+        if (e.type === 'impact') {
+          const t = Math.max(0, (e.until - now) / 260)
+          return (
+            <g key={e.id} transform={`translate(${e.x},${e.y}) scale(${1.4 - t * 0.5})`} opacity={t}>
+              <path d="M0,-4.5 L1.1,-1.1 L4.5,0 L1.1,1.1 L0,4.5 L-1.1,1.1 L-4.5,0 L-1.1,-1.1 Z" fill="#ffe9a8" stroke="#e8913c" strokeWidth={0.6} />
+            </g>
+          )
+        }
+        if (e.type === 'poussiere') {
+          const t = Math.max(0, (e.until - now) / 650)
+          return (
+            <g key={e.id} opacity={t * 0.7} fill="#c9bfa4">
+              <circle cx={e.x - 3} cy={e.y} r={4 + (1 - t) * 5} />
+              <circle cx={e.x + 4} cy={e.y - 3} r={3 + (1 - t) * 4} opacity={0.8} />
+            </g>
           )
         }
         // brèche : nuage de poussière

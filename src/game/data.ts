@@ -145,7 +145,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
       'Grands champs dorés, grange, bœufs de labour.',
       'Domaine agricole : oliveraie, moulin, greniers pleins.',
     ],
-    pos: { x: 215, y: 655 },
+    pos: { x: 330, y: 655 },
   },
   scierie: {
     id: 'scierie',

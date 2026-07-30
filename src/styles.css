@@ -811,6 +811,17 @@ svg.carte {
   line-height: 1.5;
   color: #cfc4a8;
 }
+/* étiquette au survol des bâtiments de la carte */
+.etq {
+  animation: etq-in 0.14s ease-out;
+}
+@keyframes etq-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 .aide-reset {
   display: flex;
   flex-wrap: wrap;

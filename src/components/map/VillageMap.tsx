@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, WALL_HP } from '../../game/data'
 import { useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
@@ -15,11 +16,25 @@ function stadeChantier(progress: number): number {
 /** hauteur bâtie à chaque stade (fraction de la hauteur finale) */
 const STADES_H = [0, 0.4, 0.7, 1]
 
+/** étiquette semi-transparente affichée au survol d'un bâtiment */
+function Etiquette({ texte, y }: { texte: string; y: number }) {
+  const w = texte.length * 6.6 + 22
+  return (
+    <g className="etq" transform={`translate(0,${y})`} pointerEvents="none">
+      <rect x={-w / 2} y={-14} width={w} height={21} rx={9.5} fill="#0d1722" opacity={0.82} stroke="#e0bc5c" strokeOpacity={0.4} />
+      <text x={0} y={1} textAnchor="middle" fontSize={11.5} fill="#f0e8d8" fontWeight={600}>
+        {texte}
+      </text>
+    </g>
+  )
+}
+
 function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisible?: boolean }) {
   const def = BUILDINGS[id]
   const b = useGame((s) => s.buildings[id])
   const selected = useGame((s) => s.selected)
   const select = useGame((s) => s.select)
+  const [hover, setHover] = useState(false)
   if (id === 'remparts') return null
 
   const enChantier = b.targetLevel !== undefined && b.busyUntil !== undefined
@@ -31,6 +46,12 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
   const stade = stadeChantier(progress)
   const fracH = STADES_H[stade]
 
+  const label = enChantier
+    ? `${def.emoji} ${def.nom} — niv. ${b.targetLevel} en chantier (${Math.round(progress * 100)} %)`
+    : b.level === 0
+      ? `${def.emoji} ${def.nom} — à construire`
+      : `${def.emoji} ${def.nom} — niveau ${b.level}/4`
+
   return (
     <g
       transform={`translate(${def.pos.x},${def.pos.y})`}
@@ -38,9 +59,10 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
         e.stopPropagation()
         select(id)
       }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{ cursor: 'pointer' }}
     >
-      <title>{`${def.nom} — niveau ${b.level}`}</title>
       {selected === id && (
         <ellipse cx={0} cy={4} rx={46} ry={16} fill="none" stroke="#e8c04a" strokeWidth={2} strokeDasharray="6 5" opacity={0.9} />
       )}
@@ -88,6 +110,7 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
           )}
         </g>
       )}
+      {hover && <Etiquette texte={label} y={enChantier ? -60 : -52} />}
       {/* zone cliquable généreuse */}
       <ellipse cx={0} cy={-4} rx={44} ry={26} fill="transparent" />
     </g>
@@ -106,6 +129,7 @@ export function VillageMap() {
   const lastSeen = useGame((s) => s.lastSeen)
   const select = useGame((s) => s.select)
   const selected = useGame((s) => s.selected)
+  const [hoverMur, setHoverMur] = useState(false)
 
   const scierieLvl = useGame((s) => s.buildings.scierie.level)
   const fermeLvl = useGame((s) => s.buildings.ferme.level)
@@ -124,6 +148,12 @@ export function VillageMap() {
     progMur = Math.max(0, Math.min(1, 1 - (remparts.busyUntil - now) / dur))
   }
   const spanMur = [0, 1 / 3, 2 / 3, 1][stadeChantier(progMur)]
+
+  const labelMur = rempartsChantier
+    ? `🧱 Remparts — niv. ${remparts.targetLevel} en chantier (${Math.round(progMur * 100)} %)`
+    : wallLevel === 0
+      ? '🧱 Remparts — à construire'
+      : `🧱 Remparts — niveau ${wallLevel}/4`
 
   // ordre du peintre : nord (hors les murs) → mur arrière → intérieur → mur avant → sud
   const dedans = BUILDING_IDS.filter((b) => b !== 'remparts' && BUILDINGS[b].interieur).sort(
@@ -179,9 +209,10 @@ export function VillageMap() {
             e.stopPropagation()
             select('remparts')
           }}
+          onMouseEnter={() => setHoverMur(true)}
+          onMouseLeave={() => setHoverMur(false)}
           style={{ cursor: 'pointer' }}
         >
-          <title>{`Remparts — niveau ${wallLevel}`}</title>
           {selected === 'remparts' && (
             <ellipse cx={0} cy={-6} rx={50} ry={30} fill="none" stroke="#e8c04a" strokeWidth={2} strokeDasharray="6 5" />
           )}
@@ -205,6 +236,7 @@ export function VillageMap() {
               </g>
             </g>
           )}
+          {hoverMur && <Etiquette texte={labelMur} y={-68} />}
           <ellipse cx={0} cy={-6} rx={48} ry={30} fill="transparent" />
         </g>
 

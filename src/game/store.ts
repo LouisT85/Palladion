@@ -161,6 +161,7 @@ export interface GameState {
   fermerOffline: () => void
   fermerBattleReport: () => void
   save: () => void
+  reset: () => void
 }
 
 // ── Helpers purs (exportés pour l'UI) ────────────────────────────────────────
@@ -401,6 +402,7 @@ type ActionsOnly = {
   fermerOffline: unknown
   fermerBattleReport: unknown
   save: unknown
+  reset: unknown
 }
 
 const CHAMPS_SAUVES = [
@@ -1251,6 +1253,22 @@ export const useGame = create<GameState>()(
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
       } catch {
         // stockage plein / indisponible : tant pis pour cette fois
+      }
+    },
+
+    reset: () => {
+      // l'état mémoire est remis à neuf : ni l'autosave ni le `beforeunload`
+      // ne peuvent ressusciter l'ancienne partie après ce point
+      set((s) => {
+        Object.assign(s, etatInitial(Date.now()))
+        s.panel = 'aide'
+        pushToast(s, '🏛️', 'Une nouvelle cité s’élève — tout est à rebâtir.')
+      })
+      try {
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(ANCIEN_STORAGE_KEY)
+      } catch {
+        // stockage indisponible : la partie repart tout de même de zéro
       }
     },
   })),

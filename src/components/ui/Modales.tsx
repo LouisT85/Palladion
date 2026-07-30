@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { EVENTS_BY_ID } from '../../game/events'
 import { peutPayer, useGame } from '../../game/store'
 
@@ -138,6 +139,7 @@ export function ModaleRapportBataille() {
 
 export function ModaleAide() {
   const s = useGame()
+  const [confirmeReset, setConfirmeReset] = useState(false)
   return (
     <div className="voile">
       <div className="modale">
@@ -210,6 +212,27 @@ export function ModaleAide() {
         <button className="principal" style={{ width: '100%', marginTop: 14 }} onClick={() => s.openPanel(null)}>
           Prendre la tête du village
         </button>
+        <div className="aide-reset">
+          {confirmeReset ? (
+            <>
+              <span>Abandonner la cité ? Cette partie sera perdue à jamais.</span>
+              <button
+                className="danger"
+                onClick={() => {
+                  setConfirmeReset(false)
+                  s.reset()
+                }}
+              >
+                Tout effacer
+              </button>
+              <button onClick={() => setConfirmeReset(false)}>Garder ma partie</button>
+            </>
+          ) : (
+            <button className="danger" onClick={() => setConfirmeReset(true)}>
+              🔥 Recommencer une nouvelle partie
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

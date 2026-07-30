@@ -1,4 +1,4 @@
-import { MAP } from '../../game/data'
+import { MAP, TOUR_ANGLES } from '../../game/data'
 
 /** demi-ouverture de la porte, en radians (angle 0 = est) */
 const PORTE = 0.1
@@ -46,6 +46,32 @@ function Tour({ x, y, flamme }: { x: number; y: number; flamme?: boolean }) {
           <animate attributeName="r" values="3;4;3" dur="1.2s" repeatCount="indefinite" />
         </circle>
       )}
+    </g>
+  )
+}
+
+/** tour d'archers constructible — plateforme crénelée, archer de faction, fanion doré */
+function TourArcher({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <rect x={-9} y={-36} width={18} height={38} fill="#cfc7b5" stroke="#6e675c" strokeWidth={1.4} />
+      <line x1={-9} y1={-24} x2={9} y2={-24} stroke="#6e675c" strokeWidth={0.8} opacity={0.5} />
+      <line x1={-9} y1={-12} x2={9} y2={-12} stroke="#6e675c" strokeWidth={0.8} opacity={0.5} />
+      <circle cx={0} cy={-19} r={1.6} fill="#4a3a28" />
+      <rect x={-11.5} y={-41} width={23} height={5.5} fill="#d8d1c0" stroke="#6e675c" strokeWidth={1.2} />
+      {[-11, -3.5, 4].map((cx) => (
+        <rect key={cx} x={cx} y={-46} width={6.5} height={5.5} fill="#cfc7b5" stroke="#6e675c" strokeWidth={0.9} />
+      ))}
+      {/* archer de faction */}
+      <g transform="translate(0,-41)">
+        <path d="M-2.2,0 L-1.5,-6 L1.5,-6 L2.2,0 Z" fill="#4a6a5a" />
+        <circle cx={0} cy={-7.6} r={2.1} fill="#d9a97c" />
+        <path d="M-2.1,-8 A2.1,2.1 0 0 1 2.1,-8" fill="#8f8a7c" />
+        <path d="M3.2,-8.5 Q6.5,-4.5 3.2,-0.5" stroke="#7a5a35" strokeWidth={1.1} fill="none" />
+        <line x1={3.2} y1={-8.5} x2={3.2} y2={-0.5} stroke="#e0d9c8" strokeWidth={0.5} />
+      </g>
+      <line x1={-9} y1={-46} x2={-9} y2={-54} stroke="#5d4a33" strokeWidth={1.4} />
+      <path d="M-9,-54 L-1,-51.5 L-9,-49 Z" fill="#c9a441" />
     </g>
   )
 }
@@ -127,11 +153,13 @@ interface Props {
   layer: 'back' | 'front'
   /** géométrie de l'enceinte — par défaut celle du village du joueur */
   geo?: GeoMur
+  /** tours d'archers bâties sur l'enceinte */
+  tours?: number
   /** fraction d'arc dessinée (chantier en cours) — 1 = enceinte complète */
   span?: number
 }
 
-export function Murailles({ niveau, hp, max, breche, layer, geo = MAP.mur, span = 1 }: Props) {
+export function Murailles({ niveau, hp, max, breche, layer, geo = MAP.mur, tours = 0, span = 1 }: Props) {
   const a0 = layer === 'back' ? Math.PI : PORTE
   const a1Complet = layer === 'back' ? 2 * Math.PI - PORTE : Math.PI
   const a1 = a0 + (a1Complet - a0) * span
@@ -278,6 +306,16 @@ export function Murailles({ niveau, hp, max, breche, layer, geo = MAP.mur, span 
           <circle cx={pt(geo, 2.4).x - 4} cy={pt(geo, 2.4).y + 9} r={3} />
         </g>
       )}
+
+      {/* tours d'archers du joueur, réparties de part et d'autre de la porte */}
+      {niveau >= 1 &&
+        tours > 0 &&
+        TOUR_ANGLES.slice(0, tours)
+          .filter((a) => (layer === 'front' ? a > 0 : a < 0))
+          .map((a) => {
+            const p = pt(geo, a)
+            return <TourArcher key={a} x={p.x} y={p.y} />
+          })}
 
       {layer === 'front' && span >= 1 && <Porte geo={geo} niveau={niveau} breche={breche} />}
     </g>

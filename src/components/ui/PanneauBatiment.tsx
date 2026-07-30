@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, PROD, RES, TAUX_PORT, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
+import { BUILDINGS, BUILDING_IDS, PROD, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
 import { fmtDuree, peutPayer, useGame } from '../../game/store'
 import type { ResourceId } from '../../game/types'
 
@@ -182,6 +182,48 @@ function BlocRemparts() {
   )
 }
 
+function BlocTours() {
+  const s = useGame()
+  const niveau = s.buildings.remparts.level
+  if (niveau === 0) return null
+  const max = TOURS_MAX[niveau]
+  const cout = s.tours < TOUR_COUTS.length ? TOUR_COUTS[s.tours] : null
+  return (
+    <div className="bloc">
+      <h3>
+        🏹 Tours d’archers — {s.tours}/{max}
+      </h3>
+      <div className="desc">
+        Postées sur l’enceinte, elles arrosent de flèches tout assaillant à portée ({TOUR_PORTEE} pas) tant que la
+        muraille tient. Mais leur silhouette se voit de loin : <b>chaque tour attire des assauts plus fournis</b>.
+      </div>
+      {max === 0 ? (
+        <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
+          🧱 Des remparts de niveau 2 sont nécessaires pour asseoir une tour.
+        </div>
+      ) : s.tours >= max ? (
+        <div style={{ fontSize: 12, color: '#93a7b4', marginTop: 5 }}>
+          L’enceinte est garnie — rehaussez les remparts pour bâtir plus de tours.
+        </div>
+      ) : (
+        cout && (
+          <>
+            <LigneCout cout={cout} resources={s.resources} />
+            <button
+              className="principal"
+              style={{ width: '100%', marginTop: 6 }}
+              disabled={!peutPayer(s.resources, cout) || s.battle !== null}
+              onClick={() => s.construireTour()}
+            >
+              Bâtir une tour ({s.tours + 1}ᵉ)
+            </button>
+          </>
+        )
+      )}
+    </div>
+  )
+}
+
 export function PanneauBatiment() {
   const s = useGame()
   const id = s.selected
@@ -214,6 +256,7 @@ export function PanneauBatiment() {
 
       <BlocProduction id={id} level={b.level} />
       {id === 'remparts' && <BlocRemparts />}
+      {id === 'remparts' && <BlocTours />}
       {id === 'caserne' && b.level > 0 && <BlocCaserne />}
       {id === 'port' && <BlocPort />}
       {id === 'temple' && b.level > 0 && (

@@ -1,4 +1,4 @@
-import { ENEMIES, MAP, UNITS, WALL_HP } from './data'
+import { ENEMIES, MAP, TOUR_ANGLES, TOUR_CADENCE_MS, TOUR_DMG, TOUR_PORTEE, UNITS, WALL_HP } from './data'
 import type {
   BattleGeo,
   BattleState,
@@ -126,15 +126,15 @@ function puissanceVague(wave: WaveUnit[]): number {
   }, 0)
 }
 
-function puissanceDefense(army: Record<UnitId, number>, wallLevel: number, wallHp: number): number {
+function puissanceDefense(army: Record<UnitId, number>, wallLevel: number, wallHp: number, tours = 0): number {
   const unites = (Object.keys(army) as UnitId[]).reduce(
     (a, u) => a + army[u] * (UNITS[u].atk + UNITS[u].hp / 8),
     0,
   )
   const murMax = WALL_HP[wallLevel] || 1
   const facteurMur = 1 + 0.35 * wallLevel * Math.min(1, wallHp / murMax)
-  // 8 : les villageois aux fourches
-  return (unites + 8) * facteurMur
+  // 8 : les villageois aux fourches ; 26 : une tour d'archers vaut ~2 archers postés
+  return (unites + 8 + tours * 26) * facteurMur
 }
 
 export interface ResultatHorsLigne {
@@ -149,9 +149,10 @@ export function resoudreHorsLigne(
   army: Record<UnitId, number>,
   wallLevel: number,
   wallHp: number,
+  tours = 0,
 ): ResultatHorsLigne {
   const atk = puissanceVague(wave)
-  const def = puissanceDefense(army, wallLevel, wallHp)
+  const def = puissanceDefense(army, wallLevel, wallHp, tours)
   const ratio = def / Math.max(1, atk)
   const victoire = ratio >= 1
   const pertesPct = victoire ? Math.min(0.5, 0.35 / ratio ** 1.5) : Math.min(0.85, 0.55 + 0.2 / ratio)
@@ -178,6 +179,8 @@ export interface OptionsBataille {
   now: number
   geo: BattleGeo
   campJoueur: 'attaque' | 'defense'
+  /** tours d'archers du camp défenseur */
+  tours?: number
 }
 
 export function creerBataille(opts: OptionsBataille): BattleState {
@@ -268,10 +271,17 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     }
   }
 
+  // Tours d'archers — postées sur l'enceinte, elles tirent tant que le mur tient
+  const toursDef = TOUR_ANGLES.slice(0, wallLevel > 0 ? (opts.tours ?? 0) : 0).map((a) => {
+    const p = geoPoint(geo, a)
+    return { x: p.x, y: p.y - 32, nextHit: now + 600 + Math.random() * 900 }
+  })
+
   return {
     wave: attaquants,
     fighters,
     projectiles: [],
+    toursDef,
     effects: [],
     phase: 'approche',
     breche: wallLevel === 0,
@@ -302,7 +312,7 @@ function vivants(b: BattleState, camp: 'attaque' | 'defense'): Fighter[] {
   return b.fighters.filter((f) => f.camp === camp && f.etat !== 'mort' && f.etat !== 'fuite')
 }
 
-function plusProche(f: Fighter, cibles: Fighter[]): Fighter | null {
+function plusProche(f: { x: number; y: number }, cibles: Fighter[]): Fighter | null {
   let best: Fighter | null = null
   let bd = Infinity
   for (const c of cibles) {
@@ -475,6 +485,30 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     } else if (now >= f.nextHit) {
       f.nextHit = now + CADENCE_MELEE
       frapper(b, cible, f.atk * multDegats(f) * multRecus(cible), now)
+    }
+  }
+
+  // ── Tours d'archers : tir automatique tant que la muraille tient ──
+  if (ctx.wallLevel > 0 && wallHp > 0 && !b.breche) {
+    const enragees = enrage === 'defense' ? 1.6 : 1
+    for (const t of b.toursDef) {
+      if (now < t.nextHit) continue
+      const aPortee = atkVivants.filter((a) => a.etat !== 'mort' && dist(t, a) <= TOUR_PORTEE)
+      const cible = plusProche(t, aPortee)
+      if (!cible) continue
+      t.nextHit = now + TOUR_CADENCE_MS
+      const d = dist(t, cible)
+      b.projectiles.push({
+        id: uid('p'),
+        x0: t.x,
+        y0: t.y,
+        x1: cible.x,
+        y1: cible.y,
+        start: now,
+        dur: Math.max(200, (d / 350) * 1000),
+        targetId: cible.id,
+        dmg: TOUR_DMG * enragees,
+      })
     }
   }
 

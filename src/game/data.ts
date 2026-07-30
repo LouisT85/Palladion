@@ -1,6 +1,7 @@
 import type {
   BuildingDef,
   BuildingId,
+  Cost,
   EnemyDef,
   EnemyId,
   GodDef,
@@ -26,6 +27,21 @@ export const BASE_PROD: Record<ResourceId, number> = { bois: 3.5, pierre: 2.2, g
 export const STOCKAGE = [0, 350, 700, 1400, 2800]
 /** HP des remparts par niveau */
 export const WALL_HP = [0, 250, 600, 1250, 2200]
+/** tours d'archers constructibles sur l'enceinte (index = niveau des remparts) */
+export const TOURS_MAX = [0, 0, 1, 2, 4]
+/** coût de la n-ième tour (index = tours déjà bâties) */
+export const TOUR_COUTS: Cost[] = [
+  { pierre: 140, bois: 60 },
+  { pierre: 240, bois: 90, bronze: 15 },
+  { pierre: 380, bronze: 35 },
+  { pierre: 560, bronze: 60 },
+]
+/** portée de tir d'une tour (px carte) */
+export const TOUR_PORTEE = 240
+export const TOUR_DMG = 11
+export const TOUR_CADENCE_MS = 1800
+/** emplacements sur l'enceinte, par ordre de construction (angle 0 = porte, à l'est) */
+export const TOUR_ANGLES = [0.5, -0.5, 1.1, -1.1]
 /** capacité de population par niveau de maisons */
 export const POP_CAP = [4, 8, 14, 24, 40]
 /** consommation de grain par minute */

@@ -160,7 +160,9 @@ export function ModaleAide() {
             Des bandes armées attaquent régulièrement — la richesse attire les convoitises (🔥 menace). Vos éclaireurs
             vous préviennent ~5 minutes avant, avec la <b>récompense</b> promise si vous tenez ; les impatients peuvent
             <b> lancer l’assaut immédiatement (+25 % de butin)</b>. Les archers tirent depuis les remparts ; si la
-            muraille cède, la mêlée se joue dans le village. Le jeu continue même onglet fermé.
+            muraille cède, la mêlée se joue dans le village. Dès les remparts de niveau 2, bâtissez des{' '}
+            <b>tours d’archers</b> sur l’enceinte : elles tirent d’elles-mêmes sur tout ennemi à portée — mais leur
+            silhouette attire des assauts plus fournis. Le jeu continue même onglet fermé.
           </p>
         </div>
         <div className="aide-section">

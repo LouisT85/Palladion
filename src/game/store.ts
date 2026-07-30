@@ -25,6 +25,8 @@ import {
   STOCKAGE,
   STORAGE_KEY,
   TAUX_PORT,
+  TOURS_MAX,
+  TOUR_COUTS,
   UNITS,
   UNIT_IDS,
   WALL_HP,
@@ -99,6 +101,8 @@ export interface GameState {
   nextPopAt: number
   buildings: Record<BuildingId, BuildingState>
   wallHp: number
+  /** tours d'archers bâties sur l'enceinte */
+  tours: number
   army: Record<UnitId, number>
   recruitQueue: RecruitJob[]
   moraleMods: MoraleModifier[]
@@ -144,6 +148,7 @@ export interface GameState {
   upgrade: (b: BuildingId) => void
   recruter: (u: UnitId, n: number) => void
   reparerRemparts: () => void
+  construireTour: () => void
   echanger: (donner: ResourceId, recevoir: ResourceId) => void
   sacrifier: (g: GodId) => void
   benir: (g: GodId) => void
@@ -216,7 +221,8 @@ function calcMorale(s: GameState, now: number): number {
 function calcThreat(s: GameState, now: number): number {
   const niveaux = BUILDING_IDS.reduce((a, b) => a + s.buildings[b].level, 0)
   const minutes = (now - s.createdAt) / 60_000
-  return Math.max(5, Math.min(100, 8 + niveaux * 1.2 + minutes * 0.15 + s.threatMod))
+  // chaque tour d'archers attire la convoitise : les vagues grossissent en face
+  return Math.max(5, Math.min(100, 8 + niveaux * 1.2 + s.tours * 4 + minutes * 0.15 + s.threatMod))
 }
 
 function clampRes(s: GameState, _res: ResourceId, val: number): number {
@@ -341,6 +347,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     nextPopAt: now + 45_000,
     buildings,
     wallHp: 0,
+    tours: 0,
     army: { lancier: 0, archer: 0, hoplite: 0 },
     recruitQueue: [],
     moraleMods: [],
@@ -385,6 +392,7 @@ type ActionsOnly = {
   upgrade: unknown
   recruter: unknown
   reparerRemparts: unknown
+  construireTour: unknown
   echanger: unknown
   sacrifier: unknown
   benir: unknown
@@ -414,6 +422,7 @@ const CHAMPS_SAUVES = [
   'nextPopAt',
   'buildings',
   'wallHp',
+  'tours',
   'army',
   'recruitQueue',
   'moraleMods',
@@ -646,7 +655,7 @@ function simulerHorsLigne(s: GameState, now: number): void {
   while (s.nextAttackAt <= now && n < 3) {
     n++
     const wave = s.incomingWave ?? genererVague(calcThreat(s, s.nextAttackAt))
-    const res = resoudreHorsLigne(wave, s.army, s.buildings.remparts.level, s.wallHp)
+    const res = resoudreHorsLigne(wave, s.army, s.buildings.remparts.level, s.wallHp, s.tours)
     for (const [u, p] of Object.entries(res.pertes) as [UnitId, number][]) {
       s.army[u] = Math.max(0, s.army[u] - p)
     }
@@ -868,6 +877,7 @@ export const useGame = create<GameState>()(
                 now,
                 geo: GEO_VILLAGE,
                 campJoueur: 'defense',
+                tours: s.tours,
               })
               if (s.buildings.ferme.level > 0) {
                 s.resources.grain = Math.max(0, s.resources.grain * 0.97) // champs piétinés
@@ -1002,6 +1012,28 @@ export const useGame = create<GameState>()(
         s.wallHp = max
         pushToast(s, '🧱', 'Remparts réparés.')
       })
+    },
+
+    construireTour: () => {
+      set((s) => {
+        const max = TOURS_MAX[s.buildings.remparts.level]
+        if (s.battle) return
+        if (max === 0) {
+          pushToast(s, '🏹', 'Il faut des remparts de niveau 2 pour asseoir une tour.')
+          return
+        }
+        if (s.tours >= max) {
+          pushToast(s, '🏹', 'L’enceinte ne peut porter davantage de tours — rehaussez les remparts.')
+          return
+        }
+        if (!payer(s, TOUR_COUTS[s.tours])) {
+          pushToast(s, '❌', 'Ressources insuffisantes.')
+          return
+        }
+        s.tours++
+        pushToast(s, '🏹', `Tour d’archers dressée (${s.tours}/${max}). Sa silhouette attire l’œil des pillards…`)
+      })
+      get().save()
     },
 
     echanger: (donner, recevoir) => {

@@ -204,10 +204,19 @@ export interface BattleResult {
   degatsRemparts: number
 }
 
+/** tour d'archers en bataille : position de tir + cadence propre */
+export interface TourDef {
+  x: number
+  y: number
+  nextHit: number
+}
+
 export interface BattleState {
   wave: WaveUnit[]
   fighters: Fighter[]
   projectiles: Projectile[]
+  /** tours d'archers du camp défenseur (muettes une fois la brèche ouverte) */
+  toursDef: TourDef[]
   effects: BattleEffect[]
   phase: 'approche' | 'siege' | 'melee' | 'fini'
   breche: boolean

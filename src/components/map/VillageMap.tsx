@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, WALL_HP } from '../../game/data'
+import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, TOUR_ANGLES, TOUR_PORTEE, WALL_HP, pointMur } from '../../game/data'
 import { useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
@@ -123,6 +123,7 @@ export function VillageMap() {
   const warned = useGame((s) => s.warned)
   const wallLevel = useGame((s) => s.buildings.remparts.level)
   const remparts = useGame((s) => s.buildings.remparts)
+  const tours = useGame((s) => s.tours)
   const army = useGame((s) => s.army)
   const wallHp = useGame((s) => s.wallHp)
   const pop = useGame((s) => s.pop)
@@ -155,7 +156,7 @@ export function VillageMap() {
     ? `🧱 Remparts — niv. ${remparts.targetLevel} en chantier (${Math.round(progMur * 100)} %)`
     : wallLevel === 0
       ? '🧱 Remparts — à construire'
-      : `🧱 Remparts — niveau ${wallLevel}/4`
+      : `🧱 Remparts — niveau ${wallLevel}/4${tours > 0 ? ` · ${tours} tour${tours > 1 ? 's' : ''} 🏹` : ''}`
 
   // ordre du peintre : nord (hors les murs) → mur arrière → intérieur → mur avant → sud
   const dedans = BUILDING_IDS.filter((b) => b !== 'remparts' && BUILDINGS[b].interieur).sort(
@@ -188,7 +189,7 @@ export function VillageMap() {
         <Emplacement id="carriere" now={now} paisible={paisible} />
         <Emplacement id="scierie" now={now} paisible={paisible} />
 
-        <Murailles niveau={wallLevel} hp={wallHp} max={wallMax} breche={battle?.breche ?? false} layer="back" />
+        <Murailles niveau={wallLevel} hp={wallHp} max={wallMax} breche={battle?.breche ?? false} layer="back" tours={tours} />
         {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
           <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="back" span={spanMur} />
         )}
@@ -199,7 +200,7 @@ export function VillageMap() {
 
         <Villageois pop={pop} morale={morale} now={now} enBataille={battle !== null} />
 
-        <Murailles niveau={wallLevel} hp={wallHp} max={wallMax} breche={battle?.breche ?? false} layer="front" />
+        <Murailles niveau={wallLevel} hp={wallHp} max={wallMax} breche={battle?.breche ?? false} layer="front" tours={tours} />
         {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
           <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="front" span={spanMur} />
         )}
@@ -244,6 +245,28 @@ export function VillageMap() {
           {hoverMur && <Etiquette texte={labelMur} y={-68} />}
           <ellipse cx={0} cy={-6} rx={48} ry={30} fill="transparent" />
         </g>
+
+        {/* portée des tours d'archers, visible quand les remparts sont sélectionnés */}
+        {selected === 'remparts' &&
+          tours > 0 &&
+          TOUR_ANGLES.slice(0, tours).map((a) => {
+            const p = pointMur(a)
+            return (
+              <circle
+                key={a}
+                cx={p.x}
+                cy={p.y - 32}
+                r={TOUR_PORTEE}
+                fill="#e8c04a"
+                fillOpacity={0.05}
+                stroke="#e8c04a"
+                strokeWidth={1.3}
+                strokeDasharray="5 7"
+                opacity={0.65}
+                pointerEvents="none"
+              />
+            )
+          })}
 
         <Emplacement id="ferme" now={now} paisible={paisible} />
         <Emplacement id="port" now={now} paisible={paisible} />

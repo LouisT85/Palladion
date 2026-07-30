@@ -1,7 +1,7 @@
 import type { BattleState, Fighter } from '../../game/types'
 
-// ── Figurines ────────────────────────────────────────────────────────────────
-function Bonhomme({
+// ── Figurines (Bonhomme est réutilisé par la garnison en temps de paix) ──────
+export function Bonhomme({
   tunique,
   arme,
   taille = 1,

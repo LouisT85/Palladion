@@ -5,6 +5,7 @@ import type { BuildingId } from '../../game/types'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
 import { Batisseur, Ouvriers, Porteurs } from './Ouvriers'
 import { BatailleLayer } from './BatailleLayer'
+import { Garnison } from './Garnison'
 import { Murailles } from './Murailles'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
 import { Villageois } from './Villageois'
@@ -122,6 +123,7 @@ export function VillageMap() {
   const warned = useGame((s) => s.warned)
   const wallLevel = useGame((s) => s.buildings.remparts.level)
   const remparts = useGame((s) => s.buildings.remparts)
+  const army = useGame((s) => s.army)
   const wallHp = useGame((s) => s.wallHp)
   const pop = useGame((s) => s.pop)
   const morale = useGame((s) => s.morale)
@@ -201,6 +203,9 @@ export function VillageMap() {
         {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
           <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="front" span={spanMur} />
         )}
+
+        {/* la garnison monte la garde tant qu'aucune bataille ne fait rage */}
+        <Garnison army={army} wallLevel={wallLevel} visible={battle === null} />
 
         {/* zone cliquable des remparts (sur la porte) */}
         <g

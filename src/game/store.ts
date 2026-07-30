@@ -53,6 +53,7 @@ import {
   VILLAGES_PAR_ID,
   type VillageCible,
 } from './expeditions'
+import { MISSIONS_PAR_ID, missionsActives } from './missions'
 import type {
   ActiveEvent,
   BattleState,
@@ -123,8 +124,12 @@ export interface GameState {
   nextDesertAt: number
   /** vitesse du jeu façon Sims (1/2/4/8) — forcée à ×1 pendant les batailles */
   vitesse: number
+  /** missions dont la récompense a été réclamée */
+  missionsReclamees: string[]
 
   // runtime (non sauvegardé)
+  /** missions déjà signalées « prêtes » (toast unique) */
+  missionsNotifiees: string[]
   battle: BattleState | null
   expedition: ExpeditionEnCours | null
   battleReport: Report | null
@@ -150,6 +155,7 @@ export interface GameState {
   fermerExpedition: () => void
   attaqueTest: () => void
   setVitesse: (v: number) => void
+  reclamerMission: (id: string) => void
   select: (b: BuildingId | null) => void
   openPanel: (p: GameState['panel']) => void
   fermerOffline: () => void
@@ -328,7 +334,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     // décalé d'un dixième de journée : la partie commence au matin, pas en pleine nuit
     createdAt: now - DAY_MS * 0.1,
     lastSeen: now,
-    resources: { bois: 150, pierre: 100, grain: 120, bronze: 0 },
+    resources: { bois: 220, pierre: 150, grain: 220, bronze: 20 },
     faveur: 10,
     pop: 4,
     nextPopAt: now + 45_000,
@@ -361,6 +367,8 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     aresBoostUntil: 0,
     nextDesertAt: 0,
     vitesse: 1,
+    missionsReclamees: [],
+    missionsNotifiees: [],
     battle: null,
     expedition: null,
     battleReport: null,
@@ -387,6 +395,7 @@ type ActionsOnly = {
   fermerExpedition: unknown
   attaqueTest: unknown
   setVitesse: unknown
+  reclamerMission: unknown
   select: unknown
   openPanel: unknown
   fermerOffline: unknown
@@ -427,6 +436,7 @@ const CHAMPS_SAUVES = [
   'aresBoostUntil',
   'nextDesertAt',
   'vitesse',
+  'missionsReclamees',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -907,6 +917,16 @@ export const useGame = create<GameState>()(
           }
         }
 
+        // ── missions prêtes à réclamer (toast unique) ──
+        for (const m of missionsActives(s.missionsReclamees)) {
+          if (s.missionsNotifiees.includes(m.id)) continue
+          const p = m.progres(s)
+          if (p.cur >= p.max && m.id !== 'nouveau-depart') {
+            s.missionsNotifiees.push(m.id)
+            pushToast(s, '🏅', `Mission accomplie : ${m.titre} — réclamez votre récompense !`)
+          }
+        }
+
         // toasts expirés
         s.toasts = s.toasts.filter((t) => t.until > now)
       })
@@ -1190,6 +1210,27 @@ export const useGame = create<GameState>()(
         if (!VITESSES.includes(v as (typeof VITESSES)[number])) return
         s.vitesse = v
       })
+    },
+
+    reclamerMission: (id) => {
+      set((s) => {
+        const def = MISSIONS_PAR_ID[id]
+        if (!def || s.missionsReclamees.includes(id)) return
+        if (!missionsActives(s.missionsReclamees).some((m) => m.id === id)) return
+        const p = def.progres(s)
+        if (p.cur < p.max) return
+        const rec = def.recompense
+        if (rec.res) {
+          for (const [r, n] of Object.entries(rec.res) as [ResourceId, number][]) {
+            s.resources[r] = clampRes(s, r, s.resources[r] + n)
+          }
+        }
+        if (rec.faveur) s.faveur = Math.min(FAVEUR_MAX, s.faveur + rec.faveur)
+        if (rec.pop) s.pop += rec.pop
+        s.missionsReclamees.push(id)
+        pushToast(s, def.emoji, `${def.titre} : récompense reçue !`)
+      })
+      get().save()
     },
 
     select: (b) => set((s) => void (s.selected = b)),

@@ -19,8 +19,9 @@ export const TICK_MS = 250
 export const DAY_MS = 8 * 60_000
 export const OFFLINE_CAP_MS = 8 * 3_600_000
 export const FAVEUR_MAX = 100
-/** production de base (cueillette) même sans bâtiment, par minute */
-export const BASE_PROD: Record<ResourceId, number> = { bois: 2, pierre: 1.2, grain: 2, bronze: 0 }
+/** production de base (cueillette) même sans bâtiment, par minute —
+ *  assez pour qu'un village ruiné puisse toujours se relever */
+export const BASE_PROD: Record<ResourceId, number> = { bois: 3.5, pierre: 2.2, grain: 3.5, bronze: 0 }
 /** capacité de stockage par niveau d'agora (index = niveau) */
 export const STOCKAGE = [0, 350, 700, 1400, 2800]
 /** HP des remparts par niveau */

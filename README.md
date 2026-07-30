@@ -65,6 +65,14 @@ sont **différées** : les traîtres frappent à la nuit tombée.
 
 ![Événement](docs/evenement.png)
 
+### 🏅 Vingt missions comme fil rouge
+Toujours un objectif à l'écran, toujours une récompense à la clé : des provisions du
+premier jour jusqu'à la « Cité de légende », vingt missions guident la partie — bâtir,
+recruter, repousser un assaut, réussir un raid trois étoiles, gagner la confiance d'un
+dieu… Chaque réclamation finance l'étape suivante : pas de temps mort.
+
+![Missions](docs/missions.png)
+
 ### 🎭 L'ambiance du village
 Fêtes, victoires et greniers pleins exaltent le village (production accrue). Famine,
 défaites et choix cruels le minent. Sous 25 : **mutinerie** — ouvrez les greniers, promettez

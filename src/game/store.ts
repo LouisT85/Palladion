@@ -16,12 +16,18 @@ import {
   FAVEUR_MAX,
   GODS,
   GOD_IDS,
+  METIERS,
   MODE_TEST,
+  NOMS_VILLAGEOIS,
   OFFLINE_CAP_MS,
   POP_CAP,
+  POSTES,
   PREMIER_ASSAUT_MS,
   PROD,
   RES,
+  SECTEURS,
+  multRelation,
+  nbFronts,
   STOCKAGE,
   STORAGE_KEY,
   TAUX_PORT,
@@ -72,6 +78,7 @@ import type {
   ResourceId,
   Toast,
   UnitId,
+  Villageois,
   WaveUnit,
 } from './types'
 
@@ -100,6 +107,8 @@ export interface GameState {
   pop: number
   nextPopAt: number
   buildings: Record<BuildingId, BuildingState>
+  /** les habitants, nommés et affectables à un métier */
+  villageois: Villageois[]
   wallHp: number
   /** tours d'archers bâties sur l'enceinte */
   tours: number
@@ -149,6 +158,9 @@ export interface GameState {
   recruter: (u: UnitId, n: number) => void
   reparerRemparts: () => void
   construireTour: () => void
+  affecter: (villageoisId: string, poste: BuildingId | null) => void
+  /** pourvoit d'un coup tous les postes libres avec les villageois oisifs */
+  affecterAuto: () => void
   echanger: (donner: ResourceId, recevoir: ResourceId) => void
   sacrifier: (g: GodId) => void
   benir: (g: GodId) => void
@@ -182,24 +194,88 @@ export function armeeTotale(army: Record<UnitId, number>): number {
 export function multMorale(morale: number): number {
   return 0.5 + (morale / 100) * 0.75
 }
+
+// ── Postes de travail ────────────────────────────────────────────────────────
+/** nombre de postes offerts par un bâtiment à son niveau actuel */
+export function postesTotal(s: Pick<GameState, 'buildings'>, b: BuildingId): number {
+  return POSTES[b]?.[s.buildings[b].level] ?? 0
+}
+/** villageois actuellement au travail dans ce bâtiment */
+export function postesPourvus(s: Pick<GameState, 'villageois'>, b: BuildingId): number {
+  return s.villageois.filter((v) => v.poste === b).length
+}
+/** rendement d'un bâtiment : la part de ses postes réellement tenue (0…1) */
+export function rendement(s: Pick<GameState, 'buildings' | 'villageois'>, b: BuildingId): number {
+  const total = postesTotal(s, b)
+  if (total <= 0) return 0
+  return Math.min(1, postesPourvus(s, b) / total)
+}
+/** villageois sans emploi — ceux qu'on peut enrôler ou affecter */
+export function oisifs(s: Pick<GameState, 'villageois'>): Villageois[] {
+  return s.villageois.filter((v) => v.poste === null)
+}
+/** bâtiments qui offrent des postes (dans l'ordre de la carte) */
+export const BATIMENTS_A_POSTES = BUILDING_IDS.filter((b) => POSTES[b] !== undefined)
+
+/** métier d'un villageois, pour l'affichage */
+export function metierDe(v: Villageois): string {
+  return v.poste ? (METIERS[v.poste] ?? BUILDINGS[v.poste].nom) : 'Sans emploi'
+}
+
+/**
+ * Réaligne la liste des villageois sur `pop` (source de vérité numérique
+ * utilisée par les événements, les missions et le recrutement).
+ * Idempotent : appelé à chaque tick, il ne fait rien si tout concorde.
+ */
+function syncVillageois(s: GameState): void {
+  while (s.villageois.length < s.pop) {
+    const utilises = new Set(s.villageois.map((v) => v.nom))
+    const libres = NOMS_VILLAGEOIS.filter((n) => !utilises.has(n))
+    const nom = libres.length > 0 ? libres[Math.floor(Math.random() * libres.length)] : `Habitant ${s.villageois.length + 1}`
+    s.villageois.push({ id: uid('v'), nom, poste: null })
+  }
+  while (s.villageois.length > s.pop) {
+    // on retire d'abord les oisifs : un artisan ne disparaît qu'en dernier
+    const i = s.villageois.findIndex((v) => v.poste === null)
+    s.villageois.splice(i >= 0 ? i : s.villageois.length - 1, 1)
+  }
+  // un poste supprimé par une rétrogradation libère son occupant
+  for (const v of s.villageois) {
+    if (v.poste && postesPourvus(s, v.poste) > postesTotal(s, v.poste)) {
+      const trop = postesPourvus(s, v.poste) - postesTotal(s, v.poste)
+      if (trop > 0) v.poste = null
+    }
+  }
+}
 /** production nette par minute pour l'affichage (hors conso) */
 export function tauxParMinute(s: GameState): Record<ResourceId, number> {
   const m = multMorale(s.morale)
   const drought = Date.now() < s.droughtUntil ? 0.5 : 1
+  const r = (b: BuildingId) => rendement(s, b)
   return {
-    bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level]) * m,
-    pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level]) * m,
+    bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level] * r('scierie')) * m,
+    pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level] * r('carriere')) * m,
     grain:
-      (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * drought) * m -
+      (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * r('ferme') * drought) * m -
       s.pop * CONSO_POP -
       armeeTotale(s.army) * CONSO_SOLDAT,
     bronze:
-      (BASE_PROD.bronze + PROD.forge[s.buildings.forge.level] + PROD.port[s.buildings.port.level]) * m,
+      (BASE_PROD.bronze +
+        PROD.forge[s.buildings.forge.level] * r('forge') +
+        PROD.port[s.buildings.port.level] * r('port')) *
+      m,
   }
 }
 export function coutBenediction(s: Pick<GameState, 'buildings'>, g: GodId): number {
   const base = GODS[g].benediction.cout
   return s.buildings.temple.level >= 4 ? Math.round(base * 0.75) : base
+}
+/**
+ * Ferveur : puissance des bénédictions du dieu, de ×0.4 (maudit) à ×1.6 (élu).
+ * La jauge de relation devient ainsi le vrai levier du panthéon.
+ */
+export function ferveur(s: Pick<GameState, 'gods'>, g: GodId): number {
+  return multRelation(s.gods[g].relation)
 }
 export function fmtDuree(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000))
@@ -282,6 +358,22 @@ function volerPct(s: GameState, p: number, quoi?: ResourceId[]): string {
   return parts.length ? parts.join(', ') : 'presque rien'
 }
 
+/**
+ * Tire les fronts d'une vague : la porte de l'est est toujours visée
+ * (c'est la voie royale), les autres secteurs s'ajoutent avec la menace.
+ * Chaque assaut est ainsi différent — impossible de fortifier un seul côté.
+ */
+function choisirFronts(threat: number): typeof SECTEURS {
+  const n = Math.min(nbFronts(threat), SECTEURS.length)
+  const autres = SECTEURS.slice(1)
+  // mélange déterministe-au-tirage des flancs
+  for (let i = autres.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[autres[i], autres[j]] = [autres[j], autres[i]]
+  }
+  return [SECTEURS[0], ...autres.slice(0, n - 1)]
+}
+
 /** prépare l'alerte : vague révélée + récompense de défense calculée */
 function armerAlerte(s: GameState): void {
   if (!s.incomingWave) s.incomingWave = genererVague(s.threat)
@@ -343,9 +435,11 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     lastSeen: now,
     resources: { bois: 220, pierre: 150, grain: 220, bronze: 20 },
     faveur: 10,
-    pop: 4,
+    // sept bras au départ : de quoi tenir les premiers postes ET enrôler
+    pop: 7,
     nextPopAt: now + 45_000,
     buildings,
+    villageois: [],
     wallHp: 0,
     tours: 0,
     army: { lancier: 0, archer: 0, hoplite: 0 },
@@ -393,6 +487,8 @@ type ActionsOnly = {
   recruter: unknown
   reparerRemparts: unknown
   construireTour: unknown
+  affecter: unknown
+  affecterAuto: unknown
   echanger: unknown
   sacrifier: unknown
   benir: unknown
@@ -421,6 +517,7 @@ const CHAMPS_SAUVES = [
   'pop',
   'nextPopAt',
   'buildings',
+  'villageois',
   'wallHp',
   'tours',
   'army',
@@ -763,6 +860,9 @@ export const useGame = create<GameState>()(
           for (const k of Object.keys(s.expeditions)) s.expeditions[k].dernierRaid -= avance
         }
 
+        // les habitants suivent la population (naissances, pertes, récompenses)
+        syncVillageois(s)
+
         // morale & menace
         s.moraleMods = s.moraleMods.filter((m) => m.expiresAt === null || m.expiresAt > now)
         s.morale = calcMorale(s, now)
@@ -776,22 +876,30 @@ export const useGame = create<GameState>()(
           s.faveur = FAVEUR_MAX
           if (s.pop < popCap(s)) s.pop = popCap(s)
         } else {
-          // production
+          // production — chaque atelier ne rend qu'au prorata de ses postes tenus
           const m = multMorale(s.morale)
           const drought = now < s.droughtUntil ? 0.5 : 1
+          const rd = (b: BuildingId) => rendement(s, b)
           const parMin: Record<ResourceId, number> = {
-            bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level]) * m,
-            pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level]) * m,
-            grain: (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * drought) * m,
+            bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level] * rd('scierie')) * m,
+            pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level] * rd('carriere')) * m,
+            grain: (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * rd('ferme') * drought) * m,
             bronze:
-              (BASE_PROD.bronze + PROD.forge[s.buildings.forge.level] + PROD.port[s.buildings.port.level]) * m,
+              (BASE_PROD.bronze +
+                PROD.forge[s.buildings.forge.level] * rd('forge') +
+                PROD.port[s.buildings.port.level] * rd('port')) *
+              m,
           }
           for (const r of Object.keys(parMin) as ResourceId[]) {
             s.resources[r] = clampRes(s, r, s.resources[r] + (parMin[r] / 60) * dtJeu)
           }
           const conso = (s.pop * CONSO_POP + armeeTotale(s.army) * CONSO_SOLDAT) / 60
           s.resources.grain = Math.max(0, s.resources.grain - conso * dtJeu)
-          s.faveur = Math.min(FAVEUR_MAX, s.faveur + (PROD.temple[s.buildings.temple.level] / 60) * dtJeu)
+          // sans prêtre au temple, les dieux n'entendent rien
+          s.faveur = Math.min(
+            FAVEUR_MAX,
+            s.faveur + ((PROD.temple[s.buildings.temple.level] * rd('temple')) / 60) * dtJeu,
+          )
         }
 
         // désertions en cas de moral effondré
@@ -821,6 +929,21 @@ export const useGame = create<GameState>()(
             pushToast(s, BUILDINGS[bId].emoji, `${BUILDINGS[bId].nom} : niveau ${b.level} achevé !`)
             delete b.targetLevel
             delete b.busyUntil
+            // un chantier livré ouvre des postes : on y envoie les bras disponibles
+            const libres = postesTotal(s, bId) - postesPourvus(s, bId)
+            if (libres > 0) {
+              let places = libres
+              for (const v of s.villageois) {
+                if (places <= 0) break
+                if (v.poste === null) {
+                  v.poste = bId
+                  places--
+                }
+              }
+              if (places < libres) {
+                pushToast(s, '👷', `${METIERS[bId] ?? 'Ouvriers'} : ${libres - places} villageois pren${libres - places > 1 ? 'nent' : 'd'} son poste.`)
+              }
+            }
           }
         }
 
@@ -870,6 +993,8 @@ export const useGame = create<GameState>()(
               s.nextAttackAt = now + 45_000
             } else {
               armerAlerte(s)
+              // la vague se scinde entre plusieurs fronts, tirés au sort
+              const fronts = choisirFronts(s.threat)
               s.battle = creerBataille({
                 attaquants: s.incomingWave!,
                 defenseurs: s.army,
@@ -878,6 +1003,8 @@ export const useGame = create<GameState>()(
                 geo: GEO_VILLAGE,
                 campJoueur: 'defense',
                 tours: s.tours,
+                fronts,
+                wallHpTotal: s.wallHp,
               })
               if (s.buildings.ferme.level > 0) {
                 s.resources.grain = Math.max(0, s.resources.grain * 0.97) // champs piétinés
@@ -979,15 +1106,29 @@ export const useGame = create<GameState>()(
         if (s.buildings.caserne.level < def.caserne) return
         const cout: Partial<Record<ResourceId, number>> = {}
         for (const [r, c] of Object.entries(def.cost) as [ResourceId, number][]) cout[r] = c * n
-        if (s.pop < n) {
-          pushToast(s, '👥', 'Pas assez de villageois à enrôler.')
+        // on n'enrôle que des bras disponibles : un artisan reste à son poste
+        const dispo = s.villageois.filter((v) => v.poste === null)
+        if (dispo.length < n) {
+          pushToast(
+            s,
+            '👥',
+            dispo.length === 0
+              ? 'Aucun villageois disponible — libérez un artisan de son poste.'
+              : `Seulement ${dispo.length} villageois sans emploi.`,
+          )
           return
         }
         if (!payer(s, cout)) {
           pushToast(s, '❌', 'Ressources insuffisantes.')
           return
         }
+        // les recrues quittent le village pour la caserne
+        const noms = dispo.slice(0, n).map((v) => v.nom)
+        for (const v of dispo.slice(0, n)) {
+          s.villageois.splice(s.villageois.indexOf(v), 1)
+        }
         s.pop -= n
+        pushToast(s, def.emoji, `${noms.join(', ')} prend${n > 1 ? 'nent' : ''} les armes.`)
         const now = Date.now()
         const vitesse = MODE_TEST
           ? 0.03
@@ -1032,6 +1173,54 @@ export const useGame = create<GameState>()(
         }
         s.tours++
         pushToast(s, '🏹', `Tour d’archers dressée (${s.tours}/${max}). Sa silhouette attire l’œil des pillards…`)
+      })
+      get().save()
+    },
+
+    affecter: (villageoisId, poste) => {
+      set((s) => {
+        const v = s.villageois.find((x) => x.id === villageoisId)
+        if (!v) return
+        if (poste === null) {
+          v.poste = null
+          return
+        }
+        if (postesTotal(s, poste) <= 0) {
+          pushToast(s, '🚧', `${BUILDINGS[poste].nom} n’offre aucun poste à ce niveau.`)
+          return
+        }
+        if (v.poste !== poste && postesPourvus(s, poste) >= postesTotal(s, poste)) {
+          pushToast(s, '👥', `Tous les postes de ${BUILDINGS[poste].nom} sont déjà tenus.`)
+          return
+        }
+        v.poste = poste
+      })
+      get().save()
+    },
+
+    affecterAuto: () => {
+      set((s) => {
+        let places = 0
+        for (const b of BATIMENTS_A_POSTES) {
+          let libres = postesTotal(s, b) - postesPourvus(s, b)
+          while (libres > 0) {
+            const v = s.villageois.find((x) => x.poste === null)
+            if (!v) {
+              libres = 0
+              break
+            }
+            v.poste = b
+            libres--
+            places++
+          }
+        }
+        pushToast(
+          s,
+          '👷',
+          places > 0
+            ? `${places} villageois envoyé${places > 1 ? 's' : ''} au travail.`
+            : 'Aucun poste à pourvoir — ou plus personne de disponible.',
+        )
       })
       get().save()
     },
@@ -1089,18 +1278,34 @@ export const useGame = create<GameState>()(
         s.faveur -= cout
         s.gods[g].cooldownUntil = now + dieu.benediction.cooldown / (MODE_TEST ? 12 : 1)
         s.gods[g].relation = Math.min(100, s.gods[g].relation + 2)
+        // ferveur : plus le dieu vous chérit, plus son bras est lourd
+        const force = multRelation(s.gods[g].relation)
+        const pct = (x: number) => Math.round(x * 100)
 
         switch (g) {
           case 'zeus': {
             if (bataille) {
-              const touches = foudreDeZeus(bataille, now)
-              pushToast(s, '⚡', `La foudre de Zeus frappe ${touches} ennemis !`)
+              const touches = foudreDeZeus(bataille, now, force)
+              pushToast(
+                s,
+                '⚡',
+                `La foudre de Zeus frappe ${touches} ennemis (${pct(force)} % de puissance) !`,
+              )
             }
             break
           }
           case 'poseidon': {
             const max = WALL_HP[s.buildings.remparts.level]
-            s.wallHp = Math.min(max, Math.round(s.wallHp + max * 0.45))
+            const part = 0.45 * force
+            s.wallHp = Math.min(max, Math.round(s.wallHp + max * part))
+            // en pleine bataille, les pans effondrés se relèvent aussi
+            if (s.battle) {
+              for (const sec of s.battle.secteurs) {
+                sec.hp = Math.min(sec.max, sec.hp + sec.max * part)
+                if (sec.hp > 0) sec.breche = false
+              }
+              s.battle.breche = s.battle.secteurs.every((x) => x.breche)
+            }
             if (s.battle) {
               s.battle.effects.push({
                 id: uid('fx'),
@@ -1110,27 +1315,39 @@ export const useGame = create<GameState>()(
                 until: now + 2000,
               })
             }
-            pushToast(s, '🔱', 'Les pierres se ressoudent : remparts restaurés de 45 %.')
+            pushToast(s, '🔱', `Les pierres se ressoudent : remparts restaurés de ${pct(part)} %.`)
             break
           }
           case 'athena': {
             if (bataille) {
-              bataille.defBuffUntil = now + 25_000
-              pushToast(s, '🦉', 'L’Égide couvre vos combattants (−60 % de dégâts subis, 25 s).')
+              // ferveur haute = réduction plus forte ET plus longue
+              const reduction = Math.max(0.15, 1 - 0.6 * force)
+              bataille.defBuffUntil = now + 25_000 * force
+              bataille.defBuffForce = reduction
+              pushToast(
+                s,
+                '🦉',
+                `L’Égide couvre vos combattants (−${pct(1 - reduction)} % de dégâts subis, ${Math.round(25 * force)} s).`,
+              )
             }
             break
           }
           case 'ares': {
             if (bataille) {
-              bataille.atkBuffUntil = now + 25_000
-              pushToast(s, '🐗', 'Fureur d’Arès : +60 % d’attaque pendant 25 s !')
+              bataille.atkBuffUntil = now + 25_000 * force
+              bataille.atkBuffForce = 1 + 0.6 * force
+              pushToast(
+                s,
+                '🐗',
+                `Fureur d’Arès : +${pct(0.6 * force)} % d’attaque pendant ${Math.round(25 * force)} s !`,
+              )
             } else {
-              s.aresBoostUntil = now + 60_000
+              s.aresBoostUntil = now + 60_000 * force
               if (s.recruitQueue.length > 0) {
                 const job = s.recruitQueue[0]
                 job.finishAt = now + (job.finishAt - now) / 2
               }
-              pushToast(s, '🐗', 'Arès presse vos recrues : formation accélérée (60 s).')
+              pushToast(s, '🐗', `Arès presse vos recrues : formation accélérée (${Math.round(60 * force)} s).`)
             }
             break
           }

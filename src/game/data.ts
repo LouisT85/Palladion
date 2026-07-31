@@ -39,7 +39,7 @@ export const TOUR_COUTS: Cost[] = [
 /** portée de tir d'une tour (px carte) */
 export const TOUR_PORTEE = 240
 export const TOUR_DMG = 11
-export const TOUR_CADENCE_MS = 1800
+export const TOUR_CADENCE_MS = 2800
 /** emplacements sur l'enceinte, par ordre de construction (angle 0 = porte, à l'est) */
 export const TOUR_ANGLES = [0.5, -0.5, 1.1, -1.1]
 /** capacité de population par niveau de maisons */
@@ -338,10 +338,10 @@ export const UNIT_IDS = Object.keys(UNITS) as UnitId[]
 
 // ── Ennemis ───────────────────────────────────────────────────────────────────
 export const ENEMIES: Record<EnemyId, EnemyDef> = {
-  pillard: { id: 'pillard', nom: 'Pillard', pluriel: 'pillards', atk: 6, hp: 30, speed: 55, wallDps: 4, budget: 10 },
-  guerrier: { id: 'guerrier', nom: 'Guerrier achéen', pluriel: 'guerriers achéens', atk: 11, hp: 62, speed: 42, wallDps: 8, budget: 25 },
-  mercenaire: { id: 'mercenaire', nom: 'Mercenaire', pluriel: 'mercenaires', atk: 19, hp: 115, speed: 38, wallDps: 14, budget: 60 },
-  belier: { id: 'belier', nom: 'Bélier de siège', pluriel: 'béliers de siège', atk: 4, hp: 240, speed: 25, wallDps: 34, budget: 80 },
+  pillard: { id: 'pillard', nom: 'Pillard', pluriel: 'pillards', atk: 6, hp: 30, speed: 38, wallDps: 4, budget: 10 },
+  guerrier: { id: 'guerrier', nom: 'Guerrier achéen', pluriel: 'guerriers achéens', atk: 11, hp: 62, speed: 30, wallDps: 8, budget: 25 },
+  mercenaire: { id: 'mercenaire', nom: 'Mercenaire', pluriel: 'mercenaires', atk: 19, hp: 115, speed: 27, wallDps: 14, budget: 60 },
+  belier: { id: 'belier', nom: 'Bélier de siège', pluriel: 'béliers de siège', atk: 4, hp: 240, speed: 18, wallDps: 34, budget: 80 },
 }
 
 // ── Dieux ─────────────────────────────────────────────────────────────────────

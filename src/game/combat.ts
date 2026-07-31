@@ -18,7 +18,7 @@ function statsDe(type: EnemyId | UnitId): { atk: number; hp: number; speed: numb
   const e = ENEMIES[type as EnemyId]
   if (e) return { atk: e.atk, hp: e.hp, speed: e.speed, wallDps: e.wallDps }
   const u = UNITS[type as UnitId]
-  return { atk: u.atk, hp: u.hp, speed: 55, wallDps: u.wallDps }
+  return { atk: u.atk, hp: u.hp, speed: 38, wallDps: u.wallDps }
 }
 
 function nomDe(type: EnemyId | UnitId, n: number): string {
@@ -166,11 +166,16 @@ export function resoudreHorsLigne(
 }
 
 // ── Bataille animée ───────────────────────────────────────────────────────────
+// Rythme volontairement posé : la bataille se lit comme une scène — colonne en
+// approche, salves espacées, mêlée qui dure. Les dégâts par coup ne bougent pas,
+// seule la cadence s'étire : l'issue reste la même, le spectacle respire.
 const PORTEE_ARC_MUR = 300
 const PORTEE_ARC_SOL = 210
-const CADENCE_ARC = 1600
-const CADENCE_MELEE = 1200
-const CADENCE_MUR = 1000
+export const CADENCE_ARC = 2600
+export const CADENCE_MELEE = 2100
+export const CADENCE_MUR = 1700
+/** vitesse d'une flèche (px/s) — assez lente pour suivre sa course des yeux */
+const VITESSE_FLECHE = 250
 
 export interface OptionsBataille {
   attaquants: WaveUnit[]
@@ -187,7 +192,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
   const { attaquants, defenseurs, wallLevel, now, geo, campJoueur } = opts
   const fighters: Fighter[] = []
 
-  // Assaillants — apparition échelonnée
+  // Assaillants — en colonne de marche : les rangs arrivent les uns après les autres
   let i = 0
   for (const w of attaquants) {
     const st = statsDe(w.enemy)
@@ -200,8 +205,8 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         hp: st.hp,
         maxHp: st.hp,
         atk: st.atk,
-        x: geo.spawn.x + Math.random() * 40,
-        y: geo.spawn.y + (Math.random() - 0.5) * 110,
+        x: geo.spawn.x + 10 + Math.floor(i / 3) * 30 + Math.random() * 14,
+        y: geo.spawn.y + ((i % 3) - 1) * 34 + (Math.random() - 0.5) * 60,
         tx: slot.x,
         ty: slot.y,
         speed: st.speed,
@@ -234,7 +239,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         y: geo.ralliement.y + (Math.random() - 0.5) * 70,
         tx: geo.ralliement.x,
         ty: geo.ralliement.y,
-        speed: 60,
+        speed: 42,
         etat: 'melee',
         nextHit: 0,
         seed: Math.random(),
@@ -263,7 +268,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         y: p.y - 6,
         tx: p.x,
         ty: p.y - 6,
-        speed: 55,
+        speed: 40,
         etat: 'siege', // sur les murs
         nextHit: now + 800 + Math.random() * 800,
         seed: Math.random(),
@@ -331,9 +336,14 @@ function frapper(b: BattleState, cible: Fighter, dmg: number, now: number): void
   if (cible.hp <= 0 && cible.etat !== 'mort') {
     cible.etat = 'mort'
     cible.mortAt = now
+    // nuage de poussière : le combattant mord la poussière, littéralement
+    if (b.effects.length < 40) {
+      b.effects.push({ id: uid('fx'), type: 'poussiere', x: cible.x, y: cible.y - 3, until: now + 700 })
+    }
+    return
   }
   if (b.effects.length < 40) {
-    b.effects.push({ id: uid('fx'), type: 'impact', x: cible.x + (Math.random() - 0.5) * 4, y: cible.y - 8, until: now + 260 })
+    b.effects.push({ id: uid('fx'), type: 'impact', x: cible.x + (Math.random() - 0.5) * 4, y: cible.y - 8, until: now + 320 })
   }
 }
 
@@ -453,11 +463,11 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
           b.projectiles.push({
             id: uid('p'),
             x0: f.x,
-            y0: f.y,
+            y0: f.y - 9,
             x1: cible.x,
-            y1: cible.y,
+            y1: cible.y - 6,
             start: now,
-            dur: Math.max(200, (d / 350) * 1000),
+            dur: Math.max(260, (d / VITESSE_FLECHE) * 1000),
             targetId: cible.id,
             dmg: f.atk * multDegats(f),
           })
@@ -501,11 +511,11 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       b.projectiles.push({
         id: uid('p'),
         x0: t.x,
-        y0: t.y,
+        y0: t.y - 12,
         x1: cible.x,
-        y1: cible.y,
+        y1: cible.y - 6,
         start: now,
-        dur: Math.max(200, (d / 350) * 1000),
+        dur: Math.max(260, (d / VITESSE_FLECHE) * 1000),
         targetId: cible.id,
         dmg: TOUR_DMG * enragees,
       })

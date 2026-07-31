@@ -21,7 +21,7 @@ export const BUTIN_REPETE = 0.4
 /** effectif maximal d'une expédition */
 export const MAX_TROUPES = 20
 /** durée maximale d'un assaut avant retraite forcée */
-export const EXPEDITION_TIMEOUT_MS = 120_000
+export const EXPEDITION_TIMEOUT_MS = 180_000
 
 export const VILLAGES_CIBLES: VillageCible[] = [
   {

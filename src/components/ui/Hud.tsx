@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { DAY_MS, GODS, GOD_IDS, MODE_TEST, RES } from '../../game/data'
 import { descVague, tailleVague } from '../../game/combat'
 import {
@@ -10,6 +11,7 @@ import {
   useGame,
 } from '../../game/store'
 import { nomPhase, phaseJour } from '../map/Terrain'
+import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
 
 /** contrôle de vitesse façon Sims — verrouillé à ×1 pendant les batailles */
@@ -41,6 +43,57 @@ export function ControleVitesse() {
   )
 }
 
+/** équerres d'angle : vers l'extérieur pour entrer, vers l'intérieur pour sortir.
+ *  Tracé en SVG et non en ⛶ — le caractère manque à beaucoup de polices. */
+function IconePleinEcran({ sortir }: { sortir: boolean }) {
+  const d = sortir
+    ? 'M7 2v5H2 M13 2v5h5 M13 18v-5h5 M7 18v-5H2'
+    : 'M2 7V2h5 M13 2h5v5 M18 13v5h-5 M7 18H2v-5'
+  return (
+    <svg viewBox="0 0 20 20" width={14} height={14} aria-hidden="true">
+      <path d={d} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/**
+ * Bascule plein écran du navigateur. L'API manque sur certains mobiles et la
+ * demande peut être refusée : on ne suppose rien et on n'attend aucune promesse.
+ */
+export function BoutonPleinEcran() {
+  const [plein, setPlein] = useState(false)
+  const [supporte] = useState(() => typeof document !== 'undefined' && !!document.documentElement.requestFullscreen)
+
+  useEffect(() => {
+    const maj = () => setPlein(document.fullscreenElement !== null)
+    maj()
+    document.addEventListener('fullscreenchange', maj)
+    return () => document.removeEventListener('fullscreenchange', maj)
+  }, [])
+
+  if (!supporte) return null
+
+  const basculer = () => {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen()?.catch(() => {})
+      else document.documentElement.requestFullscreen()?.catch(() => {})
+    } catch {
+      // refus du navigateur : le jeu reste jouable en fenêtre
+    }
+  }
+
+  return (
+    <button
+      className={`bouton-icone${plein ? ' actif' : ''}`}
+      onClick={basculer}
+      title={plein ? 'Quitter le plein écran' : 'Jouer en plein écran'}
+      aria-label={plein ? 'Quitter le plein écran' : 'Jouer en plein écran'}
+    >
+      <IconePleinEcran sortir={plein} />
+    </button>
+  )
+}
+
 function labelMorale(m: number): { txt: string; c: string } {
   if (m >= 80) return { txt: 'Exaltée', c: '#5fae7d' }
   if (m >= 60) return { txt: 'Bonne', c: '#8fae5f' }
@@ -51,12 +104,15 @@ function labelMorale(m: number): { txt: string; c: string } {
 
 export function BarreRessources() {
   const s = useGame()
+  // la liste des habitants n'appartient pas à la partie : simple état d'affichage
+  const [popOuvert, setPopOuvert] = useState(false)
   const taux = tauxParMinute(s)
   const stock = stockageMax(s)
   const cap = popCap(s)
   const morale = labelMorale(s.morale)
   const jour = Math.floor((s.lastSeen - s.createdAt) / DAY_MS) + 1
   const phase = nomPhase(phaseJour(s.lastSeen, s.createdAt, DAY_MS))
+  const sansEmploi = s.villageois.filter((v) => v.poste === null).length
 
   return (
     <>
@@ -65,18 +121,30 @@ export function BarreRessources() {
           const t = taux[r]
           return (
             <div key={r} className={`res${r === 'grain' && s.resources.grain <= 0 ? ' alerte' : ''}`} title={`${RES[r].nom} — stock max ${stock}`}>
-              <span>{RES[r].emoji}</span>
-              <span className="val">{Math.floor(s.resources[r])}</span>
-              <span className={`taux${t < 0 ? ' neg' : ''}`}>
-                {MODE_TEST ? '∞' : `${t >= 0 ? '+' : ''}${t.toFixed(1)}/min`}
+              <span className="ico">{RES[r].emoji}</span>
+              <span className="chiffres">
+                <span className="val">{Math.floor(s.resources[r])}</span>
+                <span className={`taux${t < 0 ? ' neg' : ''}`}>
+                  {MODE_TEST ? (
+                    '∞'
+                  ) : (
+                    <>
+                      {t >= 0 ? '+' : ''}
+                      {t.toFixed(1)}
+                      <span className="par-min">/min</span>
+                    </>
+                  )}
+                </span>
               </span>
             </div>
           )
         })}
         <div className="res" title="Faveur divine (temple, sacrifices, victoires)">
-          <span>✨</span>
-          <span className="val">{Math.floor(s.faveur)}</span>
-          <span className="taux">/100</span>
+          <span className="ico">✨</span>
+          <span className="chiffres">
+            <span className="val">{Math.floor(s.faveur)}</span>
+            <span className="taux">/100</span>
+          </span>
         </div>
       </div>
       <div className="hud-droite">
@@ -90,14 +158,24 @@ export function BarreRessources() {
             🧪 Attaque
           </button>
         )}
-        <span className="pastille" title="Population / capacité des habitations">
+        <button
+          className="pastille"
+          onClick={() => setPopOuvert(true)}
+          title={`Habitants : ${s.pop}/${cap} — ${sansEmploi} sans emploi. Cliquez pour affecter vos villageois aux postes de travail.`}
+        >
           👥 <b>{s.pop}</b>/{cap}
-        </span>
+          <span className={`oisifs${sansEmploi === 0 ? ' zero' : ''}`}>
+            ({sansEmploi} oisif{sansEmploi > 1 ? 's' : ''})
+          </span>
+        </button>
         <span className="pastille" title="Garnison">
           ⚔️ <b>{armeeTotale(s.army)}</b>
         </span>
-        <span className="pastille" title={`Ambiance du village : ${Math.round(s.morale)}/100 — production ×${(0.5 + (s.morale / 100) * 0.75).toFixed(2)}`}>
-          🎭 <b style={{ color: morale.c }}>{morale.txt}</b>
+        <span className="pastille" title={`Ambiance du village : ${morale.txt} — ${Math.round(s.morale)}/100, production ×${(0.5 + (s.morale / 100) * 0.75).toFixed(2)}`}>
+          🎭
+          <b className="opt" style={{ color: morale.c }}>
+            {morale.txt}
+          </b>
           <span className="jauge-morale">
             <div style={{ width: `${s.morale}%`, background: morale.c }} />
           </span>
@@ -105,11 +183,13 @@ export function BarreRessources() {
         <span className="pastille" title="Menace : attire des vagues d'assaut de plus en plus fortes">
           🔥 <b>{Math.round(s.threat)}</b>
         </span>
-        <span className="pastille">
-          ☀️ Jour <b>{jour}</b> — {phase}
+        <span className="pastille" title={`Jour ${jour} — ${phase}`}>
+          ☀️<span className="opt">Jour</span> <b>{jour}</b>
+          <span className="opt2">— {phase}</span>
         </span>
         <ControleVitesse />
       </div>
+      {popOuvert && <PanneauPopulation onFermer={() => setPopOuvert(false)} />}
     </>
   )
 }

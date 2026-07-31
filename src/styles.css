@@ -79,26 +79,35 @@ button.danger {
 .app {
   display: flex;
   flex-direction: column;
+  /* dvh : la barre d'adresse mobile ne doit pas créer de débord vertical */
   height: 100%;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 header.hud {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 8px 14px;
+  gap: 9px;
+  row-gap: 5px;
+  padding: 5px 12px;
   background: linear-gradient(180deg, #182b3e, #12212f);
   border-bottom: 2px solid var(--gold-sombre);
+  box-shadow: 0 3px 14px #00000066;
+  /* le repli sur deux lignes est le filet de sécurité : jamais de débord latéral,
+     jamais un bouton hors de portée — les paliers ci-dessous l'évitent au maximum */
   flex-wrap: wrap;
 }
 
 .logo {
   font-family: Georgia, serif;
-  font-size: 21px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--gold);
-  letter-spacing: 0.18em;
-  margin-right: 4px;
+  letter-spacing: 0.16em;
+  margin-right: 2px;
+  white-space: nowrap;
   text-shadow: 0 2px 4px #00000088;
 }
 .logo small {
@@ -112,28 +121,41 @@ header.hud {
 
 .ressources {
   display: flex;
-  gap: 10px;
+  gap: 7px;
   flex-wrap: wrap;
   align-items: center;
+  min-width: 0;
 }
 .res {
   background: #10202e;
   border: 1px solid var(--bord);
   border-radius: 8px;
-  padding: 3px 9px;
+  padding: 2px 8px;
   display: flex;
-  align-items: baseline;
-  gap: 5px;
-  min-width: 86px;
+  align-items: center;
+  gap: 6px;
+  min-width: 62px;
+  white-space: nowrap;
+}
+/* valeur au-dessus du taux : le jeton perd 40 % de largeur, le HUD tient
+   sur une seule ligne et la carte récupère la hauteur */
+.res .chiffres {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
 }
 .res .val {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .res .taux {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+.res .ico {
+  font-size: 15px;
 }
 .res .taux.neg {
   color: var(--danger);
@@ -145,9 +167,20 @@ header.hud {
 .hud-droite {
   margin-left: auto;
   display: flex;
-  gap: 8px;
+  gap: 7px;
   align-items: center;
   flex-wrap: wrap;
+}
+/* boutons d'ouverture des grands panneaux — collés à droite du HUD */
+.hud-actions {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.hud-actions button {
+  padding: 5px 10px;
+  white-space: nowrap;
 }
 .pastille {
   background: #10202e;
@@ -156,22 +189,52 @@ header.hud {
   padding: 3px 9px;
   font-size: 12.5px;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .pastille b {
   font-variant-numeric: tabular-nums;
 }
+button.pastille {
+  color: var(--texte);
+  font-size: 12.5px;
+}
+button.pastille:hover:not(:disabled) {
+  background: #17324a;
+  border-color: var(--gold-sombre);
+}
+.pastille .oisifs {
+  color: var(--gold);
+}
+.pastille .oisifs.zero {
+  color: var(--muted);
+}
+.bouton-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 9px;
+}
+.bouton-icone.actif {
+  border-color: var(--gold-sombre);
+  color: var(--gold);
+}
 
 main.scene {
   position: relative;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  background: radial-gradient(ellipse at 50% 30%, #1a3040 0%, var(--bg) 75%);
+  /* la scène est le cadre de référence des panneaux flottants ;
+     rien n'en sort, donc jamais de barre de défilement */
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 34%, #1a3040 0%, var(--bg) 78%);
 }
 
+/* la carte occupe tout le conteneur : le viewBox 1200×800 se met à l'échelle seul */
 svg.carte {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -228,18 +291,18 @@ svg.carte {
 .vitesses {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   background: #10202e;
   border: 1px solid var(--bord);
   border-radius: 8px;
-  padding: 2px 6px 2px 8px;
+  padding: 2px 5px 2px 7px;
 }
 .vitesses .ico {
   margin-right: 3px;
   font-size: 12px;
 }
 .vitesses button {
-  padding: 1px 7px;
+  padding: 1px 6px;
   font-size: 11.5px;
   border-radius: 5px;
   border: 1px solid transparent;
@@ -272,19 +335,33 @@ svg.carte {
 }
 
 /* ── panneau bâtiment ──────────────────────────────────── */
+/* panneau flottant : il se superpose à la carte sans jamais la rétrécir */
 .panneau {
   position: absolute;
   top: 10px;
   right: 10px;
   bottom: 10px;
   width: 330px;
+  max-width: calc(100% - 20px);
   z-index: 15;
-  background: linear-gradient(180deg, var(--panel), #122232);
-  border: 1px solid var(--bord);
-  border-radius: 12px;
+  background: linear-gradient(180deg, #16283aee, #101f2ef2);
+  backdrop-filter: blur(8px);
+  border: 1px solid #35526d;
+  border-radius: 14px;
   padding: 14px;
   overflow-y: auto;
-  box-shadow: 0 10px 34px #000b;
+  overscroll-behavior: contain;
+  box-shadow: 0 16px 44px #000c, inset 0 1px 0 #ffffff12;
+}
+/* ascenseurs discrets dans les panneaux flottants */
+.panneau::-webkit-scrollbar,
+.missions-liste::-webkit-scrollbar {
+  width: 8px;
+}
+.panneau::-webkit-scrollbar-thumb,
+.missions-liste::-webkit-scrollbar-thumb {
+  background: #2c4258aa;
+  border-radius: 4px;
 }
 .panneau h2 {
   margin: 0 0 2px;
@@ -564,20 +641,44 @@ svg.carte {
   top: 10px;
   left: 10px;
   z-index: 18;
-  width: 252px;
+  width: 246px;
+  max-width: calc(100% - 20px);
+  /* le tracker ne dépasse jamais de la scène : la liste défile à l'intérieur */
+  max-height: calc(100% - 20px);
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
+/* replié : le bandeau se réduit à son contenu */
+.missions.replie {
+  width: auto;
+}
+.missions-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  /* la coupe en bas de liste s'estompe : on lit « ça continue » et non « c'est cassé » */
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 16px), transparent);
+}
 .missions-titre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   text-align: left;
-  background: #14273ae8;
-  border: 1px solid var(--bord);
-  border-radius: 9px;
-  padding: 7px 12px;
+  background: #14273ae0;
+  backdrop-filter: blur(7px);
+  border: 1px solid #35526d;
+  border-radius: 10px;
+  padding: 6px 11px;
   font-weight: 700;
   font-size: 13.5px;
   color: var(--gold);
+  box-shadow: 0 6px 18px #0009;
 }
 .compte-missions {
   color: var(--muted);
@@ -585,20 +686,22 @@ svg.carte {
   font-size: 12px;
 }
 .missions-titre .chevron {
-  float: right;
+  margin-left: auto;
   color: var(--muted);
+  font-size: 11px;
 }
 .mission {
-  background: #14273ae8;
-  border: 1px solid var(--bord);
+  background: #14273ae0;
+  backdrop-filter: blur(7px);
+  border: 1px solid #33506c;
   border-left: 3px solid #3a4a5a;
-  border-radius: 9px;
+  border-radius: 10px;
   padding: 8px 10px;
-  box-shadow: 0 4px 14px #0008;
+  box-shadow: 0 6px 18px #0009;
 }
 .mission.faite {
   border-left-color: var(--gold);
-  box-shadow: 0 4px 14px #0008, 0 0 12px #e8c04a33;
+  box-shadow: 0 6px 18px #0009, 0 0 12px #e8c04a33;
 }
 .mission-ligne {
   display: flex;
@@ -658,7 +761,7 @@ svg.carte {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  max-width: 380px;
+  max-width: min(380px, 52%);
 }
 .toast {
   background: #14273ae8;
@@ -837,8 +940,114 @@ svg.carte {
   color: var(--danger);
 }
 
-@media (max-width: 900px) {
+/* ──────────────────────────────────────────────────────────
+ * Repli progressif : le HUD doit tenir sur UNE ligne le plus
+ * longtemps possible — chaque pixel rendu au HUD est un pixel
+ * gagné par la carte. On sacrifie d'abord le décor (sous-titre,
+ * libellés des boutons), jamais un chiffre de jeu.
+ * ────────────────────────────────────────────────────────── */
+/* les seuils suivent la largeur réellement occupée par le HUD, mesurée au
+   navigateur (1830 · 1510 · 1360 · 1220 px) avec ~50 px de marge pour les
+   polices plus larges que Segoe UI */
+@media (max-width: 1899px) {
+  .logo {
+    font-size: 17px;
+  }
+  .logo small {
+    display: none;
+  }
+  /* les boutons deviennent des pictogrammes — le libellé reste dans l'infobulle */
+  .hud-actions button .lbl {
+    display: none;
+  }
+  /* les mots décoratifs s'effacent, les chiffres restent (infobulles complètes) */
+  .hud .opt {
+    display: none;
+  }
+}
+
+@media (max-width: 1559px) {
+  .logo {
+    display: none;
+  }
+}
+
+@media (max-width: 1409px) {
+  header.hud {
+    padding: 4px 8px;
+    gap: 7px;
+  }
+  .hud .opt2 {
+    display: none;
+  }
+  .res .par-min {
+    display: none;
+  }
+  .jauge-morale {
+    width: 38px;
+  }
+  /* si le HUD passe à deux lignes : jetons à gauche, boutons à droite */
+  .hud-droite {
+    margin-left: 0;
+  }
+  .hud-actions {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 1269px) {
+  /* dernier palier avant le repli sur deux lignes : on rogne, on ne retire pas */
+  .vitesses .ico {
+    display: none;
+  }
+  .jauge-morale {
+    width: 26px;
+  }
+}
+
+/* ── écrans étroits : les panneaux flottants se resserrent ── */
+@media (max-width: 1100px) {
   .panneau {
-    width: min(330px, 88vw);
+    top: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: min(300px, 64vw);
+    padding: 12px;
+  }
+  .missions {
+    top: 8px;
+    left: 8px;
+    width: 210px;
+    /* on laisse le bas de la colonne aux toasts : la liste défile à l'intérieur */
+    max-height: calc(100% - 118px);
+  }
+  /* le bandeau d'alerte se centre sur la bande de carte laissée libre par les
+     deux panneaux flottants — sur écran étroit il ne les recouvre jamais */
+  .bandeau {
+    left: 226px;
+    right: 316px;
+    transform: none;
+    margin: 0 auto;
+    width: fit-content;
+    min-width: 0;
+    max-width: calc(100% - 542px);
+    padding: 7px 12px;
+  }
+  .bandeau .gros {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 760px) {
+  .panneau {
+    width: min(290px, 78vw);
+  }
+  .missions {
+    width: 190px;
+  }
+  .bandeau {
+    left: 206px;
+    right: 306px;
+    max-width: calc(100% - 512px);
   }
 }

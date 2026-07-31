@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { TICK_MS } from './game/data'
 import { totalEtoiles, useGame } from './game/store'
 import { VillageMap } from './components/map/VillageMap'
-import { BandeauAlerte, BarreRessources, Toasts } from './components/ui/Hud'
+import { BandeauAlerte, BarreRessources, BoutonPleinEcran, Toasts } from './components/ui/Hud'
 import { MissionsTracker } from './components/ui/Missions'
 import { PanneauBatiment } from './components/ui/PanneauBatiment'
 import { Pantheon } from './components/ui/Pantheon'
@@ -51,19 +51,22 @@ export default function App() {
           <small>guerre de Troie</small>
         </div>
         <BarreRessources />
-        <div className="hud-droite" style={{ marginLeft: 0 }}>
+        {/* les libellés s'effacent sous 1400 px : les pictogrammes suffisent, le titre reste */}
+        <div className="hud-actions">
           <button onClick={() => openPanel('expeditions')} title="Attaquer les villages de la région">
-            🗺️ Expéditions{etoiles > 0 ? ` ★${etoiles}` : ''}
+            🗺️<span className="lbl"> Expéditions</span>
+            {etoiles > 0 ? ` ★${etoiles}` : ''}
           </button>
           <button onClick={() => openPanel('pantheon')} title="Les dieux de l'Olympe">
-            ⚡ Panthéon
+            ⚡<span className="lbl"> Panthéon</span>
           </button>
           <button onClick={() => openPanel('journal')} title="Rapports et chroniques">
-            📜 Journal
+            📜<span className="lbl"> Journal</span>
           </button>
           <button onClick={() => openPanel('aide')} title="Comment jouer">
             ❔
           </button>
+          <BoutonPleinEcran />
         </div>
       </header>
 

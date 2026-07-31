@@ -130,6 +130,151 @@ function Buches({ x = 0, y = 0 }: { x?: number; y?: number }) {
   )
 }
 
+/** séchoir : cadre de bois, peau tendue à sécher, centre éclairé */
+function Sechoir({ x = 0, y = 0 }: { x?: number; y?: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <line x1={1.4} y1={1.2} x2={5.4} y2={2.4} stroke={PAL.ombrePortee} strokeWidth={1.3} opacity={0.14} />
+      <line x1={-6} y1={0} x2={-6} y2={-9.2} stroke="#5f462d" strokeWidth={1.4} />
+      <line x1={-6.5} y1={-0.3} x2={-6.5} y2={-8.9} stroke="#a8845d" strokeWidth={0.6} />
+      <line x1={6} y1={0.6} x2={6} y2={-8.4} stroke="#77593a" strokeWidth={1.4} />
+      <line x1={-6.8} y1={-8.8} x2={6.8} y2={-8.1} stroke="#8a6a40" strokeWidth={1} />
+      {/* peau de bête suspendue : silhouette irrégulière, pattes, centre plus clair */}
+      <path d="M-4.4,-8.4 L4.2,-8 C4.8,-6.2 4,-4.8 4.4,-3.2 L2.6,-2 L2.2,-3.6 C1,-2.4 -0.8,-2.4 -2,-3.4 L-2.6,-1.8 L-4.2,-3 C-3.6,-4.8 -4.8,-6.4 -4.4,-8.4 Z" fill="#c9a06c" />
+      <path d="M-3,-7.6 L2.9,-7.3 C3.3,-5.9 2.8,-4.8 3,-3.8 C1.4,-3.2 -1.2,-3.2 -2.8,-4 C-2.6,-5.2 -3.3,-6.4 -3,-7.6 Z" fill="#dbb684" />
+      <path d="M-1.2,-6.4 Q0.4,-5.2 0.2,-4" stroke="#a5854a" strokeWidth={0.7} fill="none" opacity={0.7} />
+      <circle cx={-3.6} cy={-8.2} r={0.4} fill="#5f462d" />
+      <circle cx={3.4} cy={-7.9} r={0.4} fill="#5f462d" />
+    </g>
+  )
+}
+
+/** natte de couchage roulée près de la tente */
+function Natte({ x = 0, y = 0 }: { x?: number; y?: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <ellipse cx={1.2} cy={0.5} rx={5.2} ry={1} fill={PAL.ombrePortee} opacity={0.14} />
+      <rect x={-4.6} y={-2.4} width={9.2} height={2.6} rx={1.2} fill="#c8b18e" />
+      <rect x={-4.6} y={-2.4} width={9.2} height={1} rx={0.5} fill="#ddc9a4" />
+      <ellipse cx={4.6} cy={-1.1} rx={1.2} ry={1.3} fill="#a5885f" />
+      <ellipse cx={4.6} cy={-1.1} rx={0.55} ry={0.6} fill="#77593a" />
+      <path d="M-2.4,-2.3 l0,2.4 M1.6,-2.3 l0,2.4" stroke="#a5885f" strokeWidth={0.5} opacity={0.8} />
+    </g>
+  )
+}
+
+/** cailloux épars : face NW éclairée, assise ombrée */
+function Cailloux({ x = 0, y = 0, seed = 17 }: { x?: number; y?: number; seed?: number }) {
+  const rnd = alea(seed)
+  const pts = Array.from({ length: 3 }, () => ({
+    cx: (rnd() - 0.5) * 8,
+    cy: (rnd() - 0.5) * 3,
+    r: 0.9 + rnd() * 0.8,
+  }))
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {pts.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.cx} cy={p.cy} r={p.r} fill={PAL.pierreOmbre} />
+          <circle cx={p.cx - p.r * 0.25} cy={p.cy - p.r * 0.3} r={p.r * 0.65} fill={PAL.pierreMi} />
+        </g>
+      ))}
+    </g>
+  )
+}
+
+/** meulon de foin : dôme à trois valeurs, brins peignés, perche centrale */
+function Foin({ x = 0, y = 0, s = 1 }: { x?: number; y?: number; s?: number }) {
+  return (
+    <g transform={`translate(${x},${y}) scale(${s})`}>
+      <ellipse cx={2} cy={0.8} rx={7} ry={1.8} fill={PAL.ombrePortee} opacity={0.15} />
+      <path d="M-6,0 C-6,-7.5 6,-7.5 6,0 Z" fill={PAL.chaumeOmbre} />
+      <path d="M-5.2,0 C-5,-6.8 4,-7.4 5,-1.6 L5,0 Z" fill={PAL.chaumeLit} />
+      <path d="M-4.6,-1.2 C-4,-5.6 0.6,-6.6 2.4,-4.6" fill="none" stroke="#ecd9a0" strokeWidth={0.8} opacity={0.8} />
+      <path d="M-2.6,-0.4 q0.6,-2.6 2.4,-3.6 M1,-0.6 q1,-2 2.6,-2.4" stroke="#a5854a" strokeWidth={0.6} fill="none" opacity={0.7} />
+      <line x1={0} y1={-6.9} x2={0.6} y2={-8.6} stroke="#77593a" strokeWidth={0.8} />
+    </g>
+  )
+}
+
+/** auge de bois : eau sombre, reflet du ciel côté lumière */
+function Auge({ x = 0, y = 0 }: { x?: number; y?: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <ellipse cx={1.4} cy={0.6} rx={5.4} ry={1.1} fill={PAL.ombrePortee} opacity={0.14} />
+      <path d="M-5,-3.4 L5,-3.4 L4.2,0 L-4.2,0 Z" fill={PAL.boisMi} />
+      <path d="M-5,-3.4 L-4.6,-3.4 L-3.9,0 L-4.2,0 Z" fill={PAL.boisLit} />
+      <ellipse cx={0} cy={-3.4} rx={4.6} ry={0.9} fill={PAL.boisOmbre} />
+      <ellipse cx={0} cy={-3.4} rx={3.7} ry={0.6} fill="#46554e" />
+      <ellipse cx={-1} cy={-3.5} rx={1.5} ry={0.3} fill="#7c9a8e" opacity={0.8} />
+    </g>
+  )
+}
+
+/** repeint les pans d'une Batisse3D en chaume par couches ondulées + faîtage cousu */
+function ChaumeToit({ w, h, g, prof = 9, seed = 3 }: { w: number; h: number; g: number; prof?: number; seed?: number }) {
+  const rnd = alea(seed)
+  const deb = 2.5
+  const xg = -w / 2 - deb
+  const vague = (t: number, droit: boolean) => {
+    const x0 = droit ? -xg : xg
+    const y0 = -h - prof * t
+    const y1 = -h - g - prof * t
+    const n = 4
+    let d = `M${x0},${y0}`
+    for (let i = 1; i <= n; i++) {
+      const xa = x0 * (1 - (i - 0.5) / n)
+      const ya = y0 + (y1 - y0) * ((i - 0.5) / n) + 0.55 + rnd() * 0.35
+      const xb = x0 * (1 - i / n)
+      const yb = y0 + (y1 - y0) * (i / n)
+      d += ` Q${xa.toFixed(2)},${ya.toFixed(2)} ${xb.toFixed(2)},${yb.toFixed(2)}`
+    }
+    return d
+  }
+  return (
+    <>
+      {/* pans repeints (masquent les rangées rectilignes) */}
+      <path d={`M${xg},${-h} L0,${-h - g} L0,${-h - g - prof} L${xg},${-h - prof} Z`} fill="url(#a-chaume-l)" />
+      <path d={`M${-xg},${-h} L0,${-h - g} L0,${-h - g - prof} L${-xg},${-h - prof} Z`} fill="url(#a-chaume-o)" />
+      {/* épaisseur du chaume : sous-face du débord dans l'ombre, plus marquée à l'est */}
+      <path d={`M${xg},${-h} L0,${-h - g} L0,${-h - g + 1.7} L${xg},${-h + 1.7} Z`} fill="#8a7040" opacity={0.85} />
+      <path d={`M${-xg},${-h} L0,${-h - g} L0,${-h - g + 1.7} L${-xg},${-h + 1.7} Z`} fill="#6e5a2e" opacity={0.9} />
+      {/* couches de bottes ondulées : lisière sombre + rebord éclairé */}
+      {[0.3, 0.58, 0.85].map((t) => (
+        <g key={t}>
+          <path d={vague(t, false)} stroke={PAL.chaumeOmbre} strokeWidth={0.8} fill="none" opacity={0.55} />
+          <path d={vague(t, false)} transform="translate(0,-0.8)" stroke="#ecd9a0" strokeWidth={0.5} fill="none" opacity={0.35} />
+          <path d={vague(t, true)} stroke="#7c6634" strokeWidth={0.8} fill="none" opacity={0.45} />
+        </g>
+      ))}
+      {/* chaume peigné dans le sens de la pente + assombrissement près de l'égout */}
+      {Array.from({ length: 8 }, (_, i) => {
+        const t = 0.12 + rnd() * 0.7
+        const u = 0.08 + rnd() * 0.84
+        const bx = xg * (1 - u)
+        const by = -h - g * u - prof * t
+        return <line key={i} x1={bx} y1={by} x2={bx + 0.15} y2={by + 1.7 + rnd() * 0.9} stroke="#a5854a" strokeWidth={0.5} opacity={0.5} />
+      })}
+      {Array.from({ length: 6 }, (_, i) => {
+        const t = 0.12 + rnd() * 0.7
+        const u = 0.08 + rnd() * 0.84
+        const bx = -xg * (1 - u)
+        const by = -h - g * u - prof * t
+        return <line key={`d${i}`} x1={bx} y1={by} x2={bx - 0.15} y2={by + 1.7 + rnd() * 0.9} stroke="#7c6634" strokeWidth={0.5} opacity={0.5} />
+      })}
+      <path d={`M${xg},${-h - 0.2} L0,${-h - g - 0.2} L0,${-h - g - 2.2} L${xg},${-h - 2.2} Z`} fill={PAL.chaumeOmbre} opacity={0.22} />
+      <path d={`M${-xg},${-h - 0.2} L0,${-h - g - 0.2} L0,${-h - g - 2.2} L${-xg},${-h - 2.2} Z`} fill="#6e5a2e" opacity={0.28} />
+      {/* faîtage de chaume cousu, flanc droit dans l'ombre */}
+      <rect x={-1.8} y={-h - g - prof} width={3.6} height={prof + 1} rx={1} fill="#e8d296" />
+      <rect x={0.4} y={-h - g - prof} width={1.4} height={prof + 1} fill={PAL.chaumeOmbre} opacity={0.55} />
+      <path d={`M-1.8,${-h - g - prof + 2} l3.6,1.2 M-1.8,${-h - g - prof + 4.6} l3.6,1.2 M-1.8,${-h - g - prof + 7.2} l3.6,1.2`} stroke="#a5854a" strokeWidth={0.6} opacity={0.8} />
+      {/* égouts : clair côté soleil, sombre côté est */}
+      <line x1={xg} y1={-h} x2={0} y2={-h - g} stroke="#ecd9a0" strokeWidth={1.2} opacity={0.9} />
+      <line x1={-xg} y1={-h} x2={0} y2={-h - g} stroke="#87703b" strokeWidth={1} opacity={0.8} />
+    </>
+  )
+}
+
 /** olivier volumique : tronc noueux, 3 valeurs de feuillage, ombre au sol SE */
 function Olivier({ x = 0, y = 0, s = 1 }: { x?: number; y?: number; s?: number }) {
   return (
@@ -141,8 +286,9 @@ function Olivier({ x = 0, y = 0, s = 1 }: { x?: number; y?: number; s?: number }
       <ellipse cx={1.5} cy={-12.5} rx={9} ry={5.2} fill="#5c6e46" />
       <ellipse cx={-2} cy={-14.5} rx={7.8} ry={4.6} fill="#6f8354" />
       <ellipse cx={5} cy={-14} rx={4.6} ry={3} fill="#68804f" />
-      <ellipse cx={-4} cy={-16.4} rx={5} ry={3} fill="#879c66" />
-      <ellipse cx={-6.6} cy={-17.6} rx={2.6} ry={1.6} fill="#98ad74" />
+      <ellipse cx={-4} cy={-16.4} rx={5} ry={3} fill="#8fa475" />
+      <ellipse cx={-6.6} cy={-17.6} rx={2.6} ry={1.6} fill="#a8b98c" />
+      <ellipse cx={-7.6} cy={-18.3} rx={1.3} ry={0.8} fill="#b6c49b" opacity={0.9} />
     </g>
   )
 }
@@ -205,8 +351,10 @@ function Pergola({ x = 0, y = 0 }: { x?: number; y?: number }) {
       ))}
       {/* vigne : 3 valeurs + sarment qui retombe */}
       <ellipse cx={2} cy={-15.6} rx={10} ry={2.8} fill="#5c6e46" />
+      <ellipse cx={7} cy={-16.2} rx={4.6} ry={2} fill="#68804f" />
       <ellipse cx={-2} cy={-16.8} rx={7.5} ry={2.4} fill="#6f8354" />
       <ellipse cx={-5} cy={-17.6} rx={4} ry={1.7} fill="#879c66" />
+      <ellipse cx={-7.5} cy={-18.1} rx={1.9} ry={1} fill="#a8b98c" opacity={0.9} />
       <path d="M10,-14.6 q1.6,3 0.4,5.6" stroke="#6f8354" strokeWidth={1.1} fill="none" />
       <circle cx={10.6} cy={-9.6} r={1.2} fill="#6f8354" />
     </g>
@@ -233,6 +381,11 @@ function TenteArt({ x = 0, y = 0, w = 24, h = 15, ocre = false }: { x?: number; 
       {/* coutures de la toile */}
       <path d={`M${-w * 0.3},${-h * 0.4} q${w * 0.3},${h * 0.12} ${w * 0.6},0`} stroke={omb} strokeWidth={0.7} fill="none" opacity={0.6} />
       <path d={`M${-w * 0.17},${-h * 0.66} q${w * 0.17},${h * 0.08} ${w * 0.34},0`} stroke={omb} strokeWidth={0.6} fill="none" opacity={0.5} />
+      {/* plis de tension rayonnant du faîte : clairs côté soleil, sombres côté est */}
+      <path d={`M-0.6,${-h * 0.94} Q${-w * 0.17},${-h * 0.52} ${-w * 0.3},${-h * 0.1}`} stroke="#fbf3d8" strokeWidth={0.6} fill="none" opacity={0.5} />
+      <path d={`M-1.2,${-h * 0.86} Q${-w * 0.26},${-h * 0.46} ${-w * 0.42},${-h * 0.06}`} stroke="#fbf3d8" strokeWidth={0.5} fill="none" opacity={0.35} />
+      <path d={`M0.8,${-h * 0.9} Q${w * 0.2},${-h * 0.48} ${w * 0.34},${-h * 0.08}`} stroke={omb} strokeWidth={0.7} fill="none" opacity={0.6} />
+      <path d={`M1.2,${-h * 0.78} Q${w * 0.28},${-h * 0.4} ${w * 0.44},${-h * 0.05}`} stroke={omb} strokeWidth={0.5} fill="none" opacity={0.45} />
       {/* rapiéçage cousu */}
       <rect x={w * 0.13} y={-h * 0.42} width={w * 0.14} height={h * 0.18} fill={omb} opacity={0.5} transform={`rotate(-8 ${w * 0.2} ${-h * 0.35})`} />
       {/* entrée : pénombre + rabat replié éclairé */}
@@ -271,7 +424,15 @@ function FeuCamp({ x = 0, y = 0 }: { x?: number; y?: number }) {
         </g>
       ))}
       <Feu x={0} y={-2.6} r={2.6} />
-      <Fumee x={0.5} y={-6} />
+      {/* trépied de bois, marmite suspendue au-dessus des flammes */}
+      <line x1={-5.4} y1={0.8} x2={-0.5} y2={-10.4} stroke="#5f462d" strokeWidth={1.1} />
+      <line x1={5.6} y1={0.6} x2={0.5} y2={-10.4} stroke="#77593a" strokeWidth={1.1} />
+      <line x1={0.6} y1={3.2} x2={0} y2={-10.2} stroke="#4f3a24" strokeWidth={1.2} />
+      <line x1={0} y1={-10} x2={0} y2={-7.5} stroke="#3a3128" strokeWidth={0.6} />
+      <path d="M-2.5,-7.5 L2.5,-7.5 L1.8,-4.8 Q0,-4 -1.8,-4.8 Z" fill="#453b31" />
+      <path d="M-2.5,-7.5 L2.5,-7.5 L2.2,-6.6 L-2.2,-6.6 Z" fill="#6d6152" />
+      <ellipse cx={-0.9} cy={-6.9} rx={0.8} ry={0.35} fill="#8a7c68" opacity={0.9} />
+      <Fumee x={0.4} y={-11.5} />
     </g>
   )
 }
@@ -301,6 +462,11 @@ function Dallage({ x = 0, y = 0, rx = 24, ry = 8, seed = 9 }: { x?: number; y?: 
     const vert = rnd() > 0.55
     return { jx, jy, l, vert }
   })
+  const dalles = Array.from({ length: 4 }, () => ({
+    dx: (rnd() - 0.5) * rx * 1.2,
+    dy: ry * 0.15 + (rnd() - 0.3) * ry * 0.9,
+    w: 4.5 + rnd() * 3,
+  }))
   return (
     <g transform={`translate(${x},${y})`}>
       <ellipse cx={0} cy={0} rx={rx} ry={ry} fill="#c6ba9c" opacity={0.9} />
@@ -312,6 +478,13 @@ function Dallage({ x = 0, y = 0, rx = 24, ry = 8, seed = 9 }: { x?: number; y?: 
           <line key={i} x1={j.jx - j.l / 2} y1={j.jy} x2={j.jx + j.l / 2} y2={j.jy} stroke="#a99c7d" strokeWidth={0.7} opacity={0.6} />
         ),
       )}
+      {/* quelques dalles qui accrochent la lumière, joint ombré au sud */}
+      {dalles.map((d, i) => (
+        <g key={`d${i}`}>
+          <rect x={d.dx - d.w / 2} y={d.dy - 1} width={d.w} height={2} rx={0.6} fill="#e0d6b8" opacity={0.5} />
+          <rect x={d.dx - d.w / 2} y={d.dy + 0.8} width={d.w} height={0.45} rx={0.22} fill="#a99c7d" opacity={0.45} />
+        </g>
+      ))}
     </g>
   )
 }
@@ -418,25 +591,32 @@ function FenetreBois({ x, y, w = 4, h = 4 }: { x: number; y: number; w?: number;
   )
 }
 
-/** escalier extérieur de pierre montant vers un palier (niveau 4) */
+/** escalier extérieur de pierre : volée pleine, contremarches en demi-teinte,
+ *  nez de marches éclairés, contact ombré à chaque giron */
 function Escalier({ x = 0, y = 0, ht = 11 }: { x?: number; y?: number; ht?: number }) {
   const long = 13
+  const n = 5
+  const pas = long / n
   return (
     <g transform={`translate(${x},${y})`}>
-      <path d={`M2,1 L${-long + 3},${1.6}`} stroke={PAL.ombrePortee} strokeWidth={2.6} opacity={0.14} filter="url(#a-flou1)" />
-      {/* masse rampante + marches */}
-      <path d={`M0,${-ht} L0,0 L${-long},0 Z`} fill="url(#a-pierre-o)" />
-      <path d={`M0,${-ht} L${-long},0 L${-long},-1 L0,${-ht - 1} Z`} fill={PAL.pierreMi} />
-      {[0, 1, 2, 3, 4].map((i) => {
-        const t = i / 5
-        const t2 = (i + 1) / 5
+      <path d={`M1.5,1 L${-long + 4},1.8`} stroke={PAL.ombrePortee} strokeWidth={2.8} opacity={0.15} filter="url(#a-flou2)" />
+      {/* flanc sud de la volée */}
+      <path d={`M0,${-ht} L0,0 L${-long},0 Z`} fill="#988d75" />
+      {Array.from({ length: n }, (_, i) => {
+        const x0 = -long + i * pas
+        const yT = -ht * ((i + 1) / n)
+        const yB = -ht * (i / n)
         return (
           <g key={i}>
-            <path d={`M${-long * t},${-ht * (1 - t) - 1} L${-long * t2},${-ht * (1 - t) - 1} L${-long * t2},${-ht * (1 - t2) - 1}`} stroke="#efe9d8" strokeWidth={1} fill="none" />
-            <line x1={-long * t2} y1={-ht * (1 - t) - 0.2} x2={-long * t} y2={-ht * (1 - t) - 0.2} stroke={PAL.pierreOmbre} strokeWidth={0.8} opacity={0.7} />
+            <rect x={x0} y={yT} width={pas} height={yB - yT} fill={i % 2 ? '#b1a68b' : '#a89d83'} />
+            <rect x={x0 - 0.3} y={yT - 1.05} width={pas + 0.3} height={1.05} fill="#e2dbc6" />
+            <rect x={x0 - 0.3} y={yT - 1.05} width={pas + 0.3} height={0.4} fill="#f0ead8" />
+            <rect x={x0 - 0.3} y={yB - 0.45} width={pas + 0.3} height={0.45} fill={PAL.ombrePortee} opacity={0.16} />
           </g>
         )
       })}
+      {/* occlusion à la base de la volée */}
+      <rect x={-long} y={-1.4} width={long} height={1.4} fill={PAL.ombrePortee} opacity={0.14} />
     </g>
   )
 }
@@ -459,10 +639,14 @@ function Pigeonnier({ x = 0, y = 0 }: { x?: number; y?: number }) {
       <path d="M6.4,-17.5 L0,-25.5 L0.6,-17.5 Z" fill={PAL.toitOmbre} />
       <path d="M-6.4,-17.5 L0,-25.5" stroke={PAL.toitArete} strokeWidth={1} />
       <circle cx={0} cy={-25.8} r={1} fill={PAL.toitArete} />
-      {/* colombes */}
-      <circle cx={-6.8} cy={-19.5} r={1.1} fill="#f2ede0" />
-      <circle cx={-6} cy={-20.2} r={0.7} fill="#f2ede0" />
-      <circle cx={3.4} cy={-12.4} r={1} fill="#e8e2d2" />
+      {/* rangs de tuiles suggérés sur le cône */}
+      <path d="M-4.5,-19.9 Q0,-18.8 4.5,-19.9" stroke={PAL.toitOmbre} strokeWidth={0.6} fill="none" opacity={0.5} />
+      <path d="M-2.9,-22.3 Q0,-21.6 2.9,-22.3" stroke={PAL.toitOmbre} strokeWidth={0.6} fill="none" opacity={0.45} />
+      {/* colombes : une posée sur la corniche d'envol, une au sol */}
+      <ellipse cx={3.2} cy={-12.6} rx={1.3} ry={0.9} fill="#f2ede0" />
+      <circle cx={4.2} cy={-13.4} r={0.6} fill="#f2ede0" />
+      <path d="M4.7,-13.5 l0.8,0.25 -0.8,0.35 Z" fill="#d9a23c" />
+      <path d="M1.9,-12.6 l-1.3,-0.7 0.2,0.9 Z" fill="#d8d2c0" />
       <PorteBois w={4} h={5.6} />
     </g>
   )
@@ -490,6 +674,11 @@ export function Maisons({ n }: { n: number }) {
         <Jarre x={-34} y={2} s={0.9} />
         <Panier x={27} y={9} s={0.9} />
         <path d="M28,-4 q4,-2 8,0 q-4,2 -8,0" fill="#b3906b" opacity={0.8} />
+        <Sechoir x={35} y={-4} />
+        <Natte x={-31} y={8} />
+        <Cailloux x={-9} y={11} seed={3} />
+        <Cailloux x={22} y={-10} seed={8} />
+        <Touffe x={-27} y={-8} />
       </g>
     )
   }
@@ -504,6 +693,7 @@ export function Maisons({ n }: { n: number }) {
               <PorteBois w={6} h={9} />
             </>
           } />
+          <ChaumeToit w={27} h={13} g={8} seed={12} />
           <FrangeChaume w={27} h={13} g={8} seed={13} />
         </g>
         <g transform="translate(18,4)">
@@ -514,6 +704,7 @@ export function Maisons({ n }: { n: number }) {
               <FenetreBois x={6} y={-3} w={4} h={4} />
             </>
           } />
+          <ChaumeToit w={24} h={11} g={7} seed={24} />
           <FrangeChaume w={24} h={11} g={7} seed={29} />
         </g>
         {/* enclos et chèvres conservés */}
@@ -524,6 +715,8 @@ export function Maisons({ n }: { n: number }) {
         <Poule x={2} y={12} />
         <Poule x={8} y={14} c="#c9855c" flip />
         <Buches x={35} y={-2} />
+        <Foin x={31} y={11} s={0.9} />
+        <Auge x={-11} y={13} />
         <Jarre x={-1} y={5} s={0.85} c="#8c552f" />
         <Panier x={4} y={7} s={0.8} />
         <Touffe x={-44} y={2} />
@@ -550,6 +743,17 @@ export function Maisons({ n }: { n: number }) {
               <Fenetre3D x={7} y={-17} w={4.6} h={5.6} />
               <Porte3D w={5.6} h={8.6} x={4} />
               <Fenetre3D x={-6} y={-3.5} w={4.4} h={5} />
+              {/* retour est : assises discrètes, fente d'aération, base assombrie */}
+              <path d="M13,-5.5 L20,-8.65 M13,-11.5 L20,-14.65 M13,-19 L20,-22.15" stroke="#8a744f" strokeWidth={0.55} opacity={0.4} />
+              <path d="M16,-16 L17.3,-16.6 L17.3,-20.2 L16,-19.6 Z" fill="#4a3a26" />
+              <path d="M13,0 L20,-3.15 L20,-7.5 L13,-4.35 Z" fill={PAL.ombrePortee} opacity={0.16} />
+              {/* pot fleuri posé sur le bandeau, sous la fenêtre à volets */}
+              <path d="M-4.9,-16.3 L-2.3,-16.3 L-2.8,-14.2 L-4.4,-14.2 Z" fill={PAL.toitMi} />
+              <path d="M-4.9,-16.3 L-2.3,-16.3 L-2.4,-15.6 L-4.7,-15.6 Z" fill={PAL.toitLit} />
+              <circle cx={-4.2} cy={-16.9} r={0.85} fill="#6f8354" />
+              <circle cx={-3} cy={-17.1} r={0.7} fill="#879c66" />
+              <circle cx={-3.8} cy={-17.7} r={0.45} fill="#c0563f" />
+              <circle cx={-2.7} cy={-16.7} r={0.4} fill="#c0563f" />
             </>
           } />
           <Cheminee x={-7} y={-31.5} />
@@ -581,15 +785,21 @@ export function Maisons({ n }: { n: number }) {
           <>
             <Porte3D w={5.5} h={9} />
             <Fenetre3D x={-7.5} y={-3} w={4.4} h={5} />
-            {/* treille grimpante le long de l'arête est */}
-            <path d="M11.2,-0.5 C10.6,-4 11.4,-7.5 10.2,-10.5" stroke="#57604a" strokeWidth={1} fill="none" />
-            <ellipse cx={10.2} cy={-10.4} rx={2.2} ry={1.5} fill="#5c6e46" />
-            <ellipse cx={9.4} cy={-11.3} rx={1.5} ry={1} fill="#879c66" />
-            <ellipse cx={11.4} cy={-6.6} rx={1.7} ry={1.2} fill="#6f8354" />
-            <ellipse cx={10.6} cy={-3.2} rx={1.4} ry={1} fill="#6f8354" />
-            <ellipse cx={10.1} cy={-3.8} rx={0.9} ry={0.6} fill="#98ad74" />
+            {/* ombre de la treille sur le mur */}
+            <ellipse cx={11.6} cy={-7} rx={2.2} ry={4} fill={PAL.ombrePortee} opacity={0.13} />
           </>
         } />
+        {/* treille : tige fine à l'angle est, feuillage débordant sur l'égout du toit */}
+        <path d="M12.4,-0.4 C11.8,-4 12.6,-8 11.8,-12.4" stroke="#6b533c" strokeWidth={1.1} fill="none" />
+        <path d="M12.1,-4.4 q-1.5,-0.4 -2.2,0.8 M12.2,-8.6 q1.4,-0.4 2,0.8" stroke="#6f8354" strokeWidth={0.7} fill="none" />
+        <ellipse cx={11.4} cy={-4.6} rx={1.1} ry={0.7} fill="#5c6e46" />
+        <ellipse cx={13.4} cy={-8.4} rx={1.2} ry={0.75} fill="#6f8354" />
+        <ellipse cx={12.4} cy={-12.6} rx={3} ry={1.9} fill="#5c6e46" />
+        <ellipse cx={10.6} cy={-14} rx={2.6} ry={1.5} fill="#6f8354" />
+        <ellipse cx={7.6} cy={-15.4} rx={1.9} ry={1.1} fill="#6f8354" />
+        <ellipse cx={9.6} cy={-14.9} rx={1.4} ry={0.85} fill="#879c66" />
+        <ellipse cx={11.2} cy={-13.4} rx={1.2} ry={0.75} fill="#98ad74" opacity={0.9} />
+        <ellipse cx={14.2} cy={-11.6} rx={1.1} ry={0.7} fill="#5c6e46" />
       </g>
       <g transform="translate(34,-6)">
         <Batisse3D w={23} h={12} g={7} mat="pierre" toit="tuiles" enfants={
@@ -619,6 +829,9 @@ export function Maisons({ n }: { n: number }) {
       {n >= 4 && (
         <g>
           <Pergola x={40} y={10} />
+          <Jarre x={35} y={9} s={0.85} />
+          <Jarre x={46} y={11} s={0.75} c="#8c552f" />
+          <Panier x={41} y={12} s={0.8} />
           <Pigeonnier x={53} y={-13} />
           <Olivier x={-52} y={9} s={0.8} />
           <Jarre x={-16} y={14} s={0.9} c="#b3774a" />

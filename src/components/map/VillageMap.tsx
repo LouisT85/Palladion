@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, TOUR_ANGLES, TOUR_PORTEE, WALL_HP, pointMur } from '../../game/data'
 import { useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
+import { DefsArt } from './art'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
 import { Batisseur, Ouvriers, Porteurs } from './Ouvriers'
 import { BatailleLayer } from './BatailleLayer'
@@ -178,6 +179,7 @@ export function VillageMap() {
         <filter id="ombre-batiment" x="-40%" y="-40%" width="180%" height="180%">
           <feDropShadow dx={0} dy={1.6} stdDeviation={1.4} floodColor="#1d1508" floodOpacity={0.3} />
         </filter>
+        <DefsArt />
         <DefsBatiments />
       </defs>
 

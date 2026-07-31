@@ -5,6 +5,7 @@ import { MAX_TROUPES, RAID_COOLDOWN_MS, VILLAGES_CIBLES, VILLAGES_PAR_ID } from 
 import { fmtDuree, totalEtoiles, useGame } from '../../game/store'
 import type { ResourceId, UnitId } from '../../game/types'
 import { BatailleLayer } from '../map/BatailleLayer'
+import { DefsArt } from '../map/art'
 import { DefsBatiments } from '../map/Batiments'
 import { Murailles } from '../map/Murailles'
 import { DieuxRapides } from './Hud'
@@ -193,6 +194,7 @@ export function ExpeditionScene() {
               <stop offset="0%" stopColor="#b3aa74" />
               <stop offset="100%" stopColor="#9d9663" />
             </linearGradient>
+            <DefsArt />
             <DefsBatiments />
           </defs>
           <rect x={0} y={0} width={900} height={120} fill="url(#ciel-exp)" />

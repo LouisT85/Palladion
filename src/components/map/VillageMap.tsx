@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, TOUR_ANGLES, TOUR_PORTEE, WALL_HP, pointMur } from '../../game/data'
 import { useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
 import { DefsArt } from './art'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
 import { Batisseur, Ouvriers, Porteurs } from './Ouvriers'
-import { BatailleLayer } from './BatailleLayer'
+import { BatailleLayer, useCameraBataille, type VueScene } from './BatailleLayer'
 import { Garnison } from './Garnison'
 import { Murailles } from './Murailles'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
@@ -119,6 +119,11 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
   )
 }
 
+/** cadrage de la carte du village : on serre jusqu'à ×2.1 sur la mêlée */
+const VUE_VILLAGE: VueScene = { w: MAP.w, h: MAP.h, zMin: 1.7, zMax: 2.1 }
+/** lu à chaque image par la caméra — hors du rendu React, donc jamais périmé */
+const lireBatailleVillage = () => useGame.getState().battle
+
 export function VillageMap() {
   const battle = useGame((s) => s.battle)
   const warned = useGame((s) => s.warned)
@@ -134,6 +139,8 @@ export function VillageMap() {
   const select = useGame((s) => s.select)
   const selected = useGame((s) => s.selected)
   const [hoverMur, setHoverMur] = useState(false)
+  const scene = useRef<SVGGElement | null>(null)
+  useCameraBataille(scene, VUE_VILLAGE, lireBatailleVillage)
 
   const scierieLvl = useGame((s) => s.buildings.scierie.level)
   const fermeLvl = useGame((s) => s.buildings.ferme.level)
@@ -152,6 +159,15 @@ export function VillageMap() {
     progMur = Math.max(0, Math.min(1, 1 - (remparts.busyUntil - now) / dur))
   }
   const spanMur = [0, 1 / 3, 2 / 3, 1][stadeChantier(progMur)]
+
+  // chaque pan cède pour son compte : la porte ne s'arrache pas si c'est le nord qui tombe
+  const secteurs = battle?.secteurs ?? []
+  const brechesAngles = secteurs.filter((s) => s.breche).map((s) => s.angle)
+  // la porte est à l'est (angle 0) : seul l'effondrement d'un pan de ce côté l'emporte
+  const portePercee =
+    secteurs.length > 0
+      ? brechesAngles.some((a) => Math.cos(a) > 0 && Math.abs(Math.sin(a)) < 0.35)
+      : (battle?.breche ?? false)
 
   const labelMur = rempartsChantier
     ? `🧱 Remparts — niv. ${remparts.targetLevel} en chantier (${Math.round(progMur * 100)} %)`
@@ -184,99 +200,122 @@ export function VillageMap() {
       </defs>
 
       <g clipPath="url(#cadre-carte)">
-        <Terrain phase={phase} paisible={paisible} />
+        {/* toute la scène vit dans ce groupe : la caméra s'en approche pendant l'assaut */}
+        <g ref={scene}>
+          <Terrain phase={phase} paisible={paisible} />
 
-        <Porteurs scierie={scierieLvl > 0} ferme={fermeLvl > 0} carriere={carriereLvl > 0} actif={paisible} />
+          <Porteurs scierie={scierieLvl > 0} ferme={fermeLvl > 0} carriere={carriereLvl > 0} actif={paisible} />
 
-        <Emplacement id="carriere" now={now} paisible={paisible} />
-        <Emplacement id="scierie" now={now} paisible={paisible} />
+          <Emplacement id="carriere" now={now} paisible={paisible} />
+          <Emplacement id="scierie" now={now} paisible={paisible} />
 
-        <Murailles niveau={wallLevel} hp={wallHp} max={wallMax} breche={battle?.breche ?? false} layer="back" tours={tours} />
-        {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
-          <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="back" span={spanMur} />
-        )}
-
-        {dedans.map((b) => (
-          <Emplacement key={b} id={b} now={now} paisible={paisible} />
-        ))}
-
-        <Villageois pop={pop} morale={morale} now={now} enBataille={battle !== null} />
-
-        <Murailles niveau={wallLevel} hp={wallHp} max={wallMax} breche={battle?.breche ?? false} layer="front" tours={tours} />
-        {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
-          <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="front" span={spanMur} />
-        )}
-
-        {/* la garnison monte la garde tant qu'aucune bataille ne fait rage */}
-        <Garnison army={army} wallLevel={wallLevel} visible={battle === null} />
-
-        {/* zone cliquable des remparts (sur la porte) */}
-        <g
-          transform={`translate(${MAP.porte.x},${MAP.porte.y})`}
-          onClick={(e) => {
-            e.stopPropagation()
-            select('remparts')
-          }}
-          onMouseEnter={() => setHoverMur(true)}
-          onMouseLeave={() => setHoverMur(false)}
-          style={{ cursor: 'pointer' }}
-        >
-          {selected === 'remparts' && (
-            <ellipse cx={0} cy={-6} rx={50} ry={30} fill="none" stroke="#e8c04a" strokeWidth={2} strokeDasharray="6 5" />
+          <Murailles
+            niveau={wallLevel}
+            hp={wallHp}
+            max={wallMax}
+            breche={portePercee}
+            layer="back"
+            tours={tours}
+            brechesAngles={brechesAngles}
+          />
+          {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
+            <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="back" span={spanMur} />
           )}
-          {wallLevel === 0 && !rempartsChantier && !battle && (
-            <g opacity={0.8}>
-              <text x={0} y={-8} textAnchor="middle" fontSize={19}>
-                🧱
-              </text>
-              <text x={0} y={8} textAnchor="middle" fontSize={9.5} fill="#3d3a30" fontWeight={700}>
-                ＋ REMPARTS
-              </text>
-            </g>
+
+          {dedans.map((b) => (
+            <Emplacement key={b} id={b} now={now} paisible={paisible} />
+          ))}
+
+          <Villageois pop={pop} morale={morale} now={now} enBataille={battle !== null} />
+
+          <Murailles
+            niveau={wallLevel}
+            hp={wallHp}
+            max={wallMax}
+            breche={portePercee}
+            layer="front"
+            tours={tours}
+            brechesAngles={brechesAngles}
+          />
+          {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
+            <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="front" span={spanMur} />
           )}
-          {rempartsChantier && !battle && (
-            <g>
-              <Batisseur x={-36} y={20} />
-              <Batisseur x={28} y={26} flip begin="0.8s" />
-              <g transform="translate(0,-56)">
-                <rect x={-22} y={0} width={44} height={6} rx={3} fill="#1d1d1d" opacity={0.7} />
-                <rect x={-21} y={1} width={Math.max(2, 42 * progMur)} height={4} rx={2} fill="#e8c04a" />
+
+          {/* la garnison monte la garde tant qu'aucune bataille ne fait rage */}
+          <Garnison army={army} wallLevel={wallLevel} visible={battle === null} />
+
+          {/* zone cliquable des remparts (sur la porte) */}
+          <g
+            transform={`translate(${MAP.porte.x},${MAP.porte.y})`}
+            onClick={(e) => {
+              e.stopPropagation()
+              select('remparts')
+            }}
+            onMouseEnter={() => setHoverMur(true)}
+            onMouseLeave={() => setHoverMur(false)}
+            style={{ cursor: 'pointer' }}
+          >
+            {selected === 'remparts' && (
+              <ellipse cx={0} cy={-6} rx={50} ry={30} fill="none" stroke="#e8c04a" strokeWidth={2} strokeDasharray="6 5" />
+            )}
+            {wallLevel === 0 && !rempartsChantier && !battle && (
+              <g opacity={0.8}>
+                <text x={0} y={-8} textAnchor="middle" fontSize={19}>
+                  🧱
+                </text>
+                <text x={0} y={8} textAnchor="middle" fontSize={9.5} fill="#3d3a30" fontWeight={700}>
+                  ＋ REMPARTS
+                </text>
               </g>
-            </g>
-          )}
-          {hoverMur && <Etiquette texte={labelMur} y={-68} />}
-          <ellipse cx={0} cy={-6} rx={48} ry={30} fill="transparent" />
+            )}
+            {rempartsChantier && !battle && (
+              <g>
+                <Batisseur x={-36} y={20} />
+                <Batisseur x={28} y={26} flip begin="0.8s" />
+                <g transform="translate(0,-56)">
+                  <rect x={-22} y={0} width={44} height={6} rx={3} fill="#1d1d1d" opacity={0.7} />
+                  <rect x={-21} y={1} width={Math.max(2, 42 * progMur)} height={4} rx={2} fill="#e8c04a" />
+                </g>
+              </g>
+            )}
+            {hoverMur && <Etiquette texte={labelMur} y={-68} />}
+            <ellipse cx={0} cy={-6} rx={48} ry={30} fill="transparent" />
+          </g>
+
+          {/* portée des tours d'archers, visible quand les remparts sont sélectionnés */}
+          {selected === 'remparts' &&
+            tours > 0 &&
+            TOUR_ANGLES.slice(0, tours).map((a) => {
+              const p = pointMur(a)
+              return (
+                <circle
+                  key={a}
+                  cx={p.x}
+                  cy={p.y - 32}
+                  r={TOUR_PORTEE}
+                  fill="#e8c04a"
+                  fillOpacity={0.05}
+                  stroke="#e8c04a"
+                  strokeWidth={1.3}
+                  strokeDasharray="5 7"
+                  opacity={0.65}
+                  pointerEvents="none"
+                />
+              )
+            })}
+
+          <Emplacement id="ferme" now={now} paisible={paisible} />
+          <Emplacement id="port" now={now} paisible={paisible} />
+
+          {battle && <BatailleLayer battle={battle} now={now} wallHp={wallHp} wallMax={wallMax} />}
         </g>
 
-        {/* portée des tours d'archers, visible quand les remparts sont sélectionnés */}
-        {selected === 'remparts' &&
-          tours > 0 &&
-          TOUR_ANGLES.slice(0, tours).map((a) => {
-            const p = pointMur(a)
-            return (
-              <circle
-                key={a}
-                cx={p.x}
-                cy={p.y - 32}
-                r={TOUR_PORTEE}
-                fill="#e8c04a"
-                fillOpacity={0.05}
-                stroke="#e8c04a"
-                strokeWidth={1.3}
-                strokeDasharray="5 7"
-                opacity={0.65}
-                pointerEvents="none"
-              />
-            )
-          })}
-
-        <Emplacement id="ferme" now={now} paisible={paisible} />
-        <Emplacement id="port" now={now} paisible={paisible} />
-
-        {battle && <BatailleLayer battle={battle} now={now} wallHp={wallHp} wallMax={wallMax} />}
-
-        <Vignette />
-        <VoileJourNuit phase={phase} />
+        {/* voile et vignette restent solidaires de l'écran — et s'effacent à demi
+            pendant un assaut, pour que la mêlée reste lisible même de nuit */}
+        <g opacity={battle ? 0.45 : 1}>
+          <Vignette />
+          <VoileJourNuit phase={phase} />
+        </g>
       </g>
 
       {/* cadre doré */}

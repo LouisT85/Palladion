@@ -306,6 +306,148 @@ function TourArcher({ x, y }: { x: number; y: number }) {
   )
 }
 
+/**
+ * Pan de mur effondré ailleurs qu'à la porte. Trois plans se lisent : la trouée
+ * d'ombre au travers du mur, le talus de pierres qui la comble à demi, puis les
+ * blocs et les poutres du chemin de ronde répandus au-dehors. Rien de rectiligne
+ * ni de plat : la cassure est dentelée, chaque pierre a sa face au soleil NW.
+ */
+function Decombres({ geo, angle, hFace, bois }: { geo: GeoMur; angle: number; hFace: number; bois?: boolean }) {
+  // une palissade s'effondre en pieux rompus, une muraille en blocs de taille
+  const T = bois
+    ? { assise: '#59431f', assiseLit: '#6f5636', face: '#7d5e39', dessus: '#a8845d', flanc: '#5c4227', pied: '#4a3519', lumps: '#6a4e2d', lumpsLit: '#8b6a40', poudre: '#a89066' }
+    : { assise: '#7e7768', assiseLit: '#928a78', face: '#a09884', dessus: '#c6bda6', flanc: '#7c7565', pied: '#6d6657', lumps: '#8f8878', lumpsLit: '#aea695', poudre: '#cfc7b0' }
+  const demi = 0.1
+  const g = pt(geo, angle - demi)
+  const m = pt(geo, angle)
+  const d = pt(geo, angle + demi)
+  // vers le dehors de l'enceinte : c'est de ce côté que la pierre a roulé
+  const ox = Math.cos(angle)
+  const oy = Math.sin(angle)
+  const h = hFace
+  // tout le tas se met à l'échelle de la hauteur du mur (palissade → grand appareil)
+  const k = Math.max(0.62, Math.min(1, h / 24))
+  const larg = Math.hypot(d.x - g.x, d.y - g.y) / 2
+
+  /** point sur la lèvre supérieure de la cassure, t ∈ [0,1] le long de l'arc */
+  const lip = (t: number, frac: number) => ({
+    x: g.x + (d.x - g.x) * t,
+    y: g.y + (d.y - g.y) * t - h * frac,
+  })
+  const dents = [
+    lip(0, 0.96),
+    lip(0.14, 0.74),
+    lip(0.28, 0.82),
+    lip(0.42, 0.58),
+    lip(0.56, 0.68),
+    lip(0.72, 0.5),
+    lip(0.86, 0.78),
+    lip(1, 0.92),
+  ]
+  const troue =
+    `M${g.x.toFixed(1)},${(g.y + 2).toFixed(1)}` +
+    dents.map((p) => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('') +
+    `L${d.x.toFixed(1)},${(d.y + 2).toFixed(1)}Z`
+
+  /**
+   * Le tas : d'abord des BLOCS taillés descellés du grand appareil, puis des
+   * pierres roulées entre eux. x en fractions de la demi-largeur de la trouée,
+   * tailles en fractions de la hauteur du mur — un pan de palissade s'effondre
+   * en petit, une muraille de niveau 4 en grand.
+   */
+  const BLOCS: [number, number, number, number, number][] = [
+    // [fx, fy, largeur, hauteur, rotation]
+    [-0.6, 0.02, 0.44, 0.26, -13],
+    [0.04, -0.12, 0.52, 0.3, 7],
+    [0.58, 0.06, 0.4, 0.24, -6],
+    [-0.18, 0.22, 0.48, 0.22, 3],
+    [0.95, 0.2, 0.3, 0.18, 12],
+  ]
+  const PIERRES: [number, number, number][] = [
+    [-0.95, 0.16, 0.13], [-0.36, 0.16, 0.15], [0.3, 0.16, 0.13], [0.74, 0.16, 0.11],
+    [-0.72, -0.1, 0.11], [-0.06, -0.34, 0.12], [0.4, -0.16, 0.1], [1.16, 0.22, 0.09],
+  ]
+  return (
+    <g>
+      {/* l'ombre du tas est posée AVANT la trouée : elle ne doit pas la barbouiller */}
+      <g transform={`translate(${(m.x + ox * 4).toFixed(1)},${(m.y + oy * 4).toFixed(1)})`}>
+        <ellipse cx={larg * 0.14} cy={h * 0.26} rx={larg * 1.12} ry={h * 0.28} fill={PAL.ombrePortee} opacity={0.2} filter="url(#a-flou2)" />
+      </g>
+      <path d={troue} fill="url(#mur-antre)" />
+      {/* lèvre de cassure : matière fraîche au soleil, joint noir côté ombre */}
+      <path
+        d={`M${g.x.toFixed(1)},${(g.y + 1).toFixed(1)}` + dents.slice(0, 5).map((p) => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('')}
+        stroke={bois ? '#d6b788' : '#e6dfcb'}
+        strokeWidth={1.5}
+        fill="none"
+        opacity={0.7}
+      />
+      <path
+        d={dents.slice(4).map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('') + `L${d.x.toFixed(1)},${(d.y + 1).toFixed(1)}`}
+        stroke="#463b2c"
+        strokeWidth={1.5}
+        fill="none"
+        opacity={0.6}
+      />
+      {/* couronnement descellé, resté en travers au-dessus du trou */}
+      <g transform={`translate(${m.x.toFixed(1)},${(m.y - h - 2).toFixed(1)}) scale(${k.toFixed(2)})`}>
+        <g transform="rotate(-17)">
+          <rect x={-14} y={-4.4} width={9} height={4.6} fill={T.face} />
+          <rect x={-14} y={-4.4} width={9} height={1.1} fill={T.dessus} />
+        </g>
+        <g transform="rotate(24)">
+          <rect x={6} y={-3.6} width={8} height={4.2} fill={T.flanc} />
+          <rect x={6} y={-3.6} width={8} height={1} fill={T.dessus} />
+        </g>
+      </g>
+      {/* le tas : assise tassée, gros débris, menu fretin entre eux */}
+      <g transform={`translate(${(m.x + ox * 4).toFixed(1)},${(m.y + oy * 4).toFixed(1)})`}>
+        <ellipse cx={0} cy={h * 0.17} rx={larg * 0.98} ry={h * 0.22} fill={T.assise} />
+        <ellipse cx={-larg * 0.12} cy={h * 0.12} rx={larg * 0.72} ry={h * 0.17} fill={T.assiseLit} />
+        {BLOCS.map(([fx, fy, fw, fh, rot]) => {
+          const w = fw * h * (bois ? 1.5 : 1)
+          const hb = fh * h * (bois ? 0.55 : 1)
+          return (
+            <g key={`b${fx}-${fy}`} transform={`translate(${(fx * larg).toFixed(1)},${(fy * h).toFixed(1)}) rotate(${rot})`}>
+              <rect x={-w / 2} y={-hb / 2} width={w} height={hb} fill={T.face} />
+              <rect x={-w / 2} y={-hb / 2} width={w} height={hb * 0.26} fill={T.dessus} />
+              <rect x={w / 2 - w * 0.16} y={-hb / 2} width={w * 0.16} height={hb} fill={T.flanc} />
+              <rect x={-w / 2} y={hb / 2 - hb * 0.16} width={w} height={hb * 0.16} fill={T.pied} opacity={0.7} />
+            </g>
+          )
+        })}
+        {PIERRES.map(([fx, fy, fr]) => {
+          const bx = fx * larg
+          const by = fy * h
+          const r = fr * h
+          return (
+            <g key={`p${fx}-${fy}`}>
+              <ellipse cx={bx} cy={by} rx={r} ry={r * 0.82} fill={T.lumps} />
+              <ellipse cx={bx - r * 0.26} cy={by - r * 0.3} rx={r * 0.56} ry={r * 0.4} fill={T.lumpsLit} />
+              <path
+                d={`M${(bx - r * 0.75).toFixed(1)},${(by + r * 0.5).toFixed(1)} Q${bx.toFixed(1)},${(by + r * 0.95).toFixed(1)} ${(bx + r * 0.8).toFixed(1)},${(by + r * 0.4).toFixed(1)}`}
+                stroke={T.pied}
+                strokeWidth={0.8}
+                fill="none"
+                opacity={0.55}
+              />
+            </g>
+          )
+        })}
+        {/* poutres du chemin de ronde tombées en travers, éclat de bois clair */}
+        <g transform={`scale(${k.toFixed(2)})`}>
+          <path d="M-22,-2 L2,-8 L2.8,-5.4 L-21.4,0.6 Z" fill="#6f5233" />
+          <path d="M-22,-2 L2,-8 L2.4,-6.7 L-21.7,-0.7 Z" fill="#8f6d44" />
+          <path d="M9,4 L27,-1 L27.6,1.2 L9.6,6.2 Z" fill="#5f462d" />
+          <path d="M27,-1 L29.6,-0.2 L27.6,1.2 Z" fill="#b08f5e" />
+        </g>
+        {/* poussière de chaux (ou terre remuée) retombée sur l'herbe */}
+        <ellipse cx={larg * 0.06} cy={h * 0.34} rx={larg * 1.05} ry={h * 0.16} fill={T.poudre} opacity={0.28} />
+      </g>
+    </g>
+  )
+}
+
 function Porte({ geo, niveau, breche }: { geo: GeoMur; niveau: number; breche: boolean }) {
   const { x, y } = pt(geo, 0)
   if (niveau <= 0) return null
@@ -526,9 +668,21 @@ interface Props {
   tours?: number
   /** fraction d'arc dessinée (chantier en cours) — 1 = enceinte complète */
   span?: number
+  /** angles des secteurs effondrés : chaque pan cède à son propre endroit */
+  brechesAngles?: number[]
 }
 
-export function Murailles({ niveau, hp, max, breche, layer, geo = MAP.mur, tours = 0, span = 1 }: Props) {
+export function Murailles({
+  niveau,
+  hp,
+  max,
+  breche,
+  layer,
+  geo = MAP.mur,
+  tours = 0,
+  span = 1,
+  brechesAngles,
+}: Props) {
   const a0 = layer === 'back' ? Math.PI : PORTE
   const a1Complet = layer === 'back' ? 2 * Math.PI - PORTE : Math.PI
   const a1 = a0 + (a1Complet - a0) * span
@@ -732,6 +886,15 @@ export function Murailles({ niveau, hp, max, breche, layer, geo = MAP.mur, tours
           })}
         </g>
       )}
+
+      {/* pans effondrés hors de la porte — chaque secteur cède à son endroit */}
+      {span >= 1 &&
+        (brechesAngles ?? [])
+          .map((a) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI))
+          // la porte a son propre effondrement (composant Porte)
+          .filter((a) => a > 0.3 && a < 2 * Math.PI - 0.3)
+          .filter((a) => (layer === 'front' ? a < Math.PI : a >= Math.PI))
+          .map((a) => <Decombres key={a} geo={geo} angle={a} hFace={hFace} bois={niveau === 1} />)}
 
       {/* tours d'archers du joueur, réparties de part et d'autre de la porte */}
       {niveau >= 1 &&

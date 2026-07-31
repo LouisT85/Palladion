@@ -1,4 +1,5 @@
-import type { BattleState, Fighter } from '../../game/types'
+import { useEffect, type RefObject } from 'react'
+import type { BattleGeo, BattleState, Fighter, SecteurBataille } from '../../game/types'
 
 /*
  * Figurines de bataille — animées en SMIL (aucun coût JS par frame) :
@@ -538,6 +539,80 @@ function FigurineCombattant({
   )
 }
 
+// ── Lecture du siège : une jauge par secteur ─────────────────────────────────
+
+/** vert tant que le pan tient, orange quand il souffre, rouge quand il va céder */
+function tonStructure(ratio: number): string {
+  return ratio > 0.55 ? '#8f9d5a' : ratio > 0.28 ? '#d98a4e' : '#c0563f'
+}
+
+/**
+ * Liseré tracé au pied du pan le plus menacé, DEVANT le mur (là où piétinent
+ * les assaillants) : sur la pierre claire, un trait doré se perdrait.
+ */
+function liseréMenace(geo: BattleGeo, angle: number): string {
+  let d = ''
+  for (let i = 0; i <= 16; i++) {
+    const a = angle - 0.31 + (0.62 * i) / 16
+    const x = geo.cx + (geo.rx + 19) * Math.cos(a)
+    const y = geo.cy + (geo.ry + 19) * Math.sin(a) + 4
+    d += `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
+  }
+  return d
+}
+
+/**
+ * Jauge de structure d'un secteur, posée à l'aplomb de son pan de mur et
+ * repoussée vers l'extérieur de l'enceinte pour ne pas masquer la mêlée.
+ */
+function JaugeSecteur({ s, chaud }: { s: SecteurBataille; chaud: boolean }) {
+  const ratio = s.max > 0 ? Math.max(0, Math.min(1, s.hp / s.max)) : 0
+  const dx = Math.cos(s.angle)
+  const dy = Math.sin(s.angle)
+  const x = s.x + dx * 30
+  // la jauge se pose toujours du côté INTÉRIEUR de son pan : le cadre serré de
+  // la bataille garde l'enceinte au centre, pas ses dehors
+  const y = s.y + (dy < -0.4 ? 62 : dy > 0.4 ? -62 : -56)
+  const w = 82
+  return (
+    <g transform={`translate(${x},${y})`} pointerEvents="none">
+      <rect
+        x={-w / 2}
+        y={-16}
+        width={w}
+        height={34}
+        rx={8}
+        fill="#0d1722"
+        opacity={chaud ? 0.88 : 0.72}
+        stroke="#e0bc5c"
+        strokeOpacity={chaud ? 0.8 : 0.26}
+        strokeWidth={chaud ? 1.4 : 0.9}
+      />
+      <text x={0} y={-5} textAnchor="middle" fontSize={9.6} fill="#f0e8d8" fontWeight={700}>
+        {s.nom}
+      </text>
+      <rect x={-w / 2 + 8} y={0} width={w - 16} height={6.6} rx={3.3} fill="#000" opacity={0.55} />
+      <rect
+        x={-w / 2 + 8}
+        y={0}
+        width={Math.max(1.5, (w - 16) * ratio)}
+        height={6.6}
+        rx={3.3}
+        fill={tonStructure(ratio)}
+      />
+      <text x={0} y={14.8} textAnchor="middle" fontSize={8.8} fill={s.breche ? '#e8916f' : '#cfc4a8'} fontWeight={600}>
+        {s.breche ? 'pan effondré' : `🧱 ${Math.round(Math.max(0, s.hp))} / ${Math.round(s.max)}`}
+      </text>
+      {s.breche && (
+        <text x={-w / 2 - 8} y={4} textAnchor="middle" fontSize={14}>
+          💥
+          <animate attributeName="opacity" values="1;0.15;1" dur="0.75s" repeatCount="indefinite" />
+        </text>
+      )}
+    </g>
+  )
+}
+
 // ── Couche bataille ──────────────────────────────────────────────────────────
 export function BatailleLayer({
   battle,
@@ -563,8 +638,36 @@ export function BatailleLayer({
       (o) => o.camp !== f.camp && o.etat !== 'fuite' && Math.hypot(o.x - f.x, o.y - f.y) < 26,
     )
 
+  // pan le plus menacé : celui qui tient encore mais dont la structure est la plus entamée
+  const idxChaud = indexSecteurChaud(battle, assaillantsParSecteur(battle, vivants))
+  const secteurChaud = idxChaud >= 0 ? battle.secteurs[idxChaud] : undefined
+
   return (
     <g>
+      {/* liseré au pied du pan le plus menacé — c'est là qu'il faut regarder */}
+      {secteurChaud && !secteurChaud.breche && (
+        <g pointerEvents="none">
+          <path
+            d={liseréMenace(battle.geo, secteurChaud.angle)}
+            stroke="#2c1f0c"
+            strokeWidth={5.4}
+            fill="none"
+            strokeLinecap="round"
+            opacity={0.22}
+          />
+          <path
+            d={liseréMenace(battle.geo, secteurChaud.angle)}
+            stroke="#ffd166"
+            strokeWidth={3}
+            fill="none"
+            strokeLinecap="round"
+            opacity={0.6}
+          >
+            <animate attributeName="opacity" values="0.3;0.85;0.3" dur="1.7s" repeatCount="indefinite" />
+          </path>
+        </g>
+      )}
+
       {depouilles.map((f) => (
         <Depouille key={f.id} f={f} campJoueur={battle.campJoueur} now={now} />
       ))}
@@ -632,29 +735,193 @@ export function BatailleLayer({
             </g>
           )
         }
-        // brèche : nuage de poussière
+        // brèche : le nuage de plâtre monte et se dilate en trois volutes
         return (
-          <g key={e.id} opacity={Math.max(0, (e.until - now) / 4000)} fill="#b5ab93">
-            <circle cx={e.x - 8} cy={e.y - 6} r={8} opacity={0.7}>
-              <animate attributeName="r" values="6;14" dur="2.5s" fill="freeze" />
-            </circle>
-            <circle cx={e.x + 7} cy={e.y - 10} r={6} opacity={0.6}>
-              <animate attributeName="r" values="5;12" dur="2.5s" fill="freeze" />
-            </circle>
+          <g key={e.id} opacity={Math.max(0, (e.until - now) / 4000)}>
+            <g>
+              <animateTransform attributeName="transform" type="translate" values="0,0;0,-9" dur="4s" fill="freeze" />
+              <circle cx={e.x - 9} cy={e.y - 4} r={8} fill="#c7bda4" opacity={0.55}>
+                <animate attributeName="r" values="6;16" dur="2.5s" fill="freeze" />
+              </circle>
+              <circle cx={e.x + 7} cy={e.y - 9} r={6} fill="#b5ab93" opacity={0.5}>
+                <animate attributeName="r" values="5;13" dur="2.5s" fill="freeze" />
+              </circle>
+              <circle cx={e.x - 1} cy={e.y - 15} r={4} fill="#d8d0b8" opacity={0.4}>
+                <animate attributeName="r" values="3;11" dur="2.8s" fill="freeze" />
+              </circle>
+            </g>
           </g>
         )
       })}
 
-      {/* jauge des remparts pendant l'assaut */}
-      {wallMax > 0 && (
-        <g transform={`translate(${porte.x - 30},${porte.y - 60})`}>
-          <rect x={0} y={0} width={60} height={7} rx={3.5} fill="#1d1d1d" opacity={0.75} />
-          <rect x={1} y={1} width={Math.max(2, 58 * (wallHp / wallMax))} height={5} rx={2.5} fill={wallHp / wallMax > 0.4 ? '#8f9d5a' : '#c0563f'} />
-          <text x={30} y={-4} textAnchor="middle" fontSize={10} fill="#f0e8d8" fontWeight={700} style={{ paintOrder: 'stroke' }} stroke="#00000088" strokeWidth={2}>
-            🧱 {Math.ceil(wallHp)}
-          </text>
-        </g>
-      )}
+      {/* structure des remparts : une jauge par pan assailli, à son propre aplomb */}
+      {battle.secteurs.some((s) => s.max > 0)
+        ? battle.secteurs.map((s, i) => (
+            <JaugeSecteur key={`${s.nom}-${i}`} s={s} chaud={i === idxChaud} />
+          ))
+        : wallMax > 0 && (
+            // secours : bataille sans secteur déclaré (vieille sauvegarde en cours)
+            <g transform={`translate(${porte.x - 30},${porte.y - 60})`}>
+              <rect x={0} y={0} width={60} height={7} rx={3.5} fill="#1d1d1d" opacity={0.75} />
+              <rect x={1} y={1} width={Math.max(2, 58 * (wallHp / wallMax))} height={5} rx={2.5} fill={tonStructure(wallHp / wallMax)} />
+              <text x={30} y={-4} textAnchor="middle" fontSize={10} fill="#f0e8d8" fontWeight={700} style={{ paintOrder: 'stroke' }} stroke="#00000088" strokeWidth={2}>
+                🧱 {Math.ceil(wallHp)}
+              </text>
+            </g>
+          )}
     </g>
   )
+}
+
+// ── Caméra de bataille ───────────────────────────────────────────────────────
+
+/** assaillants vivants devant chaque secteur */
+function assaillantsParSecteur(b: BattleState, vivants: Fighter[]): number[] {
+  const n = b.secteurs.map(() => 0)
+  for (const f of vivants) {
+    if (f.camp !== 'attaque') continue
+    const i = Math.min(f.secteur ?? 0, n.length - 1)
+    if (i >= 0) n[i]++
+  }
+  return n
+}
+
+/**
+ * Le pan « chaud » : celui qui concentre les assaillants, pondéré par la
+ * structure déjà entamée. −1 s'il n'y a rien à surveiller.
+ */
+function indexSecteurChaud(b: BattleState, parSecteur: number[]): number {
+  let idx = -1
+  let meilleur = -Infinity
+  b.secteurs.forEach((s, i) => {
+    const entame = s.max > 0 ? 1 - s.hp / s.max : 1
+    // un pan tombé n'a plus rien à défendre : il pèse moins qu'un pan qui craque
+    const score = parSecteur[i] + entame * 7 - (s.breche ? 5 : 0)
+    if (score > meilleur) {
+      meilleur = score
+      idx = i
+    }
+  })
+  return idx
+}
+
+/** fenêtre de la scène et amplitude de zoom autorisée */
+export interface VueScene {
+  w: number
+  h: number
+  zMin: number
+  zMax: number
+}
+
+interface Cadrage {
+  cx: number
+  cy: number
+  z: number
+}
+
+function borne(v: number, min: number, max: number): number {
+  return v < min ? min : v > max ? max : v
+}
+
+/**
+ * Où poser la caméra : barycentre des combattants, tiré vers le front chaud et
+ * ancré sur son pan de mur, avec un zoom déduit de l'étendue de la mêlée.
+ * Dès que plusieurs pans sont assaillis, le centre de l'enceinte pèse dans la
+ * balance : les trois fronts doivent tenir ensemble dans le cadre.
+ */
+function cadrageBataille(b: BattleState | null, vue: VueScene): Cadrage {
+  const large: Cadrage = { cx: vue.w / 2, cy: vue.h / 2, z: 1 }
+  if (!b) return large
+  const vivants = b.fighters.filter((f) => f.etat !== 'mort')
+  if (vivants.length === 0) return large
+
+  const parSecteur = assaillantsParSecteur(b, vivants)
+  const idx = indexSecteurChaud(b, parSecteur)
+  const chaud = idx >= 0 ? b.secteurs[idx] : { x: b.geo.porte.x, y: b.geo.porte.y }
+  const frontsActifs = parSecteur.filter((n) => n > 0).length
+
+  let sx = 0
+  let sy = 0
+  let sp = 0
+  const poser = (x: number, y: number, p: number) => {
+    sx += x * p
+    sy += y * p
+    sp += p
+  }
+  for (const f of vivants) poser(f.x, f.y, f.camp === 'attaque' && (f.secteur ?? 0) === idx ? 2.2 : 0.8)
+  const combattants = sp
+  // le pan assailli reste dans le cadre même quand la colonne est encore loin
+  poser(chaud.x, chaud.y, Math.max(5, combattants * (frontsActifs > 1 ? 0.2 : 0.42)))
+  if (frontsActifs > 1) poser(b.geo.cx, b.geo.cy, combattants * 0.35)
+  const cx = sx / sp
+  const cy = sy / sp
+
+  // étendue à cadrer — les traînards très à l'écart ne dictent pas le zoom
+  let x0 = chaud.x
+  let x1 = chaud.x
+  let y0 = chaud.y
+  let y1 = chaud.y
+  for (const f of vivants) {
+    if (Math.hypot(f.x - cx, f.y - cy) > vue.w * 0.4) continue
+    x0 = Math.min(x0, f.x)
+    x1 = Math.max(x1, f.x)
+    y0 = Math.min(y0, f.y)
+    y1 = Math.max(y1, f.y)
+  }
+  const z = borne(Math.min(vue.w / ((x1 - x0) * 1.25 + 150), vue.h / ((y1 - y0) * 1.25 + 130)), vue.zMin, vue.zMax)
+
+  // le bandeau « assaut en cours » mange le haut de la scène : on descend un peu
+  // le cadrage pour ne pas jouer le front nord derrière lui
+  const decalageHud = 34 / z
+
+  // la fenêtre ne sort jamais de la carte : pas de bord vide à l'écran
+  const demiW = vue.w / (2 * z)
+  const demiH = vue.h / (2 * z)
+  return { cx: borne(cx, demiW, vue.w - demiW), cy: borne(cy - decalageHud, demiH, vue.h - demiH), z }
+}
+
+/** constante de temps de la caméra (ms) — le mouvement doit s'oublier, jamais surprendre */
+const TAU_CAMERA = 1150
+
+/**
+ * Rapproche la vue de l'action pendant une bataille et suit le front chaud.
+ * On écrit l'attribut `transform` image par image plutôt que d'utiliser une
+ * transition CSS : la cible bouge à chaque tick (250 ms) et une transition
+ * relancée sans cesse donnerait des saccades. Le SVG garde son viewBox, donc
+ * le cadre doré et le voile de nuit restent solidaires de l'écran.
+ */
+export function useCameraBataille(
+  ref: RefObject<SVGGElement | null>,
+  vue: VueScene,
+  lireBataille: () => BattleState | null,
+): void {
+  useEffect(() => {
+    let vu: Cadrage = { cx: vue.w / 2, cy: vue.h / 2, z: 1 }
+    let but = vu
+    let precedent = performance.now()
+    let calcul = 0
+    let raf = requestAnimationFrame(function boucle(t: number) {
+      raf = requestAnimationFrame(boucle)
+      const dt = Math.min(140, t - precedent)
+      precedent = t
+      // la cible ne bouge qu'au rythme des ticks : inutile de la recalculer 60 fois/s
+      if (t - calcul > 90) {
+        calcul = t
+        but = cadrageBataille(lireBataille(), vue)
+      }
+      const k = 1 - Math.exp(-dt / TAU_CAMERA)
+      vu = { cx: vu.cx + (but.cx - vu.cx) * k, cy: vu.cy + (but.cy - vu.cy) * k, z: vu.z + (but.z - vu.z) * k }
+      const el = ref.current
+      if (!el) return
+      // retour à la vue d'ensemble : on retire l'attribut pour ne rien laisser traîner
+      if (Math.abs(vu.z - 1) < 0.0015 && Math.abs(vu.cx - vue.w / 2) < 0.6 && Math.abs(vu.cy - vue.h / 2) < 0.6) {
+        if (el.hasAttribute('transform')) el.removeAttribute('transform')
+        return
+      }
+      const tx = vue.w / 2 - vu.cx * vu.z
+      const ty = vue.h / 2 - vu.cy * vu.z
+      el.setAttribute('transform', `translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${vu.z.toFixed(4)})`)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [ref, vue, lireBataille])
 }

@@ -31,12 +31,13 @@ function mix(a: string, b: string, t: number): string {
 const drapLit = (c: string) => mix(c, '#ffe9c2', 0.34)
 const drapOmbre = (c: string) => mix(c, '#221408', 0.34)
 
-/** ombre au sol commune : deux ellipses terre superposées, bord doux sans filtre */
+/** ombre au sol commune : trois ellipses terre superposées, bord fondu sans filtre */
 function OmbreSol({ rx = 5, ry = 1.8 }: { rx?: number; ry?: number }) {
   return (
     <>
-      <ellipse cx={rx * 0.12} cy={1.1} rx={rx * 1.12} ry={ry * 1.12} fill="#241a08" opacity={0.09} />
-      <ellipse cx={rx * 0.07} cy={1} rx={rx * 0.76} ry={ry * 0.78} fill="#241a08" opacity={0.14} />
+      <ellipse cx={rx * 0.16} cy={1.15} rx={rx * 1.22} ry={ry * 1.18} fill="#241a08" opacity={0.06} />
+      <ellipse cx={rx * 0.1} cy={1.05} rx={rx * 0.92} ry={ry * 0.92} fill="#241a08" opacity={0.09} />
+      <ellipse cx={rx * 0.06} cy={1} rx={rx * 0.6} ry={ry * 0.64} fill="#241a08" opacity={0.12} />
     </>
   )
 }
@@ -45,16 +46,34 @@ function OmbreSol({ rx = 5, ry = 1.8 }: { rx?: number; ry?: number }) {
 function Casque() {
   return (
     <g>
-      {/* couvre-nuque (le dos est à gauche, la figurine regarde vers +x) */}
-      <path d="M-2.6,-13.2 L-3.6,-11.2 L-2,-11 L-1.8,-12.8 Z" fill="#564c2c" />
-      {/* calotte : demi-teinte, flanc est ombré, reflet spéculaire NW */}
-      <path d="M-2.75,-13.4 A2.75,2.75 0 0 1 2.75,-13.4 L2.75,-12.7 L-2.75,-12.7 Z" fill="#7e714a" />
-      <path d="M0.4,-16.1 A2.75,2.75 0 0 1 2.75,-13.4 L2.75,-12.7 L1.1,-12.7 Q1.6,-14.9 0.4,-16.1 Z" fill="#5c5231" />
-      <path d="M-2.15,-14.35 A2.55,2.55 0 0 1 -0.2,-15.65" stroke="#ece1ac" strokeWidth={1.1} fill="none" strokeLinecap="round" />
-      {/* bord inférieur dans la teinte sombre du bronze — assoit le casque sur le visage */}
-      <path d="M-2.75,-12.7 L2.75,-12.7" stroke="#4c431f" strokeWidth={0.8} />
+      {/* couvre-nuque en deux lames (le dos est à gauche, la figurine regarde vers +x) */}
+      <path d="M-2.6,-13.3 L-3.85,-10.9 L-2.1,-10.75 L-1.75,-12.8 Z" fill="#4e4423" />
+      <path d="M-2.6,-13.3 L-3.25,-12.05 L-1.95,-11.9 L-1.75,-12.8 Z" fill="#7a6c3e" />
+      {/* calotte : bronze chaud en demi-teinte, flanc est dans l'ombre */}
+      <path d="M-2.8,-13.3 Q-2.8,-16.3 0,-16.3 Q2.8,-16.3 2.8,-13.3 L2.8,-12.6 L-2.8,-12.6 Z" fill="#8a7845" />
+      <path d="M0.55,-16.25 Q2.8,-15.7 2.8,-13.3 L2.8,-12.6 L0.9,-12.6 Q1.9,-14.7 0.55,-16.25 Z" fill="#5c5231" />
+      {/* reflet spéculaire NW court, doublé d'un demi-ton qui arrondit la calotte */}
+      <path d="M-2.05,-14.5 Q-1.5,-15.6 -0.4,-15.8" stroke="#f2e6b0" strokeWidth={0.75} fill="none" strokeLinecap="round" />
+      <path d="M-2.45,-13.4 Q-2.35,-14.3 -1.85,-14.9" stroke="#c9b878" strokeWidth={0.55} fill="none" strokeLinecap="round" opacity={0.9} />
+      {/* bourrelet du bord : ombre dessous, filet clair dessus — assoit le casque */}
+      <path d="M-2.8,-12.6 L2.8,-12.6" stroke="#4c431f" strokeWidth={0.85} />
+      <path d="M-2.7,-13.05 L2.7,-13.05" stroke="#a08c50" strokeWidth={0.45} opacity={0.7} />
       {/* nasal court au front */}
-      <path d="M2.1,-14 L2.75,-13.4 L2.75,-12.7 L1.75,-13.3 Z" fill="#6a5f3a" />
+      <path d="M2.2,-13.9 L2.8,-13.3 L2.8,-12.6 L1.8,-13.2 Z" fill="#6a5f3a" />
+    </g>
+  )
+}
+
+/** calot de cuir des pillards : coiffe basse, bandeau, nuque dégagée */
+function CalotCuir() {
+  return (
+    <g>
+      <path d="M-2.65,-13.1 Q-2.65,-15.7 0,-15.7 Q2.65,-15.7 2.65,-13.1 L2.65,-12.75 L-2.65,-12.75 Z" fill="#8a6a3e" />
+      <path d="M0.5,-15.65 Q2.65,-15.2 2.65,-13.1 L2.65,-12.75 L0.8,-12.75 Q1.7,-14.4 0.5,-15.65 Z" fill="#634829" />
+      <path d="M-1.95,-14.15 Q-1.4,-15.1 -0.35,-15.25" stroke="#c2985e" strokeWidth={0.65} fill="none" strokeLinecap="round" />
+      {/* bandeau cousu, couture apparente */}
+      <path d="M-2.65,-12.75 L2.65,-12.75" stroke="#4a3319" strokeWidth={0.75} />
+      <path d="M-2.55,-13.15 L2.55,-13.15" stroke="#a8865a" strokeWidth={0.4} opacity={0.8} />
     </g>
   )
 }
@@ -64,11 +83,15 @@ function Crete() {
   return (
     <g>
       <path
-        d="M-2.7,-15.1 L-1.7,-18.2 L-0.9,-17.2 L-0.2,-19 L0.7,-17.3 L1.4,-18.5 L2,-16.9 L2.6,-15.4 Q0,-16.9 -2.7,-15.1 Z"
+        d="M-3.1,-14.7 L-2.4,-17.6 L-1.6,-16.9 L-0.9,-18.6 L-0.1,-17.2 L0.6,-18.9 L1.4,-17.1 L2.1,-18 L2.6,-16.5 L3,-15.1 Q0,-16.8 -3.1,-14.7 Z"
         fill="#a8483a"
       />
-      <path d="M-0.2,-19 L0.7,-17.3 L-0.7,-17 Z" fill="#cf6a4e" />
-      <path d="M-2.7,-15.1 Q0,-16.9 2.6,-15.4" stroke="#7c322a" strokeWidth={1} fill="none" />
+      {/* mèches avant frappées par le soleil */}
+      <path d="M-0.9,-18.6 L-0.1,-17.2 L-1.35,-16.95 Z" fill="#cf6a4e" />
+      <path d="M-2.4,-17.6 L-1.6,-16.9 L-2.5,-16.4 Z" fill="#c05f46" />
+      {/* racine sombre qui assoit la brosse sur la calotte */}
+      <path d="M-3.1,-14.7 Q0,-16.8 3,-15.1" stroke="#7c322a" strokeWidth={1.15} fill="none" />
+      <path d="M-2.6,-15.15 Q0,-16.3 2.6,-15.4" stroke="#8f3c30" strokeWidth={0.6} fill="none" opacity={0.9} />
     </g>
   )
 }
@@ -102,20 +125,20 @@ export function Bonhomme({
     <g transform={`scale(${taille})`}>
       <OmbreSol rx={5} ry={1.8} />
 
-      {/* jambes */}
+      {/* jambes — un petit pied tourné vers l'avant ancre la silhouette au sol */}
       {marche ? (
         <>
-          <line x1={-1.6} y1={-4} x2={-1.6} y2={0} stroke={PEAU} strokeWidth={1.6}>
+          <path d="M-1.6,-4 L-1.6,-0.5 L-0.55,-0.35" stroke={PEAU} strokeWidth={1.6} fill="none" strokeLinecap="round">
             <animateTransform attributeName="transform" type="rotate" values="22 0 -4;-22 0 -4;22 0 -4" dur="0.6s" begin={decal} repeatCount="indefinite" />
-          </line>
-          <line x1={1.6} y1={-4} x2={1.6} y2={0} stroke={PEAU_OMBRE} strokeWidth={1.6}>
+          </path>
+          <path d="M1.6,-4 L1.6,-0.5 L2.65,-0.35" stroke={PEAU_OMBRE} strokeWidth={1.6} fill="none" strokeLinecap="round">
             <animateTransform attributeName="transform" type="rotate" values="-22 0 -4;22 0 -4;-22 0 -4" dur="0.6s" begin={decal} repeatCount="indefinite" />
-          </line>
+          </path>
         </>
       ) : (
         <>
-          <line x1={-1.6} y1={0} x2={-1.6} y2={-4} stroke={PEAU} strokeWidth={1.6} />
-          <line x1={1.6} y1={0} x2={1.6} y2={-4} stroke={PEAU_OMBRE} strokeWidth={1.6} />
+          <path d="M-1.6,-4 L-1.6,-0.5 L-0.55,-0.35" stroke={PEAU} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+          <path d="M1.6,-4 L1.6,-0.5 L2.65,-0.35" stroke={PEAU_OMBRE} strokeWidth={1.6} fill="none" strokeLinecap="round" />
         </>
       )}
 
@@ -136,19 +159,33 @@ export function Bonhomme({
           />
         )}
 
+        {/* ptéruges de cuir sous la tunique de l'infanterie lourde */}
+        {arme === 'bouclier-lourd' && (
+          <g>
+            <path d="M-2.2,-4.4 L-2,-2.6 L-1.2,-2.7 L-1.3,-4.3 Z" fill="#6b4c2a" />
+            <path d="M-0.6,-4.3 L-0.5,-2.5 L0.4,-2.6 L0.4,-4.3 Z" fill="#83694a" />
+            <path d="M1.1,-4.3 L1.3,-2.7 L2.1,-2.8 L2.2,-4.4 Z" fill="#5d4230" />
+          </g>
+        )}
         {/* tunique : flanc gauche au soleil, plis creusés dans la teinte sombre, ceinture */}
         <path d="M-3,-4 L-2.2,-11 L2.2,-11 L3,-4 Z" fill={tunique} />
         <path d="M-3,-4 L-2.2,-11 L-0.7,-11 L-1.1,-4 Z" fill={mix(tunique, '#ffe9c2', 0.22)} />
         <path d="M2.2,-11 L3,-4 L2,-4 L1.6,-11 Z" fill={drapOmbre(tunique)} opacity={0.8} />
         <path d="M0.7,-4.4 L0.5,-6.2" stroke={drapOmbre(tunique)} strokeWidth={0.8} opacity={0.85} />
+        {/* ourlet assombri qui assoit l'étoffe */}
+        <path d="M-2.9,-4.3 L2.9,-4.3" stroke={drapOmbre(tunique)} strokeWidth={0.7} opacity={0.7} />
+        {/* baudrier de l'épée en travers du buste */}
+        {arme === 'bouclier-lourd' && <path d="M1.9,-10.8 L-2.2,-7.4" stroke="#4a3319" strokeWidth={0.7} opacity={0.85} />}
         <path d="M-2.68,-6.5 L2.68,-6.5 L2.76,-7.5 L-2.76,-7.5 Z" fill="#5d4230" />
         <path d="M-2.76,-7.5 L-0.3,-7.5 L-0.3,-6.5 L-2.68,-6.5 Z" fill="#7a5a3e" opacity={0.75} />
         {/* épaules : ourlet clair côté lumière */}
         <path d="M-2.2,-11 L0.4,-11" stroke={drapLit(tunique)} strokeWidth={0.9} opacity={0.8} />
+        {/* creux d'ombre sous le menton — assoit la tête sur les épaules */}
+        <path d="M-1.5,-10.9 Q0,-10.2 1.5,-10.9" stroke={drapOmbre(tunique)} strokeWidth={0.7} fill="none" opacity={0.5} />
         {/* tête : face au soleil, joue est dans l'ombre */}
         <circle cx={0} cy={-13} r={2.7} fill={PEAU} />
         <path d="M0.9,-15.55 A2.7,2.7 0 0 1 0.9,-10.45 A3.9,3.9 0 0 0 0.9,-15.55 Z" fill={PEAU_OMBRE} />
-        <Casque />
+        {arme === 'dague' ? <CalotCuir /> : <Casque />}
         {crete && <Crete />}
 
         {/* carquois en biais dans le dos des archers, deux flèches qui dépassent */}
@@ -158,6 +195,8 @@ export function Bonhomme({
             <line x1={-3.8} y1={-10.9} x2={-3.3} y2={-12.2} stroke="#5d4a33" strokeWidth={0.8} />
             <path d="M-5.3,-10.3 L-3.9,-10.9 L-2.4,-7.4 L-3.8,-6.9 Z" fill="#7a5230" />
             <path d="M-5.3,-10.3 L-4.6,-10.6 L-3.1,-7.15 L-3.8,-6.9 Z" fill="#9a6f42" />
+            {/* bretelle du carquois en travers du buste */}
+            <path d="M-2.9,-9.4 L1.7,-7.2" stroke="#4a3319" strokeWidth={0.65} opacity={0.8} />
           </g>
         )}
 
@@ -175,9 +214,12 @@ export function Bonhomme({
                 repeatCount="indefinite"
               />
             )}
+            {/* bras qui porte la hampe, main refermée dessus */}
+            <line x1={1.3} y1={-9.3} x2={5.1} y2={-8.5} stroke={PEAU} strokeWidth={1.3} />
             {/* hampe deux tons : bas en ombre, haut frappé par le soleil */}
             <line x1={4} y1={2} x2={7} y2={-18} stroke="#6b4c2a" strokeWidth={1.3} />
             <line x1={5.6} y1={-8.6} x2={7} y2={-18} stroke="#a8845d" strokeWidth={0.9} />
+            <circle cx={5.5} cy={-8.5} r={0.85} fill={PEAU} />
             {/* fer à deux facettes : éclat NW, revers dans l'ombre */}
             <path d="M7,-18 L7.9,-21 L8.1,-18.2 Z" fill="#e4eaef" />
             <path d="M8.1,-18.2 L7.9,-21 L9.2,-18.4 Z" fill="#87909a" />
@@ -203,6 +245,7 @@ export function Bonhomme({
             <line x1={4.5} y1={-8.8} x2={8} y2={-11.5} stroke="#8a929b" strokeWidth={1.4} />
             <line x1={4.9} y1={-9.35} x2={7.7} y2={-11.5} stroke="#e6ebf0" strokeWidth={0.8} />
             <line x1={4.35} y1={-9.6} x2={5.1} y2={-8.2} stroke="#8c6b3f" strokeWidth={0.9} />
+            <circle cx={4.4} cy={-8.8} r={0.75} fill={PEAU} />
           </g>
         )}
 
@@ -225,6 +268,7 @@ export function Bonhomme({
             <line x1={5.35} y1={-10.15} x2={8.9} y2={-12.65} stroke="#eef2f6" strokeWidth={0.8} />
             <line x1={5.4} y1={-10.8} x2={6.2} y2={-9.2} stroke="#8c6b3f" strokeWidth={1.1} />
             <circle cx={4.7} cy={-9.35} r={0.8} fill="#6b4c2a" />
+            <circle cx={5.05} cy={-9.62} r={0.6} fill={PEAU} />
           </g>
         )}
 
@@ -241,10 +285,13 @@ export function Bonhomme({
                 repeatCount="indefinite"
               />
             )}
+            {/* bras d'arc tendu vers la poignée */}
+            <line x1={1.3} y1={-9.6} x2={6.1} y2={-9.5} stroke={PEAU} strokeWidth={1.2} />
             {/* arc deux tons : dos du bois dans l'ombre, ventre côté lumière, poignée gainée */}
             <path d="M4.5,-15 Q9,-9.5 4.5,-4" stroke="#6b4c2a" strokeWidth={1.4} fill="none" />
             <path d="M4.3,-15.2 Q8.7,-9.7 4.3,-4.4" stroke="#a8845d" strokeWidth={0.8} fill="none" />
             <line x1={6.35} y1={-10.4} x2={6.75} y2={-8.6} stroke="#4f3a22" strokeWidth={1.1} />
+            <circle cx={6.5} cy={-9.5} r={0.8} fill={PEAU} />
             {tir ? (
               <>
                 {/* corde tirée puis relâchée, flèche encochée qui disparaît au départ */}
@@ -272,9 +319,14 @@ export function Bonhomme({
         {arme === 'lance' && (
           <g>
             <circle cx={-4} cy={-8} r={3.5} fill="#4f3d22" />
+            {/* liseré de rive accroché par le soleil au NW */}
+            <path d="M-6.85,-9.4 A3.5,3.5 0 0 1 -5.15,-11.05" stroke="#c8a869" strokeWidth={0.7} fill="none" strokeLinecap="round" />
             <circle cx={-4} cy={-8} r={3} fill="#7c5f38" />
+            {/* ombre du champ contre la rive, côté SE — creuse le bombé */}
+            <path d="M-1.3,-6.9 A3,3 0 0 1 -3.2,-5.15" stroke="#3f301a" strokeWidth={0.75} fill="none" strokeLinecap="round" opacity={0.55} />
             <circle cx={-4.5} cy={-8.5} r={2.2} fill="#97744a" />
             <circle cx={-5} cy={-9} r={1.3} fill="#b3905f" />
+            {/* umbo de bronze, éclat décalé vers la lumière */}
             <circle cx={-4} cy={-8} r={1.05} fill="#4f3d22" />
             <circle cx={-4.2} cy={-8.2} r={0.8} fill="#cbbd91" />
           </g>
@@ -285,6 +337,8 @@ export function Bonhomme({
             <circle cx={-4} cy={-8} r={4.9} fill="#6e5526" />
             <path d="M-8.3,-9.9 A4.9,4.9 0 0 1 -5.4,-12.6" stroke="#dcc36a" strokeWidth={0.8} fill="none" strokeLinecap="round" />
             <circle cx={-4} cy={-8} r={4.15} fill={drapOmbre(tunique)} />
+            {/* ombre du champ contre la rive, côté SE */}
+            <path d="M-0.35,-6.4 A4.15,4.15 0 0 1 -3,-3.98" stroke="#241408" strokeWidth={0.8} fill="none" strokeLinecap="round" opacity={0.4} />
             <circle cx={-4.7} cy={-8.7} r={3.3} fill={tunique} />
             <circle cx={-5.4} cy={-9.4} r={2.2} fill={drapLit(tunique)} />
             <circle cx={-4} cy={-8} r={1.4} fill="#8a6b2e" />
@@ -311,9 +365,16 @@ function Belier({ enMarche }: { enMarche?: boolean }) {
       <path d="M-13,-13 Q-10.8,-11.5 -8.6,-13 Q-6.4,-11.5 -4.2,-13 Q-2,-11.5 0.2,-13 Q2.4,-11.5 4.6,-13 Q6.8,-11.5 9,-13 Q11,-11.5 13,-13 L13,-13.4 L-13,-13.4 Z" fill="#77593a" />
       <path d="M-13,-13.2 L0,-18 L1,-13.2 Z" fill="#a9895f" />
       <path d="M1,-13.2 L0,-18 L13,-13.2 Z" fill="#77593a" />
+      {/* pièces de peau dépareillées, rapiécées sur chaque pan */}
+      <path d="M-9.6,-14.2 L-5.8,-15.7 L-4.9,-13.9 L-8.6,-13.5 Z" fill="#b4956b" opacity={0.85} />
+      <path d="M-3.2,-16.4 L-1.2,-17 L-0.6,-14.6 L-2.4,-14.3 Z" fill="#9d7d53" opacity={0.9} />
+      <path d="M3.4,-16 L6.2,-15.2 L6.8,-13.6 L4.2,-13.7 Z" fill="#6b4e32" opacity={0.9} />
+      {/* coutures des peaux : surjets clairs côté soleil, sombres côté ombre */}
       <path d="M-8.3,-14.9 L-7,-13.3 M-3.6,-16.6 L-2.2,-13.4" stroke="#8a6a45" strokeWidth={0.8} opacity={0.8} />
       <path d="M4.4,-16.3 L5.6,-13.4 M8.6,-14.7 L9.4,-13.4" stroke="#5d4230" strokeWidth={0.8} opacity={0.8} />
+      {/* arête faîtière frappée par le soleil, revers éteint */}
       <path d="M-13,-13.2 L0,-18" stroke="#c9a97a" strokeWidth={0.9} />
+      <path d="M0,-18 L13,-13.2" stroke="#5d4230" strokeWidth={0.7} opacity={0.8} />
       {/* tronc suspendu — au repos pendant la marche, en plein élan au siège */}
       <g>
         {!enMarche && (
@@ -333,12 +394,19 @@ function Belier({ enMarche }: { enMarche?: boolean }) {
         <rect x={-15} y={-10} width={30} height={5} rx={2.5} fill="#7c5a30" />
         <rect x={-14.2} y={-9.7} width={28} height={1.7} rx={0.85} fill="#a8845d" />
         <path d="M-11,-6.4 L6,-6.4 M-6,-7.9 L10,-7.9" stroke="#5f462d" strokeWidth={0.8} opacity={0.7} />
+        {/* ligatures de corde qui arriment le fût aux suspentes */}
+        <path d="M-7.8,-10 L-7.4,-5.2 M-6.9,-10 L-6.5,-5.2" stroke="#5d4a33" strokeWidth={0.7} opacity={0.9} />
+        <path d="M6.2,-10 L6.6,-5.2 M7.1,-10 L7.5,-5.2" stroke="#4f3e2a" strokeWidth={0.7} opacity={0.9} />
         <ellipse cx={14.6} cy={-7.5} rx={1.2} ry={2.3} fill="#5f462d" />
+        <ellipse cx={14.5} cy={-7.9} rx={0.7} ry={1.2} fill="#8a6a45" />
         {/* tête de bélier en bronze : masque, corne enroulée, mufle projeté vers le mur */}
         <circle cx={-15.6} cy={-7.5} r={2.9} fill="#8a6b2e" />
         <path d="M-17.4,-9.7 A2.9,2.9 0 0 0 -18.5,-7.6 L-15.6,-7.5 Z" fill="#b08c35" />
         <path d="M-18.2,-8.3 L-20.6,-6.6 L-17.6,-5.3 Z" fill="#7a5c24" />
         <path d="M-18.2,-8.3 L-20.6,-6.6 L-18.9,-7.5 Z" fill="#c9a441" />
+        {/* œil rivé et arcade éclairée du masque */}
+        <circle cx={-16.7} cy={-7.9} r={0.45} fill="#3d3010" />
+        <path d="M-17.5,-8.6 Q-16.9,-9 -16.2,-8.75" stroke="#c9a441" strokeWidth={0.45} fill="none" opacity={0.9} />
         <circle cx={-14.7} cy={-9.3} r={1.5} fill="#8a6b2e" />
         <circle cx={-14.7} cy={-9.3} r={1.5} fill="none" stroke="#c9a441" strokeWidth={0.9} />
         <circle cx={-14.7} cy={-9.3} r={0.8} fill="#5c471c" />

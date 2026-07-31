@@ -26,17 +26,17 @@ function CorpsOuvrier({ tunique = '#b3906b', marche }: { tunique?: string; march
       <ellipse cx={1} cy={0.8} rx={3.4} ry={1.15} fill="#241a0c" opacity={0.14} />
       {marche ? (
         <>
-          <line x1={0} y1={-4} x2={-1.5} y2={0} stroke={PEAU} strokeWidth={1.5}>
+          <path d="M0,-4 L-1.5,-0.4 L-0.5,-0.25" stroke={PEAU} strokeWidth={1.5} fill="none" strokeLinecap="round">
             <animateTransform attributeName="transform" type="rotate" values="16 0 -4;-16 0 -4;16 0 -4" dur="0.45s" repeatCount="indefinite" />
-          </line>
-          <line x1={0} y1={-4} x2={1.5} y2={0} stroke={PEAU_OMBRE} strokeWidth={1.5}>
+          </path>
+          <path d="M0,-4 L1.5,-0.4 L2.5,-0.25" stroke={PEAU_OMBRE} strokeWidth={1.5} fill="none" strokeLinecap="round">
             <animateTransform attributeName="transform" type="rotate" values="-16 0 -4;16 0 -4;-16 0 -4" dur="0.45s" repeatCount="indefinite" />
-          </line>
+          </path>
         </>
       ) : (
         <>
-          <line x1={-1.5} y1={0} x2={-1.5} y2={-4} stroke={PEAU} strokeWidth={1.5} />
-          <line x1={1.5} y1={0} x2={1.5} y2={-4} stroke={PEAU_OMBRE} strokeWidth={1.5} />
+          <path d="M-1.5,-4 L-1.5,-0.4 L-0.5,-0.25" stroke={PEAU} strokeWidth={1.5} fill="none" strokeLinecap="round" />
+          <path d="M1.5,-4 L1.5,-0.4 L2.5,-0.25" stroke={PEAU_OMBRE} strokeWidth={1.5} fill="none" strokeLinecap="round" />
         </>
       )}
       {/* tunique de travail : flanc ouest au soleil, revers est ombré, ceinture de cuir */}

@@ -28,10 +28,14 @@ export function Villageois({ pop, morale, now, enBataille }: { pop: number; mora
         {/* ombre au sol adoucie */}
         <ellipse cx={0.5} cy={1} rx={4.4} ry={1.55} fill="#241a08" opacity={0.09} />
         <ellipse cx={0.3} cy={0.9} rx={3} ry={1.1} fill="#241a08" opacity={0.14} />
-        {/* robe : flanc ouest au soleil, revers ombré, ceinture */}
+        {/* pieds qui dépassent de l'ourlet */}
+        <ellipse cx={-1} cy={-0.1} rx={0.75} ry={0.45} fill="#bd8a5c" />
+        <ellipse cx={1.1} cy={-0.1} rx={0.75} ry={0.45} fill="#a2734a" />
+        {/* robe : flanc ouest au soleil, revers ombré, ceinture, ourlet assombri */}
         <path d="M-2.5,0 L-1.6,-7 L1.6,-7 L2.5,0 Z" fill={robe} />
         <path d="M-2.5,0 L-1.6,-7 L-0.4,-7 L-0.8,0 Z" fill={robeLit} />
         <path d="M1.6,-7 L2.5,0 L1.7,0 L1.2,-7 Z" fill={robeOmbre} opacity={0.85} />
+        <path d="M-2.45,-0.35 L2.45,-0.35" stroke={robeOmbre} strokeWidth={0.7} opacity={0.7} />
         <path d="M-2.15,-4.4 L2.15,-4.4 L2.2,-5.2 L-2.2,-5.2 Z" fill="#5d4230" opacity={0.9} />
         {/* tête : joue est ombrée, cheveux avec reflet NW */}
         <circle cx={0} cy={-9} r={2.4} fill="#d9a97c" />

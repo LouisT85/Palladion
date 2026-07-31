@@ -4,6 +4,7 @@ import type {
   BattleState,
   EnemyId,
   Fighter,
+  SecteurBataille,
   UnitId,
   WaveUnit,
 } from './types'
@@ -56,10 +57,10 @@ export function geoPoint(geo: BattleGeo, angle: number): { x: number; y: number 
   return { x: geo.cx + geo.rx * Math.cos(angle), y: geo.cy + geo.ry * Math.sin(angle) }
 }
 
-/** position de siège du i-ème assaillant, en arc autour de la porte (angle 0) */
-function posteSiege(geo: BattleGeo, i: number): { x: number; y: number } {
-  const angle = ((i % 9) - 4) * 0.09
-  const off = 16 + 15 * Math.floor(i / 9)
+/** position de siège du i-ème assaillant, en arc autour d'un secteur donné */
+function posteSiege(geo: BattleGeo, i: number, angleSecteur = 0): { x: number; y: number } {
+  const angle = angleSecteur + ((i % 7) - 3) * 0.1
+  const off = 16 + 15 * Math.floor(i / 7)
   return {
     x: geo.cx + (geo.rx + off) * Math.cos(angle),
     y: geo.cy + (geo.ry + off) * Math.sin(angle),
@@ -69,8 +70,37 @@ function posteSiege(geo: BattleGeo, i: number): { x: number; y: number } {
 /** positions de tir des archers défenseurs selon le niveau des remparts */
 export function postesArchers(geo: BattleGeo, niveau: number): { x: number; y: number }[] {
   if (niveau <= 0) return [{ x: geo.ralliement.x, y: geo.ralliement.y }]
-  const angles = niveau >= 3 ? [-0.55, -0.2, 0.2, 0.55] : [-0.35, 0.35]
+  const angles = niveau >= 3 ? [-1.5, -0.45, 0.45, 1.5] : [-0.45, 0.45]
   return angles.map((a) => geoPoint(geo, a))
+}
+
+/** point d'entrée dans l'enceinte pour un secteur : juste en deçà du mur */
+function entreeSecteur(geo: BattleGeo, angle: number): { x: number; y: number } {
+  return {
+    x: geo.cx + (geo.rx - 34) * Math.cos(angle),
+    y: geo.cy + (geo.ry - 34) * Math.sin(angle),
+  }
+}
+
+/** un point est-il à l'intérieur de l'enceinte ? (rayon normalisé de l'ellipse) */
+function estDedans(geo: BattleGeo, p: { x: number; y: number }): boolean {
+  const dx = (p.x - geo.cx) / geo.rx
+  const dy = (p.y - geo.cy) / geo.ry
+  return dx * dx + dy * dy < 1
+}
+
+/** secteur dont le pan de mur est le plus proche d'un point donné */
+function secteurProche(b: BattleState, p: { x: number; y: number }): SecteurBataille {
+  let best = b.secteurs[0]
+  let bd = Infinity
+  for (const s of b.secteurs) {
+    const d = (s.x - p.x) ** 2 + (s.y - p.y) ** 2
+    if (d < bd) {
+      bd = d
+      best = s
+    }
+  }
+  return best
 }
 
 // ── Génération des vagues ennemies ────────────────────────────────────────────
@@ -186,18 +216,58 @@ export interface OptionsBataille {
   campJoueur: 'attaque' | 'defense'
   /** tours d'archers du camp défenseur */
   tours?: number
+  /**
+   * Fronts d'assaut : chaque entrée = un secteur de mur assailli.
+   * Absent ou 1 seul → assaut classique sur la porte (expéditions).
+   */
+  fronts?: { nom: string; angle: number; spawn: { x: number; y: number } }[]
+  /** points de structure totaux à répartir entre les secteurs */
+  wallHpTotal?: number
 }
 
 export function creerBataille(opts: OptionsBataille): BattleState {
   const { attaquants, defenseurs, wallLevel, now, geo, campJoueur } = opts
   const fighters: Fighter[] = []
 
-  // Assaillants — en colonne de marche : les rangs arrivent les uns après les autres
+  // ── Secteurs assaillis ──
+  const fronts =
+    opts.fronts && opts.fronts.length > 0
+      ? opts.fronts
+      : [{ nom: 'Porte de l’est', angle: 0, spawn: geo.spawn }]
+  const hpTotal = opts.wallHpTotal ?? WALL_HP[wallLevel] ?? 0
+  // le mur est également solide partout : chaque front n'en attaque qu'une part
+  const hpParSecteur = fronts.length > 0 ? hpTotal / fronts.length : 0
+  const secteurs = fronts.map((f) => {
+    const p = geoPoint(geo, f.angle)
+    return {
+      nom: f.nom,
+      angle: f.angle,
+      x: p.x,
+      y: p.y,
+      hp: hpParSecteur,
+      max: hpParSecteur,
+      breche: wallLevel === 0 || hpParSecteur <= 0,
+    }
+  })
+
+  // Assaillants — répartis entre les fronts, en colonne de marche par secteur
+  const parSecteur = fronts.map(() => 0)
   let i = 0
   for (const w of attaquants) {
     const st = statsDe(w.enemy)
     for (let k = 0; k < w.count; k++) {
-      const slot = w.enemy === 'belier' ? { x: geo.porte.x + 20, y: geo.porte.y } : posteSiege(geo, i)
+      // les béliers vont toujours au premier front (le plus fourni)
+      const sIdx = w.enemy === 'belier' ? 0 : i % fronts.length
+      const f = fronts[sIdx]
+      const rang = parSecteur[sIdx]++
+      const slot =
+        w.enemy === 'belier'
+          ? { x: geo.cx + (geo.rx + 20) * Math.cos(f.angle), y: geo.cy + (geo.ry + 20) * Math.sin(f.angle) }
+          : posteSiege(geo, rang, f.angle)
+      // la colonne se forme derrière le point d'apparition du secteur
+      const recul = 12 + Math.floor(rang / 3) * 30
+      const dirX = Math.cos(f.angle)
+      const dirY = Math.sin(f.angle)
       fighters.push({
         id: uid('atk'),
         camp: 'attaque',
@@ -205,12 +275,13 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         hp: st.hp,
         maxHp: st.hp,
         atk: st.atk,
-        x: geo.spawn.x + 10 + Math.floor(i / 3) * 30 + Math.random() * 14,
-        y: geo.spawn.y + ((i % 3) - 1) * 34 + (Math.random() - 0.5) * 60,
+        x: f.spawn.x + dirX * recul + (Math.random() - 0.5) * 26,
+        y: f.spawn.y + dirY * recul + ((rang % 3) - 1) * 26 + (Math.random() - 0.5) * 30,
         tx: slot.x,
         ty: slot.y,
         speed: st.speed,
         etat: 'marche',
+        secteur: sIdx,
         nextHit: 0,
         seed: Math.random(),
       })
@@ -287,6 +358,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     fighters,
     projectiles: [],
     toursDef,
+    secteurs,
     effects: [],
     phase: 'approche',
     breche: wallLevel === 0,
@@ -369,20 +441,33 @@ export interface TickBatailleOut {
 export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBatailleOut {
   const { now, dt } = ctx
   const geo = b.geo
-  let wallHp = ctx.wallHp
-  const murDebout = ctx.wallLevel > 0 && wallHp > 0 && !b.breche
   const atkVivants = vivants(b, 'attaque')
   const defVivants = vivants(b, 'defense')
-  // bénédictions : elles servent le camp du joueur
+  // bénédictions : elles servent le camp du joueur, d'autant plus que le dieu est chéri
   const protege = now < b.defBuffUntil ? b.campJoueur : null
   const enrage = now < b.atkBuffUntil ? b.campJoueur : null
-  const multDegats = (attaquant: Fighter): number => (attaquant.camp === enrage ? 1.6 : 1)
-  const multRecus = (cible: Fighter): number => (cible.camp === protege ? 0.4 : 1)
+  const forceAtk = b.atkBuffForce || 1.6
+  const forceDef = b.defBuffForce || 0.4
+  const multDegats = (attaquant: Fighter): number => (attaquant.camp === enrage ? forceAtk : 1)
+  const multRecus = (cible: Fighter): number => (cible.camp === protege ? forceDef : 1)
   let brecheOuverte = false
 
-  // Déroute : plus de 70 % de pertes chez l'assaillant
+  /** le secteur d'un assaillant (défaut : le premier front) */
+  const secteurDe = (f: Fighter) => b.secteurs[Math.min(f.secteur ?? 0, b.secteurs.length - 1)]
+  const murTient = (s: (typeof b.secteurs)[number] | undefined): boolean =>
+    ctx.wallLevel > 0 && !!s && s.hp > 0 && !s.breche
+
+  /**
+   * Déroute — uniquement pour les troupes du JOUEUR en expédition :
+   * les assaillants d'un village se battent jusqu'au dernier homme.
+   */
   const initial = tailleVague(b.wave)
-  if (b.phase !== 'fini' && atkVivants.length > 0 && atkVivants.length <= initial * 0.3) {
+  if (
+    b.campJoueur === 'attaque' &&
+    b.phase !== 'fini' &&
+    atkVivants.length > 0 &&
+    atkVivants.length <= initial * 0.3
+  ) {
     for (const f of atkVivants) {
       f.etat = 'fuite'
       f.tx = geo.spawn.x + 40
@@ -399,30 +484,40 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     }
 
     if (f.camp === 'attaque') {
+      const sect = secteurDe(f)
+      const tient = murTient(sect)
       if (f.etat === 'marche') {
-        if (versCible(f, dt)) f.etat = murDebout ? 'siege' : 'melee'
-        if (!murDebout && f.etat === 'siege') f.etat = 'melee'
+        if (versCible(f, dt)) f.etat = tient ? 'siege' : 'melee'
+        if (!tient && f.etat === 'siege') f.etat = 'melee'
+        // le mur de ce secteur est tombé : entrer par la brèche
+        if (f.etat === 'melee' && sect) {
+          const e = entreeSecteur(geo, sect.angle)
+          f.tx = e.x
+          f.ty = e.y
+        }
         continue
       }
       if (f.etat === 'siege') {
-        if (!murDebout) {
+        if (!tient) {
           f.etat = 'melee'
-        } else if (now >= f.nextHit) {
+        } else if (now >= f.nextHit && sect) {
           f.nextHit = now + CADENCE_MUR
-          wallHp -= statsDe(f.type).wallDps * multDegats(f)
+          sect.hp -= statsDe(f.type).wallDps * multDegats(f)
           if (Math.random() < 0.22 && b.effects.length < 40) {
             b.effects.push({ id: uid('fx'), type: 'poussiere', x: f.x - 5, y: f.y - 7, until: now + 650 })
           }
-          if (wallHp <= 0) {
-            wallHp = 0
-            b.breche = true
+          if (sect.hp <= 0) {
+            sect.hp = 0
+            sect.breche = true
             brecheOuverte = true
-            b.effects.push({ id: uid('fx'), type: 'breche', x: geo.porte.x, y: geo.porte.y, until: now + 4000 })
+            // `breche` global : vrai dès qu'UN secteur cède (les archers descendent)
+            b.breche = true
+            b.effects.push({ id: uid('fx'), type: 'breche', x: sect.x, y: sect.y, until: now + 4000 })
           }
         }
         continue
       }
-      // mêlée : traverser la porte puis chercher un défenseur
+      // mêlée : franchir la brèche de son secteur puis chercher un défenseur
       const cible = plusProche(f, defVivants)
       if (!cible) {
         // plus de défenseurs : cap sur la place (pillage)
@@ -445,8 +540,8 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     // ── Défenseurs ──
     if (f.type === 'archer') {
       const surMur = f.etat === 'siege'
-      if (surMur && b.breche) {
-        // redescendre des murs : moins efficace au sol
+      // un archer ne quitte le rempart que si SON pan de mur est tombé
+      if (surMur && secteurProche(b, f).breche) {
         f.etat = 'melee'
         f.tx = geo.ralliement.x + (Math.random() - 0.5) * 40
         f.ty = geo.ralliement.y + (Math.random() - 0.5) * 40
@@ -476,15 +571,18 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       continue
     }
 
-    // mêlée (lanciers, hoplites) : n'engagent que si brèche / pas de mur,
-    // ou si un assaillant a franchi l'enceinte
-    const menace = murDebout
-      ? atkVivants.filter((a) => a.etat === 'melee' && a.x < geo.porte.x + 10)
-      : atkVivants
+    // mêlée (lanciers, hoplites) : ils courent au secteur enfoncé.
+    // Tant que tout tient, ils patientent au ralliement ; dès qu'un pan cède,
+    // ils s'y portent — c'est au joueur de compter sur eux pour boucher un trou.
+    const dedans = atkVivants.filter((a) => a.etat === 'melee' && estDedans(geo, a))
+    const menace = dedans.length > 0 ? dedans : b.secteurs.some((s) => !s.breche) ? [] : atkVivants
     const cible = plusProche(f, menace)
     if (!cible) {
-      f.tx = geo.ralliement.x
-      f.ty = geo.ralliement.y + (f.seed - 0.5) * 70
+      // se poster devant la brèche la plus menaçante, sinon au ralliement
+      const trou = b.secteurs.find((s) => s.breche)
+      const point = trou ? entreeSecteur(geo, trou.angle) : geo.ralliement
+      f.tx = point.x
+      f.ty = point.y + (f.seed - 0.5) * 60
       versCible(f, dt)
       continue
     }
@@ -498,11 +596,12 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     }
   }
 
-  // ── Tours d'archers : tir automatique tant que la muraille tient ──
-  if (ctx.wallLevel > 0 && wallHp > 0 && !b.breche) {
-    const enragees = enrage === 'defense' ? 1.6 : 1
+  // ── Tours d'archers : chacune tire tant que SON pan de mur tient ──
+  if (ctx.wallLevel > 0) {
+    const enragees = enrage === 'defense' ? forceAtk : 1
     for (const t of b.toursDef) {
       if (now < t.nextHit) continue
+      if (secteurProche(b, t).breche) continue
       const aPortee = atkVivants.filter((a) => a.etat !== 'mort' && dist(t, a) <= TOUR_PORTEE)
       const cible = plusProche(t, aPortee)
       if (!cible) continue
@@ -567,6 +666,8 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     fuite = enFuite
   }
 
+  // total des points de structure restants, tous secteurs confondus
+  const wallHp = b.secteurs.reduce((a, s) => a + Math.max(0, s.hp), 0)
   return { wallHp, brecheOuverte, finie, victoireDefense, fuite, pillage }
 }
 
@@ -600,14 +701,19 @@ export function pertesAttaque(b: BattleState): number {
   return b.fighters.filter((f) => f.camp === 'attaque' && f.etat === 'mort' && f.hp <= 0).length
 }
 
-/** Foudre de Zeus : ~120 dégâts répartis sur les 6 ennemis du joueur les plus proches de la porte. */
-export function foudreDeZeus(b: BattleState, now: number): number {
+/**
+ * Foudre de Zeus : ~120 dégâts (× la ferveur du dieu) répartis sur les 6 ennemis
+ * les plus proches du point le plus chaud — la brèche s'il y en a une, sinon la porte.
+ */
+export function foudreDeZeus(b: BattleState, now: number, force = 1): number {
   const campEnnemi = b.campJoueur === 'defense' ? 'attaque' : 'defense'
+  const trou = b.secteurs.find((s) => s.breche)
+  const epicentre = trou ?? b.geo.porte
   const cibles = vivants(b, campEnnemi)
-    .sort((a, c) => dist(a, b.geo.porte) - dist(c, b.geo.porte))
+    .sort((a, c) => dist(a, epicentre) - dist(c, epicentre))
     .slice(0, 6)
   for (const c of cibles) {
-    c.hp -= 120 / Math.max(1, cibles.length)
+    c.hp -= (120 * force) / Math.max(1, cibles.length)
     if (c.hp <= 0 && c.etat !== 'mort') {
       c.etat = 'mort'
       c.mortAt = now

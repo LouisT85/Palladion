@@ -40,10 +40,87 @@ export const TOUR_COUTS: Cost[] = [
 export const TOUR_PORTEE = 240
 export const TOUR_DMG = 11
 export const TOUR_CADENCE_MS = 2800
-/** emplacements sur l'enceinte, par ordre de construction (angle 0 = porte, à l'est) */
-export const TOUR_ANGLES = [0.5, -0.5, 1.1, -1.1]
+/**
+ * Emplacements sur l'enceinte, par ordre de construction (angle 0 = porte, est).
+ * Les deux premières flanquent la porte, la 3ᵉ couvre le mur sud et la 4ᵉ le mur
+ * nord : une tour ne défend que son arc, donc les quatre finissent nécessaires.
+ */
+export const TOUR_ANGLES = [0.42, -0.42, 1.55, -1.55]
+
+/**
+ * Secteurs assaillables de l'enceinte. Une vague se scinde entre ces fronts ;
+ * chaque secteur encaisse ses propres dégâts et peut céder seul.
+ * `spawn` : par où débouche la colonne ennemie (hors carte).
+ */
+export const SECTEURS: { id: string; nom: string; angle: number; spawn: { x: number; y: number } }[] = [
+  { id: 'porte', nom: 'Porte de l’est', angle: 0, spawn: { x: 1170, y: 470 } },
+  { id: 'sud', nom: 'Mur du sud', angle: 1.5, spawn: { x: 700, y: 790 } },
+  { id: 'nord', nom: 'Mur du nord', angle: -1.5, spawn: { x: 470, y: 120 } },
+]
+
+/** nombre de fronts d'une vague selon la menace — la guerre se complique */
+export function nbFronts(threat: number): number {
+  if (threat >= 55) return 3
+  if (threat >= 28) return 2
+  return 1
+}
 /** capacité de population par niveau de maisons */
-export const POP_CAP = [4, 8, 14, 24, 40]
+export const POP_CAP = [7, 13, 22, 34, 52]
+
+/**
+ * Postes de travail par bâtiment (index = niveau). Un bâtiment ne produit
+ * qu'au prorata de ses postes pourvus : sans ouvrier, pas de récolte.
+ * La cueillette de base (BASE_PROD) reste acquise — le village ne se bloque jamais.
+ */
+export const POSTES: Partial<Record<BuildingId, number[]>> = {
+  ferme: [0, 1, 2, 3, 4],
+  scierie: [0, 1, 2, 3, 4],
+  carriere: [0, 1, 2, 3, 4],
+  forge: [0, 1, 1, 2, 3],
+  temple: [0, 1, 1, 2, 2],
+  port: [0, 1, 1, 2, 2],
+}
+
+/** intitulé du métier, pour l'affectation */
+export const METIERS: Partial<Record<BuildingId, string>> = {
+  ferme: 'Paysan',
+  scierie: 'Bûcheron',
+  carriere: 'Tailleur de pierre',
+  forge: 'Forgeron',
+  temple: 'Prêtre',
+  port: 'Docker',
+}
+
+/** noms grecs donnés aux habitants — le village cesse d'être un compteur */
+export const NOMS_VILLAGEOIS = [
+  'Alexios', 'Nikandros', 'Théron', 'Kleitos', 'Damon', 'Lysandre', 'Périclès', 'Straton',
+  'Timon', 'Xanthos', 'Hégias', 'Oreste', 'Phidias', 'Kallias', 'Mélanthos', 'Aristée',
+  'Eumée', 'Glaukos', 'Thrasos', 'Iphitos', 'Kréon', 'Léonidas', 'Myron', 'Néléos',
+  'Aglaé', 'Briséis', 'Chryséis', 'Danaé', 'Eurydice', 'Phyllis', 'Hélénè', 'Ismène',
+  'Kalliopé', 'Lysippé', 'Myrrhine', 'Nausicaa', 'Olympias', 'Penthéa', 'Rhodè', 'Sostraté',
+  'Théano', 'Xanthippé', 'Zéuxis', 'Andromaque', 'Kléobis', 'Praxis', 'Simonidès', 'Télamon',
+  'Antiphon', 'Bathyclès', 'Diomède', 'Épiktétos', 'Phrynè', 'Hipparque', 'Iolaos', 'Kydias',
+] as const
+
+/**
+ * Puissance d'une bénédiction selon la relation au dieu (−100…+100).
+ * Un dieu chéri frappe fort (×1.6), un dieu bafoué se contente du minimum (×0.4).
+ * C'est ce qui donne enfin du poids à la jauge de relation.
+ */
+export function multRelation(relation: number): number {
+  return 1 + (Math.max(-100, Math.min(100, relation)) / 100) * 0.6
+}
+
+/** libellé de la ferveur, pour l'UI */
+export function nomFerveur(relation: number): string {
+  if (relation >= 70) return 'Élu du dieu'
+  if (relation >= 40) return 'Chéri'
+  if (relation >= 15) return 'En grâce'
+  if (relation > -15) return 'Indifférent'
+  if (relation > -40) return 'Contrarié'
+  if (relation > -70) return 'Offensé'
+  return 'Maudit'
+}
 /** consommation de grain par minute */
 export const CONSO_POP = 0.25
 export const CONSO_SOLDAT = 0.5
@@ -437,9 +514,9 @@ export function pointMur(angle: number): { x: number; y: number } {
   }
 }
 
-/** positions de tir des archers selon le niveau des remparts */
+/** positions de tir des archers selon le niveau des remparts — réparties sur l'enceinte */
 export function postesArchers(niveau: number): { x: number; y: number }[] {
   if (niveau <= 0) return [{ x: MAP.ralliement.x, y: MAP.ralliement.y }]
-  const angles = niveau >= 3 ? [-0.55, -0.2, 0.2, 0.55] : [-0.35, 0.35]
+  const angles = niveau >= 3 ? [-1.5, -0.45, 0.45, 1.5] : [-0.45, 0.45]
   return angles.map(pointMur)
 }

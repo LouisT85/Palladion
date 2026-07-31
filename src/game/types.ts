@@ -91,6 +91,14 @@ export interface BuildingState {
   busyUntil?: number
 }
 
+/** un habitant du village, avec un nom et éventuellement un métier */
+export interface Villageois {
+  id: string
+  nom: string
+  /** bâtiment où il travaille — null = sans emploi, disponible pour l'enrôlement */
+  poste: BuildingId | null
+}
+
 export interface RecruitJob {
   unit: UnitId
   restant: number
@@ -167,6 +175,8 @@ export interface Fighter {
   ty: number
   speed: number
   etat: FighterState
+  /** index du secteur assailli (assaillants uniquement) */
+  secteur?: number
   /** prochain coup autorisé (timestamp) */
   nextHit: number
   /** décalage d'animation */
@@ -211,12 +221,32 @@ export interface TourDef {
   nextHit: number
 }
 
+/**
+ * Un front d'assaut : les assaillants se scindent en groupes qui attaquent
+ * des secteurs distincts de l'enceinte. Chaque secteur a ses propres points
+ * de structure et peut céder seul — c'est là que se joue la défense.
+ */
+export interface SecteurBataille {
+  /** nom lisible du secteur (« porte de l'est », « mur nord »…) */
+  nom: string
+  /** angle sur l'ellipse de l'enceinte (0 = est / porte) */
+  angle: number
+  /** position du point faible, pour les jauges et la brèche */
+  x: number
+  y: number
+  hp: number
+  max: number
+  breche: boolean
+}
+
 export interface BattleState {
   wave: WaveUnit[]
   fighters: Fighter[]
   projectiles: Projectile[]
   /** tours d'archers du camp défenseur (muettes une fois la brèche ouverte) */
   toursDef: TourDef[]
+  /** fronts d'assaut — chaque secteur de mur cède indépendamment */
+  secteurs: SecteurBataille[]
   effects: BattleEffect[]
   phase: 'approche' | 'siege' | 'melee' | 'fini'
   breche: boolean
@@ -226,6 +256,9 @@ export interface BattleState {
   geo: BattleGeo
   defBuffUntil: number
   atkBuffUntil: number
+  /** puissance des bénédictions en cours — dépend de la relation au dieu */
+  defBuffForce?: number
+  atkBuffForce?: number
   result: BattleResult | null
   /** effectifs défenseurs engagés au départ (pour calculer les pertes) */
   engages: Partial<Record<UnitId, number>>

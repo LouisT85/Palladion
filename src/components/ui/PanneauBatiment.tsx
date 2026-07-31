@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, PROD, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
-import { fmtDuree, peutPayer, useGame } from '../../game/store'
-import type { ResourceId } from '../../game/types'
+import { BUILDINGS, BUILDING_IDS, METIERS, PROD, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
+import { fmtDuree, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
+import type { BuildingId, ResourceId } from '../../game/types'
+import { PanneauPopulation, couleurRendement } from './Population'
 
 function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, number>>; resources: Record<ResourceId, number> }) {
   return (
@@ -15,31 +16,169 @@ function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, numbe
   )
 }
 
-function BlocProduction({ id, level }: { id: string; level: number }) {
-  const lignes: Record<string, string> = {
-    ferme: `🌾 +${PROD.ferme[level]}/min`,
-    scierie: `🪵 +${PROD.scierie[level]}/min`,
-    carriere: `🪨 +${PROD.carriere[level]}/min`,
-    forge: `🥉 +${PROD.forge[level]}/min`,
-    temple: `✨ +${PROD.temple[level]}/min`,
-    port: `🥉 +${PROD.port[level]}/min (commerce)`,
+function BlocProduction({ id, level }: { id: BuildingId; level: number }) {
+  const s = useGame()
+  const emojis: Partial<Record<BuildingId, string>> = {
+    ferme: '🌾',
+    scierie: '🪵',
+    carriere: '🪨',
+    forge: '🥉',
+    temple: '✨',
+    port: '🥉',
   }
-  if (!(id in lignes) || level === 0) return null
+  const emoji = emojis[id]
+  const brut = (PROD as Partial<Record<BuildingId, number[]>>)[id]?.[level]
+  if (!emoji || brut === undefined || level === 0) return null
+  // ce qui compte vraiment, c'est ce qui rentre : le brut n'est qu'un plafond
+  const r = rendement(s, id)
+  const total = postesTotal(s, id)
+  const net = Math.round(brut * r * 10) / 10
   return (
     <div className="bloc">
       <h3>Production</h3>
-      <div>{lignes[id]}</div>
+      {total > 0 ? (
+        <>
+          <div style={{ fontSize: 15 }}>
+            <b style={{ color: couleurRendement(r) }}>
+              {emoji} +{net}/min
+            </b>
+            <span style={{ color: '#93a7b4', fontSize: 12 }}>
+              {' '}
+              sur {brut} possibles{id === 'port' ? ' (commerce)' : ''}
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: '#93a7b4' }}>
+            {postesPourvus(s, id)}/{total} postes tenus — {Math.round(r * 100)} % du rendement.
+          </div>
+        </>
+      ) : (
+        <div>
+          {emoji} +{brut}/min{id === 'port' ? ' (commerce)' : ''}
+        </div>
+      )}
     </div>
   )
 }
 
-function BlocCaserne() {
+/**
+ * Postes de travail d'un atelier. Sans ouvrier, le bâtiment n'est qu'un décor :
+ * ce bloc doit rendre ce lien évident et réparable en un clic.
+ */
+function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants: () => void }) {
+  const s = useGame()
+  const total = postesTotal(s, id)
+  if (total <= 0) return null
+  const pourvus = postesPourvus(s, id)
+  const r = rendement(s, id)
+  const equipe = s.villageois.filter((v) => v.poste === id)
+  const libres = oisifs(s)
+  const metier = METIERS[id] ?? 'Ouvriers'
+  return (
+    <div className="bloc">
+      <h3>
+        👷 Ouvriers — {pourvus}/{total}
+      </h3>
+      <div className="ligne">
+        <div className="barre">
+          <div style={{ width: `${r * 100}%`, background: couleurRendement(r) }} />
+        </div>
+        <span style={{ fontVariantNumeric: 'tabular-nums', color: couleurRendement(r), fontWeight: 700 }}>
+          {Math.round(r * 100)} %
+        </span>
+      </div>
+      <div className="desc" style={{ fontSize: 12, color: '#93a7b4' }}>
+        La production suit les postes tenus : {pourvus} poste{pourvus > 1 ? 's' : ''} sur {total} →{' '}
+        {Math.round(r * 100)} % de ce que ce niveau peut rendre.
+      </div>
+      {equipe.map((v) => (
+        <div key={v.id} className="ligne" style={{ margin: '4px 0' }}>
+          <span style={{ fontSize: 12.5 }}>
+            {BUILDINGS[id].emoji} <b>{v.nom}</b> <span style={{ color: '#93a7b4' }}>· {metier}</span>
+          </span>
+          <button
+            onClick={() => s.affecter(v.id, null)}
+            title={`Retirer ${v.nom} de son poste`}
+            style={{ padding: '2px 8px', fontSize: 12 }}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      {pourvus === 0 && (
+        <div style={{ fontSize: 12, color: '#d05a41', marginTop: 4 }}>
+          Personne ici — l’atelier ne produit rien de plus que la cueillette.
+        </div>
+      )}
+      {pourvus < total && (
+        <>
+          <div style={{ fontSize: 12, color: libres.length > 0 ? '#93a7b4' : '#d98a4e', marginTop: 5 }}>
+            {libres.length > 0
+              ? `${libres.length} villageois sans emploi au village.`
+              : 'Aucun villageois sans emploi — libérez un artisan ailleurs.'}
+          </div>
+          <button
+            className="principal"
+            style={{ width: '100%', marginTop: 6 }}
+            disabled={libres.length === 0}
+            onClick={() => s.affecter(libres[0].id, id)}
+          >
+            Affecter un villageois
+          </button>
+        </>
+      )}
+      <button style={{ width: '100%', marginTop: 6 }} onClick={onVoirHabitants}>
+        👥 Voir les habitants
+      </button>
+    </div>
+  )
+}
+
+function BlocHabitants({ onVoirHabitants }: { onVoirHabitants: () => void }) {
+  const s = useGame()
+  const cap = popCap(s)
+  const libres = oisifs(s)
+  return (
+    <div className="bloc">
+      <h3>👥 Habitants — {s.pop}/{cap}</h3>
+      <div className="ligne">
+        <div className="barre">
+          <div style={{ width: `${Math.min(1, s.pop / cap) * 100}%` }} />
+        </div>
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {s.pop}/{cap}
+        </span>
+      </div>
+      <div className="desc" style={{ fontSize: 12, color: '#93a7b4' }}>
+        {libres.length > 0
+          ? `${libres.length} villageois sans emploi — à placer dans un atelier ou à enrôler à la caserne.`
+          : 'Tous les habitants ont un métier : aucun bras libre pour l’enrôlement.'}
+      </div>
+      <button style={{ width: '100%', marginTop: 7 }} onClick={onVoirHabitants}>
+        👥 Voir les habitants
+      </button>
+    </div>
+  )
+}
+
+function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
   const s = useGame()
   const now = s.lastSeen
+  // une recrue est un bras retiré au village : seuls les oisifs partent (un artisan reste à son poste)
+  const dispo = oisifs(s).length
   return (
     <>
       <div className="bloc">
         <h3>Recruter (1 villageois par recrue)</h3>
+        <div className="desc" style={{ fontSize: 12, marginBottom: 6 }}>
+          Villageois disponibles :{' '}
+          <b style={{ color: dispo > 0 ? '#5fae7d' : '#d05a41' }}>{dispo} sans emploi</b>
+          <span style={{ color: '#93a7b4' }}> — les artisans restent à leur poste.</span>
+        </div>
+        {dispo === 0 && (
+          <div style={{ fontSize: 12, color: '#d98a4e', marginBottom: 6 }}>
+            👥 Aucun bras libre : retirez un artisan de son atelier pour l’enrôler.
+          </div>
+        )}
         {UNIT_IDS.map((u) => {
           const def = UNITS[u]
           const debloque = s.buildings.caserne.level >= def.caserne
@@ -59,7 +198,11 @@ function BlocCaserne() {
               </div>
               {debloque ? (
                 <div className="actions">
-                  <button onClick={() => s.recruter(u, 1)} disabled={!peutPayer(s.resources, def.cost) || s.pop < 1}>
+                  <button
+                    onClick={() => s.recruter(u, 1)}
+                    disabled={!peutPayer(s.resources, def.cost) || dispo < 1}
+                    title={dispo < 1 ? 'Aucun villageois sans emploi' : undefined}
+                  >
                     +1
                   </button>
                   <button
@@ -68,8 +211,9 @@ function BlocCaserne() {
                       !peutPayer(
                         s.resources,
                         Object.fromEntries(Object.entries(def.cost).map(([r, n]) => [r, (n as number) * 5])),
-                      ) || s.pop < 5
+                      ) || dispo < 5
                     }
+                    title={dispo < 5 ? `Il faut 5 villageois sans emploi (${dispo} disponible${dispo > 1 ? 's' : ''})` : undefined}
                   >
                     +5
                   </button>
@@ -80,6 +224,9 @@ function BlocCaserne() {
             </div>
           )
         })}
+        <button style={{ width: '100%', marginTop: 8 }} onClick={onVoirHabitants}>
+          👥 Voir les habitants
+        </button>
       </div>
       {s.recruitQueue.length > 0 && (
         <div className="bloc">
@@ -226,6 +373,8 @@ function BlocTours() {
 
 export function PanneauBatiment() {
   const s = useGame()
+  // le store ne connaît pas de panneau « population » : on l'ouvre en local
+  const [habitantsOuverts, setHabitantsOuverts] = useState(false)
   const id = s.selected
   if (!id) return null
   const def = BUILDINGS[id]
@@ -236,8 +385,11 @@ export function PanneauBatiment() {
   const agoraOk = id === 'agora' || cible <= s.buildings.agora.level
   const chantiers = BUILDING_IDS.filter((x) => s.buildings[x].targetLevel !== undefined).length
 
+  const voirHabitants = () => setHabitantsOuverts(true)
+
   return (
     <aside className="panneau">
+      {habitantsOuverts && <PanneauPopulation onFermer={() => setHabitantsOuverts(false)} />}
       <button className="fermer" onClick={() => s.select(null)} aria-label="Fermer">
         ✕
       </button>
@@ -255,9 +407,11 @@ export function PanneauBatiment() {
       )}
 
       <BlocProduction id={id} level={b.level} />
+      <BlocOuvriers id={id} onVoirHabitants={voirHabitants} />
+      {id === 'maisons' && <BlocHabitants onVoirHabitants={voirHabitants} />}
       {id === 'remparts' && <BlocRemparts />}
       {id === 'remparts' && <BlocTours />}
-      {id === 'caserne' && b.level > 0 && <BlocCaserne />}
+      {id === 'caserne' && b.level > 0 && <BlocCaserne onVoirHabitants={voirHabitants} />}
       {id === 'port' && <BlocPort />}
       {id === 'temple' && b.level > 0 && (
         <div className="bloc">

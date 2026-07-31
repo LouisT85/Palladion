@@ -15,125 +15,201 @@ import { Fumee } from './primitives'
 type Stade = 'jeune' | 'mur' | 'or'
 
 /** parcelle en sillons peints : bandes ocre/or variées par sillon (alea),
- *  bordure de terre, touffes d'épis sur les lisières, lumière NW */
+ *  silhouette irrégulière, crêtes éclairées NW / creux ombrés, lèvre de
+ *  terre au SE, taches d'usure floues, gerbes liées au stade or */
 function Champ({ x, y, w, h, stade, seed = 1 }: { x: number; y: number; w: number; h: number; stade: Stade; seed?: number }) {
   const rnd = alea(seed * 31 + w)
-  const sk = Math.min(6, h * 0.28)
-  const xL = (t: number) => -w / 2 + sk * (1 - t)
-  const xR = (t: number) => w / 2 - sk * t
-  const yT = (t: number) => -h / 2 + h * t
+  const sk = Math.min(3.5, h * 0.16)
 
+  // gammes ordonnées du sombre au clair (marche aléatoire → voisins proches)
   const tons =
     stade === 'jeune'
-      ? ['#93744a', '#886c44', '#9b7c4e', '#82663e']
+      ? ['#87693f', '#8d7148', '#96784a', '#9a7c50', '#a3854f']
       : stade === 'mur'
-        ? ['#c39b4d', '#b58c41', '#cca85c', '#ad8339']
-        : ['#d9b34c', '#c9a23e', '#e2bf62', '#c0953a']
-  const creux = stade === 'jeune' ? '#6d5433' : stade === 'mur' ? '#8a6730' : '#93702e'
+        ? ['#ab8c3e', '#b39344', '#bc9c4b', '#c5a654', '#cfb160']
+        : ['#c69b3d', '#cda642', '#d4ac48', '#ddb750', '#e6c366']
+  const creux = stade === 'jeune' ? '#6b5433' : stade === 'mur' ? '#84622c' : '#8d6a2a'
+  const crete = stade === 'jeune' ? '#b09265' : stade === 'mur' ? '#e3c179' : '#f2d883'
 
-  const n = Math.max(5, Math.round(h / 3))
+  // frontières de sillons avec jitter : silhouette organique, jamais laser
+  const n = Math.max(7, Math.round(h / 2.4))
+  const eL: number[] = []
+  const eR: number[] = []
+  const eY: number[] = []
+  for (let i = 0; i <= n; i++) {
+    const t = i / n
+    eL.push(-w / 2 + sk * (1 - t) + (rnd() - 0.5) * 2.2)
+    eR.push(w / 2 - sk * t + (rnd() - 0.5) * 2.2)
+    eY.push(-h / 2 + h * t + (i > 0 && i < n ? (rnd() - 0.5) * 0.8 : 0))
+  }
+
+  // marche aléatoire dans la gamme : bandes voisines proches en valeur
+  let iTon = Math.floor(rnd() * tons.length)
   const bandes: ReactNode[] = []
-  const sillons: string[] = []
+  const grooves: string[] = []
+  const cretes: string[] = []
   for (let i = 0; i < n; i++) {
-    const t0 = i / n
-    const t1 = (i + 1) / n
+    iTon = Math.min(tons.length - 1, Math.max(0, iTon + (rnd() > 0.5 ? 1 : -1)))
     bandes.push(
       <path
         key={i}
-        d={`M${xL(t0) + 1},${yT(t0)} L${xR(t0) - 1},${yT(t0)} L${xR(t1) - 1},${yT(t1)} L${xL(t1) + 1},${yT(t1)} Z`}
-        fill={tons[Math.floor(rnd() * tons.length)]}
+        d={`M${eL[i]},${eY[i]} L${eR[i]},${eY[i]} L${eR[i + 1]},${eY[i + 1]} L${eL[i + 1]},${eY[i + 1]} Z`}
+        fill={tons[iTon]}
       />,
     )
-    if (i > 0) sillons.push(`M${xL(t0) + 1.3},${yT(t0)} L${xR(t0) - 1.3},${yT(t0)}`)
+    if (i > 0) {
+      const mx = (eL[i] + eR[i]) / 2
+      grooves.push(`M${eL[i] + 1},${eY[i]} Q${mx},${eY[i] + 0.7} ${eR[i] - 1},${eY[i]}`)
+      cretes.push(`M${eL[i] + 2},${eY[i] - 0.8} Q${mx},${eY[i] - 0.2} ${eR[i] - 2},${eY[i] - 0.8}`)
+    }
   }
 
-  // touffes d'épis sur la lisière sud + est
+  // touffes d'épis débordant de la lisière sud : brins serrés, presque droits
   const touffes: string[] = []
-  const nT = Math.round(w / 10)
+  const nT = Math.round(w / 6)
   for (let k = 0; k < nT; k++) {
-    const tx = xL(1) + 4 + (k + rnd() * 0.6) * ((w - 8) / nT)
-    const ty = h / 2 + 0.2 + rnd() * 1.2
-    touffes.push(`M${tx},${ty} q-1,-2.4 -1.8,-3.2 M${tx},${ty} q0.1,-2.7 -0.4,-3.8 M${tx},${ty} q1.1,-2.2 1.7,-3`)
+    const tx = eL[n] + 3 + (k + rnd() * 0.7) * ((w - 6) / nT)
+    const ty = h / 2 + 0.3 + rnd() * 0.9
+    touffes.push(`M${tx - 0.5},${ty} q-0.4,-1.6 -0.7,-2.3 M${tx},${ty} q0,-1.9 -0.1,-2.7 M${tx + 0.5},${ty} q0.4,-1.5 0.6,-2.2`)
   }
   for (let k = 0; k < 3; k++) {
-    const t = 0.2 + k * 0.3
-    const tx = xR(t) + 0.4 + rnd()
-    const ty = yT(t)
-    touffes.push(`M${tx},${ty} q-0.5,-2.4 -1.1,-3.2 M${tx},${ty} q0.8,-2 1.4,-2.7`)
+    const i = 1 + Math.floor(rnd() * (n - 1))
+    const tx = eR[i] + 0.3 + rnd() * 0.7
+    touffes.push(`M${tx},${eY[i]} q-0.2,-1.7 -0.5,-2.4 M${tx + 0.5},${eY[i]} q0.3,-1.5 0.4,-2.1`)
   }
 
   // grain de la moisson : chaumes clairsemés dans les bandes
   const brinsSombres: string[] = []
   const brinsClairs: string[] = []
   if (stade !== 'jeune') {
-    const nB = Math.round((w * h) / 52)
+    const nB = Math.round((w * h) / 62)
     for (let k = 0; k < nB; k++) {
-      const t = 0.08 + rnd() * 0.84
-      const bx = xL(t) + 3 + rnd() * (xR(t) - xL(t) - 6)
-      const by = yT(t)
-      ;(rnd() > 0.45 ? brinsSombres : brinsClairs).push(`M${bx},${by} l${rnd() * 0.8 - 0.4},-1.7`)
+      const i = Math.floor(rnd() * n)
+      const bx = eL[i] + 3 + rnd() * (eR[i] - eL[i] - 6)
+      const by = (eY[i] + eY[i + 1]) / 2 + (rnd() - 0.5) * 1.6
+      ;(rnd() > 0.45 ? brinsSombres : brinsClairs).push(`M${bx},${by} l${rnd() * 0.8 - 0.4},-1.5`)
     }
   }
 
+  // taches d'usure : zones plus sèches / plus grasses, floues
+  const taches = [0, 1, 2].map((k) => {
+    const clair = k % 2 === 0
+    return {
+      cx: -w * 0.32 + rnd() * w * 0.64,
+      cy: -h * 0.3 + rnd() * h * 0.6,
+      rx: w * (0.12 + rnd() * 0.1),
+      ry: h * (0.14 + rnd() * 0.1),
+      f: clair ? (stade === 'jeune' ? '#b09468' : '#f0d98e') : stade === 'jeune' ? '#5f4a2c' : '#8f6d30',
+      o: clair ? 0.13 : 0.12,
+    }
+  })
+
+  // gerbes liées, posées sur les chaumes (stade or)
+  const gerbes =
+    stade === 'or'
+      ? [0, 1].map(() => ({ gx: -w * 0.28 + rnd() * w * 0.56, gy: -h * 0.22 + rnd() * h * 0.44 }))
+      : []
+
+  const hull = `M${eL[0]},${eY[0]} L${eR[0]},${eY[0]} ${eR.map((v, i) => `L${v},${eY[i]}`).join(' ')} L${eR[n]},${eY[n]} L${eL[n]},${eY[n]} ${[...eL].reverse().map((v, i) => `L${v},${eY[n - i]}`).join(' ')} Z`
+
   return (
     <g transform={`translate(${x},${y})`}>
-      {/* ombre portée SE de la parcelle (léger relief des sillons) */}
+      {/* ombre douce du léger relief de la parcelle, au SE seulement */}
       <path
-        d={`M${xR(0) + 2.4},${-h / 2 + 1} L${xR(1) + 2},${h / 2 + 2.4} L${xL(1) - 0.4},${h / 2 + 2.4}`}
+        d={`M${eR[0] + 1.2},${eY[0] + 1.5} L${eR[n] + 1},${eY[n] + 1.2} L${eL[n] + 2},${eY[n] + 1.4}`}
         stroke={PAL.ombrePortee}
-        strokeWidth={2.2}
-        opacity={0.16}
+        strokeWidth={2}
+        opacity={0.13}
         fill="none"
         filter="url(#a-flou1)"
       />
-      {/* assise de terre */}
-      <path d={`M${xL(0) - 1},${-h / 2 - 1.4} L${xR(0) + 1.4},${-h / 2 - 1.4} L${xR(1) + 1},${h / 2 + 1.4} L${xL(1) - 1.4},${h / 2 + 1.4} Z`} fill="#8a6b3a" />
+      {/* assise de terre retournée, à peine plus large que les bandes */}
+      <path d={hull} fill="#8a6d40" stroke="#8a6d40" strokeWidth={1.6} strokeLinejoin="round" />
+      {/* lèvre SE plus grasse, lèvre NW frappée de lumière */}
+      <path d={`M${eR[0] + 0.8},${eY[0] + 1} L${eR[n] + 0.6},${eY[n] + 0.4} L${eL[n] + 1.5},${eY[n] + 0.7}`} stroke="#5d472a" strokeWidth={1.1} opacity={0.7} fill="none" />
+      <path d={`M${eR[0] + 0.2},${eY[0] - 0.9} L${eL[0] + 0.4},${eY[0] - 0.9} L${eL[n] - 0.9},${eY[n] - 0.3}`} stroke="#b69762" strokeWidth={0.9} opacity={0.75} fill="none" />
       {bandes}
-      <path d={sillons.join(' ')} stroke={creux} strokeWidth={0.8} opacity={0.38} fill="none" />
-      {stade === 'or' && <path d={sillons.join(' ')} transform="translate(0.4,1)" stroke="#efd27c" strokeWidth={0.5} opacity={0.45} fill="none" />}
+      {/* creux des sillons (ombre) puis crêtes prises par la lumière NW —
+          traits rompus : de la terre travaillée, pas des joints de planches */}
+      <path d={grooves.join(' ')} stroke={creux} strokeWidth={0.85} opacity={0.34} fill="none" strokeDasharray="2.6 1.6" />
+      <path d={cretes.join(' ')} stroke={crete} strokeWidth={0.6} opacity={0.4} fill="none" strokeDasharray="1.9 2.3" />
       {stade === 'jeune' && (
-        <path
-          d={Array.from({ length: n }, (_, i) => {
-            const t = (i + 0.5) / n
-            return `M${xL(t) + 3},${yT(t) + 0.2} L${xR(t) - 3},${yT(t) + 0.2}`
-          }).join(' ')}
-          stroke="#7d9455"
-          strokeWidth={1.3}
-          strokeDasharray="1.4 2.4"
-          fill="none"
-          opacity={0.9}
-        />
+        <>
+          {/* rangs de pousses : pied sombre, pointe éclairée NW */}
+          <path
+            d={Array.from({ length: n }, (_, i) => `M${eL[i] + 3},${(eY[i] + eY[i + 1]) / 2 + 0.3} L${eR[i] - 3},${(eY[i] + eY[i + 1]) / 2 + 0.3}`).join(' ')}
+            stroke="#5f7a3e"
+            strokeWidth={1.5}
+            strokeDasharray="1.5 2.6"
+            fill="none"
+            opacity={0.85}
+          />
+          <path
+            d={Array.from({ length: n }, (_, i) => `M${eL[i] + 2.6},${(eY[i] + eY[i + 1]) / 2 - 0.5} L${eR[i] - 3.4},${(eY[i] + eY[i + 1]) / 2 - 0.5}`).join(' ')}
+            stroke="#93ac62"
+            strokeWidth={0.9}
+            strokeDasharray="1.2 2.9"
+            fill="none"
+            opacity={0.9}
+          />
+        </>
       )}
-      {brinsSombres.length > 0 && <path d={brinsSombres.join(' ')} stroke={stade === 'or' ? '#96742d' : '#8a6a30'} strokeWidth={0.6} opacity={0.4} fill="none" />}
-      {brinsClairs.length > 0 && <path d={brinsClairs.join(' ')} stroke={stade === 'or' ? '#f0d488' : '#ddb968'} strokeWidth={0.6} opacity={0.55} fill="none" />}
+      {brinsSombres.length > 0 && <path d={brinsSombres.join(' ')} stroke={stade === 'or' ? '#96742d' : '#8a6a30'} strokeWidth={0.55} opacity={0.35} fill="none" />}
+      {brinsClairs.length > 0 && <path d={brinsClairs.join(' ')} stroke={stade === 'or' ? '#f0d488' : '#ddb968'} strokeWidth={0.55} opacity={0.45} fill="none" />}
+      {taches.map((t, k) => (
+        <ellipse key={k} cx={t.cx} cy={t.cy} rx={t.rx} ry={t.ry} fill={t.f} opacity={t.o} filter="url(#a-flou2)" />
+      ))}
       {/* lumière NW, pénombre SE */}
-      <ellipse cx={-w * 0.2} cy={-h * 0.2} rx={w * 0.34} ry={h * 0.32} fill="#f7e6ae" opacity={stade === 'or' ? 0.2 : 0.09} filter="url(#a-flou2)" />
+      <ellipse cx={-w * 0.22} cy={-h * 0.22} rx={w * 0.34} ry={h * 0.32} fill="#f7e6ae" opacity={stade === 'or' ? 0.18 : 0.08} filter="url(#a-flou2)" />
       <ellipse cx={w * 0.26} cy={h * 0.24} rx={w * 0.3} ry={h * 0.28} fill={PAL.ombrePortee} opacity={0.1} filter="url(#a-flou2)" />
+      {gerbes.map((g, k) => (
+        <g key={k} transform={`translate(${g.gx},${g.gy})`}>
+          <ellipse cx={1.2} cy={0.5} rx={3} ry={0.9} fill={PAL.ombrePortee} opacity={0.15} />
+          <path d="M-2.2,0 C-2.4,-3 -1.2,-5.4 0,-5.8 C1.2,-5.4 2.4,-3 2.2,0 Q0,0.8 -2.2,0 Z" fill="#e2c876" />
+          <path d="M1,-5 C1.7,-4 2.3,-2.2 2.2,0 Q1.6,0.4 1.1,0.4 C1.5,-1.8 1.4,-3.6 1,-5 Z" fill="#b3934f" />
+          <path d="M-1.7,-4.4 C-2.1,-3 -2.3,-1.4 -2.2,0 L-1.4,0.2 C-1.6,-1.6 -1.6,-3.2 -1.7,-4.4 Z" fill="#f0dc94" opacity={0.9} />
+          <path d="M-1.5,-3.4 L1.5,-3.4" stroke="#8a6c38" strokeWidth={0.7} />
+          <path d="M-0.8,-5.4 l-0.9,-1.7 M0,-5.7 l0,-2 M0.8,-5.4 l0.9,-1.7 M-0.3,-5.6 l-0.4,-1.9 M0.4,-5.6 l0.5,-1.8" stroke="#dfc072" strokeWidth={0.55} fill="none" />
+          <path d="M-1.7,-7.1 q0.9,0.7 1.7,0.4 M1.7,-7.1 q-0.7,0.6 -1.2,0.4" stroke="#a9884a" strokeWidth={0.4} fill="none" opacity={0.8} />
+        </g>
+      ))}
       <path d={touffes.join(' ')} stroke={stade === 'jeune' ? '#8a9c66' : '#dcb95e'} strokeWidth={0.7} fill="none" opacity={0.9} />
     </g>
   )
 }
 
-/** muret de pierres sèches : moellons variés, dessus éclairé NW, ombre SE */
+/** muret de pierres sèches : deux assises de moellons, chants éclairés NW,
+ *  flanc sud dans l'ombre, ombre portée SE */
 function Muret({ x1, y1, x2, y2, seed = 1 }: { x1: number; y1: number; x2: number; y2: number; seed?: number }) {
   const rnd = alea(seed * 53 + 11)
   const L = Math.hypot(x2 - x1, y2 - y1)
-  const n = Math.max(4, Math.round(L / 3.6))
-  const tons = ['#bdb49c', '#a89e85', '#b1a78e', '#9a9078']
-  const pierres: ReactNode[] = []
+  const n = Math.max(6, Math.round(L / 2.5))
+  const bas = ['#8a7f66', '#948a70', '#7f755e']
+  const haut = ['#b3a98f', '#bcb298', '#a89e85', '#b0a58a']
+  const assiseBasse: ReactNode[] = []
+  const assiseHaute: ReactNode[] = []
+  const lumieres: ReactNode[] = []
   for (let i = 0; i <= n; i++) {
     const t = i / n
-    const px = x1 + (x2 - x1) * t + (rnd() - 0.5) * 1.4
-    const py = y1 + (y2 - y1) * t + (rnd() - 0.5) * 1
-    const r = 1.7 + rnd() * 0.9
-    pierres.push(<ellipse key={i} cx={px} cy={py - 1.3} rx={r} ry={r * 0.72} fill={tons[Math.floor(rnd() * tons.length)]} />)
-    if (rnd() > 0.62) pierres.push(<ellipse key={`h${i}`} cx={px - 0.6} cy={py - 1.9} rx={r * 0.42} ry={r * 0.28} fill="#d5cdb8" opacity={0.75} />)
+    const px = x1 + (x2 - x1) * t + (rnd() - 0.5) * 0.8
+    const py = y1 + (y2 - y1) * t + (rnd() - 0.5) * 0.5
+    const r = 1.45 + rnd() * 0.65
+    assiseBasse.push(<ellipse key={`b${i}`} cx={px} cy={py - 0.9} rx={r} ry={r * 0.6} fill={bas[Math.floor(rnd() * bas.length)]} />)
+    if (i % 2 === 0 || rnd() > 0.3) {
+      const hx = px + (rnd() - 0.5) * 1.2
+      const hr = 1.3 + rnd() * 0.6
+      assiseHaute.push(<ellipse key={`h${i}`} cx={hx} cy={py - 2.2} rx={hr} ry={hr * 0.62} fill={haut[Math.floor(rnd() * haut.length)]} />)
+      if (rnd() > 0.4) lumieres.push(<ellipse key={`l${i}`} cx={hx - 0.4} cy={py - 2.6} rx={hr * 0.48} ry={hr * 0.24} fill="#cfc6ac" opacity={0.75} />)
+    }
   }
   return (
     <g>
-      <line x1={x1 + 1.4} y1={y1 + 1.1} x2={x2 + 1.4} y2={y2 + 1.1} stroke={PAL.ombrePortee} strokeWidth={2.4} opacity={0.15} filter="url(#a-flou1)" />
-      <line x1={x1} y1={y1 - 0.4} x2={x2} y2={y2 - 0.4} stroke="#7c7059" strokeWidth={2.8} strokeLinecap="round" />
-      {pierres}
+      <line x1={x1 + 1.8} y1={y1 + 1.4} x2={x2 + 1.8} y2={y2 + 1.4} stroke={PAL.ombrePortee} strokeWidth={2.6} opacity={0.16} filter="url(#a-flou1)" />
+      {/* semelle sombre : pied du muret dans son ombre */}
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#6b604b" strokeWidth={2.6} strokeLinecap="round" />
+      {assiseBasse}
+      {assiseHaute}
+      {lumieres}
     </g>
   )
 }
@@ -230,16 +306,24 @@ function Grange({ x, y }: { x: number; y: number }) {
         retour={6}
         enfants={
           <>
+            {/* planches verticales de la façade, joints dans la teinte sombre */}
+            <path d="M-11.8,-0.3 V-11.6 M-10,-0.3 V-12.6 M11.8,-0.3 V-11.6 M10,-0.3 V-12.6" stroke="#5f462d" strokeWidth={0.6} opacity={0.5} fill="none" />
+            <path d="M-11,-0.3 V-12 M10.9,-0.3 V-12.1" stroke="#b3906b" strokeWidth={0.5} opacity={0.45} fill="none" />
             {/* porte charretière cintrée, vantail entrouvert */}
             <path d="M-9,0 L-9,-10.4 Q0,-13.4 9,-10.4 L9,0 Z" fill={PAL.boisOmbre} />
+            <path d="M-9,-10.4 Q0,-13.4 9,-10.4 L9,-9.6 Q0,-12.5 -9,-9.6 Z" fill="#8f7048" />
             <path d="M-7.6,0 L-7.6,-9.7 Q0,-12.3 7.6,-9.7 L7.6,0 Z" fill="#332614" />
             <path d="M1.2,0 L1.2,-10.7 L7.6,-9.7 L7.6,0 Z" fill="#75583a" />
             <path d="M3.3,-10.4 V-0.2 M5.5,-10 V-0.2" stroke="#5f462d" strokeWidth={0.7} opacity={0.8} fill="none" />
-            {/* foin qui déborde du seuil */}
+            <path d="M2,-10.6 V-0.2" stroke="#8f7048" strokeWidth={0.5} opacity={0.8} fill="none" />
+            {/* foin qui déborde du seuil, deux valeurs */}
             <path d="M-6.2,0 q2,-2.6 5,-2.2 q3.2,0.4 4.2,2.2 Z" fill="#d3b264" />
+            <path d="M-6.2,0 q1.6,-2.1 3.8,-2.2 q-1.6,1 -2.2,2.2 Z" fill="#e6c87e" />
             {/* fenil dans le pignon */}
             <rect x={-2.6} y={-19} width={5.2} height={4.2} fill="#3a2b18" />
             <path d="M-2.6,-15.2 q2.6,-2 5.2,-0.2 l0,0.4 l-5.2,0 Z" fill="#d3b264" />
+            {/* poulie du fenil */}
+            <path d="M0,-19.6 l0,1.2" stroke="#4f3d28" strokeWidth={0.7} />
           </>
         }
       />
@@ -303,19 +387,24 @@ function Grenier({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
   )
 }
 
-/** olivier noueux : tronc torsadé deux tons, couronne à trois valeurs */
+/** olivier noueux : tronc torsadé deux tons, frondaison sauge argentée */
 function Olivier({ x, y, s = 1, seed = 5 }: { x: number; y: number; s?: number; seed?: number }) {
   const rnd = alea(seed * 17 + 3)
   const dx = (rnd() - 0.5) * 2
   return (
     <g transform={`translate(${x},${y}) scale(${s})`}>
       <ellipse cx={4.5} cy={1.2} rx={8.5} ry={2.4} fill={PAL.ombrePortee} opacity={0.16} filter="url(#a-flou1)" />
-      <path d="M-1.7,0.6 C-2.3,-3 -2.8,-6 -1.2,-9.4 L0.9,-9.4 C1.7,-6 1.3,-3 1.9,0.6 Q0,1.4 -1.7,0.6 Z" fill="#7a5f3c" />
-      <path d="M0.6,-0.2 C0.8,-3.6 0.6,-6.6 0.4,-9 L0.9,-9.4 C1.7,-6 1.3,-3 1.9,0.6 Q1.1,0.9 0.6,-0.2 Z" fill="#5c4526" />
-      <ellipse cx={1.5 + dx} cy={-11} rx={7.8} ry={5} fill="#5f7248" />
-      <ellipse cx={-1 + dx} cy={-12.6} rx={6.6} ry={4.2} fill="#74875a" />
-      <ellipse cx={-2.8 + dx} cy={-14.3} rx={4.2} ry={2.7} fill="#8fa46e" />
-      <ellipse cx={3.2 + dx} cy={-13.4} rx={2.6} ry={1.7} fill="#879b66" opacity={0.9} />
+      {/* tronc court et noueux, torsade claire côté lumière */}
+      <path d="M-2,0.6 C-2.6,-2.6 -2.9,-5.6 -1.3,-8.8 L1,-8.8 C1.8,-5.6 1.4,-2.6 2.2,0.6 Q0,1.5 -2,0.6 Z" fill="#7a5f3c" />
+      <path d="M0.7,-0.2 C0.9,-3.4 0.7,-6.2 0.5,-8.4 L1,-8.8 C1.8,-5.6 1.4,-2.6 2.2,0.6 Q1.2,1 0.7,-0.2 Z" fill="#5c4526" />
+      <path d="M-1.2,-0.4 C-1.6,-3.2 -1.1,-6 -0.4,-8.2" stroke="#9c7d4f" strokeWidth={0.7} fill="none" opacity={0.85} />
+      {/* frondaison sauge : ombre propre basse, demi-teinte, éclat argenté NW */}
+      <ellipse cx={1.8 + dx} cy={-10.4} rx={7.6} ry={4.8} fill="#5c6b48" />
+      <ellipse cx={-0.8 + dx} cy={-12} rx={6.4} ry={4} fill="#71815a" />
+      <ellipse cx={-2.6 + dx} cy={-13.6} rx={4.1} ry={2.6} fill="#8c9d70" />
+      <ellipse cx={3 + dx} cy={-12.8} rx={2.5} ry={1.6} fill="#84956a" opacity={0.9} />
+      <ellipse cx={-3.8 + dx} cy={-14.4} rx={2} ry={1.2} fill="#a7b98a" opacity={0.9} />
+      <path d={`M${-4.8 + dx},-11.4 q1.4,0.7 2.6,0.3 M${1.2 + dx},-14 q1.2,0.5 2.2,0.1`} stroke="#b9c99b" strokeWidth={0.5} fill="none" opacity={0.7} />
     </g>
   )
 }
@@ -336,18 +425,24 @@ function Chevre({ x, y, c = '#e6dfcd', flip = false }: { x: number; y: number; c
   )
 }
 
-/** bœuf de labour : masse brune, dos éclairé, ventre ombré, cornes pâles */
-function Boeuf({ x, y, flip = false }: { x: number; y: number; flip?: boolean }) {
+/** bœuf de labour : masse brune, dos éclairé, ventre ombré, cornes en croissant */
+function Boeuf({ x, y, flip = false, robe = '#7d6248', dos = '#9a7d5c' }: { x: number; y: number; flip?: boolean; robe?: string; dos?: string }) {
   return (
     <g transform={`translate(${x},${y})${flip ? ' scale(-1,1)' : ''}`}>
       <ellipse cx={1.5} cy={1} rx={7.4} ry={2} fill={PAL.ombrePortee} opacity={0.14} />
       <path d="M-4.4,-2.2 V1 M-2.4,-2 V1.1 M3,-2 V1.1 M4.8,-2.2 V1" stroke="#4a3826" strokeWidth={1.3} fill="none" />
-      <ellipse cx={0} cy={-4.8} rx={6.6} ry={3.7} fill="#7d6248" />
-      <path d="M-6.2,-5.8 C-4,-8.4 4,-8.4 6.2,-5.8 C4,-7.5 -4,-7.5 -6.2,-5.8 Z" fill="#9a7d5c" />
+      <ellipse cx={0} cy={-4.8} rx={6.6} ry={3.7} fill={robe} />
+      <path d="M-6.2,-5.8 C-4,-8.4 4,-8.4 6.2,-5.8 C4,-7.5 -4,-7.5 -6.2,-5.8 Z" fill={dos} />
       <path d="M-5.8,-3 C-3,-1.1 3.4,-1.1 6,-3.4 C3.6,-1.9 -3,-1.9 -5.8,-3 Z" fill="#5c4732" opacity={0.9} />
-      <circle cx={6.8} cy={-6.6} r={2.5} fill="#6b533c" />
-      <path d="M6,-8.7 q-1.2,-1.5 -0.2,-2.6 M7.8,-8.7 q1.2,-1.5 0.2,-2.6" stroke="#d9cdb0" strokeWidth={1} fill="none" />
-      <ellipse cx={7.7} cy={-5.4} rx={1.2} ry={0.9} fill="#a58a68" />
+      {/* queue */}
+      <path d="M-6.4,-5.4 q-1.2,2.2 -0.7,4.6" stroke="#5c4732" strokeWidth={0.8} fill="none" />
+      {/* tête baissée : chanfrein, mufle sombre, oreille, cornes fines */}
+      <path d="M4.6,-7.2 C6.6,-7.8 8.2,-7 8.6,-5.4 C8.9,-4.1 8.3,-3 7.2,-2.8 C5.8,-2.6 4.4,-3.8 4.2,-5.4 Z" fill="#6b533c" />
+      <path d="M4.8,-7 C6.2,-7.5 7.4,-7.1 8,-6.2 C6.9,-6.6 5.7,-6.4 4.8,-5.8 Z" fill="#8a6d50" />
+      <ellipse cx={7.9} cy={-3.4} rx={1.3} ry={0.9} fill="#4a3826" />
+      <ellipse cx={4.3} cy={-7} rx={1} ry={0.55} fill="#5c4732" transform="rotate(-24 4.3 -7)" />
+      <path d="M5.6,-7.6 C5.2,-9 5.8,-10.2 7,-10.6 C6.4,-9.4 6.4,-8.4 6.6,-7.7 Z" fill="#cbbd9c" />
+      <path d="M7.6,-7.4 C8.4,-8.6 9.6,-9 10.6,-8.6 C9.6,-8 8.8,-7.2 8.4,-6.5 Z" fill="#b8a988" />
     </g>
   )
 }
@@ -467,13 +562,15 @@ export function Ferme({ n }: { n: number }) {
       {/* cour de terre battue, usée en deux tons */}
       <ellipse cx={-4} cy={3} rx={36} ry={12.5} fill="#b9a878" opacity={0.72} />
       <ellipse cx={-8} cy={1.5} rx={23} ry={8} fill="#c8b88a" opacity={0.85} />
-      {/* chemin des champs */}
-      <path d="M4,4 C13,5.2 22,5.6 32,5.2 C22,7.6 12,7.4 2,6.2 Z" fill="#cdb684" opacity={0.55} />
+      {/* chemin des champs : bande usée à deux tons + ornières de charroi */}
+      <path d="M2,2.6 C12,3.6 22,4.4 33,4.6 C22,7.8 11,7.4 0,6.4 Z" fill="#cdb684" opacity={0.6} />
+      <path d="M4,3.8 C13,4.6 21,5 30,5.2 C21,6.6 12,6.4 3,5.6 Z" fill="#dbc794" opacity={0.55} />
+      <path d="M4,4 C13,4.8 21,5 29,5.1 M4,6 C13,6.4 20,6.3 28,6" stroke="#a68c5c" strokeWidth={0.6} opacity={0.5} fill="none" />
 
       {/* parcelles — vers l'est */}
-      <Champ x={44} y={2} w={54} h={22} stade={n >= 3 ? 'or' : n === 2 ? 'mur' : 'jeune'} seed={3} />
+      <Champ x={44} y={4} w={54} h={22} stade={n >= 3 ? 'or' : n === 2 ? 'mur' : 'jeune'} seed={3} />
       {n >= 2 && <Champ x={56} y={-21} w={44} h={17} stade={n >= 3 ? 'or' : 'mur'} seed={8} />}
-      {n >= 4 && <Champ x={95} y={-3} w={36} h={22} stade="or" seed={13} />}
+      {n >= 4 && <Champ x={95} y={-2} w={36} h={22} stade="or" seed={13} />}
 
       {/* murets de pierres sèches entre les parcelles */}
       {n >= 3 && <Muret x1={27} y1={-10} x2={73} y2={-11.5} seed={4} />}
@@ -496,7 +593,16 @@ export function Ferme({ n }: { n: number }) {
       {/* corps de ferme */}
       <g transform="translate(-6,0)">
         {n < 3 ? <Hutte n={n} /> : <FermePierre n={n} />}
-        {n >= 3 && <Fumee x={0} y={-30} />}
+        {n >= 3 && (
+          <g>
+            {/* souche de cheminée chaulée sur le faîtage, chapeau terracotta */}
+            <rect x={-1.6} y={-30.6} width={3.2} height={4.4} fill="url(#a-stuc-o)" />
+            <rect x={-1.6} y={-30.6} width={1.1} height={4.4} fill="#e8dcc0" opacity={0.85} />
+            <rect x={-2.1} y={-31.6} width={4.2} height={1.2} fill={PAL.toitMi} />
+            <rect x={-2.1} y={-31.6} width={4.2} height={0.5} fill={PAL.toitArete} opacity={0.9} />
+            <Fumee x={0} y={-31.5} />
+          </g>
+        )}
       </g>
 
       {n >= 2 && <EnclosChevres />}
@@ -510,7 +616,7 @@ export function Ferme({ n }: { n: number }) {
       {n >= 3 && (
         <g>
           <Boeuf x={12} y={16} flip />
-          <Boeuf x={30} y={22} />
+          <Boeuf x={30} y={22} robe="#6b5140" dos="#8a6d52" />
           <Meule x={-12} y={15} />
           <Meule x={-3} y={18} s={0.8} />
           <Charrette x={-26} y={27} s={0.9} />

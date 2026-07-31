@@ -8,30 +8,47 @@ import type { BuildingId } from '../../game/types'
  */
 
 const PEAU = '#d9a97c'
-const T = '#4a3a28'
+const PEAU_OMBRE = '#bd8a5c'
+
+/** mélange déterministe de deux hex — modelé des étoffes autour de leur teinte */
+function mix(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16)
+  const pb = parseInt(b.slice(1), 16)
+  const c = (sa: number, sb: number) => Math.round(sa + (sb - sa) * t)
+  return `#${((c((pa >> 16) & 255, (pb >> 16) & 255) << 16) | (c((pa >> 8) & 255, (pb >> 8) & 255) << 8) | c(pa & 255, pb & 255)).toString(16).padStart(6, '0')}`
+}
 
 function CorpsOuvrier({ tunique = '#b3906b', marche }: { tunique?: string; marche?: boolean }) {
   return (
     <g>
-      <ellipse cx={1} cy={0.8} rx={4.5} ry={1.4} fill="#241a0c" opacity={0.14} />
+      {/* ombre au sol adoucie : deux ellipses terre superposées */}
+      <ellipse cx={1.2} cy={0.9} rx={5} ry={1.6} fill="#241a0c" opacity={0.09} />
+      <ellipse cx={1} cy={0.8} rx={3.4} ry={1.15} fill="#241a0c" opacity={0.14} />
       {marche ? (
         <>
           <line x1={0} y1={-4} x2={-1.5} y2={0} stroke={PEAU} strokeWidth={1.5}>
             <animateTransform attributeName="transform" type="rotate" values="16 0 -4;-16 0 -4;16 0 -4" dur="0.45s" repeatCount="indefinite" />
           </line>
-          <line x1={0} y1={-4} x2={1.5} y2={0} stroke="#c99a6e" strokeWidth={1.5}>
+          <line x1={0} y1={-4} x2={1.5} y2={0} stroke={PEAU_OMBRE} strokeWidth={1.5}>
             <animateTransform attributeName="transform" type="rotate" values="-16 0 -4;16 0 -4;-16 0 -4" dur="0.45s" repeatCount="indefinite" />
           </line>
         </>
       ) : (
         <>
           <line x1={-1.5} y1={0} x2={-1.5} y2={-4} stroke={PEAU} strokeWidth={1.5} />
-          <line x1={1.5} y1={0} x2={1.5} y2={-4} stroke="#c99a6e" strokeWidth={1.5} />
+          <line x1={1.5} y1={0} x2={1.5} y2={-4} stroke={PEAU_OMBRE} strokeWidth={1.5} />
         </>
       )}
-      <path d="M-2.8,-3.8 L-2,-10.5 L2,-10.5 L2.8,-3.8 Z" fill={tunique} stroke={T} strokeWidth={0.5} />
+      {/* tunique de travail : flanc ouest au soleil, revers est ombré, ceinture de cuir */}
+      <path d="M-2.8,-3.8 L-2,-10.5 L2,-10.5 L2.8,-3.8 Z" fill={tunique} />
+      <path d="M-2.8,-3.8 L-2,-10.5 L-0.6,-10.5 L-1,-3.8 Z" fill={mix(tunique, '#ffe9c2', 0.22)} />
+      <path d="M2,-10.5 L2.8,-3.8 L1.9,-3.8 L1.5,-10.5 Z" fill={mix(tunique, '#221408', 0.32)} opacity={0.8} />
+      <path d="M-2.5,-6.2 L2.5,-6.2 L2.58,-7.1 L-2.58,-7.1 Z" fill="#5d4230" />
+      {/* tête : joue est dans l'ombre, cheveux avec mèche au soleil */}
       <circle cx={0} cy={-12.4} r={2.5} fill={PEAU} />
-      <path d="M-2.5,-12.9 A2.5,2.5 0 0 1 2.5,-12.9" fill="#6b533c" />
+      <path d="M0.85,-14.75 A2.5,2.5 0 0 1 0.85,-10.05 A3.6,3.6 0 0 0 0.85,-14.75 Z" fill={PEAU_OMBRE} />
+      <path d="M-2.5,-12.9 A2.5,2.5 0 0 1 2.5,-12.9" fill="#5f4630" />
+      <path d="M-1.95,-13.7 A2.3,2.3 0 0 1 -0.3,-14.85" stroke="#8a6a4a" strokeWidth={0.9} fill="none" strokeLinecap="round" />
     </g>
   )
 }
@@ -71,8 +88,11 @@ function Bucheron({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: b
           repeatCount="indefinite"
         />
         <line x1={1} y1={-9.5} x2={7.5} y2={-6.5} stroke={PEAU} strokeWidth={1.4} />
-        <line x1={7.5} y1={-6.5} x2={11} y2={-4.6} stroke="#7a5a35" strokeWidth={1.6} />
-        <path d="M10.4,-6.4 l3,1.2 q-0.4,2.4 -2.8,2.2 Z" fill="#9aa0a8" stroke={T} strokeWidth={0.5} />
+        {/* manche deux tons + fer de hache à facette éclairée */}
+        <line x1={7.5} y1={-6.5} x2={11} y2={-4.6} stroke="#6b4c2a" strokeWidth={1.6} />
+        <line x1={7.6} y1={-6.8} x2={10.9} y2={-5} stroke="#a8845d" strokeWidth={0.8} />
+        <path d="M10.4,-6.4 l3,1.2 q-0.4,2.4 -2.8,2.2 Z" fill="#8a929b" />
+        <path d="M10.4,-6.4 L13.4,-5.2 L11.2,-5.55 Z" fill="#c8cdd3" />
       </g>
       <Eclats x={9} y={-1} c="#d3b787" dur="1.7s" begin={begin} />
     </g>
@@ -94,8 +114,11 @@ function Tailleur({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: b
           repeatCount="indefinite"
         />
         <line x1={1} y1={-9.5} x2={8} y2={-6.5} stroke={PEAU} strokeWidth={1.4} />
-        <line x1={8} y1={-6.5} x2={11.5} y2={-5} stroke="#7a5a35" strokeWidth={1.5} />
-        <path d="M11,-6.6 q3,-0.8 4.4,1.4" stroke="#8f8a7c" strokeWidth={1.7} fill="none" />
+        {/* manche deux tons + pic de fer, dos éclairé */}
+        <line x1={8} y1={-6.5} x2={11.5} y2={-5} stroke="#6b4c2a" strokeWidth={1.5} />
+        <line x1={8.1} y1={-6.8} x2={11.4} y2={-5.35} stroke="#a8845d" strokeWidth={0.8} />
+        <path d="M11,-6.6 q3,-0.8 4.4,1.4" stroke="#7f8790" strokeWidth={1.7} fill="none" />
+        <path d="M11,-6.85 q2.9,-0.75 4.2,1.1" stroke="#dfe5ea" strokeWidth={0.8} fill="none" />
       </g>
       <Eclats x={10} y={-2} c="#c2bcae" dur="1.9s" begin={begin} />
     </g>
@@ -117,8 +140,11 @@ function Forgeron({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: b
           repeatCount="indefinite"
         />
         <line x1={1} y1={-9.5} x2={7} y2={-6.5} stroke={PEAU} strokeWidth={1.4} />
-        <line x1={7} y1={-6.5} x2={9.6} y2={-5.4} stroke="#7a5a35" strokeWidth={1.4} />
-        <rect x={9} y={-7.4} width={3.2} height={2.6} rx={0.7} fill="#8f8a7c" stroke={T} strokeWidth={0.5} />
+        {/* marteau : manche deux tons, masse de fer au dessus éclairé */}
+        <line x1={7} y1={-6.5} x2={9.6} y2={-5.4} stroke="#6b4c2a" strokeWidth={1.4} />
+        <line x1={7.1} y1={-6.75} x2={9.5} y2={-5.7} stroke="#a8845d" strokeWidth={0.8} />
+        <rect x={9} y={-7.4} width={3.2} height={2.6} rx={0.7} fill="#787f88" />
+        <rect x={9} y={-7.4} width={3.2} height={1.1} rx={0.55} fill="#c8cdd3" />
       </g>
       {/* étincelles dorées */}
       <g transform="translate(8,-2)">
@@ -154,8 +180,11 @@ export function Batisseur({ x, y, flip, begin = '0s' }: { x: number; y: number; 
           repeatCount="indefinite"
         />
         <line x1={1} y1={-9.5} x2={7.5} y2={-6.5} stroke={PEAU} strokeWidth={1.4} />
-        <line x1={7.5} y1={-6.5} x2={10.5} y2={-5.2} stroke="#7a5a35" strokeWidth={1.5} />
-        <rect x={9.6} y={-7.6} width={3.4} height={2.8} rx={0.8} fill="#8f8a7c" stroke={T} strokeWidth={0.5} />
+        {/* maillet : manche deux tons, tête au chant éclairé */}
+        <line x1={7.5} y1={-6.5} x2={10.5} y2={-5.2} stroke="#6b4c2a" strokeWidth={1.5} />
+        <line x1={7.6} y1={-6.75} x2={10.4} y2={-5.5} stroke="#a8845d" strokeWidth={0.8} />
+        <rect x={9.6} y={-7.6} width={3.4} height={2.8} rx={0.8} fill="#787f88" />
+        <rect x={9.6} y={-7.6} width={3.4} height={1.15} rx={0.55} fill="#c8cdd3" />
       </g>
       <Eclats x={10} y={-2} c="#d8d2c4" dur="1.5s" begin={begin} />
     </g>
@@ -165,7 +194,7 @@ export function Batisseur({ x, y, flip, begin = '0s' }: { x: number; y: number; 
 function Faucheur({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: boolean; begin?: string }) {
   return (
     <g transform={`translate(${x},${y})${flip ? ' scale(-1,1)' : ''}`}>
-      <CorpsOuvrier tunique="#c9a06c" />
+      <CorpsOuvrier tunique="#cdbb92" />
       <g>
         <animateTransform
           attributeName="transform"
@@ -177,8 +206,11 @@ function Faucheur({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: b
           repeatCount="indefinite"
         />
         <line x1={0} y1={-8} x2={8} y2={-3} stroke={PEAU} strokeWidth={1.4} />
-        <line x1={4} y1={-10} x2={10} y2={0} stroke="#7a5a35" strokeWidth={1.4} />
-        <path d="M10,0 q4,1.6 7,-0.6" stroke="#9aa0a8" strokeWidth={1.5} fill="none" />
+        {/* faux : manche deux tons, lame courbe qui accroche la lumière */}
+        <line x1={4} y1={-10} x2={10} y2={0} stroke="#6b4c2a" strokeWidth={1.4} />
+        <line x1={4.25} y1={-9.9} x2={7.2} y2={-5} stroke="#a8845d" strokeWidth={0.8} />
+        <path d="M10,0 q4,1.6 7,-0.6" stroke="#8a929b" strokeWidth={1.5} fill="none" />
+        <path d="M10.2,-0.3 q3.7,1.4 6.5,-0.6" stroke="#dfe5ea" strokeWidth={0.8} fill="none" />
       </g>
     </g>
   )
@@ -188,6 +220,8 @@ function Pretre({ x, y, begin = '0s' }: { x: number; y: number; begin?: string }
   return (
     <g transform={`translate(${x},${y})`}>
       <CorpsOuvrier tunique="#ece5d2" />
+      {/* clavus pourpre de l'officiant, interrompu par la ceinture */}
+      <path d="M0.7,-3.9 L0.62,-6.2 M0.55,-7.1 L0.45,-10.4" stroke="#b3543f" strokeWidth={0.9} opacity={0.85} />
       <line x1={-2} y1={-9.5} x2={-5.5} y2={-12} stroke={PEAU} strokeWidth={1.3}>
         <animateTransform attributeName="transform" type="rotate" values="0 -2 -9.5;-28 -2 -9.5;0 -2 -9.5" dur="3.4s" begin={begin} repeatCount="indefinite" />
       </line>
@@ -204,9 +238,16 @@ function Recrue({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: boo
       <g>
         <animateTransform attributeName="transform" type="translate" values="0,0;-4.5,0;-4.5,0;0,0" keyTimes="0;0.3;0.42;1" dur="1.5s" begin={begin} repeatCount="indefinite" />
         <CorpsOuvrier tunique="#3e5a7a" />
-        <line x1={-1} y1={-8.5} x2={-9} y2={-7} stroke="#7a5a35" strokeWidth={1.3} />
-        <path d="M-9,-7 l-2.6,-0.5 l2.2,-1.6 Z" fill="#c9a441" />
-        <circle cx={3.4} cy={-8} r={2.6} fill="#8c6b3f" stroke="#5d4a33" strokeWidth={0.7} />
+        {/* lance d'exercice deux tons, fer à facettes */}
+        <line x1={-1} y1={-8.5} x2={-9} y2={-7} stroke="#6b4c2a" strokeWidth={1.3} />
+        <line x1={-4.5} y1={-8} x2={-9} y2={-7.15} stroke="#a8845d" strokeWidth={0.8} />
+        <path d="M-9,-7 L-11.6,-7.5 L-9.2,-8.05 Z" fill="#8b939c" />
+        <path d="M-9.4,-9.1 L-11.6,-7.5 L-9.2,-8.05 Z" fill="#e4eaef" />
+        {/* petit bouclier d'entraînement bombé */}
+        <circle cx={3.4} cy={-8} r={2.8} fill="#4f3d22" />
+        <circle cx={3.4} cy={-8} r={2.35} fill="#7c5f38" />
+        <circle cx={3} cy={-8.4} r={1.6} fill="#9d7a4e" />
+        <circle cx={2.7} cy={-8.7} r={0.9} fill="#bb9866" />
       </g>
     </g>
   )
@@ -229,8 +270,11 @@ function Docker({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: boo
       <g>
         <animateTransform attributeName="transform" type="translate" values="0,0;0,-1.4;0,0" dur="1.1s" begin={begin} repeatCount="indefinite" />
         <CorpsOuvrier tunique="#7c9a8e" />
-        <rect x={-3.4} y={-17.4} width={6.8} height={4.6} fill="#a3814f" stroke={T} strokeWidth={0.7} />
-        <path d="M-3.4,-17.4 L3.4,-12.8 M3.4,-17.4 L-3.4,-12.8" stroke="#7a5a35" strokeWidth={0.6} />
+        {/* caisse : couvercle au soleil, flanc est ombré, feuillard en croix */}
+        <rect x={-3.4} y={-17.4} width={6.8} height={4.6} fill="#8f6f42" />
+        <rect x={-3.4} y={-17.4} width={6.8} height={1.4} fill="#b08a58" />
+        <rect x={2.2} y={-16} width={1.2} height={3.2} fill="#6b4c2a" opacity={0.7} />
+        <path d="M-3.4,-17.4 L3.4,-12.8 M3.4,-17.4 L-3.4,-12.8" stroke="#5f462d" strokeWidth={0.8} />
       </g>
     </g>
   )
@@ -321,14 +365,28 @@ function Porteur({
         {charge === 'bois' && (
           <g transform="translate(0,-13.6) rotate(-8)">
             {[0, 1].map((i) => (
-              <rect key={i} x={-6} y={-i * 2.2 - 2} width={12} height={2} rx={1} fill={i ? '#a3814f' : '#8f6f42'} stroke={T} strokeWidth={0.5} />
+              <g key={i}>
+                <rect x={-6} y={-i * 2.2 - 2} width={12} height={2} rx={1} fill={i ? '#a3814f' : '#8f6f42'} />
+                <rect x={-5.6} y={-i * 2.2 - 1.9} width={11.2} height={0.8} rx={0.4} fill={i ? '#c2a071' : '#ab8757'} />
+                <ellipse cx={5.8} cy={-i * 2.2 - 1} rx={0.6} ry={0.9} fill="#5f462d" />
+              </g>
             ))}
           </g>
         )}
         {charge === 'grain' && (
-          <path d="M-2.8,-14.4 C-3.3,-17.4 -2.2,-19.2 0,-19.2 C2.2,-19.2 3.3,-17.4 2.8,-14.4 Z" fill="#cbb289" stroke={T} strokeWidth={0.6} />
+          <g>
+            <path d="M-2.8,-14.4 C-3.3,-17.4 -2.2,-19.2 0,-19.2 C2.2,-19.2 3.3,-17.4 2.8,-14.4 Z" fill="#cbb289" />
+            <path d="M0.8,-14.4 C1.6,-17.2 1.6,-18.8 0.4,-19.15 C1.8,-19 2.9,-17.4 2.8,-14.4 Z" fill="#a98f63" />
+            <path d="M-0.9,-19 L1,-19" stroke="#8a6a4a" strokeWidth={0.8} />
+          </g>
         )}
-        {charge === 'pierre' && <rect x={-2.6} y={-18.4} width={5.2} height={4} fill="#c2bcae" stroke={T} strokeWidth={0.6} />}
+        {charge === 'pierre' && (
+          <g>
+            <rect x={-2.6} y={-18.4} width={5.2} height={4} fill="#b5ad98" />
+            <path d="M-2.6,-18.4 L2.6,-18.4 L2.6,-17.3 L-2.6,-16.9 Z" fill="#d5cdb9" />
+            <path d="M2.6,-18.4 L2.6,-14.4 L1.7,-14.4 L1.8,-18.4 Z" fill="#948a72" />
+          </g>
+        )}
       </g>
     </g>
   )

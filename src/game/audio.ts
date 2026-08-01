@@ -196,6 +196,22 @@ function pincee(freq: number, t: number, duree = 1.6, gain = 0.16, sortie?: Gain
   note(freq * 2.01, t, duree * 0.5, { type: 'sine', gain: gain * 0.35, sortie, filtre: 4200 })
 }
 
+/**
+ * Flûte de berger : sinus fondamental, quinte très discrète, attaque lente.
+ * C'est le timbre le plus doux qu'on puisse fabriquer sans échantillon — celui
+ * qu'on veut entendre au-dessus d'un village qui vaque à ses affaires.
+ */
+function flute(freq: number, t: number, duree = 2.2, gain = 0.1, sortie?: GainNode): void {
+  note(freq, t, duree, { type: 'sine', gain, attaque: 0.14, sortie, filtre: 2000 })
+  note(freq * 3.01, t + 0.03, duree * 0.55, { type: 'sine', gain: gain * 0.16, attaque: 0.2, sortie, filtre: 3200 })
+}
+
+/** bourdon : deux graves tenus très bas, qui enveloppent sans occuper l'oreille */
+function bourdon(freq: number, t: number, duree: number, gain: number, sortie?: GainNode): void {
+  note(freq, t, duree, { type: 'sine', gain, attaque: duree * 0.3, sortie, filtre: 420 })
+  note(freq * 1.5, t, duree * 0.9, { type: 'sine', gain: gain * 0.5, attaque: duree * 0.35, sortie, filtre: 520 })
+}
+
 /** souffle : bruit filtré, pour les percussions, le tonnerre et le fracas */
 function souffle(
   t: number,
@@ -290,17 +306,28 @@ export function jouer(son: SonId): void {
 // ── Musique de fond ──────────────────────────────────────────────────────────
 
 /*
- * Un mode phrygien sur mi : c'est la couleur « antique » que tout l'imaginaire
- * gréco-méditerranéen porte. La lyre égrène une phrase de huit temps, avec une
- * basse tenue à la fondamentale — assez simple pour tourner sans lasser.
+ * DEUX COULEURS, DEUX INTENTIONS.
+ *
+ * · La PAIX est une pentatonique majeure sur fa (fa sol la do ré). Aucun
+ *   demi-ton : il est musicalement impossible d'y sonner inquiétant. C'est le
+ *   contraire du mode phrygien, dont la seconde mineure — la « couleur antique »
+ *   qu'on entend partout — met en réalité l'oreille en alerte. Un village qui
+ *   vaque à ses affaires ne doit pas donner envie de regarder par-dessus son
+ *   épaule. La phrase respire : un temps sur trois est un SILENCE (−1), et un
+ *   bourdon très bas tient l'ensemble au chaud.
+ *
+ * · L'ALERTE, elle, garde le phrygien : là, l'inquiétude est le but.
  */
+const PENTA = [174.6, 196, 220, 261.6, 293.7, 349.2, 392, 440, 523.3]
 const PHRYGIEN = [164.8, 174.6, 196, 220, 246.9, 261.6, 293.7, 329.6]
-const PHRASE_PAIX = [0, 2, 4, 3, 5, 4, 2, 0, 3, 5, 7, 5, 4, 2, 3, 0]
+
+/** −1 = silence. Vingt-quatre temps dont neuf de repos : la phrase souffle. */
+const PHRASE_PAIX = [0, -1, 2, 4, -1, 3, 2, -1, 4, 5, -1, 3, -1, 1, 0, -1, 2, 3, -1, 5, 4, -1, -1, 2]
 const PHRASE_ALERTE = [0, 3, 4, 0, 5, 4, 3, 0]
 
-/** durée d'un temps selon l'ambiance (s) */
+/** durée d'un temps selon l'ambiance (s) — la paix prend tout son temps */
 function tempo(): number {
-  return ambiance === 'alerte' ? 0.36 : ambiance === 'siege' ? 0.3 : 0.62
+  return ambiance === 'alerte' ? 0.36 : ambiance === 'siege' ? 0.3 : 0.95
 }
 
 /** programme la suite de la musique quelques temps à l'avance */
@@ -311,10 +338,18 @@ function planifier(): void {
   while (prochaine < horizon) {
     const t = Math.max(prochaine, ctx.currentTime + 0.02)
     if (ambiance === 'paix') {
-      const deg = PHRASE_PAIX[pas % PHRASE_PAIX.length]
-      pincee(PHRYGIEN[deg], t, 2.1, 0.11, gainMusique)
-      // basse tous les quatre temps, une octave plus bas
-      if (pas % 4 === 0) note(PHRYGIEN[0] / 2, t, 2.6, { type: 'triangle', gain: 0.07, attaque: 0.05, sortie: gainMusique, filtre: 700 })
+      const i = pas % PHRASE_PAIX.length
+      const deg = PHRASE_PAIX[i]
+      // un temps sur trois est un silence : c'est lui qui rend la boucle reposante
+      if (deg >= 0) {
+        // la lyre et la flûte se répondent, ce qui évite la ritournelle mécanique
+        if (i % 2 === 0) pincee(PENTA[deg], t, 2.8, 0.075, gainMusique)
+        else flute(PENTA[deg], t, 2.4, 0.062, gainMusique)
+      }
+      // bourdon très bas toutes les huit mesures, en fondu long
+      if (i % 8 === 0) bourdon(PENTA[0] / 2, t, 7.6, 0.05, gainMusique)
+      // et de loin en loin, une réponse à l'octave — comme un berger sur la colline
+      if (i === 13) flute(PENTA[6], t + dt * 0.5, 2, 0.04, gainMusique)
     } else if (ambiance === 'alerte') {
       const deg = PHRASE_ALERTE[pas % PHRASE_ALERTE.length]
       pincee(PHRYGIEN[deg], t, 1.1, 0.1, gainMusique)

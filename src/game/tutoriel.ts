@@ -1,4 +1,4 @@
-import { BUILDING_IDS } from './data'
+﻿import { BUILDING_IDS } from './data'
 import type { BuildingId, GodId, HeroId, ResourceId, UnitId } from './types'
 
 /*
@@ -179,7 +179,7 @@ export const ETAPES: EtapeTuto[] = [
     ],
     cibles: ['bouton-pantheon', 'modale-pantheon'],
     place: 'bas',
-    ordre: 'Ouvrez le Panthéon — puis refermez-le quand vous aurez vu',
+    ordre: 'Ouvrez le Panthéon, puis refermez-le par sa croix (ou Échap)',
     voir: 'pantheon',
   },
   {
@@ -192,7 +192,7 @@ export const ETAPES: EtapeTuto[] = [
     ],
     cibles: ['bouton-expeditions', 'modale-expeditions'],
     place: 'bas',
-    ordre: 'Ouvrez la carte des expéditions — puis refermez-la',
+    ordre: 'Ouvrez la carte des expéditions, puis refermez-la par sa croix',
     voir: 'expeditions',
   },
   {
@@ -205,7 +205,7 @@ export const ETAPES: EtapeTuto[] = [
     ],
     cibles: ['bouton-heros', 'modale-heros'],
     place: 'bas',
-    ordre: 'Ouvrez le panneau des héros — puis refermez-le',
+    ordre: 'Ouvrez le panneau des héros, puis refermez-le par sa croix',
     voir: 'heros',
   },
   {

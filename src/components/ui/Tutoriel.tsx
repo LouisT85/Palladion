@@ -57,20 +57,53 @@ function recouvrement(a: Cadre, b: Cadre): number {
 }
 
 /**
+ * Ce qui ne doit JAMAIS passer sous l'encart de Zeus, même quand toutes les
+ * places sont mauvaises : la barre de titre des panneaux, donc leur croix de
+ * fermeture. Quand la cible est un panneau entier — 680 px de large, 86 % de la
+ * hauteur —, aucune position n'est libre, et l'encart finissait en travers de la
+ * seule sortie visible : le joueur devait deviner qu'il fallait dérouler jusqu'au
+ * bouton « Fermer » du bas.
+ */
+function zonesSacrees(): Cadre[] {
+  const out: Cadre[] = []
+  for (const el of document.querySelectorAll('.modale-tete, .modale-croix')) {
+    const r = el.getBoundingClientRect()
+    if (r.width > 0 && r.height > 0) out.push({ x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 })
+  }
+  return out
+}
+
+/**
  * Où poser l'encart de Zeus.
  *
  * `place` n'est qu'une PRÉFÉRENCE : on essaie plusieurs positions et on garde
  * la première qui ne recouvre AUCUNE cible. Sans cela, l'encart se mettait en
  * travers du bouton à cliquer — au recensement, il masquait précisément la
  * ligne « + Danaé » qu'il demandait d'actionner, et la leçon était bloquée.
+ *
+ * Les zones sacrées, elles, pèsent quarante fois plus lourd qu'une cible
+ * ordinaire dans le calcul : recouvrir une croix de fermeture est le pire des
+ * défauts, puisque c'est la sortie.
  */
-function placerCarte(cadres: Cadre[], place: PlaceCarte | undefined, taille: { w: number; h: number }) {
+function placerCarte(
+  cadres: Cadre[],
+  place: PlaceCarte | undefined,
+  taille: { w: number; h: number },
+  sacres: Cadre[] = [],
+) {
   const vw = window.innerWidth
   const vh = window.innerHeight
   const marge = 18
   const bord = 12
   const centre = { left: (vw - taille.w) / 2, top: Math.max(bord, (vh - taille.h) / 2) }
   if (cadres.length === 0 || place === 'centre') return centre
+  /** ce que coûte une position : l'aire masquée, les sorties comptant quarante fois */
+  const cout = (p: { left: number; top: number }): number => {
+    const rect: Cadre = { x: p.left, y: p.top, w: taille.w, h: taille.h }
+    const cibles = cadres.reduce((a, t) => a + recouvrement(rect, t), 0)
+    const sorties = sacres.reduce((a, t) => a + recouvrement(rect, t), 0)
+    return cibles + sorties * 40
+  }
 
   // enveloppe de toutes les cibles : c'est d'elle qu'on s'écarte
   const x0 = Math.min(...cadres.map((c) => c.x))
@@ -102,8 +135,7 @@ function placerCarte(cadres: Cadre[], place: PlaceCarte | undefined, taille: { w
   let meilleur = candidats[0]
   let pire = Infinity
   for (const c of candidats) {
-    const rect: Cadre = { x: c.left, y: c.top, w: taille.w, h: taille.h }
-    const chevauche = cadres.reduce((a, t) => a + recouvrement(rect, t), 0)
+    const chevauche = cout(c)
     if (chevauche === 0) return c
     if (chevauche < pire) {
       pire = chevauche
@@ -148,7 +180,7 @@ export function Tutoriel() {
     if (!etape) return
     const el = carte.current
     if (!el) return
-    setPos(placerCarte(cadres, etape.place, { w: el.offsetWidth, h: el.offsetHeight }))
+    setPos(placerCarte(cadres, etape.place, { w: el.offsetWidth, h: el.offsetHeight }, zonesSacrees()))
   }, [etape, cadres])
 
   /*

@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from 'react'
 import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, TOUR_ANGLES, TOUR_PORTEE, pointMur } from '../../game/data'
 import { HERO_IDS } from '../../game/heros'
+import { ACTES_CAMPAGNE } from '../../game/campagne'
 import { murMax, postesPourvus, postesTotal, useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
 import { DefsArt } from './art'
+import { DecorActe } from './CadreActe'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
 import { Batisseur, Ouvriers, Porteurs } from './Ouvriers'
 import { BatailleLayer } from './BatailleLayer'
@@ -178,6 +180,10 @@ export function VillageMap() {
   const lastSeen = useGame((s) => s.lastSeen)
   const saison = useGame((s) => s.saison)
   const meteo = useGame((s) => s.meteo)
+  // le cadre de l'acte en cours — null en bac à sable
+  const cadreActe = useGame((s) =>
+    s.campagne && !s.campagne.fini ? (ACTES_CAMPAGNE[s.campagne.acte]?.cadre ?? null) : null,
+  )
   // structure maximale de l'enceinte — Hector l'épaissit tant qu'il est là
   const wallMax = useGame(murMax)
   // liste stable : on ne recrée pas de tableau dans le sélecteur (React 18)
@@ -269,6 +275,9 @@ export function VillageMap() {
         {/* toute la scène vit dans ce groupe : la caméra s'en approche pendant l'assaut */}
         <g ref={scene}>
           <Terrain phase={phase} paisible={paisible} saison={saison} />
+          {/* la campagne plante son repère dans le paysage : la flotte échouée,
+              le camp achéen, Ilion sur son tertre, le Scamandre en crue, le cheval */}
+          <DecorActe cadre={cadreActe} />
 
           <Porteurs scierie={scierieLvl > 0} ferme={fermeLvl > 0} carriere={carriereLvl > 0} actif={paisible} />
 

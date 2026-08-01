@@ -30,7 +30,16 @@ export default defineConfig({
             './src/components/map/Murailles.tsx',
             './src/components/map/Terrain.tsx',
           ],
-          recit: ['./src/game/events.ts'],
+          // les dilemmes et les cinq actes de la campagne : du texte, beaucoup de
+          // texte, dont rien n'est nécessaire pour afficher le premier écran
+          recit: [
+            './src/game/events.ts',
+            './src/game/campagne/acte-i.ts',
+            './src/game/campagne/acte-ii.ts',
+            './src/game/campagne/acte-iii.ts',
+            './src/game/campagne/acte-iv.ts',
+            './src/game/campagne/acte-v.ts',
+          ],
         },
       },
     },

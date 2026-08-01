@@ -1,4 +1,4 @@
-# 🏛️ PALLADION — Chroniques de la guerre de Troie
+﻿# 🏛️ PALLADION — Chroniques de la guerre de Troie
 
 > Le *Palladion* : la statue d'Athéna tombée du ciel — tant qu'elle se tient dans la cité,
 > Troie ne peut pas tomber. Un talisman divin qui conditionne la survie de la ville :
@@ -125,7 +125,8 @@ forteresse à donjon sur son éperon rocheux. Deux façons d'y marcher :
 - **Secourir** — quand un village assiégé appelle à l'aide, vous avez quelques minutes
   pour trancher. Aucun butin, la possibilité d'y perdre des hommes pour rien — mais la
   faveur des dieux et une **alliance** : tribut régulier, et des renforts qui montent sur
-  vos remparts (et tombent avant vos hommes) à chaque assaut.
+  vos remparts (et tombent avant vos hommes) à chaque assaut. Ces renforts se reconnaissent
+  à l'œil : tunique vert olive et fanion de leur cité, en bout de ligne.
 
 Le choix est cornélien à dessein : la richesse contre le réseau.
 
@@ -237,7 +238,7 @@ ou un clic à côté.
 - **Deux modes** : bac à sable sans fin, ou **campagne « La Chute »** en 5 actes à objectifs
   imposés, situation héritée et héros scriptés — un acte perdu se reprend, la campagne non
 - **41 dilemmes** à issues multiples, **55 missions** en 5 actes verrouillés, **45 hauts faits**
-- **165 tests** Vitest sur les règles : comptoir, combat, production, hors-ligne, hauts faits,
+- **181 tests** Vitest sur les règles : comptoir, combat, production, hors-ligne, hauts faits,
   missions, héros, saisons (`npm test`)
 - **Menace** croissante, vagues générées par budget, déroute ennemie à 70 % de pertes
 - Sauvegarde automatique en `localStorage` (aucun serveur, aucun compte)
@@ -263,7 +264,7 @@ npm run dev:test  # 🧪 mode test : ressources illimitées, chantiers/recrues i
                   #    bouton « Attaque » pour déclencher un assaut à la demande
 npm run build     # production dans dist/ (châssis, art et récit en trois morceaux)
 npm run preview   # tester le build
-npm test          # 165 tests Vitest sur les règles du jeu
+npm test          # 181 tests Vitest sur les règles du jeu
 ```
 
 ### 📸 Regénérer les captures du README
@@ -290,14 +291,14 @@ c'est aussi le test de fumée du projet.
 
 ## 🗺️ Pistes d'évolution
 
-- **Cartes propres à chaque acte** de la campagne : les cinq cadres (grève, plaine, murailles,
-  fleuve, ruines) sont nommés dans le code et n'attendent que leur terrain peint
+- **Terrains propres à chaque acte** : chaque acte plante déjà son repère (flotte échouée, camp
+  achéen, Ilion, Scamandre en crue, cheval de bois), mais le sol reste celui du bac à sable
 - **Siège sans fin** : vagues de difficulté croissante, score et classement local
 - **Nouvelle Partie +** : rejouer en gardant le prestige du règne précédent
 - **Formations et ordres** en bataille, nouvelles unités (frondeur, char, machines de siège)
 - **Héros ennemis nommés** : Achille assiégeant *votre* village, capacités retournées contre vous
 - **Familles et lignées** : les villageois se marient, vieillissent, transmettent leur métier
-- **Tests de rendu** : les 165 tests couvrent les règles, pas les composants
+- **Tests de rendu** : les 181 tests couvrent les règles, pas les composants
 - i18n (structure des textes déjà centralisée)
 
 ---

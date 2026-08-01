@@ -7,6 +7,7 @@ import { BandeauAlerte, BarreRessources, BoutonPleinEcran, Toasts } from './comp
 import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker } from './components/ui/Missions'
+import { ControleSon, useSons } from './components/ui/Son'
 import { PanneauBatiment } from './components/ui/PanneauBatiment'
 import { Pantheon } from './components/ui/Pantheon'
 import { ExpeditionScene, PanneauExpeditions } from './components/ui/Expeditions'
@@ -27,6 +28,8 @@ export default function App() {
   const herosARecruter = useGame((s) => HERO_IDS.filter((h) => herosDisponible(s, h)).length)
   const appel = useGame((s) => s.appelSecours !== null)
   const openPanel = useGame((s) => s.openPanel)
+  // la bande-son suit l'état du jeu : lyre, cors, tambour de siège
+  useSons()
 
   useEffect(() => {
     init()
@@ -94,6 +97,7 @@ export default function App() {
           <button onClick={() => openPanel('aide')} title="Comment jouer">
             ❔
           </button>
+          <ControleSon />
           <BoutonPleinEcran />
         </div>
       </header>

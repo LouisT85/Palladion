@@ -216,6 +216,55 @@ button.pastille:hover:not(:disabled) {
   justify-content: center;
   padding: 5px 9px;
 }
+
+/* ── réglages du son : un haut-parleur, deux curseurs ── */
+.son {
+  position: relative;
+  display: inline-flex;
+}
+.son-panneau {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 40;
+  width: 216px;
+  background: linear-gradient(180deg, #16283af5, #101f2ef8);
+  backdrop-filter: blur(8px);
+  border: 1px solid #35526d;
+  border-radius: 11px;
+  padding: 10px;
+  box-shadow: 0 14px 36px #000c;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.son-muet {
+  width: 100%;
+  font-size: 12.5px;
+  padding: 5px 9px;
+}
+.son-panneau label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.son-panneau label span {
+  width: 54px;
+  flex: 0 0 54px;
+}
+.son-panneau input[type='range'] {
+  flex: 1;
+  accent-color: var(--gold);
+  min-width: 0;
+}
+.son-note {
+  font-size: 10.5px;
+  color: #6f8494;
+  line-height: 1.35;
+  font-style: italic;
+}
 .bouton-icone.actif {
   border-color: var(--gold-sombre);
   color: var(--gold);

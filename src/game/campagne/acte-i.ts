@@ -36,7 +36,14 @@ export const ACTE_I: ActeCampagne = {
     'Il n’y a pas de honte à tomber le premier jour d’une guerre de dix ans. Il y a seulement à recommencer.',
   ],
   depart: {
-    resources: { bois: 260, pierre: 170, grain: 200, bronze: 24 },
+    /*
+     * Le budget de l'acte, vérifié pièce par pièce : palissade 90 bois, caserne
+     * 70 bois + 60 pierre, camp de bûcherons 30 + 30, carrière 50 bois, trois
+     * lanciers 75 bois + 18 bronze. Soit 315 bois pour 300 en réserve — le
+     * complément vient de la cueillette et des premiers ateliers, ce qui laisse
+     * de la marge sans rien offrir.
+     */
+    resources: { bois: 300, pierre: 190, grain: 200, bronze: 24 },
     pop: 9,
     // l'agora et deux maisons debout : un village qui vivait déjà avant la guerre
     batiments: { agora: 1, maisons: 1, ferme: 1 },
@@ -72,9 +79,17 @@ export const ACTE_I: ActeCampagne = {
     },
     {
       id: 'bras',
-      texte: 'Mettez quatre habitants au travail dans vos ateliers',
+      texte: 'Mettez trois habitants au travail dans vos ateliers',
       pourquoi: 'Personne ne prend son poste tout seul : un atelier sans bras ne rend rien.',
-      progres: (s) => seuil(s.villageois.filter((v) => v.poste !== null).length, 4),
+      /*
+       * TROIS et non quatre : l'agora de niveau 1 plafonne tous les ateliers au
+       * niveau 1, donc à UN poste chacun. Le champ, la forêt et la carrière — le
+       * trio que la leçon de Zeus recommande — en offrent exactement trois. En
+       * exiger quatre obligeait à bâtir un quatrième atelier (80 bois pour la
+       * forge) en plus de la palissade et de la caserne : l'acte se jouait à la
+       * pièce près, ce qui n'est pas la leçon qu'il doit donner.
+       */
+      progres: (s) => seuil(s.villageois.filter((v) => v.poste !== null).length, 3),
     },
     {
       id: 'premiere-lance',

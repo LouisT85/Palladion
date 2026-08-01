@@ -142,6 +142,7 @@ export function ModaleRapportBataille() {
 export function ModaleAide() {
   const s = useGame()
   const [confirmeReset, setConfirmeReset] = useState(false)
+  const [confirmeCampagne, setConfirmeCampagne] = useState(false)
   return (
     <Modale
       titre="🏛️ PALLADION — survivre à l’ombre de Troie"
@@ -269,6 +270,16 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
+          <h3>🐴 « La Chute » — la campagne</h3>
+          <p>
+            Cinq actes qui suivent l’Iliade, du débarquement achéen à la nuit du cheval. Chaque acte{' '}
+            <b>impose son village de départ</b> (bâtiments debout, garnison, saison, jusqu’à un pan de mur déjà à terre),
+            ses objectifs — qui portent sur la <i>manière</i> de tenir plus que sur des totaux — et parfois un héros que
+            le récit vous met à la porte sans rançon. <b>Un acte peut se perdre</b> : on le reprend, pas la campagne. Le
+            bouton se trouve tout en bas de cette aide.
+          </p>
+        </div>
+        <div className="aide-section">
           <h3>Premiers pas</h3>
           <p>
             1. Cliquez un emplacement en pointillés pour construire. 2. Ferme, scierie et carrière d’abord. 3. Puis
@@ -291,7 +302,39 @@ export function ModaleAide() {
           <button style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('campagne')}>
             🐴 Relire les cinq actes de « La Chute »
           </button>
-        ) : null}
+        ) : (
+          /*
+           * L'entrée dans la campagne depuis une partie EN COURS. L'écran de choix
+           * ne s'ouvre qu'au tout premier lancement : sans ce bouton, un joueur qui
+           * a déjà une cité n'avait aucun moyen d'atteindre « La Chute » — sinon
+           * effacer sa partie, ce qui n'est pas une porte d'entrée.
+           */
+          <div className="aide-campagne">
+            {confirmeCampagne ? (
+              <>
+                <span>
+                  La campagne repart de son premier acte et impose son propre village : votre cité actuelle sera
+                  remplacée.
+                </span>
+                <button
+                  className="principal"
+                  onClick={() => {
+                    setConfirmeCampagne(false)
+                    s.openPanel(null)
+                    s.choisirMode('campagne')
+                  }}
+                >
+                  🐴 Commencer l’acte I
+                </button>
+                <button onClick={() => setConfirmeCampagne(false)}>Garder ma cité</button>
+              </>
+            ) : (
+              <button style={{ width: '100%' }} onClick={() => setConfirmeCampagne(true)}>
+                🐴 Jouer la campagne « La Chute » — cinq actes de l’Iliade
+              </button>
+            )}
+          </div>
+        )}
         <div className="aide-reset">
           {confirmeReset ? (
             <>

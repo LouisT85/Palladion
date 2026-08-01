@@ -205,13 +205,17 @@ function pincee(freq: number, t: number, duree = 1.6, gain = 0.16, sortie?: Gain
 }
 
 /**
- * Flûte de berger : sinus fondamental, quinte très discrète, attaque lente.
+ * Flûte de berger : sinus fondamental, octave très discrète, attaque lente.
  * C'est le timbre le plus doux qu'on puisse fabriquer sans échantillon — celui
  * qu'on veut entendre au-dessus d'un village qui vaque à ses affaires.
+ *
+ * La partielle était une douzième légèrement désaccordée (×3,01) : ce battement
+ * dans l'aigu sonnait le sifflet plutôt que le souffle. Une octave juste, elle,
+ * ne fait qu'épaissir le son.
  */
-function flute(freq: number, t: number, duree = 2.2, gain = 0.1, sortie?: GainNode): void {
-  note(freq, t, duree, { type: 'sine', gain, attaque: 0.14, sortie, filtre: 2000 })
-  note(freq * 3.01, t + 0.03, duree * 0.55, { type: 'sine', gain: gain * 0.16, attaque: 0.2, sortie, filtre: 3200 })
+function flute(freq: number, t: number, duree = 2.2, gain = 0.1, sortie?: GainNode, attaque = 0.14): void {
+  note(freq, t, duree, { type: 'sine', gain, attaque, sortie, filtre: 1900 })
+  note(freq * 2, t + 0.04, duree * 0.6, { type: 'sine', gain: gain * 0.12, attaque: attaque * 1.6, sortie, filtre: 2600 })
 }
 
 /** bourdon : deux graves tenus très bas, qui enveloppent sans occuper l'oreille */
@@ -319,38 +323,43 @@ export function jouer(son: SonId): void {
  * · La PAIX est une pentatonique majeure sur fa (fa sol la do ré). Aucun
  *   demi-ton : il est musicalement impossible d'y sonner inquiétant. C'est le
  *   contraire du mode phrygien, dont la seconde mineure — la « couleur antique »
- *   qu'on entend partout — met en réalité l'oreille en alerte. Un village qui
- *   vaque à ses affaires ne doit pas donner envie de regarder par-dessus son
- *   épaule.
+ *   qu'on entend partout — met en réalité l'oreille en alerte.
  *
- *   Elle a aussi failli par excès de retenue : un temps toutes les secondes, un
- *   silence sur trois, et un volume de fond sonore. On n'entendait plus une
- *   berceuse, on entendait un robinet qui goutte. La paix est donc désormais
- *   une VRAIE pièce : deux phrases qui alternent (32 temps avant de se répéter),
- *   une basse pincée qui marque les temps forts, une tierce complice sous la
- *   mélodie, et un bourdon chaud qui ne s'arrête jamais.
+ *   Deux versions ont échoué avant celle-ci, et pour des raisons opposées :
+ *   trop timide d'abord (un robinet qui goutte à volume de fond sonore), puis
+ *   trop DENSE — mélodie pincée toutes les six dixièmes de seconde, tierce
+ *   complice, basse sur chaque temps fort, décroissances de deux secondes et
+ *   demie : cinq voix résonnaient en permanence dans le même registre, et la
+ *   régularité des attaques pincées faisait sonner l'ensemble comme une
+ *   sonnerie d'école.
  *
- * · L'ALERTE, elle, garde le phrygien : là, l'inquiétude est le but.
+ *   Le vrai coupable, ce n'était ni le mode ni le volume : c'était le NOMBRE
+ *   D'ATTAQUES. Une pièce reposante en compte peu. Ici : une seule voix
+ *   mélodique, soufflée (attaque d'une demi-seconde, aucune corde pincée), une
+ *   note toutes les deux secondes et demie, un bourdon qui ne s'interrompt
+ *   jamais, et une figure de lyre une fois par phrase — trente secondes. Le
+ *   fond est CONTINU et les événements RARES : c'est cela, une safe place.
+ *
+ * · L'ALERTE, elle, garde le phrygien et ses cordes pincées : là, l'inquiétude
+ *   est le but, et la densité aussi.
  */
 const PENTA = [174.6, 196, 220, 261.6, 293.7, 349.2, 392, 440, 523.3]
 const PHRYGIEN = [164.8, 174.6, 196, 220, 246.9, 261.6, 293.7, 329.6]
 
-/** basse pincée : fa grave, puis sa quinte — l'assise de l'accompagnement */
-const BASSE_PAIX = [87.3, 130.8]
-
 /**
- * −1 = silence. Deux phrases de seize temps : A pose la question, B y répond un
- * degré plus haut et redescend se poser sur la fondamentale.
+ * La ligne de paix, un degré par temps FORT (soit un toutes les 2,5 s) ; −1 est
+ * un vrai silence, où seul le bourdon reste. Douze notes : la phrase fait une
+ * demi-minute et ne se laisse pas mémoriser, donc ne lasse pas.
  */
-const PHRASE_PAIX = [
-  0, 2, 4, -1, 3, 2, 1, 0, -1, 2, 3, 4, -1, 5, 4, 3,
-  4, 5, 6, -1, 5, 4, 3, 2, -1, 3, 2, 1, 0, -1, 1, 0,
-]
+const CHANT_PAIX = [0, 2, 4, 3, -1, 2, 1, 0, 2, 4, 5, 3]
 const PHRASE_ALERTE = [0, 3, 4, 0, 5, 4, 3, 0]
 
-/** durée d'un temps selon l'ambiance (s) — la paix respire sans s'endormir */
+/** un temps mélodique de paix sur quatre : c'est l'espacement des attaques */
+const TEMPS_PAR_NOTE = 4
+
+/** durée d'un temps selon l'ambiance (s) */
 function tempo(): number {
-  return ambiance === 'alerte' ? 0.36 : ambiance === 'siege' ? 0.3 : 0.58
+  return ambiance === 'alerte' ? 0.36 : ambiance === 'siege' ? 0.3 : 0.62
 }
 
 /** programme la suite de la musique quelques temps à l'avance */
@@ -361,21 +370,22 @@ function planifier(): void {
   while (prochaine < horizon) {
     const t = Math.max(prochaine, ctx.currentTime + 0.02)
     if (ambiance === 'paix') {
-      const i = pas % PHRASE_PAIX.length
-      const deg = PHRASE_PAIX[i]
-      if (deg >= 0) {
-        // la lyre et la flûte se répondent, ce qui évite la ritournelle mécanique
-        if (i % 2 === 0) pincee(PENTA[deg], t, 2.6, 0.15, gainMusique)
-        else flute(PENTA[deg], t, 2.2, 0.13, gainMusique)
-        // une tierce complice sous la mélodie : c'est elle qui rend la phrase chaude
-        if (deg >= 2) flute(PENTA[deg - 2], t + 0.05, 1.9, 0.045, gainMusique)
+      const cycle = CHANT_PAIX.length * TEMPS_PAR_NOTE
+      const i = pas % cycle
+      // la mélodie ne parle qu'un temps sur quatre : entre deux notes, le
+      // bourdon tient seul le village. C'est le silence qui repose, pas la note.
+      if (i % TEMPS_PAR_NOTE === 0) {
+        const deg = CHANT_PAIX[i / TEMPS_PAR_NOTE]
+        if (deg >= 0) flute(PENTA[deg], t, 4.2, 0.16, gainMusique, 0.45)
       }
-      // basse pincée sur les temps forts : fondamentale, puis quinte
-      if (i % 4 === 0) pincee(BASSE_PAIX[(i / 4) % 2], t, 3.4, 0.075, gainMusique)
-      // bourdon chaud, renouvelé avant de s'éteindre : le fond ne se troue jamais
-      if (i % 8 === 0) bourdon(PENTA[0] / 2, t, 9.6, 0.08, gainMusique)
-      // et de loin en loin, une réponse à l'octave — comme un berger sur la colline
-      if (i === 29) flute(PENTA[8], t + dt * 0.5, 2.4, 0.06, gainMusique)
+      // bourdon renouvelé bien avant de s'éteindre : le fond ne se troue jamais
+      if (i % 16 === 0) bourdon(PENTA[0] / 2, t, 12.4, 0.075, gainMusique)
+      // une seule figure de lyre par phrase, très douce — le seul geste pincé
+      if (i === cycle - 8) {
+        pincee(PENTA[2], t, 2.6, 0.05, gainMusique)
+        pincee(PENTA[4], t + dt * 1.4, 2.6, 0.045, gainMusique)
+        pincee(PENTA[6], t + dt * 2.8, 3, 0.04, gainMusique)
+      }
     } else if (ambiance === 'alerte') {
       const deg = PHRASE_ALERTE[pas % PHRASE_ALERTE.length]
       pincee(PHRYGIEN[deg], t, 1.1, 0.1, gainMusique)

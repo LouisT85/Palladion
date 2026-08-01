@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import { TICK_MS } from './game/data'
-import { totalEtoiles, useGame } from './game/store'
+import { HERO_IDS } from './game/heros'
+import { herosDisponible, totalEtoiles, useGame } from './game/store'
 import { VillageMap } from './components/map/VillageMap'
 import { BandeauAlerte, BarreRessources, BoutonPleinEcran, Toasts } from './components/ui/Hud'
+import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker } from './components/ui/Missions'
 import { PanneauBatiment } from './components/ui/PanneauBatiment'
 import { Pantheon } from './components/ui/Pantheon'
@@ -20,6 +22,8 @@ export default function App() {
   const panel = useGame((s) => s.panel)
   const expedition = useGame((s) => s.expedition)
   const etoiles = useGame((s) => totalEtoiles(s.expeditions))
+  // pastille d'appel : un héros attend qu'on vienne le chercher
+  const herosARecruter = useGame((s) => HERO_IDS.filter((h) => herosDisponible(s, h)).length)
   const openPanel = useGame((s) => s.openPanel)
 
   useEffect(() => {
@@ -60,6 +64,14 @@ export default function App() {
           <button onClick={() => openPanel('pantheon')} title="Les dieux de l'Olympe">
             ⚡<span className="lbl"> Panthéon</span>
           </button>
+          <button
+            onClick={() => openPanel('heros')}
+            title="Les héros de la matière troyenne — les recruter, les faire monter, trancher leurs dilemmes"
+            className={herosARecruter > 0 ? 'appelle' : undefined}
+          >
+            🛡️<span className="lbl"> Héros</span>
+            {herosARecruter > 0 ? ` ${herosARecruter}` : ''}
+          </button>
           <button onClick={() => openPanel('journal')} title="Rapports et chroniques">
             📜<span className="lbl"> Journal</span>
           </button>
@@ -80,11 +92,13 @@ export default function App() {
 
       {panel === 'aide' && <ModaleAide />}
       {panel === 'pantheon' && <Pantheon />}
+      {panel === 'heros' && <PanneauHeros />}
       {panel === 'journal' && <ModaleJournal />}
       {panel === 'expeditions' && !expedition && <PanneauExpeditions />}
       {expedition && <ExpeditionScene />}
       <ModaleHorsLigne />
       <ModaleEvenement />
+      <ModaleArcHeros />
       <ModaleRapportBataille />
     </div>
   )

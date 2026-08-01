@@ -628,6 +628,169 @@ svg.carte {
   padding: 4px 9px;
 }
 
+/* ── héros ─────────────────────────────────────────────── */
+.hud-actions button.appelle {
+  border-color: var(--gold);
+  color: var(--gold);
+  animation: appel 2.2s ease-in-out infinite;
+}
+@keyframes appel {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 #e8c04a00;
+  }
+  50% {
+    box-shadow: 0 0 10px 1px #e8c04a55;
+  }
+}
+
+.heros-section {
+  margin: 16px 0 2px;
+  font-size: 13px;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  border-bottom: 1px solid var(--bord);
+  padding-bottom: 4px;
+}
+.heros-carte {
+  display: flex;
+  gap: 12px;
+  padding: 11px;
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  margin-top: 9px;
+  background: #10202e;
+}
+.heros-carte.verrouille {
+  opacity: 0.62;
+}
+.heros-carte.mort {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+.heros-embleme {
+  width: 62px;
+  flex: 0 0 62px;
+  border: 1px solid;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 2px;
+  font-size: 27px;
+  line-height: 1;
+}
+.heros-niveaux {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.heros-niveaux .plein {
+  color: var(--gold);
+}
+.heros-niveaux .vide {
+  color: #3a4a5a;
+}
+.heros-niveaux .barre {
+  color: #6b3f33;
+}
+.heros-corps {
+  flex: 1;
+  min-width: 0;
+}
+.heros-titre {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.heros-titre h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.heros-sous {
+  font-size: 11px;
+  color: var(--muted);
+}
+.heros-desc {
+  margin: 3px 0 6px;
+  font-size: 12.5px;
+  color: #cfc4a8;
+  line-height: 1.4;
+}
+.heros-ligne {
+  font-size: 12px;
+  color: #cfc4a8;
+  line-height: 1.45;
+  margin: 2px 0;
+}
+.heros-ligne b {
+  color: var(--texte);
+}
+.heros-force {
+  color: var(--gold);
+  font-weight: 700;
+}
+.heros-plafond {
+  color: #d98a4e;
+}
+.heros-xp {
+  height: 5px;
+  border-radius: 3px;
+  background: #0a141d;
+  overflow: hidden;
+  margin: 7px 0 4px;
+}
+.heros-xp > div {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s;
+}
+.heros-pied {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+}
+.heros-entretien,
+.heros-arc {
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.heros-pied button {
+  margin-left: auto;
+  font-size: 12.5px;
+  padding: 4px 11px;
+}
+.heros-conds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 5px;
+  font-size: 11.5px;
+}
+.heros-conds .ok {
+  color: var(--ok);
+}
+.heros-conds .ko {
+  color: #d98a4e;
+}
+.heros-epitaphe {
+  font-size: 12.5px;
+  color: #9a8b7a;
+  font-style: italic;
+  margin-top: 4px;
+}
+/* les boutons de héros s'alignent sous ceux des dieux, en bataille */
+.heros-rapides {
+  margin-top: 5px;
+}
+
 /* ── journal & toasts ──────────────────────────────────── */
 .rapport {
   border: 1px solid var(--bord);

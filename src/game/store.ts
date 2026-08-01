@@ -41,7 +41,11 @@ import {
 import {
   GEO_EXPEDITION,
   GEO_VILLAGE,
+  abattreChef,
+  abriterSecteur,
+  boucherBreche,
   budgetVague,
+  fureurHeros,
   creerBataille,
   descVague,
   foudreDeZeus,
@@ -63,6 +67,25 @@ import {
   VILLAGES_PAR_ID,
   type VillageCible,
 } from './expeditions'
+import {
+  BONUS_NEUTRE,
+  HEROS,
+  HERO_IDS,
+  NIVEAU_MAX,
+  XP_ASSAUT_REPOUSSE,
+  XP_EXPEDITION,
+  XP_PAR_ETOILE,
+  cumulerPassifs,
+  entretienTotal,
+  etatHeroInitial,
+  forceNiveau,
+  noeudMur,
+  peutMonter,
+  xpRequise,
+  type BonusHeros,
+  type HeroId,
+  type HeroState,
+} from './heros'
 import { MISSIONS_PAR_ID, missionsActives } from './missions'
 import {
   BONUS_ORAGE_ZEUS,
@@ -159,6 +182,20 @@ export interface GameState {
   meteo: MeteoId
   /** instant du prochain tirage de météo */
   meteoJusqua: number
+  /** les héros de la matière troyenne, recrutés ou non */
+  heros: Record<HeroId, HeroState>
+  /** prochain rappel d'entretien impayé */
+  rappelHerosAt: number
+  /** secteurs que la vague qui vient va assaillir (révélés par Ulysse) */
+  incomingFronts: string[] | null
+  /** ruse d'Ulysse armée : la prochaine expédition entre sans donner un coup de bélier */
+  siegeGratuit: boolean
+  /** part des troupes qu'Énée ramènera d'une défaite (0 = capacité non armée) */
+  sauverTroupes: number
+  /** un héros attend votre parole : nœud d'arc ouvert */
+  arcHeros: { heros: HeroId; noeud: string } | null
+  /** récit de l'issue, une fois le choix tranché */
+  arcIssue: string[] | null
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -169,7 +206,7 @@ export interface GameState {
   offlineSummary: string[] | null
   toasts: Toast[]
   selected: BuildingId | null
-  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | null
+  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | null
 
   // actions
   init: () => void
@@ -184,6 +221,10 @@ export interface GameState {
   echanger: (donner: ResourceId, recevoir: ResourceId) => void
   sacrifier: (g: GodId) => void
   benir: (g: GodId) => void
+  recruterHeros: (h: HeroId) => void
+  capaciteHeros: (h: HeroId) => void
+  choisirArc: (i: number) => void
+  fermerArc: () => void
   choisirEvenement: (i: number) => void
   fermerEvenement: () => void
   lancerMaintenant: () => void
@@ -306,6 +347,74 @@ export function tauxParMinute(s: GameState): Record<ResourceId, number> {
     grain: brut.grain - s.pop * CONSO_POP - armeeTotale(s.army) * CONSO_SOLDAT,
   }
 }
+// ── Héros ────────────────────────────────────────────────────────────────────
+/** passifs cumulés des héros vivants et présents */
+export function bonusHeros(s: Pick<GameState, 'heros'>): BonusHeros {
+  return s.heros ? cumulerPassifs(s.heros) : BONUS_NEUTRE
+}
+
+/** points de structure maximaux de l'enceinte — Hector l'épaissit de 15 % */
+export function murMax(s: Pick<GameState, 'buildings' | 'heros'>): number {
+  return Math.round(WALL_HP[s.buildings.remparts.level] * (1 + bonusHeros(s).wallHpPct))
+}
+
+/**
+ * Relation réellement pesée par un dieu : l'orgueil d'Agamemnon retranche dix
+ * points à chaque Olympien tant qu'il siège à votre table.
+ */
+export function relationEffective(s: Pick<GameState, 'gods' | 'heros'>, g: GodId): number {
+  return Math.max(-100, Math.min(100, s.gods[g].relation + bonusHeros(s).relationTous))
+}
+
+export interface ConditionHero {
+  txt: string
+  ok: boolean
+}
+
+/** ce que la cité doit prouver pour qu'un héros daigne s'y arrêter */
+export function conditionsHeros(s: GameState, h: HeroId): ConditionHero[] {
+  const r = HEROS[h].requiert
+  const out: ConditionHero[] = []
+  if (r.batiment) {
+    out.push({
+      txt: `${BUILDINGS[r.batiment.id].nom} niveau ${r.batiment.niveau}`,
+      ok: s.buildings[r.batiment.id].level >= r.batiment.niveau,
+    })
+  }
+  if (r.armee !== undefined) {
+    out.push({ txt: `${r.armee} soldats sous les armes`, ok: armeeTotale(s.army) >= r.armee })
+  }
+  if (r.relation) {
+    out.push({
+      txt: `Relation ${GODS[r.relation.dieu].nom} ≥ ${r.relation.min}`,
+      ok: s.gods[r.relation.dieu].relation >= r.relation.min,
+    })
+  }
+  if (r.morale !== undefined) out.push({ txt: `Ambiance ≥ ${r.morale}`, ok: s.morale >= r.morale })
+  if (r.assautsRepousses !== undefined) {
+    out.push({ txt: `${r.assautsRepousses} assauts repoussés`, ok: s.stats.repousses >= r.assautsRepousses })
+  }
+  if (r.etoiles !== undefined) {
+    out.push({ txt: `${r.etoiles} ★ gagnées en expédition`, ok: totalEtoiles(s.expeditions) >= r.etoiles })
+  }
+  return out
+}
+
+export function herosDisponible(s: GameState, h: HeroId): boolean {
+  const e = s.heros[h]
+  return !!e && !e.recrute && !e.mort && conditionsHeros(s, h).every((c) => c.ok)
+}
+
+/** héros présents et vivants, dans l'ordre du panthéon */
+export function herosActifs(s: Pick<GameState, 'heros'>): HeroId[] {
+  return HERO_IDS.filter((h) => s.heros?.[h]?.recrute && !s.heros[h].mort)
+}
+
+/** entretien dû chaque minute, pour l'affichage */
+export function entretienHeros(s: Pick<GameState, 'heros'>): { grain: number; faveur: number } {
+  return s.heros ? entretienTotal(s.heros) : { grain: 0, faveur: 0 }
+}
+
 export function coutBenediction(s: Pick<GameState, 'buildings'>, g: GodId): number {
   const base = GODS[g].benediction.cout
   return s.buildings.temple.level >= 4 ? Math.round(base * 0.75) : base
@@ -314,8 +423,8 @@ export function coutBenediction(s: Pick<GameState, 'buildings'>, g: GodId): numb
  * Ferveur : puissance des bénédictions du dieu, de ×0.4 (maudit) à ×1.6 (élu).
  * La jauge de relation devient ainsi le vrai levier du panthéon.
  */
-export function ferveur(s: Pick<GameState, 'gods'>, g: GodId): number {
-  return multRelation(s.gods[g].relation)
+export function ferveur(s: Pick<GameState, 'gods' | 'heros'>, g: GodId): number {
+  return multRelation(relationEffective(s, g))
 }
 export function fmtDuree(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000))
@@ -414,14 +523,24 @@ function choisirFronts(threat: number): typeof SECTEURS {
   return [SECTEURS[0], ...autres.slice(0, n - 1)]
 }
 
-/** prépare l'alerte : vague révélée + récompense de défense calculée */
+/** prépare l'alerte : vague, fronts visés et récompense de défense */
 function armerAlerte(s: GameState): void {
   if (!s.incomingWave) s.incomingWave = genererVague(s.threat)
+  // les fronts sont tirés dès l'alerte : c'est ce qu'Ulysse est capable de lire
+  if (!s.incomingFronts) s.incomingFronts = choisirFronts(s.threat).map((f) => f.id)
   if (!s.defRecompense) {
     const puissance = budgetVague(s.incomingWave)
     s.defRecompense = { bronze: Math.round(12 + puissance * 0.4), faveur: 8, bonus: false }
   }
   s.warned = true
+}
+
+/** secteurs réellement assaillis par la vague annoncée */
+function frontsAnnonces(s: GameState): typeof SECTEURS {
+  const trouves = (s.incomingFronts ?? [])
+    .map((id) => SECTEURS.find((x) => x.id === id))
+    .filter((x): x is (typeof SECTEURS)[number] => !!x)
+  return trouves.length > 0 ? trouves : choisirFronts(s.threat)
 }
 
 function snap(s: GameState): GameSnap {
@@ -513,6 +632,13 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     saison: 'printemps',
     meteo: 'clair',
     meteoJusqua: now + DUREE_METEO_MS,
+    heros: Object.fromEntries(HERO_IDS.map((h) => [h, etatHeroInitial()])) as Record<HeroId, HeroState>,
+    rappelHerosAt: 0,
+    incomingFronts: null,
+    siegeGratuit: false,
+    sauverTroupes: 0,
+    arcHeros: null,
+    arcIssue: null,
     missionsNotifiees: [],
     battle: null,
     expedition: null,
@@ -535,6 +661,10 @@ type ActionsOnly = {
   echanger: unknown
   sacrifier: unknown
   benir: unknown
+  recruterHeros: unknown
+  capaciteHeros: unknown
+  choisirArc: unknown
+  fermerArc: unknown
   choisirEvenement: unknown
   fermerEvenement: unknown
   lancerMaintenant: unknown
@@ -591,6 +721,11 @@ const CHAMPS_SAUVES = [
   'saison',
   'meteo',
   'meteoJusqua',
+  'heros',
+  'rappelHerosAt',
+  'incomingFronts',
+  'siegeGratuit',
+  'sauverTroupes',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -619,6 +754,15 @@ function tournerCiel(s: GameState, now: number): void {
     s.meteo = tirerMeteo(saison)
     s.meteoJusqua = now + DUREE_METEO_MS
     const def = SAISONS[saison]
+    // Énée traîne toujours une colonne de réfugiés derrière lui
+    const parSaison = cumulerPassifs(s.heros).popParSaison
+    if (parSaison > 0) {
+      const gagnes = Math.min(parSaison, Math.max(0, popCap(s) - s.pop))
+      if (gagnes > 0) {
+        s.pop += gagnes
+        pushToast(s, '👥', `${gagnes} réfugié${gagnes > 1 ? 's' : ''} suivent Énée jusqu’à vos portes.`)
+      }
+    }
     pushToast(s, def.emoji, `${def.nom} — ${def.desc}`)
     pushReport(s, def.emoji, `${def.nom} sur la Troade`, [
       def.desc,
@@ -634,6 +778,79 @@ function tournerCiel(s: GameState, now: number): void {
     s.meteo = tirerMeteo(saison)
     s.meteoJusqua = now + DUREE_METEO_MS
     if (s.meteo !== avant) pushToast(s, METEOS[s.meteo].emoji, `${METEOS[s.meteo].nom} — ${METEOS[s.meteo].desc}`)
+  }
+}
+
+// ── Héros : expérience, entretien, arcs ──────────────────────────────────────
+
+/** distribue de l'expérience aux héros présents et fait monter ceux qui le peuvent */
+function gagnerXp(s: GameState, n: number): void {
+  for (const h of HERO_IDS) {
+    const e = s.heros[h]
+    if (!e?.recrute || e.mort || !peutMonter(e)) continue
+    e.xp += n
+    let seuil = xpRequise(HEROS[h], e.niveau)
+    while (e.xp >= seuil && peutMonter(e)) {
+      e.xp -= seuil
+      e.niveau++
+      pushToast(s, HEROS[h].emoji, `${HEROS[h].nom} passe au niveau ${e.niveau} — sa légende grandit.`)
+      seuil = xpRequise(HEROS[h], e.niveau)
+    }
+    if (!peutMonter(e)) e.xp = 0
+  }
+}
+
+/** ouvre le prochain nœud d'arc mûr, s'il n'y a rien d'autre à l'écran */
+function ouvrirArcMur(s: GameState): void {
+  if (s.arcHeros || s.activeEvent || s.battle || s.expedition) return
+  for (const h of HERO_IDS) {
+    const n = noeudMur(HEROS[h], s.heros[h])
+    if (n) {
+      s.arcHeros = { heros: h, noeud: n.id }
+      s.arcIssue = null
+      return
+    }
+  }
+}
+
+/**
+ * Un héros mange, exige des honneurs — et s'en va si on l'ignore. Trois rappels
+ * sans réponse et il reprend la route : c'est ce qui empêche d'en collectionner
+ * huit sans y penser.
+ */
+function entretenirHeros(s: GameState, now: number, dtJeu: number): void {
+  const ent = entretienTotal(s.heros)
+  if (ent.grain <= 0 && ent.faveur <= 0) {
+    s.rappelHerosAt = 0
+    return
+  }
+  const dG = (ent.grain / 60) * dtJeu
+  const dF = (ent.faveur / 60) * dtJeu
+  if (s.resources.grain >= dG && s.faveur >= dF) {
+    s.resources.grain -= dG
+    s.faveur -= dF
+    s.rappelHerosAt = 0
+    return
+  }
+  if (s.rappelHerosAt === 0) {
+    s.rappelHerosAt = now + 60_000
+    pushToast(s, '🍖', 'Vos héros réclament leur dû : greniers vides et autels muets.')
+    return
+  }
+  if (now < s.rappelHerosAt) return
+  s.rappelHerosAt = now + 60_000
+  for (const h of HERO_IDS) {
+    const e = s.heros[h]
+    if (!e?.recrute || e.mort) continue
+    e.impayes++
+    if (e.impayes < 3) continue
+    e.recrute = false
+    e.impayes = 0
+    pushToast(s, HEROS[h].emoji, `${HEROS[h].nom} plie bagage — on n’honore pas un héros de promesses.`)
+    pushReport(s, HEROS[h].emoji, `${HEROS[h].nom} s’en va`, [
+      'Trois fois il a réclamé son dû, trois fois la table est restée vide.',
+      'Il reprend la route sans un mot. Rien n’interdit de le rappeler — en payant, cette fois.',
+    ])
   }
 }
 
@@ -724,9 +941,24 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
     ])
     s.battleReport = r
   }
+  // les héros présents apprennent de chaque assaut — même perdu, mais moins
+  gagnerXp(s, victoire ? XP_ASSAUT_REPOUSSE : Math.round(XP_ASSAUT_REPOUSSE * 0.4))
+  // Achille ne supporte pas d'avoir regardé la bataille sans y entrer
+  const ach = s.heros.achille
+  if (ach?.recrute && !ach.mort) {
+    ach.inactif++
+    if (ach.inactif >= 2) {
+      ach.inactif = 0
+      const malus = HEROS.achille.passif.maloraleSiInactif ?? 8
+      s.moraleMods.push({ id: uid('m'), label: 'Achille sous sa tente', delta: -malus, expiresAt: now + 8 * 60_000 })
+      pushToast(s, '⚔️', 'Deux assauts sans lâcher Achille : la troupe murmure, le moral tombe.')
+    }
+  }
+
   s.battle = null
   s.warned = false
   s.incomingWave = null
+  s.incomingFronts = null
   s.defRecompense = null
   s.nextAttackAt = now + ASSAUT_MIN_MS + Math.random() * (ASSAUT_MAX_MS - ASSAUT_MIN_MS)
 }
@@ -738,30 +970,39 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   const b = exp.battle
   const lignes: string[] = []
 
-  // survivants (les fuyards hp>0 rentrent au village)
+  // survivants (les fuyards hp>0 rentrent au village) — et ceux qu'Énée arrache
+  // à la déroute : sa capacité ne joue qu'une fois, et seulement sur une défaite
+  const partEnee = !victoire && s.sauverTroupes > 0 ? s.sauverTroupes : 0
   let envoyesTotal = 0
   let mortsTotal = 0
+  let sauvesParEnee = 0
   const pertesTxt: string[] = []
   for (const u of UNIT_IDS) {
     const envoyes = exp.envoyes[u] ?? 0
     if (envoyes === 0) continue
     envoyesTotal += envoyes
     const morts = b.fighters.filter((f) => f.camp === 'attaque' && f.type === u && f.etat === 'mort' && f.hp <= 0).length
-    mortsTotal += morts
-    s.army[u] += Math.max(0, envoyes - morts)
-    if (morts > 0) pertesTxt.push(`${morts} ${UNITS[u].nom.toLowerCase()}${morts > 1 ? 's' : ''}`)
+    const debout = Math.max(0, envoyes - morts)
+    const rentrent = Math.max(debout, partEnee > 0 ? Math.round(envoyes * partEnee) : 0)
+    sauvesParEnee += rentrent - debout
+    const perdus = envoyes - rentrent
+    mortsTotal += perdus
+    s.army[u] += rentrent
+    if (perdus > 0) pertesTxt.push(`${perdus} ${UNITS[u].nom.toLowerCase()}${perdus > 1 ? 's' : ''}`)
   }
+  if (partEnee > 0) s.sauverTroupes = 0
 
   const deja = s.expeditions[v.id]?.etoiles ?? 0
   if (victoire) {
     const etoiles = etoilesPour(mortsTotal, envoyesTotal)
-    const mult = deja > 0 ? BUTIN_REPETE : 1
+    const mult = (deja > 0 ? BUTIN_REPETE : 1) * (1 + bonusHeros(s).butinPct)
     const butinTxt: string[] = []
     for (const [r, n] of Object.entries(v.butin) as [ResourceId, number][]) {
       const gain = Math.round(n * mult)
       s.resources[r] = clampRes(s, r, s.resources[r] + gain)
       butinTxt.push(`+${gain} ${RES[r].emoji}`)
     }
+    gagnerXp(s, XP_EXPEDITION + etoiles * XP_PAR_ETOILE)
     s.gods.ares.relation = Math.min(100, s.gods.ares.relation + 4)
     s.moraleMods.push({ id: uid('m'), label: 'Raid victorieux', delta: 6, expiresAt: now + 8 * 60_000 })
     s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now }
@@ -776,9 +1017,13 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   } else {
     s.expeditions[v.id] = { etoiles: deja, dernierRaid: now }
     s.moraleMods.push({ id: uid('m'), label: 'Raid repoussé', delta: -6, expiresAt: now + 8 * 60_000 })
+    gagnerXp(s, Math.round(XP_EXPEDITION * 0.4))
     lignes.push(
       `L’assaut sur ${v.nom} a échoué.`,
       pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.` : 'Vos troupes ont battu en retraite à temps.',
+      ...(sauvesParEnee > 0
+        ? [`🔥 Énée couvre la retraite : ${sauvesParEnee} homme${sauvesParEnee > 1 ? 's' : ''} qu’on croyait perdu${sauvesParEnee > 1 ? 's' : ''} rentre${sauvesParEnee > 1 ? 'nt' : ''} au village.`]
+        : []),
       'Les survivants rentrent la tête basse. Ambiance −6.',
     )
     exp.result = { victoire: false, etoiles: 0, lignes }
@@ -808,7 +1053,7 @@ function simulerHorsLigne(s: GameState, now: number): void {
     const b = s.buildings[bId]
     if (b.targetLevel !== undefined && b.busyUntil !== undefined && b.busyUntil <= now) {
       b.level = b.targetLevel
-      if (bId === 'remparts') s.wallHp = WALL_HP[b.level]
+      if (bId === 'remparts') s.wallHp = murMax(s)
       lignes.push(`🏗️ ${BUILDINGS[bId].nom} achevé(e) au niveau ${b.level}`)
       delete b.targetLevel
       delete b.busyUntil
@@ -855,6 +1100,7 @@ function simulerHorsLigne(s: GameState, now: number): void {
       s.moraleMods.push({ id: uid('m'), label: 'Pillé pendant la nuit', delta: -10, expiresAt: now + 8 * 60_000 })
     }
     s.incomingWave = null
+    s.incomingFronts = null
     s.warned = false
     s.defRecompense = null
     s.nextAttackAt += ASSAUT_MIN_MS + Math.random() * (ASSAUT_MAX_MS - ASSAUT_MIN_MS)
@@ -890,7 +1136,14 @@ export const useGame = create<GameState>()(
               toasts: [],
               selected: null,
               panel: null,
+              arcHeros: null,
+              arcIssue: null,
             })
+            // sauvegardes antérieures aux héros : on complète les champs manquants
+            // sans jamais écraser ce qui a déjà été joué
+            s.heros = Object.fromEntries(
+              HERO_IDS.map((h) => [h, { ...etatHeroInitial(), ...(s.heros?.[h] ?? {}) }]),
+            ) as Record<HeroId, HeroState>
             simulerHorsLigne(s, now)
             s.lastSeen = now
             // ne jamais reprendre avec une attaque « dans le passé »
@@ -933,6 +1186,13 @@ export const useGame = create<GameState>()(
           if (s.droughtUntil > now) s.droughtUntil -= avance
           if (s.aresBoostUntil > now) s.aresBoostUntil -= avance
           s.meteoJusqua -= avance
+          if (s.rappelHerosAt > now) s.rappelHerosAt -= avance
+          for (const h of HERO_IDS) {
+            const e = s.heros[h]
+            if (!e) continue
+            if (e.cooldownUntil > now) e.cooldownUntil -= avance
+            if (e.boudeJusqua > now) e.boudeJusqua -= avance
+          }
           for (const bId of BUILDING_IDS) {
             const b = s.buildings[bId]
             if (b.busyUntil !== undefined) b.busyUntil -= avance
@@ -960,6 +1220,8 @@ export const useGame = create<GameState>()(
 
         // le calendrier tourne : printemps → été → automne → hiver, et le ciel avec
         tournerCiel(s, now)
+        // les héros mangent et exigent des honneurs, même en temps de paix
+        if (!MODE_TEST) entretenirHeros(s, now, dtJeu)
 
         // mode test : coffres pleins en permanence
         if (MODE_TEST) {
@@ -1005,7 +1267,7 @@ export const useGame = create<GameState>()(
           const b = s.buildings[bId]
           if (b.targetLevel !== undefined && b.busyUntil !== undefined && b.busyUntil <= now) {
             b.level = b.targetLevel
-            if (bId === 'remparts') s.wallHp = WALL_HP[b.level]
+            if (bId === 'remparts') s.wallHp = murMax(s)
             pushToast(s, BUILDINGS[bId].emoji, `${BUILDINGS[bId].nom} : niveau ${b.level} achevé !`)
             delete b.targetLevel
             delete b.busyUntil
@@ -1068,9 +1330,11 @@ export const useGame = create<GameState>()(
 
         // ── attaques sur le village ──
         if (!s.battle) {
-          // par la brume, les éclaireurs ne voient venir la colonne que trop tard
+          // par la brume, les éclaireurs voient trop tard ; Ulysse et Cassandre
+          // rendent au contraire de précieuses minutes
           const fenetre =
-            (s.buildings.remparts.level >= 2 ? ALERTE_LONGUE_MS : ALERTE_MS) * METEOS[s.meteo].alerte
+            (s.buildings.remparts.level >= 2 ? ALERTE_LONGUE_MS : ALERTE_MS) * METEOS[s.meteo].alerte +
+            bonusHeros(s).alerteBonusMs
           if (!s.warned && now >= s.nextAttackAt - fenetre) {
             armerAlerte(s)
             pushToast(s, '🐎', `Éclaireurs : ${tailleVague(s.incomingWave!)} assaillants approchent par l’est !`)
@@ -1081,8 +1345,8 @@ export const useGame = create<GameState>()(
               s.nextAttackAt = now + 45_000
             } else {
               armerAlerte(s)
-              // la vague se scinde entre plusieurs fronts, tirés au sort
-              const fronts = choisirFronts(s.threat)
+              // la vague se scinde entre les fronts tirés dès l'alerte
+              const bh = bonusHeros(s)
               s.battle = creerBataille({
                 attaquants: s.incomingWave!,
                 defenseurs: s.army,
@@ -1091,8 +1355,10 @@ export const useGame = create<GameState>()(
                 geo: GEO_VILLAGE,
                 campJoueur: 'defense',
                 tours: s.tours,
-                fronts,
+                fronts: frontsAnnonces(s),
                 wallHpTotal: s.wallHp,
+                bonusAtkJoueur: 1 + bh.degatsMeleePct,
+                reducJoueur: 1 - bh.gardeDuCorpsPct * 0.5,
               })
               if (s.buildings.ferme.level > 0) {
                 s.resources.grain = Math.max(0, s.resources.grain * 0.97) // champs piétinés
@@ -1118,6 +1384,7 @@ export const useGame = create<GameState>()(
         if (
           !s.activeEvent &&
           !s.eventOutcome &&
+          !s.arcHeros &&
           !s.battle &&
           !s.expedition &&
           s.tutorialDone &&
@@ -1144,6 +1411,9 @@ export const useGame = create<GameState>()(
             s.lastEventAt = now
           }
         }
+
+        // ── un héros attend votre parole (jamais pendant un dilemme ni un assaut) ──
+        if (s.tutorialDone) ouvrirArcMur(s)
 
         // ── missions prêtes à réclamer (toast unique) ──
         for (const m of missionsActives(s.missionsReclamees)) {
@@ -1231,7 +1501,7 @@ export const useGame = create<GameState>()(
     reparerRemparts: () => {
       set((s) => {
         if (s.battle) return
-        const max = WALL_HP[s.buildings.remparts.level]
+        const max = murMax(s)
         const manque = max - s.wallHp
         if (manque <= 0) return
         const cout = Math.ceil(manque / 8)
@@ -1355,7 +1625,7 @@ export const useGame = create<GameState>()(
           pushToast(s, dieu.emoji, `${dieu.benediction.nom} ne peut être invoquée qu’en bataille.`)
           return
         }
-        if (g === 'poseidon' && WALL_HP[s.buildings.remparts.level] <= 0) {
+        if (g === 'poseidon' && murMax(s) <= 0) {
           pushToast(s, '🔱', 'Aucun rempart à consolider — bâtissez d’abord une enceinte.')
           return
         }
@@ -1389,7 +1659,7 @@ export const useGame = create<GameState>()(
             break
           }
           case 'poseidon': {
-            const max = WALL_HP[s.buildings.remparts.level]
+            const max = murMax(s)
             const part = 0.45 * force
             s.wallHp = Math.min(max, Math.round(s.wallHp + max * part))
             // en pleine bataille, les pans effondrés se relèvent aussi
@@ -1437,6 +1707,218 @@ export const useGame = create<GameState>()(
             break
           }
         }
+      })
+    },
+
+    recruterHeros: (h) => {
+      set((s) => {
+        const def = HEROS[h]
+        const e = s.heros[h]
+        if (!e || e.recrute || e.mort) return
+        if (!conditionsHeros(s, h).every((c) => c.ok)) {
+          pushToast(s, def.emoji, `${def.nom} ne se met pas au service de n’importe quelle bourgade.`)
+          return
+        }
+        if (!payer(s, def.coutRecrutement)) {
+          pushToast(s, '❌', 'De quoi faire les présents d’usage vous manque encore.')
+          return
+        }
+        e.recrute = true
+        e.impayes = 0
+        e.inactif = 0
+        const ent = [
+          def.entretien.grain ? `${def.entretien.grain} 🌾/min` : '',
+          def.entretien.faveur ? `${def.entretien.faveur} ✨/min` : '',
+        ]
+          .filter(Boolean)
+          .join(' + ')
+        pushToast(s, def.emoji, `${def.nom} entre à votre service.`)
+        pushReport(s, def.emoji, `${def.nom} rejoint la cité`, [
+          def.desc,
+          `Passif : ${def.passif.desc}`,
+          `${def.capacite.emoji} ${def.capacite.nom} — ${def.capacite.desc}`,
+          `Entretien : ${ent || 'aucun'}. Un héros qu’on n’honore pas s’en va.`,
+        ])
+      })
+      get().save()
+    },
+
+    capaciteHeros: (h) => {
+      set((s) => {
+        const def = HEROS[h]
+        const e = s.heros[h]
+        const now = Date.now()
+        const bataille = s.battle ?? (s.expedition && !s.expedition.result ? s.expedition.battle : null)
+        if (!e?.recrute || e.mort) return
+        if (now < e.boudeJusqua) {
+          pushToast(s, def.emoji, `${def.nom} reste sous sa tente : il vous garde rancune.`)
+          return
+        }
+        if (now < e.cooldownUntil) return
+        if (def.capacite.batailleUniquement && !bataille) {
+          pushToast(s, def.emoji, `${def.capacite.nom} ne se joue qu’au cœur de la mêlée.`)
+          return
+        }
+        if (s.faveur < def.capacite.cout) {
+          pushToast(s, '❌', `Il faut ${def.capacite.cout} ✨ pour appeler ${def.nom}.`)
+          return
+        }
+        // la puissance d'une capacité suit le niveau du héros : ×1 puis ×1.8
+        const force = forceNiveau(e.niveau)
+        const eff = def.capacite.effet
+        let message: string | null = null
+
+        switch (eff.type) {
+          case 'bouclier-secteur': {
+            if (!bataille) return
+            const nom = abriterSecteur(bataille, now, eff.duree * force, eff.absorbe, h)
+            message = `${def.nom} se plante devant ${nom ?? 'la brèche'} : ${Math.round(eff.absorbe * 100)} % des coups pour lui, ${Math.round((eff.duree * force) / 1000)} s.`
+            break
+          }
+          case 'fureur': {
+            if (!bataille) return
+            const n = fureurHeros(bataille, now, eff.degats * force, h)
+            e.inactif = 0
+            message = `Fureur du Pélide : ${n} ennemis fauchés d’un seul élan.`
+            break
+          }
+          case 'boucher-breche': {
+            if (!bataille) return
+            const nom = boucherBreche(bataille, now, eff.duree * force, h)
+            message = `${def.nom} comble ${nom ?? 'la brèche'} de son seul corps — infranchissable ${Math.round((eff.duree * force) / 1000)} s.`
+            break
+          }
+          case 'tuer-chef': {
+            if (!bataille) return
+            const cible = abattreChef(bataille, now, h)
+            if (!cible) {
+              pushToast(s, def.emoji, 'Plus personne en face qui vaille sa lance.')
+              return
+            }
+            message = `Aristie de ${def.nom} : le plus fort d’en face tombe sur place.`
+            break
+          }
+          case 'siege-gratuit': {
+            if (s.siegeGratuit) {
+              pushToast(s, def.emoji, 'La ruse est déjà prête — reste à s’en servir.')
+              return
+            }
+            s.siegeGratuit = true
+            message = 'L’offrande de bois est prête : votre prochaine expédition entrera sans coup de bélier.'
+            break
+          }
+          case 'sauver-troupes': {
+            if (s.sauverTroupes > 0) return
+            s.sauverTroupes = eff.part
+            message = `${def.nom} veille sur la retraite : en cas de défaite, ${Math.round(eff.part * 100)} % de vos troupes rentreront.`
+            break
+          }
+          case 'recrues': {
+            const n = eff.n
+            s.army[eff.unite] += n
+            message = `Ordre du roi : ${n} ${UNITS[eff.unite].nom.toLowerCase()}s enrôlés et armés sur-le-champ.`
+            break
+          }
+          case 'annuler-vague': {
+            if (!s.warned || !s.incomingWave || s.battle) {
+              pushToast(s, def.emoji, 'Aucune vague annoncée : il n’y a rien à conjurer.')
+              return
+            }
+            s.incomingWave = null
+            s.incomingFronts = null
+            s.defRecompense = null
+            s.warned = false
+            s.nextAttackAt = now + ASSAUT_MIN_MS + Math.random() * (ASSAUT_MAX_MS - ASSAUT_MIN_MS)
+            message = 'Cassandre décrit l’assaut avec tant de précision qu’il n’aura pas lieu.'
+            break
+          }
+        }
+
+        s.faveur -= def.capacite.cout
+        e.cooldownUntil = now + def.capacite.cooldown / (MODE_TEST ? 8 : 1)
+        if (message) pushToast(s, def.capacite.emoji, message)
+      })
+    },
+
+    choisirArc: (i) => {
+      set((s) => {
+        if (!s.arcHeros || s.arcIssue) return
+        const h = s.arcHeros.heros
+        const def = HEROS[h]
+        const noeud = def.arc.find((n) => n.id === s.arcHeros!.noeud)
+        const e = s.heros[h]
+        if (!noeud || !e) return
+        const opt = noeud.options[i]
+        if (!opt) return
+        if (opt.cout && !payer(s, opt.cout)) {
+          pushToast(s, '❌', 'Ressources insuffisantes pour ce parti-là.')
+          return
+        }
+        const now = Date.now()
+        const f = opt.effets
+        const lignes: string[] = [opt.issue]
+
+        // l'ordre compte : un plafond posé maintenant borne le gain de niveau
+        if (f.plafond !== undefined) {
+          e.plafond = Math.min(e.plafond, f.plafond)
+          lignes.push(`⛔ ${def.nom} ne dépassera plus le niveau ${e.plafond}.`)
+        }
+        if (f.niveau) {
+          const avant = e.niveau
+          e.niveau = Math.min(Math.min(NIVEAU_MAX, e.plafond), e.niveau + f.niveau)
+          e.xp = 0
+          if (e.niveau > avant) lignes.push(`⭐ ${def.nom} passe au niveau ${e.niveau}.`)
+        }
+        if (f.morale) {
+          s.moraleMods.push({
+            id: uid('m'),
+            label: f.morale.label,
+            delta: f.morale.delta,
+            expiresAt: f.morale.durMs ? now + f.morale.durMs : null,
+          })
+          lignes.push(`🎭 Ambiance ${f.morale.delta > 0 ? '+' : ''}${f.morale.delta} — ${f.morale.label}.`)
+        }
+        for (const r of f.relation ?? []) {
+          s.gods[r.dieu].relation = Math.max(-100, Math.min(100, s.gods[r.dieu].relation + r.delta))
+          lignes.push(`${GODS[r.dieu].emoji} ${GODS[r.dieu].nom} ${r.delta > 0 ? '+' : ''}${r.delta}.`)
+        }
+        if (f.res) {
+          const parts: string[] = []
+          for (const [r, n] of Object.entries(f.res) as [ResourceId, number][]) {
+            s.resources[r] = clampRes(s, r, s.resources[r] + n)
+            parts.push(`${n > 0 ? '+' : ''}${n} ${RES[r].emoji}`)
+          }
+          if (parts.length) lignes.push(parts.join(', '))
+        }
+        if (f.faveur) {
+          s.faveur = Math.max(0, Math.min(FAVEUR_MAX, s.faveur + f.faveur))
+          lignes.push(`✨ Faveur ${f.faveur > 0 ? '+' : ''}${f.faveur}.`)
+        }
+        if (f.pop) {
+          s.pop = Math.max(0, s.pop + f.pop)
+          lignes.push(`👥 Habitants ${f.pop > 0 ? '+' : ''}${f.pop}.`)
+        }
+        if (f.boude) {
+          e.boudeJusqua = now + f.boude
+          lignes.push(`😤 ${def.nom} boude : sa capacité est indisponible ${Math.round(f.boude / 60_000)} min.`)
+        }
+        if (f.mort) {
+          e.mort = true
+          lignes.push(`💀 ${def.nom} est mort. Son nom reste ; son bras, non.`)
+        }
+
+        e.arc++
+        e.choix.push(`${noeud.id}:${opt.label}`)
+        s.arcIssue = lignes
+        pushReport(s, noeud.emoji, `${def.nom} — ${noeud.titre}`, lignes)
+      })
+      get().save()
+    },
+
+    fermerArc: () => {
+      set((s) => {
+        s.arcHeros = null
+        s.arcIssue = null
       })
     },
 
@@ -1499,10 +1981,12 @@ export const useGame = create<GameState>()(
           enemy: u,
           count: troupes[u],
         }))
+        const bh = bonusHeros(s)
+        const ruse = s.siegeGratuit
         s.expedition = {
           villageId,
           envoyes: { ...troupes },
-          wallHp: WALL_HP[v.mur],
+          wallHp: ruse ? 0 : WALL_HP[v.mur],
           battle: creerBataille({
             attaquants,
             defenseurs: v.garnison,
@@ -1510,8 +1994,14 @@ export const useGame = create<GameState>()(
             now,
             geo: GEO_EXPEDITION,
             campJoueur: 'attaque',
+            sansSiege: ruse,
+            bonusAtkJoueur: 1 + bh.degatsMeleePct + bh.degatsExpeditionPct,
           }),
           result: null,
+        }
+        if (ruse) {
+          s.siegeGratuit = false
+          pushToast(s, '🐎', 'La ruse d’Ulysse opère : vos hommes sont déjà dans la place.')
         }
         s.panel = null
         pushToast(s, '🏴‍☠️', `Vos troupes marchent sur ${v.nom} !`)
@@ -1540,6 +2030,7 @@ export const useGame = create<GameState>()(
         s.nextAttackAt = Date.now() + 3000
         s.warned = false
         s.incomingWave = null
+        s.incomingFronts = null
         s.defRecompense = null
         pushToast(s, '🧪', 'Attaque test dans 3 secondes…')
       })

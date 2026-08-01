@@ -34,6 +34,29 @@ export interface HeroState {
   cooldownUntil: number
   /** il boude : capacité indisponible tant que ce n'est pas résolu */
   boudeJusqua: number
+  /** niveau maximum auquel un choix d'arc l'a condamné (5 = aucun plafond) */
+  plafond: number
+  /** rappels d'entretien restés sans réponse — au troisième, il s'en va */
+  impayes: number
+  /** assauts traversés sans qu'on l'ait lâché sur l'ennemi (Achille) */
+  inactif: number
+}
+
+/** état d'un héros au premier jour : connu de nom, à votre service en rien */
+export function etatHeroInitial(): HeroState {
+  return {
+    recrute: false,
+    niveau: 1,
+    xp: 0,
+    arc: 0,
+    choix: [],
+    mort: false,
+    cooldownUntil: 0,
+    boudeJusqua: 0,
+    plafond: 5,
+    impayes: 0,
+    inactif: 0,
+  }
 }
 
 export interface CapaciteHero {
@@ -65,7 +88,8 @@ export interface PassifHero {
   degatsMeleePct?: number
   degatsExpeditionPct?: number
   butinPct?: number
-  relationTousPct?: number
+  /** points de relation retranchés à CHAQUE Olympien, tant qu'il est là */
+  relationTous?: number
   /** révèle la composition ET les fronts de la prochaine vague */
   revelerVague?: boolean
   /** fenêtre d'alerte allongée (ms) */
@@ -340,7 +364,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
     entretien: { grain: 1.2 },
     xpParNiveau: [80, 200, 380, 640],
     passif: {
-      desc: '+40 % aux dégâts de mêlée de toute votre armée. Mais s’il reste deux assauts sans combattre, le moral chute.',
+      desc: '+40 % aux dégâts de toute votre armée. Mais s’il traverse deux assauts sans qu’on lâche sa fureur, le moral tombe de 8.',
       degatsMeleePct: 0.4,
       maloraleSiInactif: 8,
     },
@@ -444,7 +468,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
     entretien: { grain: 0.8 },
     xpParNiveau: [110, 250, 470, 820],
     passif: {
-      desc: 'Ajax encaisse 50 % des dégâts destinés aux combattants qui l’entourent.',
+      desc: 'Ajax se met en travers : vos combattants encaissent 25 % de dégâts en moins tant qu’il tient le rang.',
       gardeDuCorpsPct: 0.5,
     },
     capacite: {
@@ -524,9 +548,9 @@ export const HEROS: Record<HeroId, HeroDef> = {
     entretien: { grain: 1.5, faveur: 0.15 },
     xpParNiveau: [120, 280, 520, 900],
     passif: {
-      desc: '+20 % de butin sur toutes vos expéditions. Mais son orgueil vous coûte la faveur de tous les Olympiens.',
+      desc: '+20 % de butin sur toutes vos expéditions. Mais son orgueil vous coûte 10 points de relation avec chaque Olympien.',
       butinPct: 0.2,
-      relationTousPct: -0.1,
+      relationTous: -10,
     },
     capacite: {
       nom: 'Ordre du roi',
@@ -822,10 +846,12 @@ export const XP_ASSAUT_REPOUSSE = 40
 export const XP_EXPEDITION = 55
 export const XP_PAR_ETOILE = 15
 
+/** niveau maximum atteignable par un héros (5, ou moins si un choix l'a brisé) */
+export const NIVEAU_MAX = 5
+
 /** un héros progresse-t-il encore ? */
-export function peutMonter(etat: HeroState, plafond?: number): boolean {
-  const max = Math.min(5, plafond ?? 5)
-  return !etat.mort && etat.niveau < max
+export function peutMonter(etat: HeroState): boolean {
+  return !etat.mort && etat.niveau < Math.min(NIVEAU_MAX, etat.plafond)
 }
 
 /** xp requise pour le prochain niveau (Infinity si au maximum) */
@@ -836,4 +862,73 @@ export function xpRequise(def: HeroDef, niveau: number): number {
 /** puissance d'une capacité selon le niveau : ×1 au niveau 1, ×1.8 au niveau 5 */
 export function forceNiveau(niveau: number): number {
   return 1 + (niveau - 1) * 0.2
+}
+
+/** prochain nœud d'arc à déclencher, s'il est mûr — sinon null */
+export function noeudMur(def: HeroDef, etat: HeroState): NoeudArc | null {
+  if (etat.mort || !etat.recrute) return null
+  const n = def.arc[etat.arc]
+  if (!n) return null
+  return etat.niveau >= n.niveauRequis ? n : null
+}
+
+/** somme des passifs de tous les héros à votre service, appliquée en continu */
+export interface BonusHeros {
+  wallHpPct: number
+  degatsMeleePct: number
+  degatsExpeditionPct: number
+  butinPct: number
+  relationTous: number
+  revelerVague: boolean
+  alerteBonusMs: number
+  revelerDilemmes: boolean
+  popParSaison: number
+  gardeDuCorpsPct: number
+}
+
+export const BONUS_NEUTRE: BonusHeros = {
+  wallHpPct: 0,
+  degatsMeleePct: 0,
+  degatsExpeditionPct: 0,
+  butinPct: 0,
+  relationTous: 0,
+  revelerVague: false,
+  alerteBonusMs: 0,
+  revelerDilemmes: false,
+  popParSaison: 0,
+  gardeDuCorpsPct: 0,
+}
+
+/** agrège les passifs des héros vivants et présents */
+export function cumulerPassifs(etats: Record<HeroId, HeroState>): BonusHeros {
+  const b: BonusHeros = { ...BONUS_NEUTRE }
+  for (const id of HERO_IDS) {
+    const e = etats[id]
+    if (!e || !e.recrute || e.mort) continue
+    const p = HEROS[id].passif
+    b.wallHpPct += p.wallHpPct ?? 0
+    b.degatsMeleePct += p.degatsMeleePct ?? 0
+    b.degatsExpeditionPct += p.degatsExpeditionPct ?? 0
+    b.butinPct += p.butinPct ?? 0
+    b.relationTous += p.relationTous ?? 0
+    b.alerteBonusMs += p.alerteBonusMs ?? 0
+    b.popParSaison += p.popParSaison ?? 0
+    b.gardeDuCorpsPct = Math.max(b.gardeDuCorpsPct, p.gardeDuCorpsPct ?? 0)
+    b.revelerVague ||= !!p.revelerVague
+    b.revelerDilemmes ||= !!p.revelerDilemmes
+  }
+  return b
+}
+
+/** entretien total dû chaque minute par la maisonnée héroïque */
+export function entretienTotal(etats: Record<HeroId, HeroState>): { grain: number; faveur: number } {
+  let grain = 0
+  let faveur = 0
+  for (const id of HERO_IDS) {
+    const e = etats[id]
+    if (!e || !e.recrute || e.mort) continue
+    grain += HEROS[id].entretien.grain ?? 0
+    faveur += HEROS[id].entretien.faveur ?? 0
+  }
+  return { grain, faveur }
 }

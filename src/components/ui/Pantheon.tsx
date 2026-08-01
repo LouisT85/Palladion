@@ -1,5 +1,5 @@
-import { GODS, GOD_IDS, WALL_HP, multRelation, nomFerveur, palierFerveur } from '../../game/data'
-import { coutBenediction, useGame } from '../../game/store'
+import { GODS, GOD_IDS, multRelation, nomFerveur, palierFerveur } from '../../game/data'
+import { coutBenediction, murMax, relationEffective, useGame } from '../../game/store'
 import type { GodId } from '../../game/types'
 import { ApercuDivin } from '../map/EffetsDivins'
 
@@ -114,7 +114,7 @@ export function Pantheon() {
   const s = useGame()
   const templeLevel = s.buildings.temple.level
   const now = s.lastSeen
-  const murMax = WALL_HP[s.buildings.remparts.level]
+  const mur = murMax(s)
 
   return (
     <div className="voile" onClick={() => s.openPanel(null)}>
@@ -135,8 +135,10 @@ export function Pantheon() {
           const verrouille = templeLevel < dieu.temple
           const cout = coutBenediction(s, g)
           const cd = Math.max(0, etat.cooldownUntil - now)
-          const force = multRelation(etat.relation)
-          const couleur = couleurFerveur(etat.relation)
+          // c'est la relation EFFECTIVE qui compte : l'orgueil d'Agamemnon la rogne
+          const rel = relationEffective(s, g)
+          const force = multRelation(rel)
+          const couleur = couleurFerveur(rel)
           return (
             <div key={g} className={`dieu${verrouille ? ' verrouille' : ''}`}>
               <div className="embleme">
@@ -165,17 +167,20 @@ export function Pantheon() {
                       padding: '1px 7px',
                     }}
                   >
-                    {nomFerveur(etat.relation)}
+                    {nomFerveur(rel)}
                   </span>
                   <span style={{ fontSize: 11.5, color: '#93a7b4', fontVariantNumeric: 'tabular-nums' }}>
                     relation {etat.relation > 0 ? '+' : etat.relation < 0 ? '−' : ''}
                     {Math.abs(Math.round(etat.relation))}
+                    {Math.round(rel) !== Math.round(etat.relation) && (
+                      <b style={{ color: '#d98a4e' }}> → {Math.round(rel)} (orgueil du roi)</b>
+                    )}
                   </span>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: couleur, marginLeft: 'auto' }}>
                     bénédiction ×{fmtMult(force)}
                   </span>
                 </div>
-                <JaugeRelation relation={etat.relation} />
+                <JaugeRelation relation={rel} />
                 {verrouille ? (
                   <div style={{ fontSize: 12, color: '#d98a4e' }}>🏛️ Temple niveau {dieu.temple} requis</div>
                 ) : (
@@ -186,7 +191,7 @@ export function Pantheon() {
                         ({cout} ✨{dieu.benediction.batailleUniquement ? ', en bataille' : ''})
                       </span>
                       <div style={{ color: couleur, fontWeight: 700, margin: '2px 0 1px' }}>
-                        À votre ferveur : {effetChiffre(g, force, murMax)}
+                        À votre ferveur : {effetChiffre(g, force, mur)}
                       </div>
                       <div style={{ color: '#7f939f', fontSize: 11.5, fontStyle: 'italic' }}>
                         {dieu.benediction.desc}

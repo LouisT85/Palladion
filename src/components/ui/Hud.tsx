@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { DAY_MS, GODS, GOD_IDS, MODE_TEST, RES } from '../../game/data'
+import { DAY_MS, GODS, GOD_IDS, MODE_TEST, RES, SECTEURS } from '../../game/data'
 import { descVague, tailleVague } from '../../game/combat'
 import {
   VITESSES,
   armeeTotale,
+  bonusHeros,
   coutBenediction,
   popCap,
   stockageMax,
@@ -12,6 +13,7 @@ import {
 } from '../../game/store'
 import { METEOS, SAISONS } from '../../game/saisons'
 import { nomPhase, phaseJour } from '../map/Terrain'
+import { HerosRapides } from './Heros'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
 
@@ -213,25 +215,29 @@ export function DieuxRapides() {
   const now = useGame((s) => s.lastSeen)
 
   return (
-    <div className="dieux-rapides">
-      {GOD_IDS.map((g) => {
-        const dieu = GODS[g]
-        if (templeLevel < dieu.temple) return null
-        const cout = coutBenediction({ buildings }, g)
-        const cd = Math.max(0, gods[g].cooldownUntil - now)
-        return (
-          <button
-            key={g}
-            disabled={faveur < cout || cd > 0}
-            onClick={() => benir(g)}
-            title={`${dieu.benediction.nom} — ${dieu.benediction.desc}`}
-          >
-            {dieu.emoji} {cd > 0 ? `${Math.ceil(cd / 1000)}s` : `${cout}✨`}
-          </button>
-        )
-      })}
-      {templeLevel < 1 && <span className="detail">Bâtissez un temple pour invoquer les dieux…</span>}
-    </div>
+    <>
+      <div className="dieux-rapides">
+        {GOD_IDS.map((g) => {
+          const dieu = GODS[g]
+          if (templeLevel < dieu.temple) return null
+          const cout = coutBenediction({ buildings }, g)
+          const cd = Math.max(0, gods[g].cooldownUntil - now)
+          return (
+            <button
+              key={g}
+              disabled={faveur < cout || cd > 0}
+              onClick={() => benir(g)}
+              title={`${dieu.benediction.nom} — ${dieu.benediction.desc}`}
+            >
+              {dieu.emoji} {cd > 0 ? `${Math.ceil(cd / 1000)}s` : `${cout}✨`}
+            </button>
+          )
+        })}
+        {templeLevel < 1 && <span className="detail">Bâtissez un temple pour invoquer les dieux…</span>}
+      </div>
+      {/* les héros ont leur propre rang de boutons, juste dessous */}
+      <HerosRapides />
+    </>
   )
 }
 
@@ -244,6 +250,11 @@ export function BandeauAlerte() {
   const nextAttackAt = useGame((s) => s.nextAttackAt)
   const now = useGame((s) => s.lastSeen)
   const lancerMaintenant = useGame((s) => s.lancerMaintenant)
+  const fronts = useGame((s) =>
+    bonusHeros(s).revelerVague && s.incomingFronts
+      ? s.incomingFronts.map((id) => SECTEURS.find((x) => x.id === id)?.nom ?? id)
+      : null,
+  )
 
   if (battle) {
     const restants = battle.fighters.filter((f) => f.camp === 'attaque' && f.etat !== 'mort').length
@@ -269,6 +280,12 @@ export function BandeauAlerte() {
         <div className="detail">
           {tailleVague(incomingWave)} assaillants par la route de l’est : {descVague(incomingWave)}.
         </div>
+        {/* Ulysse lit dans la poussière quels pans seront visés */}
+        {fronts && (
+          <div className="detail" style={{ color: '#cbd8e2' }}>
+            🐎 Ulysse a fait parler un éclaireur : ils frapperont {fronts.join(' et ')}.
+          </div>
+        )}
         {defRecompense && (
           <div className="detail recompense">
             🎁 Récompense si repoussé : <b>+{defRecompense.bronze} 🥉</b> · <b>+{defRecompense.faveur} ✨</b> · ambiance +10

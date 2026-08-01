@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, METIERS, PROD, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
-import { fmtDuree, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
+import { BUILDINGS, BUILDING_IDS, METIERS, PROD, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS } from '../../game/data'
+import { fmtDuree, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
 import type { BuildingId, ResourceId } from '../../game/types'
 import { PanneauPopulation, couleurRendement } from './Population'
 
@@ -300,7 +300,8 @@ function BlocRemparts() {
   const s = useGame()
   const niveau = s.buildings.remparts.level
   if (niveau === 0) return null
-  const max = WALL_HP[niveau]
+  // Hector épaissit l'enceinte de 15 % : le maximum affiché doit le refléter
+  const max = murMax(s)
   const ratio = s.wallHp / max
   const manque = max - s.wallHp
   const cout = Math.ceil(manque / 8)

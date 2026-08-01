@@ -1,0 +1,270 @@
+import { RES } from '../../game/data'
+import { HEROS, HERO_IDS, NIVEAU_MAX, forceNiveau, peutMonter, xpRequise, type HeroId } from '../../game/heros'
+import { conditionsHeros, entretienHeros, fmtDuree, herosDisponible, peutPayer, useGame } from '../../game/store'
+import type { Cost, ResourceId } from '../../game/types'
+
+/*
+ * Les héros ne sont pas une collection : ce sont des hôtes exigeants. Ce panneau
+ * doit donc montrer, dans l'ordre, ce qu'ils APPORTENT, ce qu'ils COÛTENT, et où
+ * ils en sont de leur histoire — y compris quand elle s'est mal terminée.
+ */
+
+function coutTxt(c: Cost): string {
+  return (Object.entries(c) as [ResourceId, number][]).map(([r, n]) => `${n} ${RES[r].emoji}`).join(' · ')
+}
+
+function entretienTxt(h: HeroId): string {
+  const e = HEROS[h].entretien
+  const parts = [e.grain ? `${e.grain} 🌾/min` : '', e.faveur ? `${e.faveur} ✨/min` : ''].filter(Boolean)
+  return parts.length ? parts.join(' + ') : 'aucun'
+}
+
+/** cinq lauriers : pleins jusqu'au niveau atteint, barrés au-delà du plafond */
+function Niveaux({ niveau, plafond }: { niveau: number; plafond: number }) {
+  return (
+    <span className="heros-niveaux" title={plafond < NIVEAU_MAX ? `Plafonné au niveau ${plafond}` : `Niveau ${niveau}/${NIVEAU_MAX}`}>
+      {Array.from({ length: NIVEAU_MAX }, (_, i) => (
+        <span key={i} className={i < niveau ? 'plein' : i < plafond ? 'vide' : 'barre'}>
+          {i < plafond ? '★' : '·'}
+        </span>
+      ))}
+    </span>
+  )
+}
+
+/** boutons d'appel des héros pendant une bataille — à côté de ceux des dieux */
+export function HerosRapides() {
+  const heros = useGame((s) => s.heros)
+  const faveur = useGame((s) => s.faveur)
+  const now = useGame((s) => s.lastSeen)
+  const capacite = useGame((s) => s.capaciteHeros)
+
+  const dispo = HERO_IDS.filter((h) => heros[h]?.recrute && !heros[h].mort && HEROS[h].capacite.batailleUniquement)
+  if (dispo.length === 0) return null
+
+  return (
+    <div className="dieux-rapides heros-rapides">
+      {dispo.map((h) => {
+        const def = HEROS[h]
+        const e = heros[h]
+        const cd = Math.max(0, e.cooldownUntil - now)
+        const boude = e.boudeJusqua > now
+        return (
+          <button
+            key={h}
+            disabled={faveur < def.capacite.cout || cd > 0 || boude}
+            onClick={() => capacite(h)}
+            style={{ borderColor: `${def.couleur}88` }}
+            title={
+              boude
+                ? `${def.nom} boude sous sa tente.`
+                : `${def.capacite.nom} — ${def.capacite.desc} (niveau ${e.niveau}, puissance ×${forceNiveau(e.niveau).toFixed(1)})`
+            }
+          >
+            {def.emoji} {boude ? '😤' : cd > 0 ? `${Math.ceil(cd / 1000)}s` : `${def.capacite.cout}✨`}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+export function PanneauHeros() {
+  const s = useGame()
+  const now = s.lastSeen
+  const ent = entretienHeros(s)
+
+  const vivants = HERO_IDS.filter((h) => s.heros[h]?.recrute && !s.heros[h].mort)
+  const morts = HERO_IDS.filter((h) => s.heros[h]?.mort)
+  const libres = HERO_IDS.filter((h) => !s.heros[h]?.recrute && !s.heros[h]?.mort)
+
+  const carte = (h: HeroId) => {
+    const def = HEROS[h]
+    const e = s.heros[h]
+    const dispo = herosDisponible(s, h)
+    const conds = conditionsHeros(s, h)
+    const cd = Math.max(0, e.cooldownUntil - now)
+    const boude = e.boudeJusqua > now
+    const seuil = xpRequise(def, e.niveau)
+    const progresse = peutMonter(e)
+    const etapes = def.arc.length
+
+    return (
+      <div key={h} className={`heros-carte${e.mort ? ' mort' : ''}${!e.recrute && !dispo ? ' verrouille' : ''}`}>
+        <div className="heros-embleme" style={{ background: `${def.couleur}22`, borderColor: `${def.couleur}66` }}>
+          <span>{def.emoji}</span>
+          {e.recrute && !e.mort && <Niveaux niveau={e.niveau} plafond={e.plafond} />}
+        </div>
+        <div className="heros-corps">
+          <div className="heros-titre">
+            <h3 style={{ color: def.couleur }}>{def.nom}</h3>
+            <span className="heros-sous">{def.titre}</span>
+          </div>
+          <p className="heros-desc">{def.desc}</p>
+
+          {e.mort ? (
+            <div className="heros-epitaphe">
+              💀 Tombé au niveau {e.niveau}. Les aèdes le chantent encore ; il ne défendra plus rien.
+            </div>
+          ) : e.recrute ? (
+            <>
+              <div className="heros-ligne">
+                <b>Passif</b> — {def.passif.desc}
+              </div>
+              <div className="heros-ligne">
+                <b>
+                  {def.capacite.emoji} {def.capacite.nom}
+                </b>{' '}
+                — {def.capacite.desc}
+                <span className="heros-force"> (puissance ×{forceNiveau(e.niveau).toFixed(1)})</span>
+              </div>
+              {progresse ? (
+                <div className="heros-xp" title={`${Math.floor(e.xp)} / ${seuil} points d’expérience`}>
+                  <div style={{ width: `${Math.min(100, (e.xp / seuil) * 100)}%`, background: def.couleur }} />
+                </div>
+              ) : (
+                <div className="heros-ligne heros-plafond">
+                  {e.plafond < NIVEAU_MAX
+                    ? `⛔ Son arc l’a brisé : il ne dépassera pas le niveau ${e.plafond}.`
+                    : '🏅 Au sommet de sa légende.'}
+                </div>
+              )}
+              <div className="heros-pied">
+                <span className="heros-entretien" title="Prélevé en continu sur vos réserves">
+                  🍖 {entretienTxt(h)}
+                </span>
+                <span className="heros-arc">
+                  📜 arc {Math.min(e.arc, etapes)}/{etapes}
+                </span>
+                <button
+                  className="principal"
+                  disabled={s.faveur < def.capacite.cout || cd > 0 || boude || (def.capacite.batailleUniquement && !s.battle && !s.expedition)}
+                  onClick={() => s.capaciteHeros(h)}
+                  title={def.capacite.batailleUniquement ? 'Ne s’invoque qu’en bataille' : undefined}
+                >
+                  {boude
+                    ? `😤 boude ${fmtDuree(e.boudeJusqua - now)}`
+                    : cd > 0
+                      ? `⏳ ${fmtDuree(cd)}`
+                      : `${def.capacite.emoji} Appeler (${def.capacite.cout} ✨)`}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="heros-ligne">
+                <b>Passif</b> — {def.passif.desc}
+              </div>
+              <div className="heros-ligne">
+                <b>
+                  {def.capacite.emoji} {def.capacite.nom}
+                </b>{' '}
+                — {def.capacite.desc}
+              </div>
+              <div className="heros-conds">
+                {conds.map((c, i) => (
+                  <span key={i} className={c.ok ? 'ok' : 'ko'}>
+                    {c.ok ? '✔' : '✘'} {c.txt}
+                  </span>
+                ))}
+              </div>
+              <div className="heros-pied">
+                <span className="heros-entretien">🎁 {coutTxt(def.coutRecrutement)}</span>
+                <span className="heros-entretien">🍖 {entretienTxt(h)}</span>
+                <button
+                  className="principal"
+                  disabled={!dispo || !peutPayer(s.resources, def.coutRecrutement)}
+                  onClick={() => s.recruterHeros(h)}
+                >
+                  {dispo ? 'Le prendre à son service' : 'Il ne viendra pas encore'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="voile" onClick={() => s.openPanel(null)}>
+      <div className="modale large" onClick={(e) => e.stopPropagation()}>
+        <h2>🛡️ Les héros de la matière troyenne</h2>
+        <div style={{ color: '#93a7b4', fontSize: 13, lineHeight: 1.45 }}>
+          Ils ne s’achètent pas : ils viennent quand la cité en est digne, exigent des honneurs chaque minute, gagnent
+          des niveaux en combattant — et traversent une histoire dont certaines fins sont sans retour.
+        </div>
+        {(ent.grain > 0 || ent.faveur > 0) && (
+          <div style={{ fontSize: 12.5, color: '#e0bc5c', marginTop: 6 }}>
+            🍖 Entretien de la maisonnée : {ent.grain > 0 ? `${ent.grain.toFixed(1)} 🌾/min` : ''}
+            {ent.grain > 0 && ent.faveur > 0 ? ' + ' : ''}
+            {ent.faveur > 0 ? `${ent.faveur.toFixed(2)} ✨/min` : ''} — trois rappels sans réponse et ils s’en vont.
+          </div>
+        )}
+
+        {vivants.length > 0 && <h3 className="heros-section">À votre service</h3>}
+        {vivants.map(carte)}
+        {libres.length > 0 && <h3 className="heros-section">Ceux qu’on pourrait convaincre</h3>}
+        {libres.map(carte)}
+        {morts.length > 0 && <h3 className="heros-section">Mémorial</h3>}
+        {morts.map(carte)}
+
+        <button style={{ width: '100%', marginTop: 14 }} onClick={() => s.openPanel(null)}>
+          Fermer
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** un héros attend votre parole : le nœud d'arc, joué comme un dilemme */
+export function ModaleArcHeros() {
+  const s = useGame()
+  if (!s.arcHeros) return null
+  const def = HEROS[s.arcHeros.heros]
+  const noeud = def.arc.find((n) => n.id === s.arcHeros!.noeud)
+  if (!noeud) return null
+
+  return (
+    <div className="voile">
+      <div className="modale parchemin">
+        <h2>
+          {noeud.emoji} {noeud.titre}
+        </h2>
+        <div style={{ fontSize: 12.5, color: '#7a5f38', marginTop: -4, marginBottom: 8 }}>
+          {def.emoji} {def.nom} — {def.titre} · niveau {s.heros[s.arcHeros.heros].niveau}
+        </div>
+        {s.arcIssue ? (
+          <div className="issue">
+            {s.arcIssue.map((l, i) => (
+              <p key={i}>{l}</p>
+            ))}
+            <button className="principal" style={{ width: '100%', marginTop: 12 }} onClick={() => s.fermerArc()}>
+              Continuer
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="recit">{noeud.texte}</div>
+            <div className="choix">
+              {noeud.options.map((o, i) => (
+                <button
+                  key={i}
+                  style={{ width: '100%' }}
+                  disabled={!!o.cout && !peutPayer(s.resources, o.cout)}
+                  onClick={() => s.choisirArc(i)}
+                >
+                  {o.label}
+                  {o.cout ? ` — ${coutTxt(o.cout)}` : ''}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11.5, color: '#8c7a55', marginTop: 10, fontStyle: 'italic' }}>
+              Ce choix ferme une porte : l’arc d’un héros ne se rejoue pas.
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

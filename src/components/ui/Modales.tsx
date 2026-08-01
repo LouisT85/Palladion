@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { EVENTS_BY_ID } from '../../game/events'
-import { peutPayer, useGame } from '../../game/store'
+import { bonusHeros, peutPayer, useGame } from '../../game/store'
 
 export function ModaleEvenement() {
   const s = useGame()
@@ -8,7 +8,8 @@ export function ModaleEvenement() {
   if (!ev) return null
   const def = EVENTS_BY_ID[ev.defId]
   if (!def) return null
-  const sagesse = s.gods.athena.relation >= 25
+  // Athéna souffle la vérité à qui l'honore ; Cassandre la voit toute seule
+  const sagesse = s.gods.athena.relation >= 25 || bonusHeros(s).revelerDilemmes
 
   return (
     <div className="voile">
@@ -50,7 +51,8 @@ export function ModaleEvenement() {
             </div>
             {!sagesse && def.choices.some((c) => c.hint) && (
               <div style={{ fontSize: 11.5, color: '#8c7a55', marginTop: 10, fontStyle: 'italic' }}>
-                🦉 Avec la confiance d’Athéna (relation ≥ 25), elle vous murmurerait la vérité cachée de ce dilemme…
+                🦉 Avec la confiance d’Athéna (relation ≥ 25) — ou Cassandre à votre table — la vérité cachée de ce
+                dilemme vous serait murmurée…
               </div>
             )}
           </>

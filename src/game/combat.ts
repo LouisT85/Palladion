@@ -765,16 +765,25 @@ export function foudreDeZeus(b: BattleState, now: number, force = 1, palier = 2)
       c.etat = 'mort'
       c.mortAt = now
     }
-    b.effects.push({ id: uid('fx'), type: 'divin', dieu: 'zeus', palier, x: c.x, y: c.y, until: now + 1100 })
+    b.effects.push({
+      id: uid('fx'),
+      type: 'divin',
+      dieu: 'zeus',
+      palier,
+      x: c.x,
+      y: c.y,
+      debut: now,
+      until: now + 1400,
+    })
   }
   return cibles.length
 }
 
 /** marque visuellement l'intervention d'un dieu, au point le plus chaud de la scène */
-export function marqueDivine(b: BattleState, now: number, dieu: GodId, palier: number, duree = 2200): void {
+export function marqueDivine(b: BattleState, now: number, dieu: GodId, palier: number, duree = 2600): void {
   const s = secteurChaud(b)
   const p = s ?? b.geo.porte
-  b.effects.push({ id: uid('fx'), type: 'divin', dieu, palier, x: p.x, y: p.y, until: now + duree })
+  b.effects.push({ id: uid('fx'), type: 'divin', dieu, palier, x: p.x, y: p.y, debut: now, until: now + duree })
 }
 
 // ── Capacités de héros résolues sur le champ de bataille ─────────────────────
@@ -798,7 +807,7 @@ export function fureurHeros(b: BattleState, now: number, degats: number, heros: 
       b.effects.push({ id: uid('fx'), type: 'poussiere', x: c.x, y: c.y - 3, until: now + 700 })
     }
   }
-  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: epicentre.x, y: epicentre.y, until: now + 1800 })
+  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: epicentre.x, y: epicentre.y, debut: now, until: now + 1800 })
   return cibles.length
 }
 
@@ -812,7 +821,7 @@ export function abattreChef(b: BattleState, now: number, heros: string): string 
   cible.hp = 0
   cible.etat = 'mort'
   cible.mortAt = now
-  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: cible.x, y: cible.y, until: now + 1500 })
+  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: cible.x, y: cible.y, debut: now, until: now + 1500 })
   return cible.type
 }
 
@@ -822,7 +831,7 @@ export function abriterSecteur(b: BattleState, now: number, duree: number, part:
   if (!s) return null
   s.abriJusqua = now + duree
   s.abriPart = part
-  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: s.x, y: s.y, until: now + duree })
+  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: s.x, y: s.y, debut: now, until: now + duree })
   return s.nom
 }
 
@@ -831,7 +840,7 @@ export function boucherBreche(b: BattleState, now: number, duree: number, heros:
   const trou = b.secteurs.find((s) => s.breche) ?? secteurChaud(b)
   if (!trou) return null
   trou.boucheeJusqua = now + duree
-  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: trou.x, y: trou.y, until: now + duree })
+  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: trou.x, y: trou.y, debut: now, until: now + duree })
   return trou.nom
 }
 

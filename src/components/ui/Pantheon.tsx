@@ -1,6 +1,7 @@
-import { GODS, GOD_IDS, WALL_HP, multRelation, nomFerveur } from '../../game/data'
+import { GODS, GOD_IDS, WALL_HP, multRelation, nomFerveur, palierFerveur } from '../../game/data'
 import { coutBenediction, useGame } from '../../game/store'
 import type { GodId } from '../../game/types'
+import { ApercuDivin } from '../map/EffetsDivins'
 
 /** ×1.60 → « 1.6 », ×1.00 → « 1 » : on ne montre que les décimales qui portent du sens */
 function fmtMult(f: number): string {
@@ -138,7 +139,16 @@ export function Pantheon() {
           const couleur = couleurFerveur(etat.relation)
           return (
             <div key={g} className={`dieu${verrouille ? ' verrouille' : ''}`}>
-              <div className="embleme">{dieu.emoji}</div>
+              <div className="embleme">
+                {dieu.emoji}
+                {/* aperçu de la manifestation à la ferveur courante : le joueur
+                    voit à quoi ressemble le bras du dieu avant de le payer */}
+                {!verrouille && (
+                  <div className="apercu-divin" title={`Manifestation de ${dieu.nom} à votre ferveur actuelle`}>
+                    <ApercuDivin dieu={g} palier={palierFerveur(etat.relation)} taille={74} />
+                  </div>
+                )}
+              </div>
               <div className="corps">
                 <h3 style={{ color: dieu.couleur }}>{dieu.nom}</h3>
                 <div className="titre-dieu">{dieu.titre}</div>

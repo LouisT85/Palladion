@@ -1,5 +1,6 @@
 import { useEffect, type RefObject } from 'react'
 import type { BattleGeo, BattleState, Fighter, SecteurBataille } from '../../game/types'
+import { EffetDivin, EffetHeros } from './EffetsDivins'
 
 /*
  * Figurines de bataille — animées en SMIL (aucun coût JS par frame) :
@@ -694,6 +695,8 @@ export function BatailleLayer({
 
       {/* effets divins et brèches */}
       {battle.effects.map((e) => {
+        if (e.type === 'divin') return <EffetDivin key={e.id} e={e} now={now} />
+        if (e.type === 'heros') return <EffetHeros key={e.id} e={e} now={now} />
         if (e.type === 'foudre') {
           return (
             <g key={e.id} opacity={Math.max(0, (e.until - now) / 900)}>

@@ -571,6 +571,22 @@ svg.carte {
 .dieu .embleme {
   font-size: 30px;
   line-height: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+/* vignette de la manifestation divine, sous l'emblème du dieu */
+.apercu-divin {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px #ffffff10;
+  line-height: 0;
+}
+@media (max-width: 620px) {
+  .apercu-divin {
+    display: none;
+  }
 }
 .dieu .corps {
   flex: 1;

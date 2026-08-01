@@ -203,7 +203,9 @@ export interface BattleEffect {
   x: number
   y: number
   until: number
-  /** effets divins : quel dieu frappe, et à quelle ferveur (0 offensé → 4 élu) */
+  /** instant d'apparition — permet de jouer l'effet sur toute sa durée réelle */
+  debut?: number
+  /** effets divins : quel dieu frappe, et à quelle ferveur (0 maudit → 6 élu) */
   dieu?: GodId
   palier?: number
   /** effets de héros : lequel */

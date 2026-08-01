@@ -1035,6 +1035,75 @@ svg.carte {
   font-size: 12px;
   color: var(--muted);
 }
+.exp-village.allie {
+  border-color: #3f7a55;
+  background: #102a20;
+}
+.badge-allie {
+  font-size: 11px;
+  color: #7fc79b;
+  border: 1px solid #3f7a55;
+  border-radius: 5px;
+  padding: 0 6px;
+}
+
+/* ── appel au secours : la seule décision vraiment cornélienne du panneau ── */
+.appel-secours {
+  border: 1px solid #7a5f1a;
+  background: linear-gradient(180deg, #2d2410, #1a1608);
+  border-radius: 10px;
+  padding: 11px 13px;
+  margin: 10px 0 4px;
+  box-shadow: 0 0 14px #e8c04a22;
+}
+.appel-titre {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--gold);
+  font-size: 14px;
+}
+.appel-compte {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: #f0d9a0;
+  font-size: 12.5px;
+}
+.appel-texte {
+  font-size: 12.5px;
+  color: #cfc4a8;
+  line-height: 1.45;
+  margin: 4px 0 8px;
+}
+.appel-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.appel-actions button {
+  font-size: 12.5px;
+}
+
+/* les deux intentions se distinguent au premier coup d'œil */
+.intention {
+  font-size: 12.5px;
+  line-height: 1.45;
+  border-radius: 9px;
+  padding: 9px 11px;
+  margin-top: 9px;
+  border: 1px solid;
+}
+.intention.pillage {
+  border-color: #7a3527;
+  background: #2a140f;
+  color: #e2bfae;
+}
+.intention.secours {
+  border-color: #3f7a55;
+  background: #102a20;
+  color: #bfe0cb;
+}
 .etoiles .pleine,
 .etoiles-resultat .pleine {
   color: var(--gold);

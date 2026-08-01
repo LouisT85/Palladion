@@ -283,6 +283,15 @@ export interface BattleState {
 export interface EtatExpedition {
   etoiles: number
   dernierRaid: number
+  /** pillages encaissés : le village s'en souvient et renforce sa garnison */
+  pillages?: number
+}
+
+/** un village allié : il paie tribut et envoie des hommes quand on l'appelle */
+export interface Alliance {
+  depuis: number
+  /** prochain versement du tribut */
+  tributAt: number
 }
 
 // ── Toasts (UI) ───────────────────────────────────────────────────────────────

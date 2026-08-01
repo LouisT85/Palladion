@@ -22,8 +22,9 @@ export default function App() {
   const panel = useGame((s) => s.panel)
   const expedition = useGame((s) => s.expedition)
   const etoiles = useGame((s) => totalEtoiles(s.expeditions))
-  // pastille d'appel : un héros attend qu'on vienne le chercher
+  // pastilles d'appel : un héros à recruter, un village qui crie au secours
   const herosARecruter = useGame((s) => HERO_IDS.filter((h) => herosDisponible(s, h)).length)
+  const appel = useGame((s) => s.appelSecours !== null)
   const openPanel = useGame((s) => s.openPanel)
 
   useEffect(() => {
@@ -57,9 +58,17 @@ export default function App() {
         <BarreRessources />
         {/* les libellés s'effacent sous 1400 px : les pictogrammes suffisent, le titre reste */}
         <div className="hud-actions">
-          <button onClick={() => openPanel('expeditions')} title="Attaquer les villages de la région">
+          <button
+            onClick={() => openPanel('expeditions')}
+            title={
+              appel
+                ? 'Un village assiégé appelle à l’aide — la fenêtre se referme vite'
+                : 'Piller ou secourir les villages de la Troade'
+            }
+            className={appel ? 'appelle' : undefined}
+          >
             🗺️<span className="lbl"> Expéditions</span>
-            {etoiles > 0 ? ` ★${etoiles}` : ''}
+            {appel ? ' ⛑️' : etoiles > 0 ? ` ★${etoiles}` : ''}
           </button>
           <button onClick={() => openPanel('pantheon')} title="Les dieux de l'Olympe">
             ⚡<span className="lbl"> Panthéon</span>

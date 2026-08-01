@@ -64,7 +64,15 @@ import {
   EXPEDITION_TIMEOUT_MS,
   MAX_TROUPES,
   RAID_COOLDOWN_MS,
+  SECOURS_FENETRE_MS,
+  TRIBUT_MS,
+  VILLAGES_CIBLES,
   VILLAGES_PAR_ID,
+  assiegeants,
+  garnisonEffective,
+  renfortsDe,
+  tributDe,
+  type Intention,
   type VillageCible,
 } from './expeditions'
 import {
@@ -102,6 +110,7 @@ import {
 } from './saisons'
 import type {
   ActiveEvent,
+  Alliance,
   BattleState,
   BuildingId,
   BuildingState,
@@ -130,6 +139,8 @@ export interface RecompenseDef {
 
 export interface ExpeditionEnCours {
   villageId: string
+  /** piller ou secourir : deux façons de marcher, deux façons d'en revenir */
+  intention: Intention
   envoyes: Record<UnitId, number>
   wallHp: number
   battle: BattleState
@@ -196,11 +207,19 @@ export interface GameState {
   arcHeros: { heros: HeroId; noeud: string } | null
   /** récit de l'issue, une fois le choix tranché */
   arcIssue: string[] | null
+  /** un village assiégé appelle à l'aide — la fenêtre se referme vite */
+  appelSecours: { villageId: string; expireAt: number } | null
+  /** instant du prochain appel possible */
+  prochainAppelAt: number
+  /** villages sauvés devenus alliés : tribut régulier et renforts aux remparts */
+  alliances: Record<string, Alliance>
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
   missionsNotifiees: string[]
   battle: BattleState | null
+  /** renforts alliés engagés dans la bataille en cours : ils tombent avant les vôtres */
+  renfortsEngages: Record<UnitId, number> | null
   expedition: ExpeditionEnCours | null
   battleReport: Report | null
   offlineSummary: string[] | null
@@ -228,7 +247,8 @@ export interface GameState {
   choisirEvenement: (i: number) => void
   fermerEvenement: () => void
   lancerMaintenant: () => void
-  lancerExpedition: (villageId: string, troupes: Record<UnitId, number>) => void
+  lancerExpedition: (villageId: string, troupes: Record<UnitId, number>, intention?: Intention) => void
+  ignorerSecours: () => void
   retraiteExpedition: () => void
   fermerExpedition: () => void
   attaqueTest: () => void
@@ -639,8 +659,12 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     sauverTroupes: 0,
     arcHeros: null,
     arcIssue: null,
+    appelSecours: null,
+    prochainAppelAt: now + 9 * 60_000,
+    alliances: {},
     missionsNotifiees: [],
     battle: null,
+    renfortsEngages: null,
     expedition: null,
     battleReport: null,
     offlineSummary: null,
@@ -669,6 +693,7 @@ type ActionsOnly = {
   fermerEvenement: unknown
   lancerMaintenant: unknown
   lancerExpedition: unknown
+  ignorerSecours: unknown
   retraiteExpedition: unknown
   fermerExpedition: unknown
   attaqueTest: unknown
@@ -726,6 +751,9 @@ const CHAMPS_SAUVES = [
   'incomingFronts',
   'siegeGratuit',
   'sauverTroupes',
+  'appelSecours',
+  'prochainAppelAt',
+  'alliances',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -854,6 +882,76 @@ function entretenirHeros(s: GameState, now: number, dtJeu: number): void {
   }
 }
 
+// ── Appels au secours et alliances ───────────────────────────────────────────
+
+/**
+ * Un village de la Troade est assiégé et appelle à l'aide. La fenêtre est
+ * courte, il n'y a rien à rafler au bout — mais un allié vaut mieux qu'un
+ * grenier plein quand la vague suivante arrive.
+ */
+function tirerAppelSecours(s: GameState, now: number): void {
+  if (s.appelSecours || s.expedition || s.battle || !s.tutorialDone) return
+  if (now < s.prochainAppelAt) return
+  // seuls les villages ni alliés ni fraîchement pillés appellent le voisin
+  const pool = VILLAGES_CIBLES.filter(
+    (v) => !s.alliances[v.id] && (s.expeditions[v.id]?.pillages ?? 0) === 0 && !(v.maritime && SAISONS[s.saison].merFermee),
+  )
+  s.prochainAppelAt = now + 7 * 60_000 + Math.random() * 5 * 60_000
+  if (pool.length === 0 || armeeTotale(s.army) < 3) return
+  const v = pool[Math.floor(Math.random() * pool.length)]
+  s.appelSecours = { villageId: v.id, expireAt: now + SECOURS_FENETRE_MS }
+  pushToast(s, '⛑️', `${v.nom} est assiégé et implore votre aide !`)
+  pushReport(s, '⛑️', `${v.nom} appelle au secours`, [
+    `Un coureur arrive, les pieds en sang : une bande armée cerne ${v.nom}.`,
+    'Aucun butin à espérer — mais Zeus veille sur qui répond aux suppliants, et un village sauvé n’oublie pas.',
+    `La fenêtre se referme dans ${Math.round(SECOURS_FENETRE_MS / 60_000)} minutes.`,
+  ])
+}
+
+/** l'appel expire : le village tombe, et Zeus a compté qui n'est pas venu */
+function expirerAppel(s: GameState, now: number): void {
+  if (!s.appelSecours || now < s.appelSecours.expireAt) return
+  const v = VILLAGES_PAR_ID[s.appelSecours.villageId]
+  s.appelSecours = null
+  if (!v) return
+  s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 4)
+  s.threatMod += 3
+  pushReport(s, '🔥', `${v.nom} est tombé`, [
+    'Personne n’est venu. Au matin, on a vu la fumée depuis les remparts.',
+    'Zeus Xenios protège les suppliants : votre relation avec lui en pâtit (−4).',
+    'Une bande de plus rôde dans la région : la menace monte.',
+  ])
+  pushToast(s, '🔥', `${v.nom} est tombé faute de secours — Zeus s’en souviendra.`)
+}
+
+/** les alliés paient tribut, régulièrement et sans qu'on le demande */
+function verserTributs(s: GameState, now: number): void {
+  for (const [id, a] of Object.entries(s.alliances)) {
+    if (now < a.tributAt) continue
+    a.tributAt = now + TRIBUT_MS
+    const v = VILLAGES_PAR_ID[id]
+    if (!v) continue
+    const parts: string[] = []
+    for (const [r, n] of Object.entries(tributDe(v)) as [ResourceId, number][]) {
+      s.resources[r] = clampRes(s, r, s.resources[r] + n)
+      parts.push(`+${n} ${RES[r].emoji}`)
+    }
+    if (parts.length) pushToast(s, '🤝', `Tribut de ${v.nom} : ${parts.join(', ')}`)
+  }
+}
+
+/** renforts alliés dépêchés sur vos remparts quand l'assaut sonne */
+function renfortsAllies(s: GameState): Record<UnitId, number> {
+  const out: Record<UnitId, number> = { lancier: 0, archer: 0, hoplite: 0 }
+  for (const id of Object.keys(s.alliances)) {
+    const v = VILLAGES_PAR_ID[id]
+    if (!v) continue
+    const r = renfortsDe(v)
+    for (const u of UNIT_IDS) out[u] += r[u]
+  }
+  return out
+}
+
 // ── Effets différés ───────────────────────────────────────────────────────────
 function appliquerEffetDiffere(s: GameState, eff: PendingEffect, now: number): void {
   switch (eff.type) {
@@ -904,10 +1002,22 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
   if (!b) return
   const pertes = pertesDefense(b)
   const lignes: string[] = []
+  // les renforts alliés meurent en premier : c'est tout l'intérêt d'un allié
+  const renf = s.renfortsEngages
+  let alliesTombes = 0
   for (const [u, n] of Object.entries(pertes) as [UnitId, number][]) {
-    s.army[u] = Math.max(0, s.army[u] - n)
-    lignes.push(`${n} ${UNITS[u].nom.toLowerCase()}${n > 1 ? 's' : ''} tombé(s)`)
+    const parAllies = Math.min(n, renf?.[u] ?? 0)
+    alliesTombes += parAllies
+    const miens = n - parAllies
+    if (miens > 0) {
+      s.army[u] = Math.max(0, s.army[u] - miens)
+      lignes.push(`${miens} ${UNITS[u].nom.toLowerCase()}${miens > 1 ? 's' : ''} tombé(s)`)
+    }
   }
+  if (alliesTombes > 0) {
+    lignes.push(`🤝 ${alliesTombes} allié${alliesTombes > 1 ? 's' : ''} sont tombés pour vos murs.`)
+  }
+  s.renfortsEngages = null
   const morts = b.fighters.filter((f) => f.camp === 'attaque' && f.hp <= 0).length
   const fuyards = b.fighters.filter((f) => f.camp === 'attaque' && f.etat === 'mort' && f.hp > 0).length
   fuite = fuite || fuyards > 0
@@ -992,7 +1102,51 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   }
   if (partEnee > 0) s.sauverTroupes = 0
 
-  const deja = s.expeditions[v.id]?.etoiles ?? 0
+  const etat = s.expeditions[v.id]
+  const deja = etat?.etoiles ?? 0
+  const pillages = etat?.pillages ?? 0
+  const secours = exp.intention === 'secours'
+
+  // ── secours : rien à rafler, mais un allié pour la suite ──
+  if (secours) {
+    const etoiles = victoire ? etoilesPour(mortsTotal, envoyesTotal) : 0
+    s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now, pillages }
+    if (victoire) {
+      s.alliances[v.id] = { depuis: now, tributAt: now + TRIBUT_MS }
+      s.gods.zeus.relation = Math.min(100, s.gods.zeus.relation + 12)
+      s.gods.athena.relation = Math.min(100, s.gods.athena.relation + 7)
+      s.moraleMods.push({ id: uid('m'), label: 'Le village sauvé', delta: 9, expiresAt: now + 12 * 60_000 })
+      gagnerXp(s, XP_EXPEDITION + etoiles * XP_PAR_ETOILE)
+      const trib = (Object.entries(tributDe(v)) as [ResourceId, number][])
+        .map(([r, n]) => `${n} ${RES[r].emoji}`)
+        .join(', ')
+      const renf = renfortsDe(v)
+      lignes.push(
+        `Le siège de ${v.nom} est levé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
+        'Aucun butin : on ne pille pas ceux qu’on vient de sauver.',
+        pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.` : 'Pas un homme perdu — les aèdes s’en empareront.',
+        `🤝 ${v.nom} devient votre allié : tribut de ${trib} toutes les ${Math.round(TRIBUT_MS / 60_000)} min, et ${UNIT_IDS.filter((u) => renf[u] > 0).map((u) => `${renf[u]} ${UNITS[u].nom.toLowerCase()}${renf[u] > 1 ? 's' : ''}`).join(', ')} en renfort à chaque assaut.`,
+        'Zeus +12, Athéna +7, ambiance +9.',
+      )
+      exp.result = { victoire: true, etoiles, lignes }
+      pushReport(s, '⛑️', `Secours porté — ${v.nom}`, lignes)
+    } else {
+      s.moraleMods.push({ id: uid('m'), label: 'Secours manqué', delta: -8, expiresAt: now + 10 * 60_000 })
+      s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 3)
+      gagnerXp(s, Math.round(XP_EXPEDITION * 0.4))
+      lignes.push(
+        `Vos hommes n’ont pas percé les lignes qui étranglent ${v.nom}.`,
+        pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.` : 'Vos troupes ont dû refluer.',
+        ...(sauvesParEnee > 0 ? [`🔥 Énée couvre la retraite : ${sauvesParEnee} homme(s) rentrent quand même.`] : []),
+        'Mourir pour rien reste mourir : ambiance −8, Zeus −3.',
+      )
+      exp.result = { victoire: false, etoiles: 0, lignes }
+      pushReport(s, '⛑️', `Secours manqué — ${v.nom}`, lignes)
+    }
+    if (s.appelSecours?.villageId === v.id) s.appelSecours = null
+    return
+  }
+
   if (victoire) {
     const etoiles = etoilesPour(mortsTotal, envoyesTotal)
     const mult = (deja > 0 ? BUTIN_REPETE : 1) * (1 + bonusHeros(s).butinPct)
@@ -1004,18 +1158,23 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     }
     gagnerXp(s, XP_EXPEDITION + etoiles * XP_PAR_ETOILE)
     s.gods.ares.relation = Math.min(100, s.gods.ares.relation + 4)
+    // Zeus protège l'hôte et le suppliant : piller se paie auprès de lui
+    s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 5)
+    s.threatMod += 4
     s.moraleMods.push({ id: uid('m'), label: 'Raid victorieux', delta: 6, expiresAt: now + 8 * 60_000 })
-    s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now }
+    s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now, pillages: pillages + 1 }
+    delete s.alliances[v.id]
     lignes.push(
       `${v.nom} est tombé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
       `Butin : ${butinTxt.join(', ')}${deja > 0 ? ' (village déjà pillé : butin réduit)' : ''}.`,
       pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.` : 'Aucune perte — un triomphe digne d’Achille.',
-      'Arès +4, ambiance +6.',
+      `Arès +4, ambiance +6 — mais Zeus Xenios −5, et la région retient votre nom (menace +4).`,
+      `Ils s’en souviendront : à votre prochaine visite, la garnison sera plus fournie (${pillages + 1} pillage${pillages > 0 ? 's' : ''} encaissé${pillages > 0 ? 's' : ''}).`,
     )
     exp.result = { victoire: true, etoiles, lignes }
     pushReport(s, '🏴‍☠️', `Raid victorieux — ${v.nom}`, lignes)
   } else {
-    s.expeditions[v.id] = { etoiles: deja, dernierRaid: now }
+    s.expeditions[v.id] = { etoiles: deja, dernierRaid: now, pillages }
     s.moraleMods.push({ id: uid('m'), label: 'Raid repoussé', delta: -6, expiresAt: now + 8 * 60_000 })
     gagnerXp(s, Math.round(XP_EXPEDITION * 0.4))
     lignes.push(
@@ -1138,6 +1297,7 @@ export const useGame = create<GameState>()(
               panel: null,
               arcHeros: null,
               arcIssue: null,
+              renfortsEngages: null,
             })
             // sauvegardes antérieures aux héros : on complète les champs manquants
             // sans jamais écraser ce qui a déjà été joué
@@ -1207,6 +1367,9 @@ export const useGame = create<GameState>()(
           for (const e of s.pendingEffects) e.at -= avance
           for (const k of Object.keys(s.eventCooldowns)) s.eventCooldowns[k] -= avance
           for (const k of Object.keys(s.expeditions)) s.expeditions[k].dernierRaid -= avance
+          for (const k of Object.keys(s.alliances)) s.alliances[k].tributAt -= avance
+          s.prochainAppelAt -= avance
+          if (s.appelSecours) s.appelSecours.expireAt -= avance
         }
 
         // les habitants suivent la population (naissances, pertes, récompenses)
@@ -1222,6 +1385,11 @@ export const useGame = create<GameState>()(
         tournerCiel(s, now)
         // les héros mangent et exigent des honneurs, même en temps de paix
         if (!MODE_TEST) entretenirHeros(s, now, dtJeu)
+
+        // la Troade vit sa vie : on appelle au secours, on paie tribut, on tombe
+        tirerAppelSecours(s, now)
+        expirerAppel(s, now)
+        verserTributs(s, now)
 
         // mode test : coffres pleins en permanence
         if (MODE_TEST) {
@@ -1347,9 +1515,20 @@ export const useGame = create<GameState>()(
               armerAlerte(s)
               // la vague se scinde entre les fronts tirés dès l'alerte
               const bh = bonusHeros(s)
+              // les alliés dépêchent des hommes : ils tomberont avant les vôtres
+              const renf = renfortsAllies(s)
+              const totalRenf = UNIT_IDS.reduce((a, u) => a + renf[u], 0)
+              s.renfortsEngages = totalRenf > 0 ? renf : null
+              if (totalRenf > 0) {
+                pushToast(s, '🤝', `${totalRenf} combattant${totalRenf > 1 ? 's' : ''} envoyé${totalRenf > 1 ? 's' : ''} par vos alliés prennent place sur les remparts.`)
+              }
               s.battle = creerBataille({
                 attaquants: s.incomingWave!,
-                defenseurs: s.army,
+                defenseurs: {
+                  lancier: s.army.lancier + renf.lancier,
+                  archer: s.army.archer + renf.archer,
+                  hoplite: s.army.hoplite + renf.hoplite,
+                },
                 wallLevel: s.buildings.remparts.level,
                 now,
                 geo: GEO_VILLAGE,
@@ -1957,7 +2136,7 @@ export const useGame = create<GameState>()(
       })
     },
 
-    lancerExpedition: (villageId, troupes) => {
+    lancerExpedition: (villageId, troupes, intention = 'pillage') => {
       set((s) => {
         if (s.expedition || s.battle) return
         const v = VILLAGES_PAR_ID[villageId]
@@ -1966,9 +2145,15 @@ export const useGame = create<GameState>()(
           pushToast(s, '❄️', `${v.nom} est au-delà du détroit : la mer est prise, aucune nef ne partira avant le dégel.`)
           return
         }
+        const secours = intention === 'secours'
+        if (secours && s.appelSecours?.villageId !== villageId) {
+          pushToast(s, '⛑️', `${v.nom} n’a rien demandé — on ne secourt pas les gens de force.`)
+          return
+        }
         const dernier = s.expeditions[villageId]?.dernierRaid ?? 0
         const now = Date.now()
-        if (now - dernier < RAID_COOLDOWN_MS / (MODE_TEST ? 10 : 1)) return
+        // porter secours n'attend pas la fin d'un cooldown de pillage
+        if (!secours && now - dernier < RAID_COOLDOWN_MS / (MODE_TEST ? 10 : 1)) return
         let total = 0
         for (const u of UNIT_IDS) {
           const n = troupes[u] ?? 0
@@ -1982,15 +2167,18 @@ export const useGame = create<GameState>()(
           count: troupes[u],
         }))
         const bh = bonusHeros(s)
-        const ruse = s.siegeGratuit
+        // en secours, on se bat en rase campagne contre les assiégeants : aucun mur
+        const ruse = !secours && s.siegeGratuit
+        const mur = secours ? 0 : v.mur
         s.expedition = {
           villageId,
+          intention,
           envoyes: { ...troupes },
-          wallHp: ruse ? 0 : WALL_HP[v.mur],
+          wallHp: ruse || secours ? 0 : WALL_HP[v.mur],
           battle: creerBataille({
             attaquants,
-            defenseurs: v.garnison,
-            wallLevel: v.mur,
+            defenseurs: secours ? assiegeants(v) : garnisonEffective(v, s.expeditions[villageId]?.pillages ?? 0),
+            wallLevel: mur,
             now,
             geo: GEO_EXPEDITION,
             campJoueur: 'attaque',
@@ -2004,8 +2192,23 @@ export const useGame = create<GameState>()(
           pushToast(s, '🐎', 'La ruse d’Ulysse opère : vos hommes sont déjà dans la place.')
         }
         s.panel = null
-        pushToast(s, '🏴‍☠️', `Vos troupes marchent sur ${v.nom} !`)
+        pushToast(
+          s,
+          secours ? '⛑️' : '🏴‍☠️',
+          secours ? `Vos troupes courent délivrer ${v.nom} !` : `Vos troupes marchent sur ${v.nom} !`,
+        )
       })
+    },
+
+    ignorerSecours: () => {
+      set((s) => {
+        if (!s.appelSecours) return
+        const v = VILLAGES_PAR_ID[s.appelSecours.villageId]
+        s.appelSecours = null
+        s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 4)
+        pushToast(s, '🚪', `Vous fermez la porte au coureur de ${v?.nom ?? 'ce village'} — Zeus a vu.`)
+      })
+      get().save()
     },
 
     retraiteExpedition: () => {

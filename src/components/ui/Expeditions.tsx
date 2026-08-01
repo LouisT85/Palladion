@@ -15,7 +15,8 @@ import {
 } from '../../game/expeditions'
 import { fmtDuree, merFermee, totalEtoiles, useGame } from '../../game/store'
 import type { ResourceId, UnitId } from '../../game/types'
-import { BatailleLayer, useCameraBataille, type VueScene } from '../map/BatailleLayer'
+import { BatailleLayer } from '../map/BatailleLayer'
+import { useCamera, type VueScene } from '../map/camera'
 import { DefsArt } from '../map/art'
 import { DefsBatiments } from '../map/Batiments'
 import { Murailles } from '../map/Murailles'
@@ -255,8 +256,10 @@ const lireBatailleExpedition = () => useGame.getState().expedition?.battle ?? nu
 export function ExpeditionScene() {
   const s = useGame()
   const exp = s.expedition
+  const svgRef = useRef<SVGSVGElement | null>(null)
   const scene = useRef<SVGGElement | null>(null)
-  useCameraBataille(scene, VUE_EXPEDITION, lireBatailleExpedition)
+  // la scène d'assaut se manipule aussi : molette, glisser, double-clic
+  const camera = useCamera(svgRef, scene, VUE_EXPEDITION, lireBatailleExpedition)
   if (!exp) return null
   const v = VILLAGES_PAR_ID[exp.villageId]
   const geo = GEO_EXPEDITION
@@ -277,6 +280,7 @@ export function ExpeditionScene() {
         </h2>
         {/* hauteur pilotée, largeur déduite du ratio 900×560 : aucune bande noire */}
         <svg
+          ref={svgRef}
           viewBox="0 0 900 560"
           className="carte-exp"
           style={{ height: 'min(58vh, 56vw)', width: 'auto', maxWidth: '100%', margin: '0 auto' }}
@@ -331,6 +335,11 @@ export function ExpeditionScene() {
             <BatailleLayer battle={exp.battle} now={s.lastSeen} wallHp={exp.wallHp} wallMax={wallMax} />
           </g>
         </svg>
+        {camera.manuel && (
+          <button className="exp-recentrer" onClick={camera.recentrer}>
+            ⤢ recentrer la vue (×{camera.zoom.toFixed(1)})
+          </button>
+        )}
 
         {exp.result ? (
           <div className="resultat-exp">

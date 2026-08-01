@@ -5,7 +5,8 @@ import type { BuildingId } from '../../game/types'
 import { DefsArt } from './art'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
 import { Batisseur, Ouvriers, Porteurs } from './Ouvriers'
-import { BatailleLayer, useCameraBataille, type VueScene } from './BatailleLayer'
+import { BatailleLayer } from './BatailleLayer'
+import { useCamera, vientDeGlisser, ZOOM_MAX, ZOOM_MIN, type VueScene } from './camera'
 import { Meteo, VoileSaison } from './Ciel'
 import { Garnison } from './Garnison'
 import { Murailles } from './Murailles'
@@ -60,6 +61,8 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
       transform={`translate(${def.pos.x},${def.pos.y})`}
       onClick={(e) => {
         e.stopPropagation()
+        // on vient de faire glisser la carte : ce n'est pas un clic sur le bâtiment
+        if (vientDeGlisser()) return
         select(id)
       }}
       onMouseEnter={() => setHover(true)}
@@ -144,8 +147,10 @@ export function VillageMap() {
   const select = useGame((s) => s.select)
   const selected = useGame((s) => s.selected)
   const [hoverMur, setHoverMur] = useState(false)
+  const svg = useRef<SVGSVGElement | null>(null)
   const scene = useRef<SVGGElement | null>(null)
-  useCameraBataille(scene, VUE_VILLAGE, lireBatailleVillage)
+  // molette = zoom au curseur, glisser = déplacement, double-clic = recentrage
+  const camera = useCamera(svg, scene, VUE_VILLAGE, lireBatailleVillage)
 
   const scierieLvl = useGame((s) => s.buildings.scierie.level)
   const fermeLvl = useGame((s) => s.buildings.ferme.level)
@@ -185,10 +190,15 @@ export function VillageMap() {
   )
 
   return (
+    <>
     <svg
+      ref={svg}
       viewBox={`0 0 ${MAP.w} ${MAP.h}`}
       className="carte"
-      onClick={() => select(null)}
+      // un glissement de caméra ne doit pas être pris pour un clic dans le vide
+      onClick={() => {
+        if (!camera.aGlisse()) select(null)
+      }}
       role="img"
       aria-label="Carte du village"
     >
@@ -253,6 +263,7 @@ export function VillageMap() {
             transform={`translate(${MAP.porte.x},${MAP.porte.y})`}
             onClick={(e) => {
               e.stopPropagation()
+              if (vientDeGlisser()) return
               select('remparts')
             }}
             onMouseEnter={() => setHoverMur(true)}
@@ -342,5 +353,35 @@ export function VillageMap() {
         </g>
       ))}
     </svg>
+
+      {/* commandes de vue — la molette et le glisser font la même chose,
+          ces boutons ne sont là que pour ceux qui n'ont ni l'un ni l'autre */}
+      <div className="zoom-controles">
+        <button
+          onClick={() => camera.zoomer(1 / 1.35)}
+          disabled={camera.manuel && camera.zoom <= ZOOM_MIN + 0.01}
+          title="Reculer (molette vers le bas)"
+          aria-label="Dézoomer"
+        >
+          −
+        </button>
+        <span className="zoom-valeur" title="Molette : zoom · glisser : déplacer · double-clic : recentrer">
+          ×{camera.manuel ? camera.zoom.toFixed(1) : '1'}
+        </span>
+        <button
+          onClick={() => camera.zoomer(1.35)}
+          disabled={camera.manuel && camera.zoom >= ZOOM_MAX - 0.01}
+          title="Approcher (molette vers le haut)"
+          aria-label="Zoomer"
+        >
+          +
+        </button>
+        {camera.manuel && (
+          <button className="zoom-recentrer" onClick={camera.recentrer} title="Rendre la main à la caméra">
+            ⤢ recentrer
+          </button>
+        )}
+      </div>
+    </>
   )
 }

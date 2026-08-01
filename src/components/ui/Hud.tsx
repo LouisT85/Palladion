@@ -142,6 +142,20 @@ const DESC_RES: Record<ResourceId, string> = {
   bronze: 'Armes, armures et commerce. Vient de la forge et du port.',
 }
 
+/*
+ * LE BANDEAU, EN DEUX RANGS.
+ *
+ * Tout tenait sur une seule ligne : cinq jetons de ressource, sept pastilles
+ * d'état, le logo et les boutons. À 1600 px, chaque chose avait douze pixels de
+ * marge et l'œil ne trouvait plus rien — on lisait une frise, pas un tableau de
+ * bord.
+ *
+ * La coupure suit une VRAIE distinction, pas la place disponible :
+ *   · rang du haut — CE QUE JE POSSÈDE : réserves, faveur, habitants, garnison ;
+ *   · rang du bas  — CE QUI M'ARRIVE : ambiance, menace, jour, ciel, vitesse,
+ *     à côté des boutons qui ouvrent les grands panneaux.
+ * Chaque groupe est séparé par un filet vertical : on sait où s'arrête une idée.
+ */
 export function BarreRessources() {
   const s = useGame()
   // ouvert/fermé vit dans le store : le tutoriel doit pouvoir le refermer
@@ -149,9 +163,6 @@ export function BarreRessources() {
   const taux = tauxParMinute(s)
   const stock = stockageMax(s)
   const cap = popCap(s)
-  const morale = labelMorale(s.morale)
-  const jour = Math.floor((s.lastSeen - s.createdAt) / DAY_MS) + 1
-  const phase = nomPhase(phaseJour(s.lastSeen, s.createdAt, DAY_MS))
   const sansEmploi = s.villageois.filter((v) => v.poste === null).length
   // postes ouverts par les ateliers mais que personne ne tient
   const postesVides = BATIMENTS_A_POSTES.reduce((a, b) => a + Math.max(0, postesTotal(s, b) - postesPourvus(s, b)), 0)
@@ -236,7 +247,7 @@ export function BarreRessources() {
           </span>
         </Infobulle>
       </div>
-      <div className="hud-droite">
+      <div className="hud-groupe">
         {MODE_TEST && (
           <span className="pastille test" title="Mode test : ressources illimitées, chantiers instantanés">
             🧪 TEST
@@ -291,6 +302,21 @@ export function BarreRessources() {
         >
           ⚔️<span className="opt">Garnison</span> <b>{armeeTotale(s.army)}</b>
         </Infobulle>
+      </div>
+      {popOuvert && <PanneauPopulation onFermer={() => s.ouvrirRecensement(false)} />}
+    </>
+  )
+}
+
+/** Rang du bas : ce qui arrive au village, et sur quoi il n'a qu'une prise indirecte. */
+export function JetonsEtat() {
+  const s = useGame()
+  const morale = labelMorale(s.morale)
+  const jour = Math.floor((s.lastSeen - s.createdAt) / DAY_MS) + 1
+  const phase = nomPhase(phaseJour(s.lastSeen, s.createdAt, DAY_MS))
+
+  return (
+    <div className="hud-groupe hud-monde">
         <Infobulle
           dataTuto="ambiance"
           className="pastille"
@@ -346,8 +372,10 @@ export function BarreRessources() {
           ]}
           note="Touches 1 à 4 pour accélérer — retour forcé en ×1 pendant les batailles."
         >
+          {/* « Jour 10 — Jour » se lisait deux fois : le moment de la journée
+              passe en minuscules, à sa place de complément */}
           ☀️<span className="opt">Jour</span> <b>{jour}</b>
-          <span className="opt2">— {phase}</span>
+          <span className="opt2">· {phase.toLowerCase()}</span>
         </Infobulle>
         <Infobulle
           className="pastille"
@@ -380,9 +408,7 @@ export function BarreRessources() {
           <span className="meteo-ico">{METEOS[s.meteo].emoji}</span>
         </Infobulle>
         <ControleVitesse />
-      </div>
-      {popOuvert && <PanneauPopulation onFermer={() => s.ouvrirRecensement(false)} />}
-    </>
+    </div>
   )
 }
 

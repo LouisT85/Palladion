@@ -1498,6 +1498,68 @@ svg.carte-exp {
 }
 
 /* ── le fil rouge en entier ────────────────────────────── */
+/* l'en-tête d'acte : le repère de récit. Il ne dépend pas d'un clic, il est là. */
+.acte-tete {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 16px 0 4px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--bord);
+  background: #0c1826;
+  font-size: 12.5px;
+}
+.acte-nom {
+  font-weight: 700;
+  color: #8fa3b2;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.acte-tete.courant {
+  border-color: var(--gold-sombre);
+  background: linear-gradient(90deg, #241c08, #0c1826 62%);
+  box-shadow: 0 0 14px #e8c04a26;
+}
+.acte-tete.courant .acte-nom {
+  color: var(--gold);
+}
+.acte-tete.acheve .acte-nom {
+  color: #6f9a7d;
+}
+.acte-marque {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.acte-tete.courant .acte-marque {
+  color: #f0d9a0;
+}
+.acte-compte {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.acte-jauge {
+  flex: 0 0 84px;
+  height: 5px;
+  border-radius: 3px;
+  background: #050d15;
+  overflow: hidden;
+}
+.acte-jauge > div {
+  height: 100%;
+  background: var(--gold-sombre);
+  transition: width 0.4s;
+}
+.acte-tete.courant .acte-jauge > div {
+  background: var(--gold);
+}
+.acte-tete.acheve .acte-jauge > div {
+  background: #4d7a58;
+}
 .mission-jauge-tout {
   height: 8px;
   border-radius: 4px;

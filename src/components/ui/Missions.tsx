@@ -1,5 +1,14 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { MISSIONS, acteDe, missionsActives, rangMission, type CibleMission, type MissionDef } from '../../game/missions'
+import {
+  ACTES,
+  MISSIONS,
+  acteCourant,
+  avancementActe,
+  missionsActives,
+  rangMission,
+  type CibleMission,
+  type MissionDef,
+} from '../../game/missions'
 import { useGame } from '../../game/store'
 import { BUILDINGS } from '../../game/data'
 import type { ResourceId } from '../../game/types'
@@ -89,7 +98,9 @@ export function MissionsTracker() {
           aria-expanded={!replie}
         >
           🏅 Missions{' '}
+          {/* l'acte en cours est le repère de récit : il s'affiche sans qu'on clique */}
           <span className="compte-missions">
+            {ACTES[acteCourant(s.missionsReclamees)].nom.split(' — ')[0]} ·{' '}
             {s.missionsReclamees.length}/{MISSIONS.length}
           </span>
           {/* replié, le tracker signale quand une récompense attend */}
@@ -149,6 +160,30 @@ export function MissionsTracker() {
 }
 
 /**
+ * L'en-tête d'un acte, toujours visible — c'est lui qui dit où l'on en est du
+ * récit. L'acte en cours porte sa marque et son avancement ; les suivants sont
+ * scellés, puisqu'un acte doit être achevé avant que le suivant ne s'ouvre.
+ */
+function EnteteActe({ i, courant, reclamees }: { i: number; courant: number; reclamees: string[] }) {
+  const { faites, total } = avancementActe(i, reclamees)
+  const etat = i < courant ? 'acheve' : i === courant ? 'courant' : 'scelle'
+  return (
+    <div className={`acte-tete ${etat}`}>
+      <span className="acte-nom">{ACTES[i].nom}</span>
+      {etat === 'courant' && <span className="acte-marque">◆ acte en cours</span>}
+      {etat === 'acheve' && <span className="acte-marque">✔ achevé</span>}
+      {etat === 'scelle' && <span className="acte-marque">🔒 scellé</span>}
+      <span className="acte-compte">
+        {faites}/{total}
+      </span>
+      <span className="acte-jauge">
+        <div style={{ width: `${(faites / total) * 100}%` }} />
+      </span>
+    </div>
+  )
+}
+
+/**
  * Le fil rouge en entier. Les missions réclamées restent visibles, barrées : on
  * doit pouvoir mesurer le chemin parcouru, pas seulement celui qui reste.
  */
@@ -157,12 +192,13 @@ export function PanneauMissions() {
   const actives = missionsActives(s.missionsReclamees)
   const idsActives = new Set(actives.map((m) => m.id))
   const faites = s.missionsReclamees.length
+  const iActe = acteCourant(s.missionsReclamees)
   // on s'ouvre sur ce qui est jouable, pas sur trente lignes déjà réglées
   const premiereOuverte = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     premiereOuverte.current?.scrollIntoView({ block: 'center' })
   }, [])
-  let acteAffiche = ''
+  let acteAffiche = -1
 
   return (
     <Modale
@@ -174,8 +210,9 @@ export function PanneauMissions() {
           <b style={{ color: '#e8c04a' }}>
             {faites}/{MISSIONS.length}
           </b>{' '}
-          missions accomplies. Elles se réclament dans l’ordre : les trois suivantes sont toujours ouvertes, et chacune
-          mène à l’écran où elle se joue.
+          missions accomplies — <b style={{ color: '#e8dcc0' }}>{ACTES[iActe].nom}</b>. Trois missions sont ouvertes à la
+          fois, jamais au-delà de l’acte en cours : <b>il faut achever un acte pour que le suivant se descelle</b>.
+          Chacune mène à l’écran où elle se joue.
         </>
       }
     >
@@ -190,12 +227,12 @@ export function PanneauMissions() {
           const fait = p.cur >= p.max
           const etat = reclamee ? 'reclamee' : ouverte ? (fait ? 'prete' : 'ouverte') : 'verrouillee'
           const rang = rangMission(m.id)
-          const acte = acteDe(rang)
-          const nouvelActe = acte !== acteAffiche
-          if (nouvelActe) acteAffiche = acte
+          const iSien = ACTES.findIndex((a) => rang <= a.fin)
+          const nouvelActe = iSien !== acteAffiche
+          if (nouvelActe) acteAffiche = iSien
           return (
             <Fragment key={m.id}>
-              {nouvelActe && <h3 className="heros-section">{acte}</h3>}
+              {nouvelActe && <EnteteActe i={iSien} courant={iActe} reclamees={s.missionsReclamees} />}
               <div
                 className={`mission-ligne-tout ${etat}`}
                 ref={ouverte && m.id === actives[0]?.id ? premiereOuverte : undefined}

@@ -306,7 +306,7 @@ export const MISSIONS: MissionDef[] = [
     titre: 'Un forgeron à l’enclume',
     desc: 'Mettez un villageois à la forge : le soufflet ne se lève pas sans main.',
     progres: (s) => seuil(auPoste(s, 'forge'), 1),
-    recompense: { res: { bronze: 70 } },
+    recompense: { res: { bronze: 90, grain: 60 } },
   },
   {
     id: 'commerce-egeen',
@@ -338,7 +338,7 @@ export const MISSIONS: MissionDef[] = [
     titre: 'Dévotion',
     desc: 'Entrez en grâce auprès d’un Olympien (relation ≥ 25). Athéna murmure aux fidèles…',
     progres: (s) => jalons(ferveurMax(s) >= 25),
-    recompense: { faveur: 25 },
+    recompense: { res: { grain: 80 }, faveur: 30 },
   },
   {
     id: 'deux-etoiles',
@@ -653,7 +653,38 @@ export function acteDe(rang: number): string {
   return (ACTES.find((a) => rang <= a.fin) ?? ACTES[ACTES.length - 1]).nom
 }
 
-/** les 3 premières missions non réclamées, dans l'ordre du fil rouge */
+/**
+ * Les missions ouvertes : au plus trois, et TOUJOURS dans l'acte en cours.
+ *
+ * Le fil rouge étant strictement ordonné, la coupure d'acte ne se voyait pas :
+ * on passait de « repoussez un assaut » à « élevez un temple » sans que rien ne
+ * marque le changement de chapitre. Un acte est désormais un vrai palier — on
+ * l'achève avant de voir le suivant s'ouvrir, ce qui donne au fil sa respiration.
+ */
 export function missionsActives(reclamees: string[]): MissionDef[] {
-  return MISSIONS.filter((m) => !reclamees.includes(m.id)).slice(0, 3)
+  const restantes = MISSIONS.filter((m) => !reclamees.includes(m.id))
+  if (restantes.length === 0) return []
+  const fin = finActe(rangMission(restantes[0].id))
+  return restantes.filter((m) => rangMission(m.id) <= fin).slice(0, 3)
+}
+
+/** rang de la dernière mission de l'acte auquel appartient ce rang */
+export function finActe(rang: number): number {
+  return (ACTES.find((a) => rang <= a.fin) ?? ACTES[ACTES.length - 1]).fin
+}
+
+/** l'acte en cours : le premier dont toutes les missions ne sont pas réclamées */
+export function acteCourant(reclamees: string[]): number {
+  const restantes = MISSIONS.filter((m) => !reclamees.includes(m.id))
+  if (restantes.length === 0) return ACTES.length - 1
+  const rang = rangMission(restantes[0].id)
+  return ACTES.findIndex((a) => rang <= a.fin)
+}
+
+/** avancement d'un acte : combien de ses missions sont déjà réclamées */
+export function avancementActe(i: number, reclamees: string[]): { faites: number; total: number } {
+  const debut = i === 0 ? 1 : ACTES[i - 1].fin + 1
+  const total = ACTES[i].fin - debut + 1
+  const faites = MISSIONS.slice(debut - 1, ACTES[i].fin).filter((m) => reclamees.includes(m.id)).length
+  return { faites, total }
 }

@@ -10,6 +10,7 @@ import {
   tauxParMinute,
   useGame,
 } from '../../game/store'
+import { METEOS, SAISONS } from '../../game/saisons'
 import { nomPhase, phaseJour } from '../map/Terrain'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
@@ -186,6 +187,14 @@ export function BarreRessources() {
         <span className="pastille" title={`Jour ${jour} — ${phase}`}>
           ☀️<span className="opt">Jour</span> <b>{jour}</b>
           <span className="opt2">— {phase}</span>
+        </span>
+        <span
+          className="pastille"
+          title={`${SAISONS[s.saison].nom} — ${SAISONS[s.saison].desc}\n${METEOS[s.meteo].emoji} ${METEOS[s.meteo].nom} : ${METEOS[s.meteo].desc}`}
+        >
+          {SAISONS[s.saison].emoji}
+          <b>{SAISONS[s.saison].nom}</b>
+          <span className="meteo-ico">{METEOS[s.meteo].emoji}</span>
         </span>
         <ControleVitesse />
       </div>

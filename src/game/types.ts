@@ -199,10 +199,15 @@ export interface Projectile {
 
 export interface BattleEffect {
   id: string
-  type: 'foudre' | 'benediction' | 'breche' | 'impact' | 'poussiere'
+  type: 'foudre' | 'benediction' | 'breche' | 'impact' | 'poussiere' | 'divin' | 'heros'
   x: number
   y: number
   until: number
+  /** effets divins : quel dieu frappe, et à quelle ferveur (0 offensé → 4 élu) */
+  dieu?: GodId
+  palier?: number
+  /** effets de héros : lequel */
+  heros?: string
 }
 
 export interface BattleResult {
@@ -237,6 +242,11 @@ export interface SecteurBataille {
   hp: number
   max: number
   breche: boolean
+  /** un héros bouche la brèche de son corps : infranchissable jusqu'à cet instant */
+  boucheeJusqua?: number
+  /** un héros couvre ce pan : part des dégâts de siège absorbée, jusqu'à cet instant */
+  abriJusqua?: number
+  abriPart?: number
 }
 
 export interface BattleState {
@@ -259,6 +269,9 @@ export interface BattleState {
   /** puissance des bénédictions en cours — dépend de la relation au dieu */
   defBuffForce?: number
   atkBuffForce?: number
+  /** passifs de héros appliqués au camp du joueur, pour toute la bataille */
+  bonusAtkJoueur?: number
+  reducJoueur?: number
   result: BattleResult | null
   /** effectifs défenseurs engagés au départ (pour calculer les pertes) */
   engages: Partial<Record<UnitId, number>>

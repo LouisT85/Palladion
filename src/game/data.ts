@@ -111,6 +111,21 @@ export function multRelation(relation: number): number {
   return 1 + (Math.max(-100, Math.min(100, relation)) / 100) * 0.6
 }
 
+/**
+ * Index du palier de ferveur : 0 maudit … 3 indifférent … 6 élu.
+ * Pilote la couleur de la jauge ET la mise en scène des bénédictions —
+ * un dieu offensé ne doit pas frapper comme un dieu qui vous chérit.
+ */
+export function palierFerveur(relation: number): number {
+  if (relation >= 70) return 6
+  if (relation >= 40) return 5
+  if (relation >= 15) return 4
+  if (relation > -15) return 3
+  if (relation > -40) return 2
+  if (relation > -70) return 1
+  return 0
+}
+
 /** libellé de la ferveur, pour l'UI */
 export function nomFerveur(relation: number): string {
   if (relation >= 70) return 'Élu du dieu'

@@ -190,6 +190,12 @@ export const METEOS: Record<MeteoId, MeteoDef> = {
 /** l'orage double la générosité de Zeus — un clin d'œil au maître du tonnerre */
 export const BONUS_ORAGE_ZEUS = 1.35
 
+/** la météo tourne deux fois par journée de jeu (≈ 4 min réelles) */
+export const DUREE_METEO_MS = 4 * 60_000
+
+/** l'hiver ferme la mer : le port ne tourne plus qu'au tiers */
+export const PORT_HIVER = 0.35
+
 /** saison courante d'après le nombre de journées écoulées depuis la fondation */
 export function saisonDe(jour: number): SaisonId {
   return SAISON_IDS[Math.floor(jour / JOURS_PAR_SAISON) % SAISON_IDS.length]
@@ -215,4 +221,23 @@ export function tirerMeteo(saison: SaisonId): MeteoId {
 /** multiplicateur de production d'une ressource, saison × météo */
 export function multProduction(saison: SaisonId, meteo: MeteoId, res: ResourceId): number {
   return (SAISONS[saison].prod[res] ?? 1) * METEOS[meteo].prod
+}
+
+/** ce que le ciel change à une bataille : portée, allure, force des tirs */
+export interface ModsBataille {
+  portee: number
+  vitesse: number
+  tir: number
+}
+
+export function modsBataille(meteo: MeteoId): ModsBataille {
+  const m = METEOS[meteo]
+  return { portee: m.portee, vitesse: m.vitesse, tir: m.tir }
+}
+
+/** phrase d'ambiance : « Automne · Pluie » et ce que ça coûte, en une ligne */
+export function resumeCiel(saison: SaisonId, meteo: MeteoId): string {
+  const s = SAISONS[saison]
+  const m = METEOS[meteo]
+  return `${s.emoji} ${s.nom} · ${m.emoji} ${m.nom} — ${m.desc}`
 }

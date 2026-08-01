@@ -28,6 +28,7 @@ import {
   SECTEURS,
   multRelation,
   nbFronts,
+  palierFerveur,
   STOCKAGE,
   STORAGE_KEY,
   TAUX_PORT,
@@ -45,6 +46,7 @@ import {
   descVague,
   foudreDeZeus,
   genererVague,
+  marqueDivine,
   pertesDefense,
   resoudreHorsLigne,
   sonnerRetraite,
@@ -62,6 +64,19 @@ import {
   type VillageCible,
 } from './expeditions'
 import { MISSIONS_PAR_ID, missionsActives } from './missions'
+import {
+  BONUS_ORAGE_ZEUS,
+  DUREE_METEO_MS,
+  METEOS,
+  PORT_HIVER,
+  SAISONS,
+  modsBataille,
+  multProduction,
+  saisonDe,
+  tirerMeteo,
+  type MeteoId,
+  type SaisonId,
+} from './saisons'
 import type {
   ActiveEvent,
   BattleState,
@@ -139,6 +154,11 @@ export interface GameState {
   vitesse: number
   /** missions dont la récompense a été réclamée */
   missionsReclamees: string[]
+  /** saison en cours — déduite du jour, mémorisée pour détecter le basculement */
+  saison: SaisonId
+  meteo: MeteoId
+  /** instant du prochain tirage de météo */
+  meteoJusqua: number
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -247,23 +267,43 @@ function syncVillageois(s: GameState): void {
     }
   }
 }
-/** production nette par minute pour l'affichage (hors conso) */
-export function tauxParMinute(s: GameState): Record<ResourceId, number> {
+/** l'hiver ferme la mer : plus une nef ne quitte le port */
+export function merFermee(s: Pick<GameState, 'saison'>): boolean {
+  return !!SAISONS[s.saison].merFermee
+}
+
+/** jour de jeu en cours (1 = jour de la fondation) */
+export function jourDe(s: Pick<GameState, 'lastSeen' | 'createdAt'>): number {
+  return Math.floor((s.lastSeen - s.createdAt) / DAY_MS) + 1
+}
+
+/**
+ * Production brute par minute : ateliers au prorata de leurs postes tenus,
+ * ambiance du village, puis saison et ciel du jour. Source de vérité unique
+ * pour le tick, l'affichage du HUD et la résolution hors-ligne.
+ */
+export function productionParMinute(s: GameState, now: number): Record<ResourceId, number> {
   const m = multMorale(s.morale)
-  const drought = Date.now() < s.droughtUntil ? 0.5 : 1
-  const r = (b: BuildingId) => rendement(s, b)
+  const drought = now < s.droughtUntil ? 0.5 : 1
+  const rd = (b: BuildingId) => rendement(s, b)
+  const ciel = (r: ResourceId) => multProduction(s.saison, s.meteo, r)
+  // l'hiver ferme la mer : les navires marchands restent au mouillage
+  const port =
+    PROD.port[s.buildings.port.level] * rd('port') * (SAISONS[s.saison].merFermee ? PORT_HIVER : 1)
   return {
-    bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level] * r('scierie')) * m,
-    pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level] * r('carriere')) * m,
-    grain:
-      (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * r('ferme') * drought) * m -
-      s.pop * CONSO_POP -
-      armeeTotale(s.army) * CONSO_SOLDAT,
-    bronze:
-      (BASE_PROD.bronze +
-        PROD.forge[s.buildings.forge.level] * r('forge') +
-        PROD.port[s.buildings.port.level] * r('port')) *
-      m,
+    bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level] * rd('scierie')) * m * ciel('bois'),
+    pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level] * rd('carriere')) * m * ciel('pierre'),
+    grain: (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * rd('ferme') * drought) * m * ciel('grain'),
+    bronze: (BASE_PROD.bronze + PROD.forge[s.buildings.forge.level] * rd('forge') + port) * m * ciel('bronze'),
+  }
+}
+
+/** production nette par minute pour l'affichage (production − consommation) */
+export function tauxParMinute(s: GameState): Record<ResourceId, number> {
+  const brut = productionParMinute(s, s.lastSeen)
+  return {
+    ...brut,
+    grain: brut.grain - s.pop * CONSO_POP - armeeTotale(s.army) * CONSO_SOLDAT,
   }
 }
 export function coutBenediction(s: Pick<GameState, 'buildings'>, g: GodId): number {
@@ -470,6 +510,9 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     nextDesertAt: 0,
     vitesse: 1,
     missionsReclamees: [],
+    saison: 'printemps',
+    meteo: 'clair',
+    meteoJusqua: now + DUREE_METEO_MS,
     missionsNotifiees: [],
     battle: null,
     expedition: null,
@@ -545,9 +588,54 @@ const CHAMPS_SAUVES = [
   'nextDesertAt',
   'vitesse',
   'missionsReclamees',
+  'saison',
+  'meteo',
+  'meteoJusqua',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
+
+// ── Saisons et météo ─────────────────────────────────────────────────────────
+/** ce qu'une saison change aux récoltes, en une phrase lisible */
+function resumeRecoltes(saison: SaisonId): string {
+  const parts: string[] = []
+  for (const r of Object.keys(RES) as ResourceId[]) {
+    const v = SAISONS[saison].prod[r] ?? 1
+    if (Math.abs(v - 1) < 0.02) continue
+    parts.push(`${RES[r].nom.toLowerCase()} ${v > 1 ? '+' : '−'}${Math.round(Math.abs(v - 1) * 100)} %`)
+  }
+  return parts.length ? `Récoltes : ${parts.join(', ')}.` : 'Les récoltes suivent leur cours.'
+}
+
+/**
+ * Fait tourner le calendrier : la saison suit les journées écoulées, la météo
+ * se retire toutes les DUREE_METEO_MS. Les deux pèsent sur la récolte comme sur
+ * la bataille — et se voient sur la carte.
+ */
+function tournerCiel(s: GameState, now: number): void {
+  const saison = saisonDe(Math.floor((now - s.createdAt) / DAY_MS))
+  if (saison !== s.saison) {
+    s.saison = saison
+    s.meteo = tirerMeteo(saison)
+    s.meteoJusqua = now + DUREE_METEO_MS
+    const def = SAISONS[saison]
+    pushToast(s, def.emoji, `${def.nom} — ${def.desc}`)
+    pushReport(s, def.emoji, `${def.nom} sur la Troade`, [
+      def.desc,
+      resumeRecoltes(saison),
+      def.merFermee
+        ? 'La mer se ferme : le port ne tourne plus qu’au tiers et les places d’outre-mer sont hors d’atteinte.'
+        : 'La mer est ouverte : on peut porter la guerre au-delà du détroit.',
+    ])
+    return
+  }
+  if (now >= s.meteoJusqua) {
+    const avant = s.meteo
+    s.meteo = tirerMeteo(saison)
+    s.meteoJusqua = now + DUREE_METEO_MS
+    if (s.meteo !== avant) pushToast(s, METEOS[s.meteo].emoji, `${METEOS[s.meteo].nom} — ${METEOS[s.meteo].desc}`)
+  }
+}
 
 // ── Effets différés ───────────────────────────────────────────────────────────
 function appliquerEffetDiffere(s: GameState, eff: PendingEffect, now: number): void {
@@ -844,6 +932,7 @@ export const useGame = create<GameState>()(
           if (s.nextDesertAt > 0) s.nextDesertAt -= avance
           if (s.droughtUntil > now) s.droughtUntil -= avance
           if (s.aresBoostUntil > now) s.aresBoostUntil -= avance
+          s.meteoJusqua -= avance
           for (const bId of BUILDING_IDS) {
             const b = s.buildings[bId]
             if (b.busyUntil !== undefined) b.busyUntil -= avance
@@ -869,6 +958,9 @@ export const useGame = create<GameState>()(
         s.threatMod = s.threatMod < 0 ? Math.min(0, s.threatMod + dtJeu / 60) : s.threatMod
         s.threat = calcThreat(s, now)
 
+        // le calendrier tourne : printemps → été → automne → hiver, et le ciel avec
+        tournerCiel(s, now)
+
         // mode test : coffres pleins en permanence
         if (MODE_TEST) {
           const max = stockageMax(s)
@@ -877,19 +969,7 @@ export const useGame = create<GameState>()(
           if (s.pop < popCap(s)) s.pop = popCap(s)
         } else {
           // production — chaque atelier ne rend qu'au prorata de ses postes tenus
-          const m = multMorale(s.morale)
-          const drought = now < s.droughtUntil ? 0.5 : 1
-          const rd = (b: BuildingId) => rendement(s, b)
-          const parMin: Record<ResourceId, number> = {
-            bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level] * rd('scierie')) * m,
-            pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level] * rd('carriere')) * m,
-            grain: (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * rd('ferme') * drought) * m,
-            bronze:
-              (BASE_PROD.bronze +
-                PROD.forge[s.buildings.forge.level] * rd('forge') +
-                PROD.port[s.buildings.port.level] * rd('port')) *
-              m,
-          }
+          const parMin = productionParMinute(s, now)
           for (const r of Object.keys(parMin) as ResourceId[]) {
             s.resources[r] = clampRes(s, r, s.resources[r] + (parMin[r] / 60) * dtJeu)
           }
@@ -898,7 +978,7 @@ export const useGame = create<GameState>()(
           // sans prêtre au temple, les dieux n'entendent rien
           s.faveur = Math.min(
             FAVEUR_MAX,
-            s.faveur + ((PROD.temple[s.buildings.temple.level] * rd('temple')) / 60) * dtJeu,
+            s.faveur + ((PROD.temple[s.buildings.temple.level] * rendement(s, 'temple')) / 60) * dtJeu,
           )
         }
 
@@ -974,7 +1054,13 @@ export const useGame = create<GameState>()(
           const v = VILLAGES_PAR_ID[s.expedition.villageId]
           const b = s.expedition.battle
           if (now - b.startedAt > EXPEDITION_TIMEOUT_MS) sonnerRetraite(b)
-          const out = tickBataille(b, { now, dt, wallHp: s.expedition.wallHp, wallLevel: v.mur })
+          const out = tickBataille(b, {
+            now,
+            dt,
+            wallHp: s.expedition.wallHp,
+            wallLevel: v.mur,
+            mods: modsBataille(s.meteo),
+          })
           s.expedition.wallHp = out.wallHp
           if (out.brecheOuverte) pushToast(s, '💥', `Brèche dans les murs de ${v.nom} !`)
           if (out.finie) finirExpedition(s, v, out.pillage, now)
@@ -982,7 +1068,9 @@ export const useGame = create<GameState>()(
 
         // ── attaques sur le village ──
         if (!s.battle) {
-          const fenetre = s.buildings.remparts.level >= 2 ? ALERTE_LONGUE_MS : ALERTE_MS
+          // par la brume, les éclaireurs ne voient venir la colonne que trop tard
+          const fenetre =
+            (s.buildings.remparts.level >= 2 ? ALERTE_LONGUE_MS : ALERTE_MS) * METEOS[s.meteo].alerte
           if (!s.warned && now >= s.nextAttackAt - fenetre) {
             armerAlerte(s)
             pushToast(s, '🐎', `Éclaireurs : ${tailleVague(s.incomingWave!)} assaillants approchent par l’est !`)
@@ -1019,6 +1107,7 @@ export const useGame = create<GameState>()(
             dt,
             wallHp: s.wallHp,
             wallLevel: s.buildings.remparts.level,
+            mods: modsBataille(s.meteo),
           })
           s.wallHp = out.wallHp
           if (out.brecheOuverte) pushToast(s, '💥', 'BRÈCHE ! Les remparts ont cédé !')
@@ -1278,18 +1367,23 @@ export const useGame = create<GameState>()(
         s.faveur -= cout
         s.gods[g].cooldownUntil = now + dieu.benediction.cooldown / (MODE_TEST ? 12 : 1)
         s.gods[g].relation = Math.min(100, s.gods[g].relation + 2)
-        // ferveur : plus le dieu vous chérit, plus son bras est lourd
+        // ferveur : plus le dieu vous chérit, plus son bras est lourd — et plus
+        // sa manifestation est spectaculaire (le palier pilote la mise en scène)
         const force = multRelation(s.gods[g].relation)
+        const palier = palierFerveur(s.gods[g].relation)
         const pct = (x: number) => Math.round(x * 100)
+        if (bataille && g !== 'zeus') marqueDivine(bataille, now, g, palier)
 
         switch (g) {
           case 'zeus': {
             if (bataille) {
-              const touches = foudreDeZeus(bataille, now, force)
+              // le ciel gronde déjà : la foudre du maître du tonnerre tombe plus lourd
+              const orage = s.meteo === 'orage' ? BONUS_ORAGE_ZEUS : 1
+              const touches = foudreDeZeus(bataille, now, force * orage, palier)
               pushToast(
                 s,
                 '⚡',
-                `La foudre de Zeus frappe ${touches} ennemis (${pct(force)} % de puissance) !`,
+                `La foudre de Zeus frappe ${touches} ennemis (${pct(force * orage)} % de puissance)${orage > 1 ? ' — l’orage la porte !' : ''}`,
               )
             }
             break
@@ -1305,15 +1399,6 @@ export const useGame = create<GameState>()(
                 if (sec.hp > 0) sec.breche = false
               }
               s.battle.breche = s.battle.secteurs.every((x) => x.breche)
-            }
-            if (s.battle) {
-              s.battle.effects.push({
-                id: uid('fx'),
-                type: 'benediction',
-                x: s.battle.geo.porte.x,
-                y: s.battle.geo.porte.y,
-                until: now + 2000,
-              })
             }
             pushToast(s, '🔱', `Les pierres se ressoudent : remparts restaurés de ${pct(part)} %.`)
             break
@@ -1395,6 +1480,10 @@ export const useGame = create<GameState>()(
         if (s.expedition || s.battle) return
         const v = VILLAGES_PAR_ID[villageId]
         if (!v) return
+        if (v.maritime && SAISONS[s.saison].merFermee) {
+          pushToast(s, '❄️', `${v.nom} est au-delà du détroit : la mer est prise, aucune nef ne partira avant le dégel.`)
+          return
+        }
         const dernier = s.expeditions[villageId]?.dernierRaid ?? 0
         const now = Date.now()
         if (now - dernier < RAID_COOLDOWN_MS / (MODE_TEST ? 10 : 1)) return

@@ -4,6 +4,7 @@ import type {
   BattleState,
   EnemyId,
   Fighter,
+  GodId,
   SecteurBataille,
   UnitId,
   WaveUnit,
@@ -223,6 +224,11 @@ export interface OptionsBataille {
   fronts?: { nom: string; angle: number; spawn: { x: number; y: number } }[]
   /** points de structure totaux à répartir entre les secteurs */
   wallHpTotal?: number
+  /** passifs de héros : multiplicateur d'attaque et de dégâts subis, camp du joueur */
+  bonusAtkJoueur?: number
+  reducJoueur?: number
+  /** les murs sont déjà ouverts avant le premier coup (ruse d'Ulysse) */
+  sansSiege?: boolean
 }
 
 export function creerBataille(opts: OptionsBataille): BattleState {
@@ -234,7 +240,8 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     opts.fronts && opts.fronts.length > 0
       ? opts.fronts
       : [{ nom: 'Porte de l’est', angle: 0, spawn: geo.spawn }]
-  const hpTotal = opts.wallHpTotal ?? WALL_HP[wallLevel] ?? 0
+  // la ruse d'Ulysse : on entre par une offrande, pas par une brèche
+  const hpTotal = opts.sansSiege ? 0 : (opts.wallHpTotal ?? WALL_HP[wallLevel] ?? 0)
   // le mur est également solide partout : chaque front n'en attaque qu'une part
   const hpParSecteur = fronts.length > 0 ? hpTotal / fronts.length : 0
   const secteurs = fronts.map((f) => {
@@ -361,15 +368,38 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     secteurs,
     effects: [],
     phase: 'approche',
-    breche: wallLevel === 0,
+    breche: wallLevel === 0 || !!opts.sansSiege,
     startedAt: now,
     campJoueur,
     geo,
     defBuffUntil: 0,
     atkBuffUntil: 0,
+    bonusAtkJoueur: opts.bonusAtkJoueur,
+    reducJoueur: opts.reducJoueur,
     result: null,
     engages,
   }
+}
+
+/** le pan qui concentre la menace : le plus assailli, pondéré par ce qu'il a déjà encaissé */
+export function secteurChaud(b: BattleState): SecteurBataille | null {
+  if (b.secteurs.length === 0) return null
+  const parSecteur = b.secteurs.map(() => 0)
+  for (const f of b.fighters) {
+    if (f.camp !== 'attaque' || f.etat === 'mort' || f.etat === 'fuite') continue
+    parSecteur[Math.min(f.secteur ?? 0, parSecteur.length - 1)]++
+  }
+  let best = b.secteurs[0]
+  let score = -Infinity
+  b.secteurs.forEach((s, i) => {
+    const entame = s.max > 0 ? 1 - s.hp / s.max : 1
+    const v = parSecteur[i] + entame * 7 - (s.breche ? 5 : 0)
+    if (v > score) {
+      score = v
+      best = s
+    }
+  })
+  return best
 }
 
 function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {
@@ -424,7 +454,11 @@ export interface TickBatailleCtx {
   dt: number
   wallHp: number
   wallLevel: number
+  /** ce que le ciel impose ce jour-là : portée, allure, force des tirs */
+  mods?: { portee: number; vitesse: number; tir: number }
 }
+
+const CIEL_CLAIR = { portee: 1, vitesse: 1, tir: 1 }
 
 export interface TickBatailleOut {
   wallHp: number
@@ -439,7 +473,10 @@ export interface TickBatailleOut {
 
 /** Fait avancer la bataille d'un pas. `b` est un draft mutable (immer). */
 export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBatailleOut {
-  const { now, dt } = ctx
+  const { now } = ctx
+  const ciel = ctx.mods ?? CIEL_CLAIR
+  // la boue, la neige et la canicule freinent tout le monde de la même façon
+  const dt = ctx.dt * ciel.vitesse
   const geo = b.geo
   const atkVivants = vivants(b, 'attaque')
   const defVivants = vivants(b, 'defense')
@@ -448,14 +485,20 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
   const enrage = now < b.atkBuffUntil ? b.campJoueur : null
   const forceAtk = b.atkBuffForce || 1.6
   const forceDef = b.defBuffForce || 0.4
-  const multDegats = (attaquant: Fighter): number => (attaquant.camp === enrage ? forceAtk : 1)
-  const multRecus = (cible: Fighter): number => (cible.camp === protege ? forceDef : 1)
+  // passifs de héros : ils valent pour toute la bataille, en plus des bénédictions
+  const bonusHeros = b.bonusAtkJoueur ?? 1
+  const reducHeros = b.reducJoueur ?? 1
+  const multDegats = (attaquant: Fighter): number =>
+    (attaquant.camp === enrage ? forceAtk : 1) * (attaquant.camp === b.campJoueur ? bonusHeros : 1)
+  const multRecus = (cible: Fighter): number =>
+    (cible.camp === protege ? forceDef : 1) * (cible.camp === b.campJoueur ? reducHeros : 1)
   let brecheOuverte = false
 
   /** le secteur d'un assaillant (défaut : le premier front) */
   const secteurDe = (f: Fighter) => b.secteurs[Math.min(f.secteur ?? 0, b.secteurs.length - 1)]
+  // un héros planté dans la brèche vaut un pan de mur : le secteur redevient infranchissable
   const murTient = (s: (typeof b.secteurs)[number] | undefined): boolean =>
-    ctx.wallLevel > 0 && !!s && s.hp > 0 && !s.breche
+    !!s && (now < (s.boucheeJusqua ?? 0) || (ctx.wallLevel > 0 && s.hp > 0 && !s.breche))
 
   /**
    * Déroute — uniquement pour les troupes du JOUEUR en expédition :
@@ -502,11 +545,13 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
           f.etat = 'melee'
         } else if (now >= f.nextHit && sect) {
           f.nextHit = now + CADENCE_MUR
-          sect.hp -= statsDe(f.type).wallDps * multDegats(f)
+          // un héros adossé au pan encaisse sa part des coups de bélier
+          const abri = now < (sect.abriJusqua ?? 0) ? 1 - (sect.abriPart ?? 0) : 1
+          sect.hp -= statsDe(f.type).wallDps * multDegats(f) * abri
           if (Math.random() < 0.22 && b.effects.length < 40) {
             b.effects.push({ id: uid('fx'), type: 'poussiere', x: f.x - 5, y: f.y - 7, until: now + 650 })
           }
-          if (sect.hp <= 0) {
+          if (sect.hp <= 0 && !sect.breche) {
             sect.hp = 0
             sect.breche = true
             brecheOuverte = true
@@ -549,7 +594,8 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       }
       if (f.etat === 'melee') versCible(f, dt)
       if (now >= f.nextHit) {
-        const portee = surMur ? PORTEE_ARC_MUR : PORTEE_ARC_SOL
+        // par la brume ou sous la pluie, on ne voit ni ne porte aussi loin
+        const portee = (surMur ? PORTEE_ARC_MUR : PORTEE_ARC_SOL) * ciel.portee
         const cibles = atkVivants.filter((a) => dist(f, a) <= portee)
         const cible = plusProche(f, cibles)
         if (cible) {
@@ -564,7 +610,8 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
             start: now,
             dur: Math.max(260, (d / VITESSE_FLECHE) * 1000),
             targetId: cible.id,
-            dmg: f.atk * multDegats(f),
+            // corde détendue par la pluie : la flèche arrive, mais mollement
+            dmg: f.atk * multDegats(f) * ciel.tir,
           })
         }
       }
@@ -602,7 +649,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     for (const t of b.toursDef) {
       if (now < t.nextHit) continue
       if (secteurProche(b, t).breche) continue
-      const aPortee = atkVivants.filter((a) => a.etat !== 'mort' && dist(t, a) <= TOUR_PORTEE)
+      const aPortee = atkVivants.filter((a) => a.etat !== 'mort' && dist(t, a) <= TOUR_PORTEE * ciel.portee)
       const cible = plusProche(t, aPortee)
       if (!cible) continue
       t.nextHit = now + TOUR_CADENCE_MS
@@ -616,7 +663,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
         start: now,
         dur: Math.max(260, (d / VITESSE_FLECHE) * 1000),
         targetId: cible.id,
-        dmg: TOUR_DMG * enragees,
+        dmg: TOUR_DMG * enragees * ciel.tir,
       })
     }
   }
@@ -705,7 +752,7 @@ export function pertesAttaque(b: BattleState): number {
  * Foudre de Zeus : ~120 dégâts (× la ferveur du dieu) répartis sur les 6 ennemis
  * les plus proches du point le plus chaud — la brèche s'il y en a une, sinon la porte.
  */
-export function foudreDeZeus(b: BattleState, now: number, force = 1): number {
+export function foudreDeZeus(b: BattleState, now: number, force = 1, palier = 2): number {
   const campEnnemi = b.campJoueur === 'defense' ? 'attaque' : 'defense'
   const trou = b.secteurs.find((s) => s.breche)
   const epicentre = trou ?? b.geo.porte
@@ -718,9 +765,74 @@ export function foudreDeZeus(b: BattleState, now: number, force = 1): number {
       c.etat = 'mort'
       c.mortAt = now
     }
-    b.effects.push({ id: uid('fx'), type: 'foudre', x: c.x, y: c.y, until: now + 900 })
+    b.effects.push({ id: uid('fx'), type: 'divin', dieu: 'zeus', palier, x: c.x, y: c.y, until: now + 1100 })
   }
   return cibles.length
+}
+
+/** marque visuellement l'intervention d'un dieu, au point le plus chaud de la scène */
+export function marqueDivine(b: BattleState, now: number, dieu: GodId, palier: number, duree = 2200): void {
+  const s = secteurChaud(b)
+  const p = s ?? b.geo.porte
+  b.effects.push({ id: uid('fx'), type: 'divin', dieu, palier, x: p.x, y: p.y, until: now + duree })
+}
+
+// ── Capacités de héros résolues sur le champ de bataille ─────────────────────
+
+/**
+ * Fureur du Pélide : un seul homme fauche une ligne entière. Les dégâts sont
+ * répartis sur les ennemis massés autour du pan le plus chaud.
+ */
+export function fureurHeros(b: BattleState, now: number, degats: number, heros: string): number {
+  const campEnnemi = b.campJoueur === 'defense' ? 'attaque' : 'defense'
+  const s = secteurChaud(b)
+  const epicentre = s ?? b.geo.porte
+  const cibles = vivants(b, campEnnemi)
+    .sort((a, c) => dist(a, epicentre) - dist(c, epicentre))
+    .slice(0, 8)
+  for (const c of cibles) {
+    c.hp -= degats / Math.max(1, cibles.length)
+    if (c.hp <= 0 && c.etat !== 'mort') {
+      c.etat = 'mort'
+      c.mortAt = now
+      b.effects.push({ id: uid('fx'), type: 'poussiere', x: c.x, y: c.y - 3, until: now + 700 })
+    }
+  }
+  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: epicentre.x, y: epicentre.y, until: now + 1800 })
+  return cibles.length
+}
+
+/** Aristie : le plus redoutable des défenseurs adverses tombe sur place. */
+export function abattreChef(b: BattleState, now: number, heros: string): string | null {
+  const campEnnemi = b.campJoueur === 'defense' ? 'attaque' : 'defense'
+  const pool = vivants(b, campEnnemi)
+  if (pool.length === 0) return null
+  let cible = pool[0]
+  for (const f of pool) if (f.maxHp > cible.maxHp) cible = f
+  cible.hp = 0
+  cible.etat = 'mort'
+  cible.mortAt = now
+  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: cible.x, y: cible.y, until: now + 1500 })
+  return cible.type
+}
+
+/** Rempart de Troie : le pan le plus menacé n'encaisse plus qu'une part des coups. */
+export function abriterSecteur(b: BattleState, now: number, duree: number, part: number, heros: string): string | null {
+  const s = secteurChaud(b)
+  if (!s) return null
+  s.abriJusqua = now + duree
+  s.abriPart = part
+  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: s.x, y: s.y, until: now + duree })
+  return s.nom
+}
+
+/** Mur de boucliers : un pan effondré redevient infranchissable le temps voulu. */
+export function boucherBreche(b: BattleState, now: number, duree: number, heros: string): string | null {
+  const trou = b.secteurs.find((s) => s.breche) ?? secteurChaud(b)
+  if (!trou) return null
+  trou.boucheeJusqua = now + duree
+  b.effects.push({ id: uid('fx'), type: 'heros', heros, x: trou.x, y: trou.y, until: now + duree })
+  return trou.nom
 }
 
 /** Sonne la retraite : tous les assaillants encore debout fuient vers leur point d'entrée. */

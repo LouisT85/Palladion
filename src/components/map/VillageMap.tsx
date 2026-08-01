@@ -6,6 +6,7 @@ import { DefsArt } from './art'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
 import { Batisseur, Ouvriers, Porteurs } from './Ouvriers'
 import { BatailleLayer, useCameraBataille, type VueScene } from './BatailleLayer'
+import { Meteo, VoileSaison } from './Ciel'
 import { Garnison } from './Garnison'
 import { Murailles } from './Murailles'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
@@ -136,6 +137,8 @@ export function VillageMap() {
   const morale = useGame((s) => s.morale)
   const createdAt = useGame((s) => s.createdAt)
   const lastSeen = useGame((s) => s.lastSeen)
+  const saison = useGame((s) => s.saison)
+  const meteo = useGame((s) => s.meteo)
   const select = useGame((s) => s.select)
   const selected = useGame((s) => s.selected)
   const [hoverMur, setHoverMur] = useState(false)
@@ -202,7 +205,7 @@ export function VillageMap() {
       <g clipPath="url(#cadre-carte)">
         {/* toute la scène vit dans ce groupe : la caméra s'en approche pendant l'assaut */}
         <g ref={scene}>
-          <Terrain phase={phase} paisible={paisible} />
+          <Terrain phase={phase} paisible={paisible} saison={saison} />
 
           <Porteurs scierie={scierieLvl > 0} ferme={fermeLvl > 0} carriere={carriereLvl > 0} actif={paisible} />
 
@@ -309,6 +312,11 @@ export function VillageMap() {
 
           {battle && <BatailleLayer battle={battle} now={now} wallHp={wallHp} wallMax={wallMax} />}
         </g>
+
+        {/* le ciel du jour : teinte de la saison, puis ce qui en tombe. Posé hors
+            du groupe caméra — la pluie tombe sur l'écran, pas sur la carte. */}
+        <VoileSaison saison={saison} w={MAP.w} h={MAP.h} />
+        <Meteo meteo={meteo} w={MAP.w} h={MAP.h} />
 
         {/* voile et vignette restent solidaires de l'écran — et s'effacent à demi
             pendant un assaut, pour que la mêlée reste lisible même de nuit */}

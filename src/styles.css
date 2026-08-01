@@ -784,6 +784,13 @@ svg.carte {
   }
 }
 
+/* pictogramme de météo accolé à la saison — plus petit, il ne vole pas la vedette */
+.meteo-ico {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-left: 1px;
+}
+
 .jauge-morale {
   display: inline-block;
   width: 52px;

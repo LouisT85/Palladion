@@ -1,4 +1,5 @@
 import { MAP } from '../../game/data'
+import type { SaisonId } from '../../game/saisons'
 import { PAL, alea } from './art'
 
 /** phase du jour ∈ [0,1) : 0–0.08 aube, 0.08–0.55 jour, 0.55–0.68 crépuscule, 0.68–1 nuit */
@@ -20,9 +21,41 @@ const HORIZON = 212
  * ── Arbres volumiques ──────────────────────────────────────────────────────
  * Lumière NW : masse sombre (ombre propre) → demi-teinte → éclat en haut-
  * gauche. Ombre portée au sol décalée vers le SE. Zéro contour noir.
+ * Le feuillage suit la saison : vert tendre au printemps, poussiéreux en été,
+ * roux à l'automne, branches nues sous la neige.
  */
-function Arbre({ x, y, t, s = 1 }: { x: number; y: number; t: 'olivier' | 'cypres'; s?: number }) {
+
+/** cinq valeurs de feuillage (ombre → lumière) par saison, pour l'olivier */
+const FEUILLAGE: Record<SaisonId, [string, string, string, string, string]> = {
+  printemps: ['#54663f', '#455636', '#6d8250', '#87995f', '#a5b27e'],
+  ete: ['#5b6640', '#4a5436', '#757c4b', '#8f9159', '#a9a878'],
+  automne: ['#7a5c2a', '#634922', '#9c7433', '#ba9340', '#d3ad5c'],
+  hiver: ['#4e5744', '#40483a', '#5f6a52', '#75805f', '#8d9673'],
+}
+/** quatre valeurs pour la flamme du cyprès (masse → rehaut) */
+const CYPRES: Record<SaisonId, [string, string, string, string]> = {
+  printemps: ['#2c4632', '#47653f', '#688551', '#84a166'],
+  ete: ['#2f4633', '#4a6340', '#6b8050', '#879c63'],
+  automne: ['#2b3f2d', '#42583a', '#617248', '#7d8b58'],
+  hiver: ['#25382a', '#3a4e36', '#546245', '#6f7a58'],
+}
+
+function Arbre({
+  x,
+  y,
+  t,
+  s = 1,
+  saison = 'printemps',
+}: {
+  x: number
+  y: number
+  t: 'olivier' | 'cypres'
+  s?: number
+  saison?: SaisonId
+}) {
+  const hiver = saison === 'hiver'
   if (t === 'cypres') {
+    const [c0, c1, c2, c3] = CYPRES[saison]
     return (
       <g transform={`translate(${x},${y}) scale(${s})`}>
         {/* ombre portée SE, allongée (arbre haut) */}
@@ -31,33 +64,91 @@ function Arbre({ x, y, t, s = 1 }: { x: number; y: number; t: 'olivier' | 'cypre
         <path d="M-1.4,-3.5 L1.4,-3.5 L1,1 L-1,1 Z" fill="#6a4e31" />
         <path d="M0.2,-3.5 L1.4,-3.5 L1,1 L0.4,1 Z" fill="#49351f" />
         {/* flamme : ombre propre → demi-teinte → lumière NW → rehaut */}
-        <path d="M0,-39 C6.2,-25 7.2,-12 0,-4 C-7.2,-12 -6.2,-25 0,-39Z" fill="#2c4632" />
-        <path d="M0,-38.4 C-6,-24.5 -5.6,-12.5 -0.4,-5 C-3.2,-12.5 -2.8,-24.5 0,-38.4Z" fill="#47653f" />
-        <path d="M-0.8,-36 C-4.8,-25 -4.6,-14.5 -1.6,-8 C-3,-15 -2.8,-25.5 -0.8,-36Z" fill="#688551" />
-        <path d="M-1.7,-32.5 C-3.7,-25 -3.6,-17 -2.1,-11.5 C-2.9,-17.5 -2.8,-25 -1.7,-32.5Z" fill="#84a166" opacity={0.9} />
+        <path d="M0,-39 C6.2,-25 7.2,-12 0,-4 C-7.2,-12 -6.2,-25 0,-39Z" fill={c0} />
+        <path d="M0,-38.4 C-6,-24.5 -5.6,-12.5 -0.4,-5 C-3.2,-12.5 -2.8,-24.5 0,-38.4Z" fill={c1} />
+        <path d="M-0.8,-36 C-4.8,-25 -4.6,-14.5 -1.6,-8 C-3,-15 -2.8,-25.5 -0.8,-36Z" fill={c2} />
+        <path d="M-1.7,-32.5 C-3.7,-25 -3.6,-17 -2.1,-11.5 C-2.9,-17.5 -2.8,-25 -1.7,-32.5Z" fill={c3} opacity={0.9} />
         {/* creux d'ombre côté SE + pointes de texture */}
         <path d="M1.5,-32 C3.8,-24 4.1,-15 1.7,-8.5 C2.8,-15.5 2.7,-23.5 1.5,-32Z" fill="#213827" opacity={0.85} />
         <path d="M-2.9,-20 l-1.3,2.4 M2.9,-24 l1.4,2.2 M-3.3,-13.5 l-1.4,2 M3.1,-16 l1.5,2" stroke="#3a5238" strokeWidth={0.7} fill="none" opacity={0.65} />
+        {/* givre accroché aux branches côté lumière */}
+        {hiver && (
+          <path
+            d="M-3,-30 l-1.4,1.6 M-3.6,-22 l-1.6,1.4 M2.8,-27 l1.5,1.5 M3,-18 l1.6,1.3"
+            stroke="#eef4f6"
+            strokeWidth={1}
+            fill="none"
+            opacity={0.7}
+            strokeLinecap="round"
+          />
+        )}
       </g>
     )
   }
+  const [f0, f1, f2, f3, f4] = FEUILLAGE[saison]
   return (
     <g transform={`translate(${x},${y}) scale(${s})`}>
       {/* ombre portée SE */}
-      <ellipse cx={8} cy={1.6} rx={12.5} ry={2.9} fill={PAL.ombrePortee} opacity={0.16} filter="url(#a-flou1)" />
+      <ellipse cx={8} cy={1.6} rx={12.5} ry={2.9} fill={PAL.ombrePortee} opacity={hiver ? 0.1 : 0.16} filter="url(#a-flou1)" />
       {/* tronc noueux : flanc NW éclairé, flanc SE sombre */}
       <path d="M-2.4,0.6 C-3.6,-4.5 -4.4,-9 -2.6,-13.5 L0.6,-13 C-0.8,-8.5 -0.2,-4 1.6,0.6 Z" fill="#7c5e39" />
       <path d="M0.6,-13 C-0.6,-8.5 0,-4 1.6,0.6 L-0.2,0.6 C-1.2,-4 -1.7,-8.5 -0.9,-12.8 Z" fill="#523c25" />
       <path d="M-2.8,-2 C-3.4,-6.5 -3.6,-10 -2.4,-13" stroke="#a5834f" strokeWidth={0.9} fill="none" opacity={0.9} />
-      {/* couronne argentée : ombre propre → demi-teintes → éclats NW */}
-      <ellipse cx={1.6} cy={-15} rx={12.8} ry={7.6} fill="#54663f" />
-      <ellipse cx={6} cy={-12.6} rx={6.8} ry={4.3} fill="#455636" />
-      <ellipse cx={-1.8} cy={-16.8} rx={10.8} ry={6.4} fill="#6d8250" />
-      <ellipse cx={-4.6} cy={-19.4} rx={7.4} ry={4.5} fill="#87995f" />
-      <ellipse cx={-7} cy={-21.3} rx={4} ry={2.4} fill="#a5b27e" />
-      <ellipse cx={0.6} cy={-20.9} rx={3.3} ry={2} fill="#95a570" opacity={0.9} />
-      {/* frémissement argenté du feuillage */}
-      <path d="M-9.5,-17.5 l2,-0.8 M-1,-22.6 l2.2,-0.5 M5,-18.5 l2,-0.7" stroke="#b6c090" strokeWidth={0.8} fill="none" opacity={0.7} />
+      {hiver ? (
+        <g>
+          {/* charpente nue : maîtresses branches, ramilles, un peu de neige dessus */}
+          <path
+            d="M-1.4,-13 C-4.5,-16 -7.5,-18 -9.5,-21.5 M-0.6,-13 C-0.4,-18 -0.9,-22 -1.6,-25.5 M0.4,-13 C3.2,-16.5 6,-18.5 8.4,-20.5"
+            stroke="#6b5236"
+            strokeWidth={1.5}
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M-6.5,-19 l-2.6,-1.4 M-8.6,-21 l-1.2,-2.4 M-1.2,-21 l-2.4,-2 M-1.4,-23.5 l2,-2.2 M5.4,-18.4 l1.2,-2.6 M7.6,-20 l2.4,-1.2"
+            stroke="#7f6543"
+            strokeWidth={0.9}
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M-9.4,-21.9 l1.6,-0.5 M-1.7,-25.9 l1.5,-0.4 M8.3,-20.9 l1.6,-0.4"
+            stroke="#f2f7fa"
+            strokeWidth={1.3}
+            fill="none"
+            opacity={0.8}
+            strokeLinecap="round"
+          />
+        </g>
+      ) : (
+        <g>
+          {/* couronne : ombre propre → demi-teintes → éclats NW */}
+          <ellipse cx={1.6} cy={-15} rx={12.8} ry={7.6} fill={f0} />
+          <ellipse cx={6} cy={-12.6} rx={6.8} ry={4.3} fill={f1} />
+          <ellipse cx={-1.8} cy={-16.8} rx={10.8} ry={6.4} fill={f2} />
+          <ellipse cx={-4.6} cy={-19.4} rx={7.4} ry={4.5} fill={f3} />
+          <ellipse cx={-7} cy={-21.3} rx={4} ry={2.4} fill={f4} />
+          <ellipse cx={0.6} cy={-20.9} rx={3.3} ry={2} fill={f3} opacity={0.9} />
+          {/* frémissement argenté du feuillage */}
+          <path d="M-9.5,-17.5 l2,-0.8 M-1,-22.6 l2.2,-0.5 M5,-18.5 l2,-0.7" stroke={f4} strokeWidth={0.8} fill="none" opacity={0.7} />
+          {/* fleurs blanches du printemps ; feuilles lâchées au pied à l'automne */}
+          {saison === 'printemps' && (
+            <g fill="#f6f1e0" opacity={0.85}>
+              <circle cx={-6.4} cy={-20.6} r={1.1} />
+              <circle cx={-1.6} cy={-21.8} r={0.9} />
+              <circle cx={3.4} cy={-19.2} r={1} />
+              <circle cx={-9.2} cy={-16.4} r={0.8} />
+            </g>
+          )}
+          {saison === 'automne' && (
+            <g fill="#b8873c" opacity={0.75}>
+              <ellipse cx={-8} cy={-3.5} rx={1.6} ry={0.8} />
+              <ellipse cx={4.6} cy={-1.8} rx={1.5} ry={0.7} transform="rotate(24 4.6 -1.8)" />
+              <ellipse cx={-2.4} cy={-0.6} rx={1.7} ry={0.8} transform="rotate(-16 -2.4 -0.6)" />
+            </g>
+          )}
+        </g>
+      )}
     </g>
   )
 }
@@ -243,12 +334,154 @@ const STRATES: string = (() => {
   return out.join(' ')
 })()
 
+/* ── habits de saison : ce que la plaine porte au sol quatre fois par an ──── */
+
+/** taches déterministes réparties sur la plaine, hors mer et hors enceinte */
+function taches(seed: number, n: number, rMin: number, rMax: number) {
+  const rnd = alea(seed)
+  const out: { x: number; y: number; rx: number; ry: number; r: number }[] = []
+  for (let i = 0; i < n * 4 && out.length < n; i++) {
+    const x = 60 + rnd() * 1090
+    const y = 235 + rnd() * 540
+    if (horsPrairie(x, y)) continue
+    const rx = rMin + rnd() * (rMax - rMin)
+    out.push({ x, y, rx, ry: rx * (0.3 + rnd() * 0.2), r: (rnd() - 0.5) * 24 })
+  }
+  return out
+}
+
+const CONGERES = taches(71, 22, 18, 62)
+const FEUILLES_MORTES = taches(83, 18, 14, 46)
+const BRULIS = taches(97, 16, 20, 58)
+const VERDURE = taches(103, 16, 16, 52)
+
+function HabitsSaison({ saison }: { saison: SaisonId }) {
+  if (saison === 'hiver') {
+    return (
+      <g pointerEvents="none">
+        {/* congères : nappes de neige tassée, plus épaisses au nord de la carte */}
+        {CONGERES.map((t, i) => (
+          <g key={i}>
+            <ellipse
+              cx={t.x}
+              cy={t.y}
+              rx={t.rx}
+              ry={t.ry}
+              transform={`rotate(${t.r} ${t.x} ${t.y})`}
+              fill="#eef4f7"
+              opacity={0.62 - (t.y - 235) / 2400}
+            />
+            <ellipse
+              cx={t.x - t.rx * 0.18}
+              cy={t.y - t.ry * 0.3}
+              rx={t.rx * 0.62}
+              ry={t.ry * 0.6}
+              transform={`rotate(${t.r} ${t.x} ${t.y})`}
+              fill="#fbfdff"
+              opacity={0.5}
+            />
+          </g>
+        ))}
+        {/* la neige a pris jusque sur les croupes et le bas des versants */}
+        <path
+          d={`M0,${HORIZON} Q80,190 160,206 Q260,186 360,208 Q470,192 580,210 Q700,194 820,208 Q930,190 1040,206 Q1120,196 1200,208`}
+          stroke="#eaf2f6"
+          strokeWidth={5}
+          fill="none"
+          opacity={0.75}
+        />
+        <rect x={0} y={150} width={MAP.w} height={64} fill="#e6eff4" opacity={0.28} />
+      </g>
+    )
+  }
+  if (saison === 'automne') {
+    return (
+      <g pointerEvents="none">
+        {FEUILLES_MORTES.map((t, i) => (
+          <ellipse
+            key={i}
+            cx={t.x}
+            cy={t.y}
+            rx={t.rx}
+            ry={t.ry}
+            transform={`rotate(${t.r} ${t.x} ${t.y})`}
+            fill="#b07a34"
+            opacity={0.3}
+          />
+        ))}
+        {/* feuilles emportées par le vent, en travers de la plaine */}
+        {[
+          [260, 380, 17],
+          [640, 470, 22],
+          [980, 560, 19],
+        ].map(([x, y, d], i) => (
+          <g key={`v${i}`} opacity={0.7}>
+            <animateMotion dur={`${d}s`} repeatCount="indefinite" path={`M${x},${y} q120,-40 260,20 q120,50 250,-30`} />
+            <ellipse rx={2.4} ry={1.2} fill="#c08b3c" transform="rotate(20)" />
+            <ellipse cx={7} cy={5} rx={2} ry={1} fill="#a5702c" transform="rotate(-35 7 5)" />
+          </g>
+        ))}
+      </g>
+    )
+  }
+  if (saison === 'ete') {
+    return (
+      <g pointerEvents="none">
+        {BRULIS.map((t, i) => (
+          <ellipse
+            key={i}
+            cx={t.x}
+            cy={t.y}
+            rx={t.rx}
+            ry={t.ry}
+            transform={`rotate(${t.r} ${t.x} ${t.y})`}
+            fill="#dcc98a"
+            opacity={0.34}
+          />
+        ))}
+        {/* terre fendue par la sécheresse */}
+        <path
+          d="M300,520 l24,10 l-14,14 M690,610 l28,6 l-10,16 M1010,470 l22,12 l-16,12 M180,410 l20,10 l-12,13"
+          stroke="#9c8a5c"
+          strokeWidth={1.2}
+          fill="none"
+          opacity={0.45}
+        />
+      </g>
+    )
+  }
+  return (
+    <g pointerEvents="none">
+      {VERDURE.map((t, i) => (
+        <ellipse
+          key={i}
+          cx={t.x}
+          cy={t.y}
+          rx={t.rx}
+          ry={t.ry}
+          transform={`rotate(${t.r} ${t.x} ${t.y})`}
+          fill="#6f9a3f"
+          opacity={0.26}
+        />
+      ))}
+    </g>
+  )
+}
+
 /* ── mer : tracés partagés côte / masse d'eau ─────────────────────────────── */
 const D_PLAGE = 'M0,584 C120,594 200,642 244,720 C264,760 272,800 272,800 L0,800 Z'
 const D_MER = 'M0,596 C112,606 188,650 228,724 C247,762 254,800 254,800 L0,800 Z'
 const D_RIVE = 'M0,598 C110,608 185,651 225,725 C243,762 251,800 251,800'
 
-export function Terrain({ phase, paisible = true }: { phase: number; paisible?: boolean }) {
+export function Terrain({
+  phase,
+  paisible = true,
+  saison = 'printemps',
+}: {
+  phase: number
+  paisible?: boolean
+  saison?: SaisonId
+}) {
   // position du soleil / de la lune sur un arc
   const jour = phase >= 0.02 && phase < 0.62
   const tAstre = jour ? (phase - 0.02) / 0.6 : ((phase + 1 - 0.62) % 1) / 0.4
@@ -571,6 +804,9 @@ export function Terrain({ phase, paisible = true }: { phase: number; paisible?: 
         <ellipse key={`v${i}`} cx={cx} cy={cy} rx={rx} ry={ry} transform={`rotate(${rot} ${cx} ${cy})`} fill="url(#ter-nap-paille)" opacity={o} />
       ))}
 
+      {/* ── ce que la saison pose au sol : neige, feuilles mortes, brûlis ── */}
+      <HabitsSaison saison={saison} />
+
       {/* ── placette et sentiers intérieurs (terre battue, discrets) ── */}
       <ellipse cx={585} cy={452} rx={88} ry={34} fill="#c2b380" opacity={0.2} />
       <ellipse cx={592} cy={450} rx={50} ry={19} fill="#cdbd8a" opacity={0.26} />
@@ -759,7 +995,7 @@ export function Terrain({ phase, paisible = true }: { phase: number; paisible?: 
       ))}
 
       {ARBRES.map((a, i) => (
-        <Arbre key={i} x={a.x} y={a.y} t={a.t} s={a.s * 1.12} />
+        <Arbre key={i} x={a.x} y={a.y} t={a.t} s={a.s * 1.12} saison={saison} />
       ))}
 
       {/* moutons au pré, au sud des champs */}

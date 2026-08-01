@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { GEO_EXPEDITION } from '../../game/combat'
 import { MODE_TEST, RES, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
 import { MAX_TROUPES, RAID_COOLDOWN_MS, VILLAGES_CIBLES, VILLAGES_PAR_ID } from '../../game/expeditions'
-import { fmtDuree, totalEtoiles, useGame } from '../../game/store'
+import { fmtDuree, merFermee, totalEtoiles, useGame } from '../../game/store'
 import type { ResourceId, UnitId } from '../../game/types'
 import { BatailleLayer, useCameraBataille, type VueScene } from '../map/BatailleLayer'
 import { DefsArt } from '../map/art'
@@ -141,7 +141,11 @@ export function PanneauExpeditions() {
                 </div>
               </div>
               <div className="action-exp">
-                {resteCd > 0 ? (
+                {v.maritime && merFermee(s) ? (
+                  <span className="cd" title="L’hiver ferme la mer : les places d’outre-mer sont hors d’atteinte.">
+                    ❄️ mer prise
+                  </span>
+                ) : resteCd > 0 ? (
                   <span className="cd">⏳ {fmtDuree(resteCd)}</span>
                 ) : (
                   <button

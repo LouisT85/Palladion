@@ -7,13 +7,14 @@
 >
 > Jeu de gestion de village en solo, à l'époque de la guerre de Troie. Bâtissez, défendez,
 > honorez les dieux — et regardez votre village **changer réellement d'apparence** à chaque
-> amélioration.
+> amélioration, à chaque saison, à chaque brèche.
 
 **100 % front-end** (React + TypeScript + SVG), sauvegarde locale, déployable sur GitHub Pages.
+Zéro image, zéro son téléchargé : **tout est dessiné et synthétisé par le code**.
 
-| Du hameau… | …à la cité fortifiée |
+| Du hameau… | …à la cité de légende |
 | --- | --- |
-| ![Village niveaux 1-2](docs/village-debut.png) | ![Village niveau max](docs/village-max.png) |
+| ![Village au premier printemps](docs/village-debut.jpg) | ![Cité complète, dix domaines au niveau 4](docs/village-max.jpg) |
 
 ## ✨ Ce qui rend PALLADION différent
 
@@ -22,90 +23,160 @@ Chaque bâtiment est dessiné **en SVG par code**, en volumes texturés (tuiles,
 chaume, sillons) avec une apparence distincte par niveau. Les remparts passent de la
 palissade de pieux → au muret de pierre sèche → à la muraille crénelée → aux hautes
 murailles « bâties par Poséidon » avec tours de guet et étendards. Idem pour les 9 autres
-bâtiments (temple, agora, forge, port…). Les dégâts se voient : fissures, décombres,
-brèche à la porte. Et le village **vit** : villageois qui flânent, char à bœufs sur la
-route, chèvres à la ferme, moutons au pré, fumées et braseros.
+domaines (temple, agora, forge, port…). Les dégâts se voient et **restent** : fissures,
+pans effondrés, vantaux arrachés — jusqu'à ce que vous payiez la pierre pour les relever.
+Et le village **vit** : villageois qui flânent, char à bœufs sur la route, chèvres à la
+ferme, moutons au pré, fumées et braseros.
+
+### 🌱 Quatre saisons et un ciel qui change tout
+Le calendrier tourne : quatre journées de jeu par saison. Le **printemps** fait lever les
+blés, l'**été** durcit la terre et ouvre la mer, l'**automne** remplit les greniers,
+l'**hiver ferme la mer** — port au tiers, places d'outre-mer hors d'atteinte. Par-dessus,
+une météo qui se retire toutes les quatre minutes : la **pluie** détend les cordes d'arc,
+la **brume** rogne la portée des tours et aveugle vos éclaireurs, l'**orage** rend la
+foudre de Zeus plus lourde, la **neige** met les colonnes au pas. Rien de tout cela n'est
+qu'un chiffre : le feuillage roussit puis tombe, les congères s'installent, les flocons
+tombent sur la scène.
+
+![L'hiver sur la Troade](docs/saisons.jpg)
 
 ### ⚔️ Des vagues d'assaut PvE, jouées sous vos yeux
 La prospérité attire les convoitises : des bandes armées (pillards, guerriers achéens,
 mercenaires, béliers de siège) attaquent régulièrement. **« Attaque ennemie dans 5 min »** :
 les éclaireurs annoncent la composition de la vague **et la récompense promise** si vous
-tenez (bronze, faveur, ambiance). Les impatients peuvent **lancer l'assaut immédiatement
-pour +25 % de butin**. Puis la bataille se joue **en direct sur la carte** : marche
-d'approche, siège des remparts, tirs des archers depuis les murs, brèche, mêlée au cœur
-du village… Et pendant l'assaut, vous pouvez invoquer les dieux.
+tenez. Les impatients peuvent **lancer l'assaut immédiatement pour +25 % de butin**. La
+vague se scinde ensuite entre **plusieurs fronts** : chaque pan de mur a ses propres points
+de structure et **peut céder seul**. La caméra se rapproche du front le plus menacé et le
+suit, jusqu'à ce que vous repreniez la main à la molette.
 
-![Bataille](docs/bataille.png)
+![Un assaut sur trois fronts](docs/bataille.jpg)
 
-### 🗺️ Mode campagne : à votre tour de piller
-8 places fortes de la Troade à mettre à sac, du simple camp de pillards à la forteresse
-mysienne : choisissez vos troupes (20 max), regardez l'assaut se jouer sur la carte du
-village ennemi — leurs murs, leurs archers, leur garnison — et raflez le butin. Score en
-**étoiles** façon classique : ★★★ à moins de 20 % de pertes. Les dieux répondent aussi
-pendant vos raids, et la retraite reste toujours possible pour sauver vos vétérans.
+### 🛡️ Huit héros — qu'on nourrit, qu'on perd
+Ils ne s'achètent pas : ils viennent quand la cité en est digne. Hector veut des remparts
+de niveau 3 et Zeus en grâce ; Ulysse un port et la confiance d'Athéna ; Achille du sang
+déjà versé. Chacun apporte un **passif permanent** et une **capacité** à invoquer en
+bataille, gagne des niveaux en combattant — et **mange chaque minute**. Trois rappels
+d'entretien sans réponse, et il reprend la route.
 
-![Expédition](docs/expedition.png)
+Surtout, chacun traverse un **arc à embranchements** dont certaines branches ne se
+rejouent pas : Achille peut mourir sous la flèche de Pâris, ou survivre inutile ; Hector
+peut sortir affronter son destin, ou obéir et ne plus jamais grandir. **Les héros doivent
+pouvoir mourir** — c'est ce qui rend leur présence tendue plutôt que confortable.
 
-### ⚡ Les Olympiens, alliés et juges
-- **Zeus** — la foudre s'abat sur les assaillants ; mais sa loi de l'hospitalité (*xenia*)
+| La maisonnée héroïque | Un choix sans retour |
+| --- | --- |
+| ![Panneau des héros](docs/heros.png) | ![L'arc d'Hector](docs/heros-arc.png) |
+
+### 🗺️ Piller… ou secourir
+8 places fortes de la Troade, chacune avec son **décor peint** et son cadre — camp de
+tentes dans la plaine, comptoir à amphores sur la grève, cité à colonnade sur son île,
+forteresse à donjon sur son éperon rocheux. Deux façons d'y marcher :
+
+- **Piller** — butin élevé, mais Zeus Xenios n'aime pas cela, la menace monte, et le
+  village **s'en souvient** : sa garnison sera plus fournie à votre prochaine visite.
+- **Secourir** — quand un village assiégé appelle à l'aide, vous avez quelques minutes
+  pour trancher. Aucun butin, la possibilité d'y perdre des hommes pour rien — mais la
+  faveur des dieux et une **alliance** : tribut régulier, et des renforts qui montent sur
+  vos remparts (et tombent avant vos hommes) à chaque assaut.
+
+Le choix est cornélien à dessein : la richesse contre le réseau.
+
+![L'assaut de la cité de Lesbos](docs/expedition.jpg)
+
+### ⚡ Les Olympiens, alliés et juges — et ça se voit
+- **Zeus** — la foudre s'abat sur les assaillants ; sa loi de l'hospitalité (*xenia*)
   punit qui ferme sa porte aux suppliants.
-- **Poséidon** — ressoude les pierres de vos remparts… ou les ébranle d'un séisme si vous l'offensez.
-- **Athéna** — bouclier stratège en bataille ; si elle vous fait confiance (relation ≥ 25),
+- **Poséidon** — ressoude les pierres de vos remparts, y compris les pans déjà à terre.
+- **Athéna** — égide en bataille ; si elle vous fait confiance (relation ≥ 25),
   **elle murmure la vérité cachée des dilemmes**.
 - **Arès** — fureur au combat, recrues accélérées ; capricieux et vindicatif.
 
-Chaque dieu a une **relation** (−100 à +100) façonnée par vos choix. Un dieu bafoué finit
-toujours par se venger.
+La **ferveur** (−100 à +100) ne change pas que les chiffres : elle change la **mise en
+scène**. L'élu de Zeus voit un éclair pourpre fendre le ciel ; celui d'Athéna, une égide
+à tête de Gorgone tournoyante ; celui d'Arès, une aura sanglante et des corbeaux. Et un
+dieu **offensé** produit un visuel **pâle et avorté** — l'éclair n'atteint même pas le
+sol. La punition se voit avant de se compter.
+
+![Le panthéon](docs/pantheon.png)
 
 ### 🏺 Des dilemmes moraux à conséquences
-Des réfugiés qui implorent l'asile (sincères… ou pillards infiltrés), Zeus déguisé en
-mendiant, un cheval de bois abandonné devant vos portes (*« Je crains les Grecs, même
-porteurs de présents ! »*), l'émissaire d'Hector qui réclame des lances… Certaines issues
-sont **différées** : les traîtres frappent à la nuit tombée.
+41 dilemmes à **issues multiples**, tirées à l'ouverture : des réfugiés qui implorent
+l'asile (sincères… ou pillards infiltrés), Zeus déguisé en mendiant, un cheval de bois
+abandonné devant vos portes (*« Je crains les Grecs, même porteurs de présents ! »*),
+l'émissaire d'Hector qui réclame des lances… Certaines issues sont **différées** : les
+traîtres frappent à la nuit tombée. Le murmure d'Athéna lit l'issue **déjà tirée** : il
+ne peut structurellement pas mentir.
 
-![Événement](docs/evenement.png)
+![Un dilemme](docs/evenement.png)
 
-### 🏅 Vingt missions comme fil rouge
+### 🏅 Hauts faits, prestige et fin de règne
+45 hauts faits en cinq catégories jalonnent la partie — « tenir un assaut sur trois fronts
+sans perdre un homme », « élu des quatre Olympiens », « trois étoiles sur les huit places
+fortes », « traverser un hiver sans vider le grenier ». Ils alimentent un **score de
+prestige** détaillé ligne à ligne. Quand vous jugez le règne accompli, **abdiquez** : le
+score se fige et les aèdes vous donnent un titre, de « Roi de pacotille » à
+« Égal des dieux ».
+
+![Hauts faits et prestige](docs/hauts-faits.png)
+
+### 🎖️ Cinquante-cinq missions comme fil rouge
 Toujours un objectif à l'écran, toujours une récompense à la clé : des provisions du
-premier jour jusqu'à la « Cité de légende », vingt missions guident la partie — bâtir,
-recruter, repousser un assaut, réussir un raid trois étoiles, gagner la confiance d'un
-dieu… Chaque réclamation finance l'étape suivante : pas de temps mort.
+premier jour jusqu'au Palladion lui-même, les missions guident la partie en cinq actes —
+bâtir, pourvoir les postes, repousser un assaut, réussir un raid trois étoiles, gagner la
+confiance d'un dieu… Chaque réclamation finance l'étape suivante : pas de temps mort.
 
-![Missions](docs/missions.png)
+![Le suivi des missions](docs/missions.jpg)
 
 ### 🎭 L'ambiance du village
-Fêtes, victoires et greniers pleins exaltent le village (production accrue). Famine,
-défaites et choix cruels le minent. Sous 25 : **mutinerie** — ouvrez les greniers, promettez
-(et tenez parole !), ou réprimez dans le sang. À 0, vos soldats désertent.
+Fêtes, victoires et greniers pleins **exaltent** le village (production accrue). Famine,
+défaites et choix cruels le rendent **morose**. Sous 25 : **mutinerie** — ouvrez les
+greniers, promettez (et tenez parole !), ou réprimez dans le sang. À 0, vos soldats
+désertent. L'ambiance tient en un mot, toujours lisible dans le bandeau du haut.
 
-### 🌙 Le temps continue sans vous — et s'accélère à la demande
+### 🎵 Une bande-son entièrement synthétisée
+Pas un octet d'audio téléchargé : tout est fabriqué à la volée en **Web Audio**. Une lyre
+égrène un mode phrygien au village paisible, les cors de guerre montent à l'alerte, le
+tambour de siège prend le relais quand la colonne touche les murs, et le chant de l'aède
+salue la victoire. Coupe-son et deux curseurs persistés — et rien ne joue avant votre
+premier geste.
+
+### 🌙 Le temps continue sans vous — et vous menez la caméra
 Jeu en temps réel avec cycle jour/nuit. Onglet fermé, le village vit : production,
-constructions, croissance… et assauts nocturnes, résolus automatiquement. Au retour,
-un rapport raconte tout. Et façon **Sims**, les boutons **×1 ×2 ×4 ×8** (touches 1–4)
-accélèrent tout — production, chantiers, recrues, cycle du jour et compte à rebours des
-attaques — avec retour automatique en ×1 pendant les batailles.
+constructions, croissance… et assauts nocturnes, résolus automatiquement. Au retour, un
+rapport raconte tout. Façon **Sims**, les boutons **×1 ×2 ×4 ×8** (touches 1–4) accélèrent
+tout, avec retour automatique en ×1 pendant les batailles. Et la carte se manipule :
+**molette** pour zoomer là où pointe le curseur, **glisser** pour se déplacer,
+**double-clic** pour rendre la main à la caméra automatique.
 
 ## 🎮 Systèmes de jeu
 
-- **4 ressources** (bois, pierre, grain, bronze) + faveur divine + population
-- **10 bâtiments** à 4 niveaux, chacun avec son art SVG par niveau ; l'Agora gouverne
-  le niveau maximal des autres, 2 chantiers simultanés maximum
-- **3 unités** (lancier, archer, hoplite) — les archers tirent depuis les remparts tant
-  que la muraille tient
-- **Campagne** : 8 villages à piller, étoiles à la clé, butin réduit aux pillages répétés,
-  cooldown par cible — le moteur de bataille est le même en attaque et en défense
-- **Défense récompensée** : chaque assaut repoussé rapporte bronze + faveur, +25 % si
-  vous avez osé le déclencher vous-même
-- **Commerce** au port, **sacrifices** au temple, **réparation** des remparts
+- **4 ressources** (bois, pierre, grain, bronze) + faveur divine + population nommée
+- **10 bâtiments** à 4 niveaux, chacun avec son art SVG par niveau ; l'Agora gouverne le
+  niveau maximal des autres, 2 chantiers simultanés maximum
+- **Postes de travail** : un atelier sans ouvrier ne produit rien — affectez vos villageois
+- **3 unités** (lancier, archer, hoplite) — les archers tirent depuis les remparts tant que
+  leur pan de muraille tient
+- **Assauts multi-fronts** : jusqu'à 3 secteurs assaillis, chacun avec ses points de
+  structure et sa propre brèche
+- **8 héros** avec passif, capacité active, niveaux 1→5, entretien et arc narratif mortel
+- **Campagne** : 8 villages à piller ou à secourir, étoiles, butin dégressif, garnisons qui
+  se renforcent, alliances à tribut — le moteur de bataille est le même en attaque et en défense
+- **4 saisons × 6 météos** pesant sur la récolte, la portée, l'allure et l'alerte
+- **41 dilemmes** à issues multiples, **55 missions**, **45 hauts faits**
 - **Menace** croissante, vagues générées par budget, déroute ennemie à 70 % de pertes
-- Sauvegarde automatique en `localStorage` (aucun serveur)
+- Sauvegarde automatique en `localStorage` (aucun serveur, aucun compte)
 
 ## 🛠️ Stack
 
 - [Vite](https://vitejs.dev) + [React 18](https://react.dev) + TypeScript (strict)
 - [zustand](https://github.com/pmndrs/zustand) + immer pour l'état du jeu (tick à 4 Hz)
 - Rendu 100 % **SVG dessiné par code** — zéro asset externe, zéro dépendance graphique
+- Son 100 % **synthétisé en Web Audio** — zéro échantillon
 - Aucun backend : jouable en statique, sauvegarde locale
+
+Le style graphique (lumière au nord-ouest, ombres portées vers le sud-est, aucun contour
+noir, tirages déterministes) est documenté dans [`docs/STYLE-ART.md`](docs/STYLE-ART.md).
+La feuille de route et la dette connue vivent dans [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## 🚀 Développement
 
@@ -118,6 +189,20 @@ npm run build     # production dans dist/
 npm run preview   # tester le build
 ```
 
+### 📸 Regénérer les captures du README
+
+Les images de ce fichier sont **reproductibles** : chaque vignette pose un état de jeu
+précis (saison, bâtiments, héros, panneau ouvert…) avant de photographier l'écran.
+
+```bash
+npm run dev -- --port 5199 --strictPort   # dans un terminal
+npm run captures                          # dans un autre
+```
+
+Le script utilise le Chrome (ou l'Edge) déjà installé sur la machine — pas de navigateur
+à télécharger. Il échoue si la moindre erreur JavaScript survient pendant les captures :
+c'est aussi le test de fumée du projet.
+
 ## 🌐 Déploiement sur GitHub Pages
 
 1. Créer un repo GitHub et pousser ce projet sur `main`.
@@ -128,11 +213,13 @@ npm run preview   # tester le build
 
 ## 🗺️ Pistes d'évolution
 
-- Héros récurrents (Hector, Ulysse…) avec arcs narratifs à embranchements
-- Expéditions : envoyer des troupes piller ou secourir (risque/récompense)
-- Saisons et météo influençant production et batailles
-- Sons et musique (lyre, cors de guerre)
-- Succès / hauts faits et prestige de fin de partie
+- **Tests automatisés** (Vitest sur l'économie, le combat, la résolution hors-ligne)
+- **Siège sans fin** : vagues de difficulté croissante, score et classement local
+- **Nouvelle Partie +** : rejouer en gardant le prestige du règne précédent
+- **Formations et ordres** en bataille, nouvelles unités (frondeur, char, machines de siège)
+- **Héros ennemis nommés** : Achille assiégeant *votre* village, capacités retournées contre vous
+- **Familles et lignées** : les villageois se marient, vieillissent, transmettent leur métier
+- **Campagne narrative** en cinq actes, de l'Iliade au cheval de bois
 - i18n (structure des textes déjà centralisée)
 
 ---

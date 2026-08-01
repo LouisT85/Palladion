@@ -39,6 +39,17 @@ et d'**impact joueur** (★ à ★★★). Les lots livrés sont conservés pour
 | Héros incarnés | Ils arpentent la place du village à leurs couleurs, et descendent se battre au premier rang (stats liées au niveau). Tombés, ils sont **blessés** et non retirés de l'effectif — seul l'arc tue. La ligne de défense est passée d'un point unique à trois rangs, ce qui rend la mêlée lisible. |
 | Pictogrammes | Les icônes peintes gagnent missions, agora, port, héros, panthéon ; la médaille de bronze 🥉 disparaît des 61 textes qui la traînaient encore. |
 
+## ✅ Lot 5 — livré
+
+| Sujet | Ce qui a été fait |
+|---|---|
+| Une sortie dans chaque menu | Châssis commun (`Modale`) pour les huit panneaux : en-tête figé, **croix** qui ne défile jamais, **Échap**, clic à côté. Les modales de décision (dilemme, arc de héros, rapport, fin de règne) restent volontairement sans sortie. |
+| Vitesse du temps | Le seul jeton du bandeau qui portait encore un `title` du navigateur a son encart chiffré comme ses voisins : vitesse courante, durée réelle d'une journée, verrou de bataille, et l'avertissement qui compte (accélérer rapproche l'ennemi). |
+| Missions intégrées au jeu | Panneau du fil rouge complet (55 missions, cinq actes, ouverture sur la première jouable), bouton **🏅 Missions** à pastille dans le bandeau, et surtout un bouton **« y aller »** par mission qui ouvre l'écran concerné — recensement, bâtiment, carte des expéditions, panthéon. Une récompense réclamée laisse une ligne au journal. |
+| Musique du village | Elle était juste — et inaudible : bus à 0,275, notes à 0,075, un temps par seconde et un silence sur trois. Volume porté au même plan que les cors (clé de réglages `v2` pour que tout le monde y passe), tempo à 0,58 s, deux phrases de seize temps qui alternent, basse pincée sur les temps forts, tierce complice sous la mélodie, bourdon renouvelé avant de s'éteindre. |
+| Comptoir d'échange | Deux défauts d'un coup. Le bouton cassait sa ligne (une icône `display: block` posée en flux de texte) et se lisait sur trois niveaux ; corrigé pour toutes les icônes du jeu. Et le troc appliquait un taux unique — 40 de grain valaient 10 de bronze, ce qui rendait la forge inutile : il échange désormais **à la valeur**, avec une marge de +70 % au petit quai à +15 % au port franc, et refuse avant d'encaisser si l'entrepôt est plein. |
+| Répartition des métiers | Les sept premiers habitants couvrent les six métiers (avec un second paysan) ; chaque naissance comble ensuite le métier le plus en retard au regard de ses poids. Le tirage aléatoire donnait couramment quatre paysans et aucun prêtre — donc aucune faveur possible. |
+
 ## ✅ Lot 3 — livré
 
 | Sujet | Ce qui a été fait |
@@ -148,7 +159,7 @@ et peut partir si on l'ignore. Ils sont une puissance, pas un cadeau.
 
 ---
 
-## Ordre conseillé (après les lots 2 et 3)
+## Ordre conseillé (après les lots 2 à 5)
 
 1. **Tests automatisés** : le jeu tient maintenant dans ~15 000 lignes et tout se vérifie encore à la main. Vitest sur l'économie, le combat, la résolution hors-ligne et les hauts faits — c'est le plus rentable désormais.
 2. **Découpage du bundle** : 870 kB en un seul morceau. L'art des bâtiments et les décors d'expédition sont les premiers candidats à l'import dynamique.
@@ -161,6 +172,10 @@ et peut partir si on l'ignore. Ils sont une puissance, pas un cadeau.
 ## 🐞 Dette connue
 
 - Le bundle dépasse 500 kB : aucun découpage dynamique pour l'instant.
-- Aucun test automatisé : chaque lot est vérifié à la compilation et à la main.
+- Aucun test automatisé : chaque lot est vérifié à la compilation, aux captures (qui échouent
+  sur la moindre erreur JS) et à des parcours Playwright joués à la main.
+- Le réglage du son a changé de clé (`palladion-audio-v2`) pour imposer les nouveaux volumes :
+  un joueur qui avait baissé la musique la retrouvera au réglage par défaut.
+- Le comptoir d'échange n'a pas de mémoire : il propose toujours bois → bronze à l'ouverture.
 - Les renforts alliés ne sont pas figurés distinctement sur le champ de bataille (ils portent les couleurs du joueur).
 - La résolution hors-ligne ne connaît pas les secteurs : un assaut nocturne perdu marque forfaitairement la porte comme enfoncée.

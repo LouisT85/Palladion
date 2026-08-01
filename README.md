@@ -68,6 +68,12 @@ son poste tout seul — pas d'affectation automatique, c'est votre décision à 
 chantier livré. Un atelier laissé vide plante un écriteau rouge sur la carte, pour
 qu'on n'ait pas à ouvrir un panneau pour s'en apercevoir.
 
+Les **sept premiers habitants couvrent un métier de chaque** (avec un second paysan :
+la ferme ouvre deux postes avant les autres), et chaque naissance comble ensuite le
+métier le plus en retard. Le tirage purement aléatoire donnait des hameaux à quatre
+paysans sans un seul prêtre — donc sans faveur, sans recours, et sans que le joueur
+puisse rien y faire.
+
 Le même arbitrage vaut pour l'armée : **un soldat est un villageois en moins** — il
 quitte l'atelier, ne produit plus et mange le double.
 
@@ -150,7 +156,14 @@ premier jour jusqu'au Palladion lui-même, les missions guident la partie en cin
 bâtir, pourvoir les postes, repousser un assaut, réussir un raid trois étoiles, gagner la
 confiance d'un dieu… Chaque réclamation finance l'étape suivante : pas de temps mort.
 
-![Le suivi des missions](docs/missions.jpg)
+Et elles ne sont pas une liste posée à côté du jeu : **chaque mission a un bouton qui
+ouvre l'écran où elle se joue** (« 👥 Recensement », « 🏛️ Agora », « 🗺️ Expéditions »…),
+le bandeau du haut porte le fil complet acte par acte, et une récompense réclamée laisse
+une ligne au journal du village comme une bataille.
+
+| Le suivi, toujours à l'écran | Le fil complet, cinq actes |
+| --- | --- |
+| ![Le suivi des missions](docs/missions.jpg) | ![Le fil rouge complet](docs/missions-fil.png) |
 
 ### 🎭 L'ambiance du village
 Fêtes, victoires et greniers pleins **exaltent** le village (production accrue). Famine,
@@ -160,11 +173,14 @@ désertent. L'ambiance tient en un mot, toujours lisible dans le bandeau du haut
 
 ### 🎵 Une bande-son entièrement synthétisée
 Pas un octet d'audio téléchargé : tout est fabriqué à la volée en **Web Audio**. Au
-village, une lyre et une flûte de berger se répondent sur une **pentatonique majeure**,
-avec de vrais silences — aucun demi-ton, donc rien d'inquiétant : on est chez soi. Les
-cors de guerre montent à l'alerte, le tambour de siège prend le relais quand la colonne
-touche les murs, et le chant de l'aède salue la victoire. Coupe-son et deux curseurs
-persistés — et rien ne joue avant votre premier geste.
+village, une lyre et une flûte de berger se répondent sur une **pentatonique majeure**
+(aucun demi-ton : il est musicalement impossible d'y sonner inquiétant), soutenues par une
+basse pincée sur les temps forts, une tierce complice sous la mélodie et un bourdon chaud
+qui ne s'interrompt jamais. Deux phrases alternent, l'une posant la question et l'autre y
+répondant — de quoi tenir trente-deux temps avant de se répéter. **C'est une pièce, pas un
+signal.** Les cors de guerre montent à l'alerte, le tambour de siège prend le relais quand
+la colonne touche les murs, et le chant de l'aède salue la victoire. Coupe-son et deux
+curseurs persistés — et rien ne joue avant votre premier geste.
 
 ### 🌙 Le temps continue sans vous — et vous menez la caméra
 Jeu en temps réel avec cycle jour/nuit. Onglet fermé, le village vit : production,
@@ -174,13 +190,21 @@ tout, avec retour automatique en ×1 pendant les batailles. Et la carte se manip
 **molette** pour zoomer là où pointe le curseur, **glisser** pour se déplacer,
 **double-clic** pour rendre la main à la caméra automatique.
 
+Chaque jeton du bandeau du haut — ressources, ambiance, menace, saison, ciel, vitesse du
+temps — ouvre au survol un **encart chiffré** qui dit à quoi il sert, ce qu'il vaut et ce
+qui le fait bouger. Et tout menu se referme de trois façons : sa **croix**, la touche
+**Échap**, ou un clic à côté.
+
 ## 🎮 Systèmes de jeu
 
 - **4 ressources** (bois, pierre, grain, bronze) + faveur divine + population nommée
 - **10 bâtiments** à 4 niveaux, chacun avec son art SVG par niveau ; l'Agora gouverne le
   niveau maximal des autres, 2 chantiers simultanés maximum
 - **Métiers et postes** : chaque habitant naît d'un métier, rend 55 % ailleurs, et
-  n'est jamais affecté automatiquement — un atelier vide ne produit rien et le dit
+  n'est jamais affecté automatiquement — un atelier vide ne produit rien et le dit ;
+  la fournée de départ couvre les six métiers
+- **Comptoir du port** : échange **à la valeur** (le bronze vaut quatre charretées de
+  bois), marge des marchands de +70 % au petit quai à +15 % au port franc
 - **3 unités** (lancier, archer, hoplite) — les archers tirent depuis les remparts tant que
   leur pan de muraille tient
 - **Assauts multi-fronts** : jusqu'à 3 secteurs assaillis, chacun avec ses points de

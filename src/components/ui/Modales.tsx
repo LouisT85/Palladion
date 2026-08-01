@@ -238,14 +238,34 @@ export function ModaleAide() {
             <b>Molette</b> pour zoomer là où pointe le curseur, <b>glisser</b> pour déplacer la carte,{' '}
             <b>double-clic</b> pour rendre la main à la caméra. Pendant un assaut, elle se rapproche seule du front le
             plus menacé — jusqu’à ce que vous y touchiez. Le bouton 🔊 règle la lyre, les cors et le tambour de siège.
+            Tout menu se referme par sa <b>croix</b>, par <b>Échap</b>, ou d’un clic à côté.
           </p>
         </div>
         <div className="aide-section">
           <h3>🏅 Les missions</h3>
           <p>
-            Le panneau en haut à gauche vous guide : chaque mission accomplie rapporte une <b>récompense</b>{' '}
-            (ressources, faveur, villageois). Commencez par réclamer les provisions du voyage — puis suivez le fil,
-            de la première ferme à la cité de légende.
+            Le suivi en haut à gauche affiche les trois missions ouvertes ; le bouton <b>🏅 Missions</b> du bandeau
+            déroule le fil entier — <b>cinquante-cinq objectifs en cinq actes</b>, du premier toit à la cité de légende.
+            Chacun rapporte une <b>récompense</b> (ressources, faveur, villageois) et laisse une ligne au journal. Si
+            vous ne savez pas où agir, le bouton de la mission (« 👥 Recensement », « 🏛️ Agora », « 🗺️ Expéditions »…){' '}
+            <b>vous emmène directement à l’écran concerné</b>.
+          </p>
+        </div>
+        <div className="aide-section">
+          <h3>👷 Les métiers</h3>
+          <p>
+            Chaque habitant naît avec un métier — paysan, bûcheron, tailleur de pierre, forgeron, prêtre, docker — et
+            les sept premiers en couvrent un de chaque. <b>Personne ne prend son poste tout seul</b> : c’est à vous
+            d’ouvrir le recensement (👥) et de placer chacun. À son métier il rend pleinement, ailleurs seulement 55 %.
+            Un atelier dont les postes ne sont pas tenus produit au prorata — un ⚠️ le signale.
+          </p>
+        </div>
+        <div className="aide-section">
+          <h3>⚓ Le comptoir du port</h3>
+          <p>
+            Le port échange <b>à la valeur</b>, pas au tas : le bronze vaut quatre charretées de bois, la pierre un peu
+            plus qu’une. Les marchands prélèvent une marge — <b>+70 % au petit quai, +15 % au port franc</b> —, donc
+            monter le port est le seul moyen de commercer sans se faire tondre.
           </p>
         </div>
         <div className="aide-section">

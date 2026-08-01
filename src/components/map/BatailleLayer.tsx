@@ -1,5 +1,5 @@
 import { HEROS } from '../../game/heros'
-import type { BattleGeo, BattleState, Fighter, HeroId, SecteurBataille } from '../../game/types'
+import type { BattleState, Fighter, HeroId, SecteurBataille } from '../../game/types'
 import { assaillantsParSecteur, indexSecteurChaud } from './camera'
 import { EffetDivin, EffetHeros } from './EffetsDivins'
 
@@ -584,20 +584,11 @@ function tonStructure(ratio: number): string {
   return ratio > 0.55 ? '#8f9d5a' : ratio > 0.28 ? '#d98a4e' : '#c0563f'
 }
 
-/**
- * Liseré tracé au pied du pan le plus menacé, DEVANT le mur (là où piétinent
- * les assaillants) : sur la pierre claire, un trait doré se perdrait.
+/*
+ * Il y avait ici un liseré doré tracé au pied du pan le plus menacé. Retiré : un
+ * trait épais en travers de la mêlée salissait la vue là où justement il faut
+ * regarder, et la jauge du secteur dit déjà lequel souffre — en toutes lettres.
  */
-function liseréMenace(geo: BattleGeo, angle: number): string {
-  let d = ''
-  for (let i = 0; i <= 16; i++) {
-    const a = angle - 0.31 + (0.62 * i) / 16
-    const x = geo.cx + (geo.rx + 19) * Math.cos(a)
-    const y = geo.cy + (geo.ry + 19) * Math.sin(a) + 4
-    d += `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-  }
-  return d
-}
 
 /**
  * Jauge de structure d'un secteur, posée à l'aplomb de son pan de mur et
@@ -638,15 +629,11 @@ function JaugeSecteur({ s, chaud }: { s: SecteurBataille; chaud: boolean }) {
         rx={3.3}
         fill={tonStructure(ratio)}
       />
+      {/* l'émoji explosion qui clignotait à gauche de la jauge est parti : les
+          moellons à terre se voient sur le mur lui-même, le mot suffit ici */}
       <text x={0} y={14.8} textAnchor="middle" fontSize={8.8} fill={s.breche ? '#e8916f' : '#cfc4a8'} fontWeight={600}>
         {s.breche ? 'pan effondré' : `🧱 ${Math.round(Math.max(0, s.hp))} / ${Math.round(s.max)}`}
       </text>
-      {s.breche && (
-        <text x={-w / 2 - 8} y={4} textAnchor="middle" fontSize={14}>
-          💥
-          <animate attributeName="opacity" values="1;0.15;1" dur="0.75s" repeatCount="indefinite" />
-        </text>
-      )}
     </g>
   )
 }
@@ -676,36 +663,11 @@ export function BatailleLayer({
       (o) => o.camp !== f.camp && o.etat !== 'fuite' && Math.hypot(o.x - f.x, o.y - f.y) < 26,
     )
 
-  // pan le plus menacé : celui qui tient encore mais dont la structure est la plus entamée
+  // pan le plus menacé : sa jauge se met en avant (cadre doré, fond plus dense)
   const idxChaud = indexSecteurChaud(battle, assaillantsParSecteur(battle, vivants))
-  const secteurChaud = idxChaud >= 0 ? battle.secteurs[idxChaud] : undefined
 
   return (
     <g>
-      {/* liseré au pied du pan le plus menacé — c'est là qu'il faut regarder */}
-      {secteurChaud && !secteurChaud.breche && (
-        <g pointerEvents="none">
-          <path
-            d={liseréMenace(battle.geo, secteurChaud.angle)}
-            stroke="#2c1f0c"
-            strokeWidth={5.4}
-            fill="none"
-            strokeLinecap="round"
-            opacity={0.22}
-          />
-          <path
-            d={liseréMenace(battle.geo, secteurChaud.angle)}
-            stroke="#ffd166"
-            strokeWidth={3}
-            fill="none"
-            strokeLinecap="round"
-            opacity={0.6}
-          >
-            <animate attributeName="opacity" values="0.3;0.85;0.3" dur="1.7s" repeatCount="indefinite" />
-          </path>
-        </g>
-      )}
-
       {depouilles.map((f) => (
         <Depouille key={f.id} f={f} campJoueur={battle.campJoueur} now={now} />
       ))}

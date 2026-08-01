@@ -11,15 +11,23 @@ function fmtMult(f: number): string {
     .replace(/\.$/, '')
 }
 
-/** couleur du palier de ferveur — du rouge sang au vieil or */
+/**
+ * Sept paliers, du rouge sang au vert franc, en passant par un neutre terne.
+ * Chaque cran est plus SATURÉ que le précédent dans sa direction : on doit lire
+ * la ferveur à la couleur seule, sans lire le mot ni le chiffre.
+ */
+const TEINTES_FERVEUR = [
+  '#8e1410', // maudit — rouge presque noir
+  '#c0392b', // offensé
+  '#e07b39', // contrarié
+  '#9aa3a8', // indifférent — gris terne, sans intention
+  '#8fbf5a', // en grâce
+  '#3fae6d', // chéri
+  '#12c97c', // élu — vert éclatant
+] as const
+
 function couleurFerveur(relation: number): string {
-  if (relation >= 70) return '#e8c04a'
-  if (relation >= 40) return '#dcc478'
-  if (relation >= 15) return '#5fae7d'
-  if (relation > -15) return '#93a7b4'
-  if (relation > -40) return '#d98a4e'
-  if (relation > -70) return '#d05a41'
-  return '#b93a2c'
+  return TEINTES_FERVEUR[palierFerveur(relation)]
 }
 
 /**
@@ -48,63 +56,43 @@ function effetChiffre(g: GodId, force: number, murMax: number): string {
   }
 }
 
-/** Jauge de relation : graduations tous les 25 points, zéro marqué, curseur coloré. */
+/** bornes des sept paliers, en points de relation — sert à découper le rail */
+const BORNES = [-100, -70, -40, -15, 15, 40, 70, 100]
+
+/**
+ * Jauge de relation. Le rail lui-même est peint aux sept couleurs des paliers,
+ * du rouge sang à gauche au vert franc à droite : la position du curseur suffit
+ * à dire où l'on en est, la couleur confirme, le mot n'est plus qu'un rappel.
+ */
 function JaugeRelation({ relation }: { relation: number }) {
   const borne = Math.max(-100, Math.min(100, relation))
   const pos = ((borne + 100) / 200) * 100
   const couleur = couleurFerveur(borne)
-  const depuis = Math.min(50, pos)
-  const largeur = Math.abs(pos - 50)
   return (
-    <div style={{ margin: '9px 0 3px' }} title={`Relation : ${relation}`}>
-      <div
-        style={{
-          position: 'relative',
-          height: 12,
-          borderRadius: 6,
-          background: '#0a141d',
-          border: '1px solid #2c4258',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: 1,
-            bottom: 1,
-            left: `${depuis}%`,
-            width: `${largeur}%`,
-            background: couleur,
-            borderRadius: 3,
-            transition: 'left 0.3s, width 0.3s, background 0.3s',
-          }}
-        />
-        {[12.5, 25, 37.5, 62.5, 75, 87.5].map((x) => (
-          <div
-            key={x}
-            style={{ position: 'absolute', left: `${x}%`, top: 3, bottom: 3, width: 1, background: '#41586c' }}
-          />
-        ))}
-        <div style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1.5, background: '#7a92a6' }} />
-        <div
-          style={{
-            position: 'absolute',
-            left: `${pos}%`,
-            top: -4,
-            width: 6,
-            height: 18,
-            background: couleur,
-            border: '1px solid #0a141d',
-            borderRadius: 3,
-            transform: 'translateX(-50%)',
-            boxShadow: '0 0 6px #000a',
-            transition: 'left 0.3s, background 0.3s',
-          }}
+    <div style={{ margin: '9px 0 3px' }} title={`Relation : ${Math.round(relation)}`}>
+      <div className="jauge-ferveur">
+        {/* rail à sept bandes : chaque palier occupe exactement sa plage */}
+        {TEINTES_FERVEUR.map((c, i) => {
+          const g = ((BORNES[i] + 100) / 200) * 100
+          const d = ((BORNES[i + 1] + 100) / 200) * 100
+          return (
+            <span
+              key={c}
+              className="jf-palier"
+              style={{ left: `${g}%`, width: `${d - g}%`, background: c, opacity: i === palierFerveur(borne) ? 1 : 0.34 }}
+            />
+          )
+        })}
+        <span className="jf-zero" />
+        <span
+          className="jf-curseur"
+          style={{ left: `${pos}%`, background: couleur, boxShadow: `0 0 8px ${couleur}` }}
         />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#6f8494', marginTop: 2 }}>
-        <span>−100 maudit</span>
+      <div className="jf-legende">
+        <span style={{ color: TEINTES_FERVEUR[0] }}>−100 maudit</span>
         <span>0</span>
-        <span>+100 élu</span>
+        <span style={{ color: TEINTES_FERVEUR[6] }}>+100 élu</span>
       </div>
     </div>
   )

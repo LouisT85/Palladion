@@ -725,21 +725,47 @@ svg.carte-exp {
   color: var(--muted);
   margin-bottom: 4px;
 }
-.relation {
+/* jauge de ferveur : sept bandes, du rouge sang au vert franc. Le palier
+   courant est à pleine saturation, les autres en retrait — on lit la ferveur
+   sans lire le mot. */
+.jauge-ferveur {
   position: relative;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #7a3527 0%, #3a4a56 50%, #3f7a55 100%);
-  margin: 6px 0;
+  height: 13px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #0a141d;
+  border: 1px solid #2c4258;
 }
-.relation .curseur {
+.jf-palier {
   position: absolute;
-  top: -3px;
-  width: 4px;
-  height: 14px;
-  background: var(--gold);
-  border-radius: 2px;
+  top: 0;
+  bottom: 0;
+  transition: opacity 0.3s;
+}
+.jf-zero {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: #0a141dcc;
+}
+.jf-curseur {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 5px;
+  border-radius: 3px;
+  border: 1.5px solid #0a141d;
   transform: translateX(-50%);
+  transition: left 0.3s, background 0.3s, box-shadow 0.3s;
+}
+.jf-legende {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #6f8494;
+  margin-top: 3px;
 }
 .dieu .actions-dieu {
   display: flex;

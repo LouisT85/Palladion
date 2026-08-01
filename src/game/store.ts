@@ -162,6 +162,8 @@ export interface GameState {
   wallHp: number
   /** tours d'archers bâties sur l'enceinte */
   tours: number
+  /** angles des pans effondrés lors du dernier assaut — visibles jusqu'à réparation */
+  brechesMur: number[]
   army: Record<UnitId, number>
   recruitQueue: RecruitJob[]
   moraleMods: MoraleModifier[]
@@ -630,6 +632,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     villageois: [],
     wallHp: 0,
     tours: 0,
+    brechesMur: [],
     army: { lancier: 0, archer: 0, hoplite: 0 },
     recruitQueue: [],
     moraleMods: [],
@@ -732,6 +735,7 @@ const CHAMPS_SAUVES = [
   'villageois',
   'wallHp',
   'tours',
+  'brechesMur',
   'army',
   'recruitQueue',
   'moraleMods',
@@ -1135,6 +1139,13 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
     }
   }
 
+  // les pans tombés restent à terre : le village vit avec ses brèches jusqu'à
+  // ce qu'on paie la pierre pour les relever
+  s.brechesMur = b.secteurs.filter((sec) => sec.breche).map((sec) => sec.angle)
+  if (s.brechesMur.length > 0) {
+    pushToast(s, '🧱', `${s.brechesMur.length} pan${s.brechesMur.length > 1 ? 's' : ''} de mur à terre — réparez avant le prochain assaut.`)
+  }
+
   s.battle = null
   s.warned = false
   s.incomingWave = null
@@ -1330,6 +1341,8 @@ function simulerHorsLigne(s: GameState, now: number): void {
     } else {
       s.stats.perdus++
       const vol = volerPct(s, res.volePct)
+      // au réveil, on doit voir par où ils sont entrés : la porte a cédé
+      if (s.buildings.remparts.level > 0 && s.wallHp <= 0) s.brechesMur = [0]
       lignes.push(`💀 Assaut nocturne (${descVague(wave)}) : le village a été pillé (${vol})`)
       s.moraleMods.push({ id: uid('m'), label: 'Pillé pendant la nuit', delta: -10, expiresAt: now + 8 * 60_000 })
     }
@@ -1515,7 +1528,10 @@ export const useGame = create<GameState>()(
           const b = s.buildings[bId]
           if (b.targetLevel !== undefined && b.busyUntil !== undefined && b.busyUntil <= now) {
             b.level = b.targetLevel
-            if (bId === 'remparts') s.wallHp = murMax(s)
+            if (bId === 'remparts') {
+              s.wallHp = murMax(s)
+              s.brechesMur = []
+            }
             pushToast(s, BUILDINGS[bId].emoji, `${BUILDINGS[bId].nom} : niveau ${b.level} achevé !`)
             delete b.targetLevel
             delete b.busyUntil
@@ -1772,7 +1788,8 @@ export const useGame = create<GameState>()(
           return
         }
         s.wallHp = max
-        pushToast(s, '🧱', 'Remparts réparés.')
+        s.brechesMur = []
+        pushToast(s, '🧱', 'Remparts réparés : les pans effondrés sont relevés.')
       })
     },
 
@@ -1925,6 +1942,8 @@ export const useGame = create<GameState>()(
             const max = murMax(s)
             const part = 0.45 * force
             s.wallHp = Math.min(max, Math.round(s.wallHp + max * part))
+            // le trident ressoude : les pans à terre se relèvent, dedans comme dehors
+            s.brechesMur = []
             // en pleine bataille, les pans effondrés se relèvent aussi
             if (s.battle) {
               if (s.battle.secteurs.some((x) => x.breche)) noter(s, 'brecheRecollee')

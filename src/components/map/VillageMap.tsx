@@ -134,6 +134,7 @@ export function VillageMap() {
   const wallLevel = useGame((s) => s.buildings.remparts.level)
   const remparts = useGame((s) => s.buildings.remparts)
   const tours = useGame((s) => s.tours)
+  const brechesMur = useGame((s) => s.brechesMur)
   const army = useGame((s) => s.army)
   const wallHp = useGame((s) => s.wallHp)
   const pop = useGame((s) => s.pop)
@@ -169,14 +170,13 @@ export function VillageMap() {
   }
   const spanMur = [0, 1 / 3, 2 / 3, 1][stadeChantier(progMur)]
 
-  // chaque pan cède pour son compte : la porte ne s'arrache pas si c'est le nord qui tombe
+  // chaque pan cède pour son compte : la porte ne s'arrache pas si c'est le nord
+  // qui tombe. Hors bataille, les pans effondrés restent à terre jusqu'à réparation :
+  // le village doit porter ses cicatrices, pas seulement pendant l'assaut.
   const secteurs = battle?.secteurs ?? []
-  const brechesAngles = secteurs.filter((s) => s.breche).map((s) => s.angle)
+  const brechesAngles = battle ? secteurs.filter((s) => s.breche).map((s) => s.angle) : brechesMur
   // la porte est à l'est (angle 0) : seul l'effondrement d'un pan de ce côté l'emporte
-  const portePercee =
-    secteurs.length > 0
-      ? brechesAngles.some((a) => Math.cos(a) > 0 && Math.abs(Math.sin(a)) < 0.35)
-      : (battle?.breche ?? false)
+  const portePercee = brechesAngles.some((a) => Math.cos(a) > 0 && Math.abs(Math.sin(a)) < 0.35)
 
   const labelMur = rempartsChantier
     ? `🧱 Remparts — niv. ${remparts.targetLevel} en chantier (${Math.round(progMur * 100)} %)`
@@ -209,6 +209,13 @@ export function VillageMap() {
         <filter id="ombre-batiment" x="-40%" y="-40%" width="180%" height="180%">
           <feDropShadow dx={0} dy={1.6} stdDeviation={1.4} floodColor="#1d1508" floodOpacity={0.3} />
         </filter>
+        {/* halo de portée : rien au centre, une lueur qui ne mord que sur le bord */}
+        <radialGradient id="portee-halo">
+          <stop offset="0%" stopColor="#e8c04a" stopOpacity={0} />
+          <stop offset="78%" stopColor="#e8c04a" stopOpacity={0} />
+          <stop offset="94%" stopColor="#e8c04a" stopOpacity={0.09} />
+          <stop offset="100%" stopColor="#e8c04a" stopOpacity={0} />
+        </radialGradient>
         <DefsArt />
         <DefsBatiments />
       </defs>
@@ -297,25 +304,27 @@ export function VillageMap() {
             <ellipse cx={0} cy={-6} rx={48} ry={30} fill="transparent" />
           </g>
 
-          {/* portée des tours d'archers, visible quand les remparts sont sélectionnés */}
+          {/* Portée des tours, quand les remparts sont sélectionnés. Un disque
+              jaune plein noyait la carte : on ne garde qu'un halo de bord et un
+              liseré fin — on lit la limite, pas une tache. */}
           {selected === 'remparts' &&
             tours > 0 &&
             TOUR_ANGLES.slice(0, tours).map((a) => {
               const p = pointMur(a)
               return (
-                <circle
-                  key={a}
-                  cx={p.x}
-                  cy={p.y - 32}
-                  r={TOUR_PORTEE}
-                  fill="#e8c04a"
-                  fillOpacity={0.05}
-                  stroke="#e8c04a"
-                  strokeWidth={1.3}
-                  strokeDasharray="5 7"
-                  opacity={0.65}
-                  pointerEvents="none"
-                />
+                <g key={a} pointerEvents="none">
+                  <circle cx={p.x} cy={p.y - 32} r={TOUR_PORTEE} fill="url(#portee-halo)" />
+                  <circle
+                    cx={p.x}
+                    cy={p.y - 32}
+                    r={TOUR_PORTEE}
+                    fill="none"
+                    stroke="#f0dca0"
+                    strokeWidth={1}
+                    strokeDasharray="3 9"
+                    opacity={0.4}
+                  />
+                </g>
               )
             })}
 

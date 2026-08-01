@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, TOUR_ANGLES, TOUR_PORTEE, pointMur } from '../../game/data'
-import { murMax, useGame } from '../../game/store'
+import { murMax, postesPourvus, postesTotal, useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
 import { DefsArt } from './art'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
@@ -33,11 +33,40 @@ function Etiquette({ texte, y }: { texte: string; y: number }) {
   )
 }
 
+/**
+ * Écriteau « atelier sans bras ». Personne ne prend son poste tout seul : il
+ * faut donc que le manque se voie SUR LA CARTE, sans ouvrir de panneau — d'où
+ * cette pancarte plantée devant le bâtiment, rouge quand il tourne à vide.
+ */
+function ManqueOuvriers({ manque, vide }: { manque: number; vide: boolean }) {
+  const c = vide ? '#c0563f' : '#d98a4e'
+  return (
+    <g transform="translate(30,-30)" pointerEvents="none">
+      <g opacity={0.95}>
+        <animateTransform attributeName="transform" type="translate" values="0,0;0,-2.4;0,0" dur="2.4s" repeatCount="indefinite" />
+        {/* piquet et planche, comme un écriteau de chantier */}
+        <path d="M0,20 L0,8" stroke="#6b4c2a" strokeWidth={2.2} />
+        <rect x={-13} y={-9} width={26} height={19} rx={4} fill="#1a1208" opacity={0.72} />
+        <rect x={-13} y={-9} width={26} height={19} rx={4} fill="none" stroke={c} strokeWidth={1.6} />
+        <text x={0} y={-0.5} textAnchor="middle" fontSize={11} fill={c} fontWeight={700}>
+          👷
+        </text>
+        <text x={0} y={8} textAnchor="middle" fontSize={8.5} fill={c} fontWeight={700}>
+          {vide ? 'VIDE' : `−${manque}`}
+        </text>
+      </g>
+    </g>
+  )
+}
+
 function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisible?: boolean }) {
   const def = BUILDINGS[id]
   const b = useGame((s) => s.buildings[id])
   const selected = useGame((s) => s.selected)
   const select = useGame((s) => s.select)
+  // postes ouverts mais non tenus : le joueur doit le voir sans rien ouvrir
+  const manque = useGame((s) => Math.max(0, postesTotal(s, id) - postesPourvus(s, id)))
+  const vide = useGame((s) => postesTotal(s, id) > 0 && postesPourvus(s, id) === 0)
   const [hover, setHover] = useState(false)
   if (id === 'remparts') return null
 
@@ -116,6 +145,8 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
           )}
         </g>
       )}
+      {/* un atelier sans ouvrier ne rend rien : la pancarte le dit sur la carte */}
+      {b.level > 0 && !enChantier && manque > 0 && <ManqueOuvriers manque={manque} vide={vide} />}
       {hover && <Etiquette texte={label} y={enChantier ? -60 : -52} />}
       {/* zone cliquable généreuse */}
       <ellipse cx={0} cy={-4} rx={44} ry={26} fill="transparent" />

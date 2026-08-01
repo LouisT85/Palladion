@@ -372,8 +372,26 @@ for (const v of VIGNETTES) {
   if (v.apres) {
     await page.evaluate((a) => {
       const jeu = window.__palladion
-      // un village prospère n'a pas quarante bras à ne rien faire
-      if (a.auTravail) jeu.getState().affecterAuto()
+      /*
+       * Un village prospère n'a pas quarante bras à ne rien faire. Mais dans le
+       * jeu, PERSONNE ne prend son poste tout seul : la pose doit donc affecter
+       * les habitants elle-même, et chacun à son métier quand c'est possible.
+       */
+      if (a.auTravail) {
+        for (const b of ['ferme', 'scierie', 'carriere', 'forge', 'temple', 'port']) {
+          // au plus quatre postes par atelier ; l'action refuse d'elle-même le reste
+          for (let i = 0; i < 4; i++) {
+            const g = jeu.getState()
+            const libre =
+              g.villageois.find((v) => v.poste === null && v.metier === b) ??
+              g.villageois.find((v) => v.poste === null)
+            if (!libre) break
+            const avant = g.villageois.filter((v) => v.poste === b).length
+            g.affecter(libre.id, b)
+            if (jeu.getState().villageois.filter((v) => v.poste === b).length === avant) break
+          }
+        }
+      }
       if (a.panel) jeu.getState().openPanel(a.panel)
       if (a.assaut) jeu.setState({ nextAttackAt: Date.now() + 400 })
       // le tick ouvre de lui-même le nœud d'arc mûr : il suffit de l'y autoriser

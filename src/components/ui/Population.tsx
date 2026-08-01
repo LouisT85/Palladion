@@ -1,7 +1,9 @@
 import { createPortal } from 'react-dom'
-import { BUILDINGS, METIERS } from '../../game/data'
+import { BUILDINGS, METIERS, RENDEMENT_HORS_METIER } from '../../game/data'
 import {
   BATIMENTS_A_POSTES,
+  candidatsPour,
+  efficaciteDe,
   metierDe,
   oisifs,
   popCap,
@@ -33,17 +35,21 @@ function LigneRecap({ b }: { b: BuildingId }) {
   const total = postesTotal(s, b)
   const pourvus = postesPourvus(s, b)
   const r = rendement(s, b)
+  // combien tiennent le poste sans en avoir le métier : c'est le gisement de progrès
+  const malPlaces = s.villageois.filter((x) => x.poste === b && x.metier !== b).length
+  const candidat = candidatsPour(s, b).find((x) => x.metier === b)
   return (
     <div className="ligne">
       <span style={{ minWidth: 138, fontSize: 13 }}>
         {BUILDINGS[b].emoji} {BUILDINGS[b].nom}
+        {pourvus === 0 && total > 0 && <span title="Aucun ouvrier : cet atelier ne rend rien"> ⚠️</span>}
       </span>
       <div className="barre">
         <div style={{ width: `${r * 100}%`, background: couleurRendement(r) }} />
       </div>
       <span
         style={{
-          width: 182,
+          width: 210,
           whiteSpace: 'nowrap',
           textAlign: 'right',
           fontSize: 12,
@@ -51,7 +57,17 @@ function LigneRecap({ b }: { b: BuildingId }) {
           fontVariantNumeric: 'tabular-nums',
         }}
       >
-        {pourvus}/{total} postes — rendement {Math.round(r * 100)} %
+        {pourvus}/{total} · {Math.round(r * 100)} %
+        {malPlaces > 0 && <span style={{ color: '#d98a4e' }}> · {malPlaces} hors métier</span>}
+        {candidat && pourvus < total && (
+          <button
+            style={{ padding: '2px 7px', fontSize: 11.5, marginLeft: 6 }}
+            onClick={() => s.affecter(candidat.id, b)}
+            title={`${candidat.nom} est ${libellePoste(b).toLowerCase()} de son métier`}
+          >
+            + {candidat.nom}
+          </button>
+        )}
       </span>
     </div>
   )
@@ -61,40 +77,32 @@ function LigneVillageois({ v }: { v: Villageois }) {
   const s = useGame()
   const poste = v.poste
   const sansEmploi = poste === null
+  const aSonMetier = poste === v.metier
+  const eff = efficaciteDe(v)
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '6px 8px',
-        marginTop: 5,
-        borderRadius: 7,
-        background: sansEmploi ? '#1b2c3d' : 'transparent',
-        borderLeft: `3px solid ${sansEmploi ? '#d98a4e' : '#28405a'}`,
-      }}
-    >
-      <span style={{ fontSize: 17, lineHeight: 1 }}>{poste === null ? '🧍' : BUILDINGS[poste].emoji}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 13 }}>{v.nom}</div>
-        <div style={{ fontSize: 11, color: sansEmploi ? '#d98a4e' : '#93a7b4' }}>
-          {poste === null ? 'Sans emploi — enrôlable à la caserne' : `${metierDe(v)} · ${BUILDINGS[poste].nom}`}
+    <div className={`hab${sansEmploi ? ' oisif' : aSonMetier ? ' juste' : ' mal-place'}`}>
+      <span className="hab-ico">{BUILDINGS[v.metier].emoji}</span>
+      <div className="hab-corps">
+        <div className="hab-nom">
+          {v.nom} <span className="hab-metier">{metierDe(v)}</span>
+        </div>
+        <div className="hab-etat">
+          {sansEmploi ? (
+            <span className="hab-oisif">Sans emploi — enrôlable à la caserne</span>
+          ) : aSonMetier ? (
+            <span className="hab-juste">✔ à son métier, à {BUILDINGS[poste].nom} — rendement plein</span>
+          ) : (
+            <span className="hab-mal">
+              ⚠ {BUILDINGS[poste].nom}, ce n’est pas son métier — il ne rend que {Math.round(eff * 100)} %
+            </span>
+          )}
         </div>
       </div>
       <select
+        className="hab-select"
         value={v.poste ?? ''}
         onChange={(e) => s.affecter(v.id, e.target.value === '' ? null : (e.target.value as BuildingId))}
         aria-label={`Poste de ${v.nom}`}
-        style={{
-          font: 'inherit',
-          fontSize: 12,
-          background: '#1d3348',
-          color: '#e8dcc0',
-          border: '1px solid #2c4258',
-          borderRadius: 6,
-          padding: '4px 5px',
-          maxWidth: 168,
-        }}
       >
         <option value="">Sans emploi</option>
         {BATIMENTS_A_POSTES.filter((b) => postesTotal(s, b) > 0).map((b) => {
@@ -102,6 +110,7 @@ function LigneVillageois({ v }: { v: Villageois }) {
           const pourvus = postesPourvus(s, b)
           return (
             <option key={b} value={b} disabled={v.poste !== b && pourvus >= total}>
+              {b === v.metier ? '★ ' : ''}
               {libellePoste(b)} ({pourvus}/{total})
             </option>
           )
@@ -145,8 +154,10 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
         </div>
         <div style={{ fontSize: 12.5, color: '#cfc4a8', marginTop: 7, lineHeight: 1.45 }}>
           Un atelier ne produit qu’au prorata de ses postes tenus : une ferme de niveau 3 sans paysan ne rapporte rien de
-          plus que la cueillette. Les villageois <b style={{ color: '#d98a4e' }}>sans emploi</b> sont aussi les seuls que
-          la caserne peut enrôler.
+          plus que la cueillette. <b style={{ color: '#e8dcc0' }}>Chaque habitant a un métier de naissance</b> : à son
+          métier il rend pleinement, ailleurs seulement {Math.round(RENDEMENT_HORS_METIER * 100)} %. Personne ne prend son
+          poste tout seul — c’est à vous de placer chacun. Les villageois{' '}
+          <b style={{ color: '#d98a4e' }}>sans emploi</b> sont aussi les seuls que la caserne peut enrôler.
         </div>
 
         <div className="bloc">
@@ -158,14 +169,6 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
           ) : (
             ateliers.map((b) => <LigneRecap key={b} b={b} />)
           )}
-          <button
-            className="principal"
-            style={{ width: '100%', marginTop: 8 }}
-            disabled={libres.length === 0 || placesLibres === 0}
-            onClick={() => s.affecterAuto()}
-          >
-            👷 Tous au travail
-          </button>
           {libres.length === 0 && placesLibres > 0 && (
             <div style={{ fontSize: 12, color: '#93a7b4', marginTop: 5 }}>
               Plus un bras de libre — attendez une naissance ou libérez un artisan.

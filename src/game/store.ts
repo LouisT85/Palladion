@@ -24,8 +24,10 @@ import {
   POSTES,
   PREMIER_ASSAUT_MS,
   PROD,
+  RENDEMENT_HORS_METIER,
   RES,
   SECTEURS,
+  tirerMetier,
   multRelation,
   nbFronts,
   palierFerveur,
@@ -247,7 +249,6 @@ export interface GameState {
   construireTour: () => void
   affecter: (villageoisId: string, poste: BuildingId | null) => void
   /** pourvoit d'un coup tous les postes libres avec les villageois oisifs */
-  affecterAuto: () => void
   echanger: (donner: ResourceId, recevoir: ResourceId) => void
   sacrifier: (g: GodId) => void
   benir: (g: GodId) => void
@@ -299,11 +300,25 @@ export function postesTotal(s: Pick<GameState, 'buildings'>, b: BuildingId): num
 export function postesPourvus(s: Pick<GameState, 'villageois'>, b: BuildingId): number {
   return s.villageois.filter((v) => v.poste === b).length
 }
-/** rendement d'un bâtiment : la part de ses postes réellement tenue (0…1) */
+/**
+ * Rendement d'un bâtiment (0…1). Ce n'est plus un simple compte de têtes :
+ * chaque villageois vaut 1 à SON métier, et RENDEMENT_HORS_METIER ailleurs.
+ * Une carrière tenue par deux paysans tourne donc moins bien qu'une carrière
+ * tenue par deux tailleurs de pierre — c'est tout l'intérêt d'affecter soi-même.
+ */
 export function rendement(s: Pick<GameState, 'buildings' | 'villageois'>, b: BuildingId): number {
   const total = postesTotal(s, b)
   if (total <= 0) return 0
-  return Math.min(1, postesPourvus(s, b) / total)
+  const force = s.villageois
+    .filter((v) => v.poste === b)
+    .reduce((a, v) => a + (v.metier === b ? 1 : RENDEMENT_HORS_METIER), 0)
+  return Math.min(1, force / total)
+}
+/** villageois de ce métier qui ne sont affectés nulle part — les meilleurs candidats */
+export function candidatsPour(s: Pick<GameState, 'villageois'>, b: BuildingId): Villageois[] {
+  const libres = s.villageois.filter((v) => v.poste === null)
+  // le bon métier d'abord, les bonnes volontés ensuite
+  return [...libres].sort((x, y) => Number(y.metier === b) - Number(x.metier === b))
 }
 /** villageois sans emploi — ceux qu'on peut enrôler ou affecter */
 export function oisifs(s: Pick<GameState, 'villageois'>): Villageois[] {
@@ -312,9 +327,15 @@ export function oisifs(s: Pick<GameState, 'villageois'>): Villageois[] {
 /** bâtiments qui offrent des postes (dans l'ordre de la carte) */
 export const BATIMENTS_A_POSTES = BUILDING_IDS.filter((b) => POSTES[b] !== undefined)
 
-/** métier d'un villageois, pour l'affichage */
+/** nom du métier de naissance d'un villageois */
 export function metierDe(v: Villageois): string {
-  return v.poste ? (METIERS[v.poste] ?? BUILDINGS[v.poste].nom) : 'Sans emploi'
+  return METIERS[v.metier] ?? BUILDINGS[v.metier].nom
+}
+
+/** ce que ce villageois rend à son poste actuel : 1 à son métier, moins ailleurs */
+export function efficaciteDe(v: Villageois): number {
+  if (v.poste === null) return 0
+  return v.poste === v.metier ? 1 : RENDEMENT_HORS_METIER
 }
 
 /**
@@ -327,7 +348,8 @@ function syncVillageois(s: GameState): void {
     const utilises = new Set(s.villageois.map((v) => v.nom))
     const libres = NOMS_VILLAGEOIS.filter((n) => !utilises.has(n))
     const nom = libres.length > 0 ? libres[Math.floor(Math.random() * libres.length)] : `Habitant ${s.villageois.length + 1}`
-    s.villageois.push({ id: uid('v'), nom, poste: null })
+    // chacun naît avec un métier : c'est ce qui donne du sens à l'affectation
+    s.villageois.push({ id: uid('v'), nom, poste: null, metier: tirerMetier() })
   }
   while (s.villageois.length > s.pop) {
     // on retire d'abord les oisifs : un artisan ne disparaît qu'en dernier
@@ -700,7 +722,6 @@ type ActionsOnly = {
   reparerRemparts: unknown
   construireTour: unknown
   affecter: unknown
-  affecterAuto: unknown
   echanger: unknown
   sacrifier: unknown
   benir: unknown
@@ -1406,6 +1427,11 @@ export const useGame = create<GameState>()(
             s.hautsFaits = s.hautsFaits ?? []
             s.exploits = s.exploits ?? {}
             s.alliances = s.alliances ?? {}
+            // avant les métiers, les habitants n'en avaient pas : on leur en donne
+            // un cohérent avec le poste qu'ils tiennent déjà, pour ne pas les punir
+            for (const v of s.villageois) {
+              if (!v.metier) v.metier = v.poste ?? tirerMetier()
+            }
             // sauvegardes antérieures aux héros : on complète les champs manquants
             // sans jamais écraser ce qui a déjà été joué
             s.heros = Object.fromEntries(
@@ -1549,20 +1575,19 @@ export const useGame = create<GameState>()(
             pushToast(s, BUILDINGS[bId].emoji, `${BUILDINGS[bId].nom} : niveau ${b.level} achevé !`)
             delete b.targetLevel
             delete b.busyUntil
-            // un chantier livré ouvre des postes : on y envoie les bras disponibles
-            const libres = postesTotal(s, bId) - postesPourvus(s, bId)
-            if (libres > 0) {
-              let places = libres
-              for (const v of s.villageois) {
-                if (places <= 0) break
-                if (v.poste === null) {
-                  v.poste = bId
-                  places--
-                }
-              }
-              if (places < libres) {
-                pushToast(s, '👷', `${METIERS[bId] ?? 'Ouvriers'} : ${libres - places} villageois pren${libres - places > 1 ? 'nent' : 'd'} son poste.`)
-              }
+            /*
+             * Le chantier ouvre des postes — mais PERSONNE ne s'y met tout seul.
+             * C'est au joueur de choisir qui va où, et de préférence quelqu'un
+             * dont c'est le métier. On se contente de le lui signaler.
+             */
+            const aPourvoir = postesTotal(s, bId) - postesPourvus(s, bId)
+            if (aPourvoir > 0) {
+              const nomMetier = METIERS[bId] ?? 'ouvriers'
+              pushToast(
+                s,
+                '👷',
+                `${BUILDINGS[bId].nom} : ${aPourvoir} poste${aPourvoir > 1 ? 's' : ''} de ${nomMetier.toLowerCase()} à pourvoir — sans personne, l’atelier ne rend rien.`,
+              )
             }
           }
         }
@@ -1846,33 +1871,6 @@ export const useGame = create<GameState>()(
           return
         }
         v.poste = poste
-      })
-      get().save()
-    },
-
-    affecterAuto: () => {
-      set((s) => {
-        let places = 0
-        for (const b of BATIMENTS_A_POSTES) {
-          let libres = postesTotal(s, b) - postesPourvus(s, b)
-          while (libres > 0) {
-            const v = s.villageois.find((x) => x.poste === null)
-            if (!v) {
-              libres = 0
-              break
-            }
-            v.poste = b
-            libres--
-            places++
-          }
-        }
-        pushToast(
-          s,
-          '👷',
-          places > 0
-            ? `${places} villageois envoyé${places > 1 ? 's' : ''} au travail.`
-            : 'Aucun poste à pourvoir — ou plus personne de disponible.',
-        )
       })
       get().save()
     },

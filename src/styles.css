@@ -778,6 +778,73 @@ svg.carte-exp {
   padding: 4px 9px;
 }
 
+/* ── recensement : un habitant, un métier, un poste ────── */
+.hab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-top: 5px;
+  border-radius: 7px;
+  border-left: 3px solid #28405a;
+}
+.hab.oisif {
+  background: #1b2c3d;
+  border-left-color: #d98a4e;
+}
+.hab.juste {
+  border-left-color: #3f7a55;
+}
+.hab.mal-place {
+  border-left-color: #8a5a2e;
+  background: #241d12;
+}
+.hab-ico {
+  font-size: 17px;
+  line-height: 1;
+}
+.hab-corps {
+  flex: 1;
+  min-width: 0;
+}
+.hab-nom {
+  font-weight: 700;
+  font-size: 13px;
+}
+.hab-metier {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--gold);
+  border: 1px solid #6c5a24;
+  border-radius: 4px;
+  padding: 0 5px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.hab-etat {
+  font-size: 11px;
+  line-height: 1.35;
+}
+.hab-oisif {
+  color: #d98a4e;
+}
+.hab-juste {
+  color: #7fc79b;
+}
+.hab-mal {
+  color: #d98a4e;
+}
+.hab-select {
+  font: inherit;
+  font-size: 12px;
+  background: #1d3348;
+  color: #e8dcc0;
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  padding: 4px 5px;
+  max-width: 176px;
+}
+
 /* ── héros ─────────────────────────────────────────────── */
 .hud-actions button.appelle {
   border-color: var(--gold);

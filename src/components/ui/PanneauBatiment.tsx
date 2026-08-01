@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, METIERS, PROD, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS } from '../../game/data'
-import { fmtDuree, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
+import { BUILDINGS, BUILDING_IDS, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS } from '../../game/data'
+import { candidatsPour, fmtDuree, metierDe, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
 import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
 import { PanneauPopulation, couleurRendement } from './Population'
@@ -78,6 +78,9 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
   const equipe = s.villageois.filter((v) => v.poste === id)
   const libres = oisifs(s)
   const metier = METIERS[id] ?? 'Ouvriers'
+  // les candidats, le bon métier en tête — c'est lui qu'on proposera
+  const candidats = candidatsPour(s, id)
+  const duMetier = candidats.find((v) => v.metier === id)
   return (
     <div className="bloc">
       <h3>
@@ -98,7 +101,14 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
       {equipe.map((v) => (
         <div key={v.id} className="ligne" style={{ margin: '4px 0' }}>
           <span style={{ fontSize: 12.5 }}>
-            {BUILDINGS[id].emoji} <b>{v.nom}</b> <span style={{ color: '#93a7b4' }}>· {metier}</span>
+            {BUILDINGS[v.metier].emoji} <b>{v.nom}</b>{' '}
+            {v.metier === id ? (
+              <span style={{ color: '#7fc79b' }}>· {metier} de métier</span>
+            ) : (
+              <span style={{ color: '#d98a4e' }}>
+                · {metierDe(v)} déplacé ici — {Math.round(RENDEMENT_HORS_METIER * 100)} %
+              </span>
+            )}
           </span>
           <button
             onClick={() => s.affecter(v.id, null)}
@@ -118,16 +128,21 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
         <>
           <div style={{ fontSize: 12, color: libres.length > 0 ? '#93a7b4' : '#d98a4e', marginTop: 5 }}>
             {libres.length > 0
-              ? `${libres.length} villageois sans emploi au village.`
+              ? `${libres.length} villageois sans emploi au village${duMetier ? `, dont ${duMetier.nom} qui est ${metier.toLowerCase()} de son métier` : ' — mais aucun de ce métier'}.`
               : 'Aucun villageois sans emploi — libérez un artisan ailleurs.'}
           </div>
+          {/* on propose le mieux placé, jamais le premier venu : le métier compte */}
           <button
             className="principal"
             style={{ width: '100%', marginTop: 6 }}
-            disabled={libres.length === 0}
-            onClick={() => s.affecter(libres[0].id, id)}
+            disabled={candidats.length === 0}
+            onClick={() => s.affecter(candidats[0].id, id)}
           >
-            Affecter un villageois
+            {candidats.length === 0
+              ? 'Personne de disponible'
+              : duMetier
+                ? `Affecter ${duMetier.nom} (${metier.toLowerCase()})`
+                : `Affecter ${candidats[0].nom} — hors métier, ${Math.round(RENDEMENT_HORS_METIER * 100)} %`}
           </button>
         </>
       )}

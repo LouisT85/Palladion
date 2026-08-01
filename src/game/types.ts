@@ -97,6 +97,12 @@ export interface Villageois {
   nom: string
   /** bâtiment où il travaille — null = sans emploi, disponible pour l'enrôlement */
   poste: BuildingId | null
+  /**
+   * Son métier de naissance, parmi les six qui s'apprennent au village. À son
+   * métier il rend pleinement ; ailleurs, il fait ce qu'il peut. C'est ce qui
+   * rend l'affectation intéressante à décider soi-même.
+   */
+  metier: BuildingId
 }
 
 export interface RecruitJob {

@@ -91,6 +91,40 @@ export const METIERS: Partial<Record<BuildingId, string>> = {
   port: 'Docker',
 }
 
+/** les six métiers qu'un villageois peut avoir appris en naissant */
+export const METIER_IDS = Object.keys(METIERS) as BuildingId[]
+
+/**
+ * Rendement d'un villageois hors de son métier. Un paysan sait tenir une pioche,
+ * mais pas comme un tailleur de pierre : placer chacun à sa place doit se voir
+ * dans les chiffres, sinon l'affectation n'est qu'une corvée de clics.
+ */
+export const RENDEMENT_HORS_METIER = 0.55
+
+/**
+ * Métier tiré à la naissance. Pondéré : il naît plus de paysans et de bûcherons
+ * que de prêtres — le village a besoin de manger avant d'avoir besoin de prier,
+ * et un prêtre qui se fait attendre a de la valeur.
+ */
+export const POIDS_METIERS: { id: BuildingId; poids: number }[] = [
+  { id: 'ferme', poids: 30 },
+  { id: 'scierie', poids: 22 },
+  { id: 'carriere', poids: 20 },
+  { id: 'forge', poids: 12 },
+  { id: 'port', poids: 10 },
+  { id: 'temple', poids: 6 },
+]
+
+export function tirerMetier(): BuildingId {
+  const somme = POIDS_METIERS.reduce((a, m) => a + m.poids, 0)
+  let r = Math.random() * somme
+  for (const m of POIDS_METIERS) {
+    r -= m.poids
+    if (r <= 0) return m.id
+  }
+  return 'ferme'
+}
+
 /** noms grecs donnés aux habitants — le village cesse d'être un compteur */
 export const NOMS_VILLAGEOIS = [
   'Alexios', 'Nikandros', 'Théron', 'Kleitos', 'Damon', 'Lysandre', 'Périclès', 'Straton',

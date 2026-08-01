@@ -111,6 +111,8 @@ export function setMuet(m: boolean): void {
 export function debloquerAudio(): void {
   if (ctx) {
     if (ctx.state === 'suspended') void ctx.resume()
+    // le contexte survit au démontage de React (StrictMode) : la boucle, non
+    lancerBoucle()
     return
   }
   try {

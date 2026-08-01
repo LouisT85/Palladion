@@ -286,11 +286,12 @@ export function BandeauAlerte() {
   const nextAttackAt = useGame((s) => s.nextAttackAt)
   const now = useGame((s) => s.lastSeen)
   const lancerMaintenant = useGame((s) => s.lancerMaintenant)
-  const fronts = useGame((s) =>
-    bonusHeros(s).revelerVague && s.incomingFronts
-      ? s.incomingFronts.map((id) => SECTEURS.find((x) => x.id === id)?.nom ?? id)
-      : null,
-  )
+  // un sélecteur doit rendre une référence STABLE : on lit le tableau du store
+  // tel quel et on le met en forme au rendu, jamais dans le sélecteur
+  const revele = useGame((s) => bonusHeros(s).revelerVague)
+  const frontsIds = useGame((s) => s.incomingFronts)
+  const fronts =
+    revele && frontsIds ? frontsIds.map((id) => SECTEURS.find((x) => x.id === id)?.nom ?? id) : null
 
   if (battle) {
     const restants = battle.fighters.filter((f) => f.camp === 'attaque' && f.etat !== 'mort').length

@@ -94,6 +94,7 @@ import {
   type HeroId,
   type HeroState,
 } from './heros'
+import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives } from './missions'
 import {
   BONUS_ORAGE_ZEUS,
@@ -213,6 +214,12 @@ export interface GameState {
   prochainAppelAt: number
   /** villages sauvés devenus alliés : tribut régulier et renforts aux remparts */
   alliances: Record<string, Alliance>
+  /** hauts faits acquis — une fois gagnés, jamais repris */
+  hautsFaits: string[]
+  /** compteurs de faits ponctuels que l'état seul ne raconte pas */
+  exploits: Record<string, number>
+  /** écran de fin de règne, ouvert par l'abdication */
+  finDePartie: { score: number; titre: string; desc: string; lignes: string[] } | null
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -225,7 +232,7 @@ export interface GameState {
   offlineSummary: string[] | null
   toasts: Toast[]
   selected: BuildingId | null
-  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | null
+  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | 'hauts-faits' | null
 
   // actions
   init: () => void
@@ -249,6 +256,8 @@ export interface GameState {
   lancerMaintenant: () => void
   lancerExpedition: (villageId: string, troupes: Record<UnitId, number>, intention?: Intention) => void
   ignorerSecours: () => void
+  abdiquer: () => void
+  fermerFin: () => void
   retraiteExpedition: () => void
   fermerExpedition: () => void
   attaqueTest: () => void
@@ -662,6 +671,9 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     appelSecours: null,
     prochainAppelAt: now + 9 * 60_000,
     alliances: {},
+    hautsFaits: [],
+    exploits: {},
+    finDePartie: null,
     missionsNotifiees: [],
     battle: null,
     renfortsEngages: null,
@@ -694,6 +706,8 @@ type ActionsOnly = {
   lancerMaintenant: unknown
   lancerExpedition: unknown
   ignorerSecours: unknown
+  abdiquer: unknown
+  fermerFin: unknown
   retraiteExpedition: unknown
   fermerExpedition: unknown
   attaqueTest: unknown
@@ -754,6 +768,8 @@ const CHAMPS_SAUVES = [
   'appelSecours',
   'prochainAppelAt',
   'alliances',
+  'hautsFaits',
+  'exploits',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -778,6 +794,8 @@ function resumeRecoltes(saison: SaisonId): string {
 function tournerCiel(s: GameState, now: number): void {
   const saison = saisonDe(Math.floor((now - s.createdAt) / DAY_MS))
   if (saison !== s.saison) {
+    // sortir de l'hiver le grenier non vide, c'est déjà une victoire
+    if (s.saison === 'hiver' && s.resources.grain > 0) noter(s, 'hiverTraverse')
     s.saison = saison
     s.meteo = tirerMeteo(saison)
     s.meteoJusqua = now + DUREE_METEO_MS
@@ -880,6 +898,52 @@ function entretenirHeros(s: GameState, now: number, dtJeu: number): void {
       'Il reprend la route sans un mot. Rien n’interdit de le rappeler — en payant, cette fois.',
     ])
   }
+}
+
+// ── Hauts faits et prestige ──────────────────────────────────────────────────
+
+/** vue figée de la partie, telle que la jugent les hauts faits */
+export function snapHautFait(s: GameState): SnapHautFait {
+  return {
+    resources: s.resources,
+    faveur: s.faveur,
+    army: s.army,
+    pop: s.pop,
+    morale: s.morale,
+    tours: s.tours,
+    buildings: s.buildings,
+    gods: s.gods,
+    stats: s.stats,
+    expeditions: s.expeditions,
+    alliances: s.alliances,
+    heros: s.heros,
+    villageois: s.villageois,
+    saison: s.saison,
+    jour: jourDe(s),
+    exploits: s.exploits ?? {},
+  }
+}
+
+/** score de prestige de la partie en cours */
+export function prestigeCourant(s: GameState): number {
+  return prestige(snapHautFait(s), s.hautsFaits ?? [])
+}
+
+/** contrôle les hauts faits non encore acquis, et sacre ceux qui viennent de tomber */
+function verifierHautsFaits(s: GameState): void {
+  const snap = snapHautFait(s)
+  for (const hf of HAUTS_FAITS) {
+    if (s.hautsFaits.includes(hf.id)) continue
+    if (!hf.atteint(snap)) continue
+    s.hautsFaits.push(hf.id)
+    pushToast(s, hf.emoji, `Haut fait : ${hf.titre} (+${hf.points} prestige)`)
+    pushReport(s, '🏅', `Haut fait — ${hf.titre}`, [hf.desc, `+${hf.points} points de prestige.`])
+  }
+}
+
+/** enregistre un fait ponctuel que l'état seul ne raconterait pas */
+function noter(s: GameState, cle: string, n = 1): void {
+  s.exploits[cle] = (s.exploits[cle] ?? 0) + n
 }
 
 // ── Appels au secours et alliances ───────────────────────────────────────────
@@ -1025,6 +1089,12 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
   if (victoire) {
     s.stats.repousses++
     s.threatMod -= 5
+    // ce que le compteur d'assauts ne dit pas : la manière
+    const sansPerte = Object.keys(pertes).length === 0
+    const murIntact = b.secteurs.every((sec) => !sec.breche)
+    if (sansPerte) noter(s, 'assautSansPerte')
+    if (sansPerte && b.secteurs.length >= 3) noter(s, 'assautTroisFronts')
+    if (murIntact) noter(s, 'assautMurIntact')
     const rec = s.defRecompense ?? { bronze: 20, faveur: 8, bonus: false }
     const mult = rec.bonus ? 1.25 : 1
     const bronze = Math.round(rec.bronze * mult)
@@ -1112,6 +1182,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     const etoiles = victoire ? etoilesPour(mortsTotal, envoyesTotal) : 0
     s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now, pillages }
     if (victoire) {
+      noter(s, 'secours')
       s.alliances[v.id] = { depuis: now, tributAt: now + TRIBUT_MS }
       s.gods.zeus.relation = Math.min(100, s.gods.zeus.relation + 12)
       s.gods.athena.relation = Math.min(100, s.gods.athena.relation + 7)
@@ -1163,6 +1234,9 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     s.threatMod += 4
     s.moraleMods.push({ id: uid('m'), label: 'Raid victorieux', delta: 6, expiresAt: now + 8 * 60_000 })
     s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now, pillages: pillages + 1 }
+    // piller un allié rompt l'alliance sur-le-champ — et cela se retient
+    const trahison = !!s.alliances[v.id]
+    if (trahison) noter(s, 'trahisons')
     delete s.alliances[v.id]
     lignes.push(
       `${v.nom} est tombé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
@@ -1170,6 +1244,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.` : 'Aucune perte — un triomphe digne d’Achille.',
       `Arès +4, ambiance +6 — mais Zeus Xenios −5, et la région retient votre nom (menace +4).`,
       `Ils s’en souviendront : à votre prochaine visite, la garnison sera plus fournie (${pillages + 1} pillage${pillages > 0 ? 's' : ''} encaissé${pillages > 0 ? 's' : ''}).`,
+      ...(trahison ? ['🗡️ L’alliance est rompue : on ne pille pas impunément ceux qu’on a sauvés.'] : []),
     )
     exp.result = { victoire: true, etoiles, lignes }
     pushReport(s, '🏴‍☠️', `Raid victorieux — ${v.nom}`, lignes)
@@ -1298,7 +1373,12 @@ export const useGame = create<GameState>()(
               arcHeros: null,
               arcIssue: null,
               renfortsEngages: null,
+              finDePartie: null,
             })
+            // une sauvegarde antérieure aux hauts faits n'a ni liste ni compteurs
+            s.hautsFaits = s.hautsFaits ?? []
+            s.exploits = s.exploits ?? {}
+            s.alliances = s.alliances ?? {}
             // sauvegardes antérieures aux héros : on complète les champs manquants
             // sans jamais écraser ce qui a déjà été joué
             s.heros = Object.fromEntries(
@@ -1594,6 +1674,9 @@ export const useGame = create<GameState>()(
         // ── un héros attend votre parole (jamais pendant un dilemme ni un assaut) ──
         if (s.tutorialDone) ouvrirArcMur(s)
 
+        // ── hauts faits : on regarde si le règne vient d'entrer dans la légende ──
+        verifierHautsFaits(s)
+
         // ── missions prêtes à réclamer (toast unique) ──
         for (const m of missionsActives(s.missionsReclamees)) {
           if (s.missionsNotifiees.includes(m.id)) continue
@@ -1816,6 +1899,7 @@ export const useGame = create<GameState>()(
         s.faveur -= cout
         s.gods[g].cooldownUntil = now + dieu.benediction.cooldown / (MODE_TEST ? 12 : 1)
         s.gods[g].relation = Math.min(100, s.gods[g].relation + 2)
+        noter(s, 'benedictions')
         // ferveur : plus le dieu vous chérit, plus son bras est lourd — et plus
         // sa manifestation est spectaculaire (le palier pilote la mise en scène)
         const force = multRelation(s.gods[g].relation)
@@ -1843,6 +1927,7 @@ export const useGame = create<GameState>()(
             s.wallHp = Math.min(max, Math.round(s.wallHp + max * part))
             // en pleine bataille, les pans effondrés se relèvent aussi
             if (s.battle) {
+              if (s.battle.secteurs.some((x) => x.breche)) noter(s, 'brecheRecollee')
               for (const sec of s.battle.secteurs) {
                 sec.hp = Math.min(sec.max, sec.hp + sec.max * part)
                 if (sec.hp > 0) sec.breche = false
@@ -2209,6 +2294,35 @@ export const useGame = create<GameState>()(
         pushToast(s, '🚪', `Vous fermez la porte au coureur de ${v?.nom ?? 'ce village'} — Zeus a vu.`)
       })
       get().save()
+    },
+
+    /**
+     * Abdiquer, c'est choisir la fin de son règne : le score se fige, les aèdes
+     * donnent un titre, puis la cité repart de zéro. Rien d'autre ne termine
+     * une partie — un village peut être pillé cent fois et se relever.
+     */
+    abdiquer: () => {
+      set((s) => {
+        if (s.battle || (s.expedition && !s.expedition.result)) return
+        verifierHautsFaits(s)
+        const detail = detailPrestige(snapHautFait(s), s.hautsFaits)
+        const score = detail.reduce((a, d) => a + d.points, 0)
+        const t = titrePrestige(score)
+        s.finDePartie = {
+          score,
+          titre: t.titre,
+          desc: t.desc,
+          lignes: detail.filter((d) => d.points !== 0).map((d) => `${d.label} : ${d.points}`),
+        }
+        pushReport(s, '👑', `Fin du règne — ${t.titre}`, [
+          `${score} points de prestige, ${s.hautsFaits.length}/${HAUTS_FAITS.length} hauts faits.`,
+          t.desc,
+        ])
+      })
+    },
+
+    fermerFin: () => {
+      set((s) => void (s.finDePartie = null))
     },
 
     retraiteExpedition: () => {

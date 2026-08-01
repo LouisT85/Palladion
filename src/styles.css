@@ -791,6 +791,166 @@ svg.carte {
   margin-top: 5px;
 }
 
+/* ── hauts faits & prestige ────────────────────────────── */
+.prestige-bloc {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  border: 1px solid var(--gold-sombre);
+  border-radius: 11px;
+  background: linear-gradient(180deg, #24200f, #141b25);
+  padding: 12px 14px;
+  margin-top: 10px;
+}
+.prestige-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+.prestige-score .chiffre {
+  font-family: Georgia, serif;
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: 0 2px 10px #e8c04a44;
+  font-variant-numeric: tabular-nums;
+}
+.prestige-score .unite {
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  margin-top: 3px;
+}
+.prestige-titre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+}
+.prestige-titre b {
+  font-family: Georgia, serif;
+  font-size: 18px;
+  color: var(--texte);
+}
+.prestige-titre span {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+.prestige-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 14px;
+  font-size: 11.5px;
+  color: #93a7b4;
+  flex: 1;
+  min-width: 180px;
+}
+.prestige-detail b {
+  color: #cfc4a8;
+  font-variant-numeric: tabular-nums;
+}
+
+.hf-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+  gap: 7px;
+  margin-top: 7px;
+}
+.hf {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--bord);
+  border-radius: 9px;
+  background: #10202e;
+  padding: 7px 9px;
+  opacity: 0.55;
+}
+.hf.obtenu {
+  opacity: 1;
+  border-color: var(--gold-sombre);
+  background: #16221d;
+}
+.hf-emoji {
+  font-size: 19px;
+  line-height: 1.2;
+}
+.hf-corps {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.hf-corps b {
+  font-size: 12.5px;
+}
+.hf-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.hf-points {
+  font-size: 11px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.hf-abdication {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 11px;
+  border-top: 1px solid var(--bord);
+}
+.hf-abdication span {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.modale.fin-regne {
+  text-align: center;
+  border-width: 2px;
+}
+.fin-score {
+  font-family: Georgia, serif;
+  font-size: 58px;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: 0 3px 22px #e8c04a55;
+  line-height: 1;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.fin-titre {
+  font-family: Georgia, serif;
+  font-size: 25px;
+  color: var(--texte);
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+.fin-desc {
+  font-size: 13.5px;
+  color: #cfc4a8;
+  font-style: italic;
+  margin-top: 5px;
+}
+.fin-detail {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: #93a7b4;
+}
+
 /* ── journal & toasts ──────────────────────────────────── */
 .rapport {
   border: 1px solid var(--bord);

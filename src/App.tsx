@@ -4,6 +4,7 @@ import { HERO_IDS } from './game/heros'
 import { herosDisponible, totalEtoiles, useGame } from './game/store'
 import { VillageMap } from './components/map/VillageMap'
 import { BandeauAlerte, BarreRessources, BoutonPleinEcran, Toasts } from './components/ui/Hud'
+import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker } from './components/ui/Missions'
 import { PanneauBatiment } from './components/ui/PanneauBatiment'
@@ -81,6 +82,12 @@ export default function App() {
             🛡️<span className="lbl"> Héros</span>
             {herosARecruter > 0 ? ` ${herosARecruter}` : ''}
           </button>
+          <button
+            onClick={() => openPanel('hauts-faits')}
+            title="Hauts faits, prestige et bilan du règne"
+          >
+            🏅<span className="lbl"> Hauts faits</span>
+          </button>
           <button onClick={() => openPanel('journal')} title="Rapports et chroniques">
             📜<span className="lbl"> Journal</span>
           </button>
@@ -102,6 +109,7 @@ export default function App() {
       {panel === 'aide' && <ModaleAide />}
       {panel === 'pantheon' && <Pantheon />}
       {panel === 'heros' && <PanneauHeros />}
+      {panel === 'hauts-faits' && <PanneauHautsFaits />}
       {panel === 'journal' && <ModaleJournal />}
       {panel === 'expeditions' && !expedition && <PanneauExpeditions />}
       {expedition && <ExpeditionScene />}
@@ -109,6 +117,7 @@ export default function App() {
       <ModaleEvenement />
       <ModaleArcHeros />
       <ModaleRapportBataille />
+      <ModaleFinPartie />
     </div>
   )
 }

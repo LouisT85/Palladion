@@ -1273,6 +1273,100 @@ svg.carte-exp {
   }
 }
 
+/* ── infobulles du bandeau ─────────────────────────────── */
+/* le `title` du navigateur était une ligne grise après une seconde d'attente ;
+   ici on a la place d'expliquer, d'aligner des chiffres et de colorer */
+.infobulle {
+  position: fixed;
+  z-index: 70;
+  width: 288px;
+  pointer-events: none;
+  background: linear-gradient(180deg, #16283afa, #0e1a26fc);
+  border: 1px solid #3d5c78;
+  border-radius: 11px;
+  padding: 10px 12px;
+  box-shadow: 0 16px 40px #000c, inset 0 1px 0 #ffffff10;
+  animation: ib-in 0.12s ease-out;
+  text-align: left;
+  white-space: normal;
+  font-weight: 400;
+}
+@keyframes ib-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.ib-titre {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: Georgia, serif;
+  font-size: 14.5px;
+  color: var(--gold);
+  letter-spacing: 0.03em;
+}
+.ib-emoji {
+  display: inline-flex;
+  font-size: 17px;
+  line-height: 1;
+}
+.ib-resume {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #cfc4a8;
+  margin-top: 5px;
+}
+.ib-lignes {
+  margin-top: 8px;
+  border-top: 1px solid #2c4258;
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ib-ligne {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+  color: #93a7b4;
+}
+.ib-ligne.fort {
+  font-size: 13px;
+}
+.ib-ligne.fort .ib-valeur {
+  font-size: 14px;
+  color: var(--texte);
+}
+.ib-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ib-valeur {
+  font-weight: 700;
+  color: #cfc4a8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ib-note {
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid #2c4258;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #8ba0ae;
+  font-style: italic;
+}
+/* l'ancre garde la mise en page du jeton qu'elle enveloppe */
+.res,
+.pastille {
+  position: relative;
+}
+
 /* pictogramme de météo accolé à la saison — plus petit, il ne vole pas la vedette */
 .meteo-ico {
   font-size: 12px;

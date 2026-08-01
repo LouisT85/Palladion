@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
-import { DAY_MS, GODS, GOD_IDS, MODE_TEST, RES, SECTEURS } from '../../game/data'
+import { BUILDING_IDS, DAY_MS, GODS, GOD_IDS, MODE_TEST, RES, SECTEURS, nbFronts } from '../../game/data'
 import { descVague, tailleVague } from '../../game/combat'
 import {
+  BATIMENTS_A_POSTES,
   VITESSES,
   armeeTotale,
   bonusHeros,
   coutBenediction,
+  postesPourvus,
+  postesTotal,
   popCap,
   stockageMax,
   tauxParMinute,
@@ -15,6 +18,7 @@ import { METEOS, SAISONS } from '../../game/saisons'
 import { nomPhase, phaseJour } from '../map/Terrain'
 import { HerosRapides } from './Heros'
 import { Icone, Montant } from './Icones'
+import { Infobulle } from './Infobulle'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
 
@@ -129,17 +133,40 @@ export function BarreRessources() {
   const jour = Math.floor((s.lastSeen - s.createdAt) / DAY_MS) + 1
   const phase = nomPhase(phaseJour(s.lastSeen, s.createdAt, DAY_MS))
   const sansEmploi = s.villageois.filter((v) => v.poste === null).length
+  // postes ouverts par les ateliers mais que personne ne tient
+  const postesVides = BATIMENTS_A_POSTES.reduce((a, b) => a + Math.max(0, postesTotal(s, b) - postesPourvus(s, b)), 0)
 
   return (
     <>
       <div className="ressources">
         {(Object.keys(RES) as ResourceId[]).map((r) => {
           const t = taux[r]
+          const part = Math.min(1, s.resources[r] / Math.max(1, stock))
           return (
-            <div
+            <Infobulle
               key={r}
               className={`res${r === 'grain' && s.resources.grain <= 0 ? ' alerte' : ''}`}
-              title={`${RES[r].nom} — ${Math.floor(s.resources[r])} en réserve sur ${stock} de capacité (Agora niveau ${s.buildings.agora.level})\n${DESC_RES[r]}\n${t >= 0 ? '+' : ''}${t.toFixed(1)} par minute, saison et ambiance comprises.`}
+              emoji={<Icone id={r} taille={20} />}
+              titre={RES[r].nom}
+              resume={DESC_RES[r]}
+              lignes={[
+                { label: 'En réserve', valeur: `${Math.floor(s.resources[r])} / ${stock}`, fort: true },
+                {
+                  label: 'Par minute',
+                  valeur: MODE_TEST ? 'illimité' : `${t >= 0 ? '+' : ''}${t.toFixed(1)}`,
+                  couleur: t < 0 ? '#d05a41' : '#7fc79b',
+                },
+                { label: 'Saison', valeur: `${SAISONS[s.saison].emoji} ×${(SAISONS[s.saison].prod[r] ?? 1).toFixed(2)}` },
+                { label: 'Ciel', valeur: `${METEOS[s.meteo].emoji} ×${METEOS[s.meteo].prod.toFixed(2)}` },
+                { label: 'Ambiance', valeur: `🎭 ×${(0.5 + (s.morale / 100) * 0.75).toFixed(2)}` },
+              ]}
+              note={
+                part > 0.97
+                  ? '⚠️ Entrepôt plein : ce qui rentre est perdu. Agrandissez l’Agora.'
+                  : r === 'grain' && t < 0
+                    ? '⚠️ Le grain baisse : à zéro, c’est la famine puis la désertion.'
+                    : `Capacité fixée par l’Agora (niveau ${s.buildings.agora.level}).`
+              }
             >
               <Icone id={r} taille={19} />
               <span className="chiffres">
@@ -160,12 +187,24 @@ export function BarreRessources() {
                   </span>
                 </span>
               </span>
-            </div>
+            </Infobulle>
           )
         })}
-        <div
+        <Infobulle
           className="res"
-          title={`Faveur divine — la monnaie des bénédictions.\nProduite par le temple (avec un prêtre à son poste), les sacrifices et les victoires.`}
+          emoji={<Icone id="faveur" taille={20} />}
+          titre="Faveur divine"
+          resume="La monnaie des bénédictions : c’est elle qu’on dépense pour appeler un dieu ou un héros."
+          lignes={[
+            { label: 'Réserve', valeur: `${Math.floor(s.faveur)} / 100`, fort: true },
+            { label: 'Temple', valeur: `niveau ${s.buildings.temple.level}` },
+            {
+              label: 'Prêtre au poste',
+              valeur: postesPourvus(s, 'temple') > 0 ? 'oui' : 'non',
+              couleur: postesPourvus(s, 'temple') > 0 ? '#7fc79b' : '#d05a41',
+            },
+          ]}
+          note="Sans prêtre affecté au temple, les dieux n’entendent rien : la faveur cesse de monter."
         >
           <Icone id="faveur" taille={19} />
           <span className="chiffres">
@@ -175,7 +214,7 @@ export function BarreRessources() {
               <span className="taux">/100</span>
             </span>
           </span>
-        </div>
+        </Infobulle>
       </div>
       <div className="hud-droite">
         {MODE_TEST && (
@@ -188,25 +227,66 @@ export function BarreRessources() {
             🧪 Attaque
           </button>
         )}
-        <button
-          className="pastille"
-          onClick={() => setPopOuvert(true)}
-          title={`Habitants : ${s.pop} sur ${cap} places (Habitations niveau ${s.buildings.maisons.level}).\n${sansEmploi} sans emploi — cliquez pour les affecter aux ateliers ou les enrôler.`}
+        <Infobulle
+          emoji="👥"
+          titre="Les habitants"
+          resume="Chaque villageois est un bras : à l’atelier il produit, à la caserne il devient soldat. Un habitant ne peut pas faire les deux."
+          lignes={[
+            { label: 'Population', valeur: `${s.pop} / ${cap}`, fort: true },
+            { label: 'Habitations', valeur: `niveau ${s.buildings.maisons.level}` },
+            {
+              label: 'Sans emploi',
+              valeur: sansEmploi,
+              couleur: sansEmploi === 0 ? '#93a7b4' : '#e8c04a',
+            },
+            { label: 'Postes non tenus', valeur: postesVides, couleur: postesVides > 0 ? '#d98a4e' : '#7fc79b' },
+          ]}
+          note={
+            postesVides > 0
+              ? '⚠️ Un atelier sans ouvrier ne produit rien. Cliquez pour affecter vos villageois.'
+              : 'Cliquez pour ouvrir le recensement du village.'
+          }
         >
-          👥<span className="opt">Habitants</span> <b>{s.pop}</b>/{cap}
-          <span className={`oisifs${sansEmploi === 0 ? ' zero' : ''}`}>
-            ({sansEmploi} oisif{sansEmploi > 1 ? 's' : ''})
-          </span>
-        </button>
-        <span
+          <button className="pastille" onClick={() => setPopOuvert(true)}>
+            👥<span className="opt">Habitants</span> <b>{s.pop}</b>/{cap}
+            <span className={`oisifs${sansEmploi === 0 ? ' zero' : ''}`}>
+              ({sansEmploi} oisif{sansEmploi > 1 ? 's' : ''})
+            </span>
+          </button>
+        </Infobulle>
+        <Infobulle
           className="pastille"
-          title={`Garnison : ${armeeTotale(s.army)} soldats sous les armes.\nIls défendent les remparts et partent en expédition — et mangent ${(armeeTotale(s.army) * 0.5).toFixed(1)} 🌾/min.`}
+          emoji="⚔️"
+          titre="La garnison"
+          resume="Vos soldats tiennent les remparts et partent en expédition. Ils ne travaillent plus : ils mangent."
+          lignes={[
+            { label: 'Sous les armes', valeur: armeeTotale(s.army), fort: true },
+            { label: 'Lanciers', valeur: s.army.lancier },
+            { label: 'Archers', valeur: s.army.archer },
+            { label: 'Hoplites', valeur: s.army.hoplite },
+            { label: 'Consommation', valeur: `${(armeeTotale(s.army) * 0.5).toFixed(1)} grain/min`, couleur: '#d98a4e' },
+          ]}
+          note="Les archers ne tirent depuis un pan de mur que tant qu’il tient debout."
         >
           ⚔️<span className="opt">Garnison</span> <b>{armeeTotale(s.army)}</b>
-        </span>
-        <span
+        </Infobulle>
+        <Infobulle
           className="pastille"
-          title={`Ambiance du village : ${morale.txt} (${Math.round(s.morale)}/100).\n${morale.quoi}\nProduction ×${(0.5 + (s.morale / 100) * 0.75).toFixed(2)}.`}
+          emoji="🎭"
+          titre={`Ambiance : ${morale.txt}`}
+          resume={morale.quoi}
+          lignes={[
+            { label: 'Moral', valeur: `${Math.round(s.morale)} / 100`, fort: true, couleur: morale.c },
+            { label: 'Production', valeur: `×${(0.5 + (s.morale / 100) * 0.75).toFixed(2)}` },
+            ...s.moraleMods
+              .slice(-4)
+              .map((m) => ({
+                label: m.label,
+                valeur: `${m.delta > 0 ? '+' : ''}${m.delta}`,
+                couleur: m.delta > 0 ? '#7fc79b' : '#d98a4e',
+              })),
+          ]}
+          note="Sous 25, les meneurs s’agitent ; à 0, les soldats désertent."
         >
           🎭
           <b className="ambiance-mot" style={{ color: morale.c }}>
@@ -215,25 +295,67 @@ export function BarreRessources() {
           <span className="jauge-morale">
             <div style={{ width: `${s.morale}%`, background: morale.c }} />
           </span>
-        </span>
-        <span
+        </Infobulle>
+        <Infobulle
           className="pastille"
-          title={`Menace : ${Math.round(s.threat)}/100.\nElle monte avec vos bâtiments, vos tours, vos pillages et le temps qui passe — et grossit les vagues d’assaut.`}
+          emoji="🔥"
+          titre="La menace"
+          resume="Ce que la région convoite chez vous. Plus elle monte, plus les vagues d’assaut sont grosses — et nombreuses sur plusieurs fronts."
+          lignes={[
+            { label: 'Niveau', valeur: `${Math.round(s.threat)} / 100`, fort: true },
+            { label: 'Fronts attendus', valeur: nbFronts(s.threat) },
+            { label: 'Vos bâtiments', valeur: `+${Math.round(BUILDING_IDS.reduce((a, b) => a + s.buildings[b].level, 0) * 1.2)}` },
+            { label: 'Vos tours', valeur: `+${s.tours * 4}` },
+          ]}
+          note="Une tour d’archers protège — et attire. Un pillage aussi."
         >
           🔥<span className="opt">Menace</span> <b>{Math.round(s.threat)}</b>
-        </span>
-        <span className="pastille" title={`Jour ${jour} — ${phase}`}>
+        </Infobulle>
+        <Infobulle
+          className="pastille"
+          emoji="☀️"
+          titre={`Jour ${jour} — ${phase}`}
+          resume="Une journée dure huit minutes réelles. Le jeu continue onglet fermé : au retour, un rapport raconte la nuit."
+          lignes={[
+            { label: 'Moment', valeur: phase },
+            { label: 'Année', valeur: Math.floor((jour - 1) / 16) + 1 },
+            { label: 'Vitesse', valeur: `×${s.vitesse}` },
+          ]}
+          note="Touches 1 à 4 pour accélérer — retour forcé en ×1 pendant les batailles."
+        >
           ☀️<span className="opt">Jour</span> <b>{jour}</b>
           <span className="opt2">— {phase}</span>
-        </span>
-        <span
+        </Infobulle>
+        <Infobulle
           className="pastille"
-          title={`${SAISONS[s.saison].nom} — ${SAISONS[s.saison].desc}\n${METEOS[s.meteo].emoji} ${METEOS[s.meteo].nom} : ${METEOS[s.meteo].desc}`}
+          emoji={SAISONS[s.saison].emoji}
+          titre={`${SAISONS[s.saison].nom} · ${METEOS[s.meteo].nom}`}
+          resume={SAISONS[s.saison].desc}
+          lignes={[
+            ...(Object.keys(RES) as ResourceId[])
+              .filter((r) => Math.abs((SAISONS[s.saison].prod[r] ?? 1) - 1) > 0.02)
+              .map((r) => ({
+                label: RES[r].nom,
+                valeur: `×${(SAISONS[s.saison].prod[r] ?? 1).toFixed(2)}`,
+                couleur: (SAISONS[s.saison].prod[r] ?? 1) > 1 ? '#7fc79b' : '#d98a4e',
+              })),
+            { label: 'Toute récolte', valeur: `×${METEOS[s.meteo].prod.toFixed(2)}` },
+            { label: 'Portée des tours', valeur: `×${METEOS[s.meteo].portee.toFixed(2)}` },
+            { label: 'Allure en bataille', valeur: `×${METEOS[s.meteo].vitesse.toFixed(2)}` },
+            { label: 'Force des tirs', valeur: `×${METEOS[s.meteo].tir.toFixed(2)}` },
+            { label: 'Alerte des éclaireurs', valeur: `×${METEOS[s.meteo].alerte.toFixed(2)}` },
+          ]}
+          note={
+            <>
+              {METEOS[s.meteo].emoji} <b>{METEOS[s.meteo].nom}</b> — {METEOS[s.meteo].desc}
+              {SAISONS[s.saison].merFermee && <div>❄️ La mer est prise : port au tiers, îles hors d’atteinte.</div>}
+            </>
+          }
         >
           {SAISONS[s.saison].emoji}
           <b>{SAISONS[s.saison].nom}</b>
           <span className="meteo-ico">{METEOS[s.meteo].emoji}</span>
-        </span>
+        </Infobulle>
         <ControleVitesse />
       </div>
       {popOuvert && <PanneauPopulation onFermer={() => setPopOuvert(false)} />}

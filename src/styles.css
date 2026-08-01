@@ -170,9 +170,13 @@ header.hud {
 .res.alerte .val {
   color: var(--danger);
 }
-/* pictogrammes peints : ils remplacent l'émoji dans tout le châssis */
+/* pictogrammes peints : ils remplacent l'émoji dans tout le châssis.
+   `inline-block` et non `block` : posé nu dans une ligne de texte — sur le bouton
+   du comptoir, par exemple — un bloc coupait la ligne et le libellé s'éparpillait
+   sur trois niveaux. Dans un conteneur flex, l'un et l'autre se valent. */
 .icone-res {
-  display: block;
+  display: inline-block;
+  vertical-align: -0.16em;
   flex: 0 0 auto;
 }
 .montant {

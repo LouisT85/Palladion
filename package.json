@@ -9,6 +9,8 @@
     "dev:test": "vite --mode test",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "captures": "node scripts/captures.mjs"
   },
   "dependencies": {
@@ -21,8 +23,10 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^30.0.1",
     "playwright-core": "^1.62.1",
     "typescript": "~5.6.2",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "vitest": "^3.2.7"
   }
 }

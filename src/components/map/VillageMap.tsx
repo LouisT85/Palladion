@@ -38,26 +38,56 @@ function Etiquette({ texte, y }: { texte: string; y: number }) {
 }
 
 /**
- * Écriteau « atelier sans bras ». Personne ne prend son poste tout seul : il
- * faut donc que le manque se voie SUR LA CARTE, sans ouvrir de panneau — d'où
- * cette pancarte plantée devant le bâtiment, rouge quand il tourne à vide.
+ * Le métier qu'un atelier réclame, en un mot. « Tailleur de pierre » ne tient pas
+ * sur un écriteau planté au milieu d'une prairie : on garde le mot qui suffit à
+ * savoir QUI aller chercher au recensement.
  */
-function ManqueOuvriers({ manque, vide }: { manque: number; vide: boolean }) {
-  const c = vide ? '#c0563f' : '#d98a4e'
+const METIER_COURT: Partial<Record<BuildingId, string>> = {
+  ferme: 'paysan',
+  scierie: 'bûcheron',
+  carriere: 'tailleur',
+  forge: 'forgeron',
+  temple: 'prêtre',
+  port: 'docker',
+}
+
+/**
+ * Écriteau « atelier sans bras ». Personne ne prend son poste tout seul : il faut
+ * donc que le manque se voie SUR LA CARTE, sans ouvrir de panneau.
+ *
+ * Il disait « VIDE » et « −1 ». Deux énigmes : « vide » se lisait « désaffecté »
+ * plutôt que « sans ouvrier », et « −1 » ne disait ni de quoi il manquait un, ni
+ * qu'il fallait y faire quelque chose. L'écriteau nomme maintenant le MÉTIER
+ * attendu — c'est-à-dire l'action à faire — et compte les postes en français.
+ */
+function ManqueOuvriers({ id, manque, vide }: { id: BuildingId; manque: number; vide: boolean }) {
+  const c = vide ? '#e0715a' : '#e8a45e'
+  const metier = METIER_COURT[id] ?? 'ouvrier'
+  const texte = vide ? `sans ${metier}` : `${manque} poste${manque > 1 ? 's' : ''} libre${manque > 1 ? 's' : ''}`
+  // la planche s'ajuste au mot : une pancarte trop courte tronquerait « bûcheron »
+  const w = Math.max(58, 20 + texte.length * 5.1)
   return (
-    <g transform="translate(30,-30)" pointerEvents="none">
-      <g opacity={0.95}>
+    <g transform="translate(30,-34)" pointerEvents="none">
+      <g opacity={0.96}>
         <animateTransform attributeName="transform" type="translate" values="0,0;0,-2.4;0,0" dur="2.4s" repeatCount="indefinite" />
-        {/* piquet et planche, comme un écriteau de chantier */}
-        <path d="M0,20 L0,8" stroke="#6b4c2a" strokeWidth={2.2} />
-        <rect x={-13} y={-9} width={26} height={19} rx={4} fill="#1a1208" opacity={0.72} />
-        <rect x={-13} y={-9} width={26} height={19} rx={4} fill="none" stroke={c} strokeWidth={1.6} />
-        <text x={0} y={-0.5} textAnchor="middle" fontSize={11} fill={c} fontWeight={700}>
+        {/* piquet planté en terre, et sa planche */}
+        <path d="M0,22 L0,9" stroke="#6b4c2a" strokeWidth={2.4} />
+        <path d="M-3,22 L3,22" stroke="#4f3820" strokeWidth={1.6} />
+        <rect x={-w / 2} y={-9} width={w} height={18} rx={4.5} fill="#171009" opacity={0.8} />
+        <rect x={-w / 2} y={-9} width={w} height={18} rx={4.5} fill="none" stroke={c} strokeWidth={1.5} />
+        {/* le pictogramme reste : c'est lui qu'on repère du coin de l'œil */}
+        <text x={-w / 2 + 10} y={3.6} textAnchor="middle" fontSize={11}>
           👷
         </text>
-        <text x={0} y={8} textAnchor="middle" fontSize={8.5} fill={c} fontWeight={700}>
-          {vide ? 'VIDE' : `−${manque}`}
+        <text x={-w / 2 + 19} y={3.4} fontSize={9.4} fill={c} fontWeight={700}>
+          {texte}
         </text>
+        {/* un point d'exclamation quand l'atelier ne rend RIEN : la nuance compte */}
+        {vide && (
+          <circle cx={w / 2 - 6} cy={-0.4} r={2.2} fill={c}>
+            <animate attributeName="opacity" values="1;0.25;1" dur="1.5s" repeatCount="indefinite" />
+          </circle>
+        )}
       </g>
     </g>
   )
@@ -152,7 +182,7 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
         </g>
       )}
       {/* un atelier sans ouvrier ne rend rien : la pancarte le dit sur la carte */}
-      {b.level > 0 && !enChantier && manque > 0 && <ManqueOuvriers manque={manque} vide={vide} />}
+      {b.level > 0 && !enChantier && manque > 0 && <ManqueOuvriers id={id} manque={manque} vide={vide} />}
       {hover && <Etiquette texte={label} y={enChantier ? -60 : -52} />}
       {/* zone cliquable généreuse */}
       <ellipse cx={0} cy={-4} rx={44} ry={26} fill="transparent" />

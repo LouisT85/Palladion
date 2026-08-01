@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+﻿import { describe, expect, it } from 'vitest'
 import { BUILDINGS, FAVEUR_MAX, GOD_IDS, POP_CAP, STOCKAGE, UNITS, multRelation } from './data'
 import { VILLAGES_CIBLES } from './expeditions'
 import {
@@ -61,7 +61,7 @@ const APPORT: Record<HeroId, Partial<BonusHeros>> = {
   hector: { wallHpPct: 0.15 },
   ulysse: { revelerVague: true, alerteBonusMs: 120_000 },
   achille: { degatsMeleePct: 0.4 },
-  ajax: { gardeDuCorpsPct: 0.5 },
+  ajax: { gardeDuCorpsPct: 0.25 },
   agamemnon: { butinPct: 0.2, relationTous: -10 },
   cassandre: { alerteBonusMs: 120_000, revelerDilemmes: true },
   enee: { popParSaison: 2 },
@@ -322,9 +322,9 @@ describe('passifs cumulés de la maisonnée', () => {
       alerteBonusMs: 240_000,
       revelerDilemmes: true,
       popParSaison: 2,
-      // ⚠️ la fiche d'Ajax promet « 25 % de dégâts en moins » : c'est le store
-      // qui divise cette valeur par deux à l'usage (store.ts, `reducJoueur`)
-      gardeDuCorpsPct: 0.5,
+      // la fiche d'Ajax promet « 25 % de dégâts en moins », et c'est exactement ce
+      // que porte le champ : le store le retranche tel quel (`reducJoueur`)
+      gardeDuCorpsPct: 0.25,
     })
   })
 
@@ -414,16 +414,16 @@ describe('ouverture des nœuds d’arc', () => {
     expect(noeudMur(def, { ...e, recrute: true, niveau: 2, boudeJusqua: Date.now() + 600_000 })).toBe(def.arc[0])
   })
 
-  it('ne cache qu’un seul cul-de-sac narratif : celui d’Achille', () => {
+  it('ne cache aucun cul-de-sac narratif : tout arc va jusqu’à sa dernière page', () => {
     /*
      * Un parti qui tue le héros ou le plafonne SOUS le nœud suivant efface la
      * fin de son récit sans un mot : `peutMonter` devient faux, `noeudMur` rend
      * `null` pour toujours. On recense donc tous les partis qui referment un arc
-     * et on fige la liste : un nœud ajouté, un plafond déplacé ou une mort
-     * avancée d'un chapitre se signale ici. ⚠️ L'entrée qui reste est un BOGUE
-     * consigné (heros.ts : « Le retenir de force » plafonne Achille au niveau 3
-     * alors que `achille-talon` exige le niveau 4). Le jour où il sera corrigé,
-     * ce test rougira : c'est le signal attendu, la liste devra devenir vide.
+     * et on exige que la liste reste VIDE — un nœud ajouté, un plafond abaissé ou
+     * une mort avancée d'un chapitre se signale ici.
+     *
+     * (Un tel cul-de-sac a existé : « Le retenir de force » plafonnait Achille au
+     * niveau 3 quand « La flèche de Pâris » en exige 4. Le plafond est passé à 4.)
      */
     const ferme: string[] = []
     for (const id of HERO_IDS) {
@@ -441,16 +441,16 @@ describe('ouverture des nœuds d’arc', () => {
         expect(survivants.length, `${arc[i].id} ferme l’accès à ${suivant.id}`).toBeGreaterThan(0)
       }
     }
-    expect(ferme).toEqual(['achille-patrocle · Le retenir de force → achille-talon'])
+    expect(ferme).toEqual([])
   })
 
-  it('referme définitivement la fin de l’arc d’Achille dès que le plafond tombe', () => {
+  it('laisse la dernière page d’Achille atteignable, même après l’avoir retenu de force', () => {
     const def = HEROS.achille
     const retenir = def.arc[1].options.find((o) => o.effets.plafond !== undefined)
     expect(retenir?.effets.plafond).toBeDefined()
     // on reconstitue l'état exactement comme `choisirArc` le laisse : plafond
     // rabaissé (`Math.min`), puis nœud suivant. Rien n'est écrit en dur, donc
-    // relever le plafond d'un cran dans heros.ts fait tomber ce test
+    // abaisser le plafond d'un cran dans heros.ts fait tomber ce test
     const brise: HeroState = {
       ...etatHeroInitial(),
       recrute: true,
@@ -458,10 +458,19 @@ describe('ouverture des nœuds d’arc', () => {
       plafond: Math.min(NIVEAU_MAX, retenir!.effets.plafond!),
       arc: 2,
     }
-    expect(def.arc[2].niveauRequis).toBeGreaterThan(brise.plafond)
-    expect(peutMonter(brise)).toBe(false)
-    expect(noeudMur(def, brise)).toBeNull()
-    // et l'autre parti, lui, laisse bien la dernière page accessible
+    /*
+     * Le plafond doit couvrir EXACTEMENT le dernier nœud : ni moins (l'arc
+     * s'arrêterait en silence), ni forcément plus (le parti perdrait sa morsure —
+     * un Achille retenu ne doit pas finir aussi haut que celui qu'on a lâché).
+     */
+    expect(brise.plafond).toBe(def.arc[2].niveauRequis)
+    // il peut encore gagner le rang qui lui manque, et rien au-delà
+    expect(peutMonter(brise)).toBe(true)
+    expect(noeudMur(def, brise)).toBeNull() // pas encore : il lui faut ce rang
+    const auPlafond: HeroState = { ...brise, niveau: brise.plafond }
+    expect(peutMonter(auPlafond)).toBe(false)
+    expect(noeudMur(def, auPlafond)).toBe(def.arc[2])
+    // et l'autre parti, lui, monte jusqu'au bout de la légende
     const libre: HeroState = { ...brise, plafond: NIVEAU_MAX, niveau: def.arc[2].niveauRequis }
     expect(noeudMur(def, libre)).toBe(def.arc[2])
   })
@@ -530,13 +539,16 @@ describe('les passifs branchés sur la partie', () => {
     expect(colonne.map((f) => f.heros)).toEqual(['achille', 'diomede'])
     for (const f of colonne) expect(f.camp).toBe('attaque')
     /*
-     * ⚠️ BOGUE consigné : `lancerExpedition` ne transmet pas `reducJoueur`, que
-     * la bataille défensive passe pourtant (`1 - gardeDuCorpsPct * 0.5`). Le
-     * moteur retombe sur 1 (combat.ts) : en pillage comme en secours, la garde
-     * d'Ajax ne protège personne, alors que sa fiche la promet sans réserve.
-     * Le jour où le store la transmettra, cette attente devra valoir 0,75.
+     * La garde d'Ajax vaut aussi loin de chez soi. `lancerExpedition` ne
+     * transmettait pas `reducJoueur` : le moteur retombait sur 1, et la fiche
+     * d'Ajax — qui la promet sans réserve — mentait en pillage comme en secours.
+     *
+     * 0,75 et non 1, alors qu'Ajax ne marche pas dans cette colonne : un PASSIF
+     * s'applique depuis la maisonnée, pas depuis le champ de bataille. C'est vrai
+     * de tous les autres (les murs d'Hector, le butin d'Agamemnon), et la garde
+     * n'a aucune raison de faire exception.
      */
-    expect(exp!.battle.reducJoueur).toBeUndefined()
+    expect(exp!.battle.reducJoueur).toBeCloseTo(0.75, 6)
   })
 
   it('n’applique la garde d’Ajax qu’à la défense du village, et à la moitié de sa valeur', () => {

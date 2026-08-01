@@ -419,8 +419,13 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Le retenir de force',
             issue:
-              'Il faut six hommes pour le maîtriser. Il vit, il obéit, mais quelque chose en lui s’est éteint : il ne grandira plus.',
-            effets: { plafond: 3, morale: { delta: 4, label: 'La fureur contenue', durMs: 10 * MIN } },
+              'Il faut six hommes pour le maîtriser. Il vit, il obéit, mais quelque chose en lui s’est éteint : il ne montera plus qu’un rang, et ce sera le dernier.',
+            /*
+             * Plafond 4 et non 3 : à 3, Achille n'atteignait jamais le niveau que
+             * réclame « La flèche de Pâris », et son arc s'arrêtait en silence sur
+             * cette branche — le joueur ne voyait jamais la fin de son histoire.
+             */
+            effets: { plafond: 4, morale: { delta: 4, label: 'La fureur contenue', durMs: 10 * MIN } },
           },
         ],
       },
@@ -463,7 +468,9 @@ export const HEROS: Record<HeroId, HeroDef> = {
     xpParNiveau: [110, 250, 470, 820],
     passif: {
       desc: 'Ajax se met en travers : vos combattants encaissent 25 % de dégâts en moins tant qu’il tient le rang.',
-      gardeDuCorpsPct: 0.5,
+      // la valeur ANNONCÉE, pas le double : le store la retranchait de moitié à
+      // l'usage, ce qui rendait la fiche vraie par accident et la relecture fausse
+      gardeDuCorpsPct: 0.25,
     },
     capacite: {
       nom: 'Mur de boucliers',
@@ -924,7 +931,13 @@ export function cumulerPassifs(etats: Record<HeroId, HeroState>): BonusHeros {
     b.relationTous += p.relationTous ?? 0
     b.alerteBonusMs += p.alerteBonusMs ?? 0
     b.popParSaison += p.popParSaison ?? 0
-    b.gardeDuCorpsPct = Math.max(b.gardeDuCorpsPct, p.gardeDuCorpsPct ?? 0)
+    /*
+     * Somme, comme tous les autres passifs — et non `Math.max`, qui contredisait
+     * le contrat de `BonusHeros` et aurait ignoré un second garde du corps le jour
+     * où il en existerait un. Plafonné à 80 % : aucune maisonnée ne rend une
+     * garnison invulnérable.
+     */
+    b.gardeDuCorpsPct = Math.min(0.8, b.gardeDuCorpsPct + (p.gardeDuCorpsPct ?? 0))
     b.revelerVague ||= !!p.revelerVague
     b.revelerDilemmes ||= !!p.revelerDilemmes
   }

@@ -132,7 +132,14 @@ export function ControleSon() {
         {icone}
       </button>
       {ouvert && (
-        <div className="son-panneau" onMouseLeave={() => setOuvert(false)}>
+        <div className="son-panneau">
+          {/* même sortie que les grands panneaux : une croix, pas un clic dans le vide */}
+          <div className="son-tete">
+            <span>🎵 Son et musique</span>
+            <button className="son-croix" onClick={() => setOuvert(false)} aria-label="Fermer" title="Fermer">
+              ✕
+            </button>
+          </div>
           <button
             className="son-muet"
             onClick={() => maj(() => setMuet(!reglages.muet))}

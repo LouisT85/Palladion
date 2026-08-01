@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom'
 import { BUILDINGS, METIERS, RENDEMENT_HORS_METIER } from '../../game/data'
 import {
   BATIMENTS_A_POSTES,
@@ -13,6 +12,7 @@ import {
   useGame,
 } from '../../game/store'
 import type { BuildingId, Villageois } from '../../game/types'
+import { Modale } from './Modale'
 
 /**
  * Couleur d'une jauge de rendement : l'œil doit repérer d'un balayage
@@ -139,19 +139,20 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
   const rang = (v: Villageois) => (v.poste === null ? -1 : BATIMENTS_A_POSTES.indexOf(v.poste))
   const habitants = [...s.villageois].sort((a, b) => rang(a) - rang(b) || a.nom.localeCompare(b.nom, 'fr'))
 
-  // portail : le panneau bâtiment a un backdrop-filter, qui piégerait un
-  // position:fixed dans ses 330 px. La modale doit couvrir tout l'écran.
-  return createPortal(
-    <div className="voile" onClick={onFermer}>
-      <div className="modale" data-tuto="recensement" onClick={(e) => e.stopPropagation()}>
-        <h2>👥 Les habitants du village</h2>
-        <div style={{ color: '#93a7b4', fontSize: 13 }}>
+  return (
+    <Modale
+      titre="👥 Les habitants du village"
+      dataTuto="recensement"
+      onFermer={onFermer}
+      sous={
+        <>
           <b style={{ color: '#e8dcc0' }}>{s.pop}</b>/{cap} habitants ·{' '}
-          <b style={{ color: libres.length > 0 ? '#d98a4e' : '#93a7b4' }}>
-            {libres.length} sans emploi
-          </b>{' '}
-          · {placesLibres} poste{placesLibres > 1 ? 's' : ''} à pourvoir
-        </div>
+          <b style={{ color: libres.length > 0 ? '#d98a4e' : '#93a7b4' }}>{libres.length} sans emploi</b> ·{' '}
+          {placesLibres} poste{placesLibres > 1 ? 's' : ''} à pourvoir
+        </>
+      }
+    >
+      <>
         <div style={{ fontSize: 12.5, color: '#cfc4a8', marginTop: 7, lineHeight: 1.45 }}>
           Un atelier ne produit qu’au prorata de ses postes tenus : une ferme de niveau 3 sans paysan ne rapporte rien de
           plus que la cueillette. <b style={{ color: '#e8dcc0' }}>Chaque habitant a un métier de naissance</b> : à son
@@ -190,12 +191,7 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
             <LigneVillageois key={v.id} v={v} />
           ))}
         </div>
-
-        <button style={{ width: '100%', marginTop: 14 }} onClick={onFermer}>
-          Fermer
-        </button>
-      </div>
-    </div>,
-    document.body,
+      </>
+    </Modale>
   )
 }

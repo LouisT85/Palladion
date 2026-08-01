@@ -3,6 +3,7 @@ import { coutBenediction, murMax, relationEffective, useGame } from '../../game/
 import type { GodId } from '../../game/types'
 import { ApercuDivin } from '../map/EffetsDivins'
 import { Montant } from './Icones'
+import { Modale } from './Modale'
 
 /** ×1.60 → « 1.6 », ×1.00 → « 1 » : on ne montre que les décimales qui portent du sens */
 function fmtMult(f: number): string {
@@ -106,13 +107,18 @@ export function Pantheon() {
   const mur = murMax(s)
 
   return (
-    <div className="voile" onClick={() => s.openPanel(null)}>
-      <div className="modale" data-tuto="modale-pantheon" onClick={(e) => e.stopPropagation()}>
-        <h2>⚡ Le Panthéon</h2>
-        <div style={{ color: '#93a7b4', fontSize: 13 }}>
+    <Modale
+      titre="⚡ Le Panthéon"
+      dataTuto="modale-pantheon"
+      onFermer={() => s.openPanel(null)}
+      sous={
+        <>
           Faveur : <b style={{ color: '#e8c04a' }}>{Math.floor(s.faveur)}</b>/100 — la faveur paie les bénédictions, la{' '}
           <b style={{ color: '#e8dcc0' }}>relation</b> en fixe la force.
-        </div>
+        </>
+      }
+    >
+      <>
         <div style={{ fontSize: 12.5, color: '#cfc4a8', marginTop: 7, lineHeight: 1.45 }}>
           Chaque dieu frappe à la mesure de votre ferveur : de <b style={{ color: '#b93a2c' }}>×0.4</b> pour un dieu
           maudit à <b style={{ color: '#e8c04a' }}>×1.6</b> pour son élu — la puissance <i>et</i> la durée. Un sacrifice
@@ -213,10 +219,7 @@ export function Pantheon() {
             </div>
           )
         })}
-        <button style={{ width: '100%', marginTop: 14 }} onClick={() => s.openPanel(null)}>
-          Fermer
-        </button>
-      </div>
-    </div>
+      </>
+    </Modale>
   )
 }

@@ -2,6 +2,7 @@ import { HEROS, HERO_IDS, NIVEAU_MAX, forceNiveau, peutMonter, xpRequise, type H
 import { conditionsHeros, entretienHeros, fmtDuree, herosDisponible, peutPayer, useGame } from '../../game/store'
 import type { Cost, ResourceId } from '../../game/types'
 import { Montant } from './Icones'
+import { Modale } from './Modale'
 
 /*
  * Les héros ne sont pas une collection : ce sont des hôtes exigeants. Ce panneau
@@ -210,13 +211,14 @@ export function PanneauHeros() {
   }
 
   return (
-    <div className="voile" onClick={() => s.openPanel(null)}>
-      <div className="modale large" data-tuto="modale-heros" onClick={(e) => e.stopPropagation()}>
-        <h2>🛡️ Les héros de la matière troyenne</h2>
-        <div style={{ color: '#93a7b4', fontSize: 13, lineHeight: 1.45 }}>
-          Ils ne s’achètent pas : ils viennent quand la cité en est digne, exigent des honneurs chaque minute, gagnent
-          des niveaux en combattant — et traversent une histoire dont certaines fins sont sans retour.
-        </div>
+    <Modale
+      titre="🛡️ Les héros de la matière troyenne"
+      dataTuto="modale-heros"
+      large
+      onFermer={() => s.openPanel(null)}
+      sous="Ils ne s’achètent pas : ils viennent quand la cité en est digne, exigent des honneurs chaque minute, gagnent des niveaux en combattant — et traversent une histoire dont certaines fins sont sans retour."
+    >
+      <>
         {(ent.grain > 0 || ent.faveur > 0) && (
           <div style={{ fontSize: 12.5, color: '#e0bc5c', marginTop: 6 }}>
             🍖 Entretien de la maisonnée : {ent.grain > 0 ? `${ent.grain.toFixed(1)} 🌾/min` : ''}
@@ -231,12 +233,8 @@ export function PanneauHeros() {
         {libres.map(carte)}
         {morts.length > 0 && <h3 className="heros-section">Mémorial</h3>}
         {morts.map(carte)}
-
-        <button style={{ width: '100%', marginTop: 14 }} onClick={() => s.openPanel(null)}>
-          Fermer
-        </button>
-      </div>
-    </div>
+      </>
+    </Modale>
   )
 }
 

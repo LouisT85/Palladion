@@ -16,6 +16,7 @@ import {
 import { fmtDuree, merFermee, totalEtoiles, useGame } from '../../game/store'
 import type { ResourceId, UnitId } from '../../game/types'
 import { Montant } from './Icones'
+import { Modale } from './Modale'
 import { BatailleLayer } from '../map/BatailleLayer'
 import { useCamera, type VueScene } from '../map/camera'
 import { DefsArt } from '../map/art'
@@ -68,11 +69,12 @@ export function PanneauExpeditions() {
     const face = secours ? assiegeants(cible) : garnisonEffective(cible, pillages)
     const leurPuissance = secours ? puissanceAssiegeants(cible) : puissanceEffective(cible, pillages)
     return (
-      <div className="voile" onClick={() => setCibleId(null)}>
-        <div className="modale" onClick={(e) => e.stopPropagation()}>
-          <h2>
-            {cible.emoji} {secours ? `Délivrer ${cible.nom}` : `Marcher sur ${cible.nom}`}
-          </h2>
+      <Modale
+        titre={`${cible.emoji} ${secours ? `Délivrer ${cible.nom}` : `Marcher sur ${cible.nom}`}`}
+        onFermer={() => setCibleId(null)}
+        fermerTexte={null}
+      >
+        <>
           <div className="desc-exp">{cible.desc}</div>
           <div className={`intention ${intention}`}>
             {secours ? (
@@ -149,20 +151,25 @@ export function PanneauExpeditions() {
               {secours ? '⛑️ Courir à leur secours' : '🏴‍☠️ Lancer l’assaut'}
             </button>
           </div>
-        </div>
-      </div>
+        </>
+      </Modale>
     )
   }
 
   return (
-    <div className="voile" onClick={() => s.openPanel(null)}>
-      <div className="modale large" data-tuto="modale-expeditions" onClick={(e) => e.stopPropagation()}>
-        <h2>🗺️ Expéditions — la Troade à feu et à sang</h2>
-        <div style={{ color: '#93a7b4', fontSize: 13, marginBottom: 4 }}>
+    <Modale
+      titre="🗺️ Expéditions — la Troade à feu et à sang"
+      dataTuto="modale-expeditions"
+      large
+      onFermer={() => s.openPanel(null)}
+      sous={
+        <>
           Envoyez vos troupes piller les places fortes de la région — ou les sauver. Moins de pertes = plus d’étoiles.{' '}
           <b style={{ color: '#e8c04a' }}>{totalEtoiles(s.expeditions)}</b>/24 ★
-        </div>
-
+        </>
+      }
+    >
+      <>
         {/* un village assiégé appelle : richesse contre réseau, il faut trancher */}
         {appel && s.appelSecours && (
           <div className="appel-secours">
@@ -242,11 +249,8 @@ export function PanneauExpeditions() {
             </div>
           )
         })}
-        <button style={{ width: '100%', marginTop: 14 }} onClick={() => s.openPanel(null)}>
-          Fermer
-        </button>
-      </div>
-    </div>
+      </>
+    </Modale>
   )
 }
 

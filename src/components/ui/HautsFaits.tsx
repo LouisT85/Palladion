@@ -8,6 +8,7 @@ import {
   type CategorieHF,
 } from '../../game/hautsfaits'
 import { snapHautFait, useGame } from '../../game/store'
+import { Modale } from './Modale'
 
 /*
  * Le tableau d'honneur. Il doit répondre à deux questions en un coup d'œil :
@@ -28,10 +29,8 @@ export function PanneauHautsFaits() {
   const enBataille = s.battle !== null || (s.expedition !== null && !s.expedition.result)
 
   return (
-    <div className="voile" onClick={() => s.openPanel(null)}>
-      <div className="modale large" onClick={(e) => e.stopPropagation()}>
-        <h2>🏅 Hauts faits et prestige</h2>
-
+    <Modale titre="🏅 Hauts faits et prestige" large onFermer={() => s.openPanel(null)}>
+      <>
         <div className="prestige-bloc">
           <div className="prestige-score">
             <span className="chiffre">{score}</span>
@@ -113,12 +112,8 @@ export function PanneauHautsFaits() {
             </button>
           )}
         </div>
-
-        <button style={{ width: '100%', marginTop: 12 }} onClick={() => s.openPanel(null)}>
-          Fermer
-        </button>
-      </div>
-    </div>
+      </>
+    </Modale>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { EVENTS_BY_ID } from '../../game/events'
 import { bonusHeros, peutPayer, useGame } from '../../game/store'
+import { Modale } from './Modale'
 
 export function ModaleEvenement() {
   const s = useGame()
@@ -70,13 +71,15 @@ function TempsRelatif({ at, now }: { at: number; now: number }) {
 export function ModaleJournal() {
   const s = useGame()
   return (
-    <div className="voile" onClick={() => s.openPanel(null)}>
-      <div className="modale" onClick={(e) => e.stopPropagation()}>
-        <h2>📜 Journal du village</h2>
-        <div style={{ color: '#93a7b4', fontSize: 12.5 }}>
-          {s.stats.repousses} assaut(s) repoussé(s) · {s.stats.perdus} pillage(s) subi(s) · {s.stats.evenements} dilemme(s) tranché(s)
-        </div>
-        {s.reports.length === 0 && <p style={{ color: '#93a7b4' }}>Rien à signaler pour l’instant. Les aèdes attendent vos exploits.</p>}
+    <Modale
+      titre="📜 Journal du village"
+      onFermer={() => s.openPanel(null)}
+      sous={`${s.stats.repousses} assaut(s) repoussé(s) · ${s.stats.perdus} pillage(s) subi(s) · ${s.stats.evenements} dilemme(s) tranché(s)`}
+    >
+      <>
+        {s.reports.length === 0 && (
+          <p style={{ color: '#93a7b4' }}>Rien à signaler pour l’instant. Les aèdes attendent vos exploits.</p>
+        )}
         {s.reports.map((r) => (
           <div key={r.id} className="rapport">
             <TempsRelatif at={r.at} now={s.lastSeen} />
@@ -88,11 +91,8 @@ export function ModaleJournal() {
             ))}
           </div>
         ))}
-        <button style={{ width: '100%', marginTop: 14 }} onClick={() => s.openPanel(null)}>
-          Fermer
-        </button>
-      </div>
-    </div>
+      </>
+    </Modale>
   )
 }
 
@@ -143,9 +143,12 @@ export function ModaleAide() {
   const s = useGame()
   const [confirmeReset, setConfirmeReset] = useState(false)
   return (
-    <div className="voile">
-      <div className="modale">
-        <h2>🏛️ PALLADION — survivre à l’ombre de Troie</h2>
+    <Modale
+      titre="🏛️ PALLADION — survivre à l’ombre de Troie"
+      onFermer={() => s.openPanel(null)}
+      fermerTexte={null}
+    >
+      <>
         <div className="aide-section">
           <h3>Votre village</h3>
           <p>
@@ -285,7 +288,7 @@ export function ModaleAide() {
             </button>
           )}
         </div>
-      </div>
-    </div>
+      </>
+    </Modale>
   )
 }

@@ -167,7 +167,8 @@ export function ControleSon() {
             />
           </label>
           <div className="son-note">
-            Lyre au village, cors à l’alerte, tambour de siège — tout est synthétisé, rien n’est téléchargé.
+            Lyre, flûte de berger et bourdon chaud au village ; cors à l’alerte, tambour au siège. Tout est synthétisé,
+            rien n’est téléchargé.
           </div>
         </div>
       )}

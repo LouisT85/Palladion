@@ -34,9 +34,16 @@ export interface ReglagesAudio {
   musique: number
 }
 
-const CLE = 'palladion-audio-v1'
+/*
+ * v2 : les réglages d'origine sortaient beaucoup trop bas. La musique passait
+ * par un bus à 0,275 et des notes à 0,075 — au bout de la chaîne, un vingtième
+ * de la puissance des bruits de bataille. On repart donc sur une clé neuve pour
+ * que tout le monde récupère les volumes revus, au lieu de traîner un 0,5
+ * enregistré la première fois.
+ */
+const CLE = 'palladion-audio-v2'
 
-const DEFAUT: ReglagesAudio = { muet: false, volume: 0.6, musique: 0.5 }
+const DEFAUT: ReglagesAudio = { muet: false, volume: 0.8, musique: 0.85 }
 
 function lireReglages(): ReglagesAudio {
   try {
@@ -82,7 +89,8 @@ function appliquerVolumes(): void {
   if (!master || !gainMusique || !gainEffets || !ctx) return
   const g = reglages.muet ? 0 : reglages.volume
   master.gain.setTargetAtTime(g, ctx.currentTime, 0.05)
-  gainMusique.gain.setTargetAtTime(reglages.musique * 0.55, ctx.currentTime, 0.05)
+  // la lyre doit s'entendre AU MÊME PLAN que les cors, pas derrière eux
+  gainMusique.gain.setTargetAtTime(reglages.musique * 1.45, ctx.currentTime, 0.05)
   gainEffets.gain.setTargetAtTime(0.9, ctx.currentTime, 0.05)
 }
 
@@ -313,21 +321,36 @@ export function jouer(son: SonId): void {
  *   contraire du mode phrygien, dont la seconde mineure — la « couleur antique »
  *   qu'on entend partout — met en réalité l'oreille en alerte. Un village qui
  *   vaque à ses affaires ne doit pas donner envie de regarder par-dessus son
- *   épaule. La phrase respire : un temps sur trois est un SILENCE (−1), et un
- *   bourdon très bas tient l'ensemble au chaud.
+ *   épaule.
+ *
+ *   Elle a aussi failli par excès de retenue : un temps toutes les secondes, un
+ *   silence sur trois, et un volume de fond sonore. On n'entendait plus une
+ *   berceuse, on entendait un robinet qui goutte. La paix est donc désormais
+ *   une VRAIE pièce : deux phrases qui alternent (32 temps avant de se répéter),
+ *   une basse pincée qui marque les temps forts, une tierce complice sous la
+ *   mélodie, et un bourdon chaud qui ne s'arrête jamais.
  *
  * · L'ALERTE, elle, garde le phrygien : là, l'inquiétude est le but.
  */
 const PENTA = [174.6, 196, 220, 261.6, 293.7, 349.2, 392, 440, 523.3]
 const PHRYGIEN = [164.8, 174.6, 196, 220, 246.9, 261.6, 293.7, 329.6]
 
-/** −1 = silence. Vingt-quatre temps dont neuf de repos : la phrase souffle. */
-const PHRASE_PAIX = [0, -1, 2, 4, -1, 3, 2, -1, 4, 5, -1, 3, -1, 1, 0, -1, 2, 3, -1, 5, 4, -1, -1, 2]
+/** basse pincée : fa grave, puis sa quinte — l'assise de l'accompagnement */
+const BASSE_PAIX = [87.3, 130.8]
+
+/**
+ * −1 = silence. Deux phrases de seize temps : A pose la question, B y répond un
+ * degré plus haut et redescend se poser sur la fondamentale.
+ */
+const PHRASE_PAIX = [
+  0, 2, 4, -1, 3, 2, 1, 0, -1, 2, 3, 4, -1, 5, 4, 3,
+  4, 5, 6, -1, 5, 4, 3, 2, -1, 3, 2, 1, 0, -1, 1, 0,
+]
 const PHRASE_ALERTE = [0, 3, 4, 0, 5, 4, 3, 0]
 
-/** durée d'un temps selon l'ambiance (s) — la paix prend tout son temps */
+/** durée d'un temps selon l'ambiance (s) — la paix respire sans s'endormir */
 function tempo(): number {
-  return ambiance === 'alerte' ? 0.36 : ambiance === 'siege' ? 0.3 : 0.95
+  return ambiance === 'alerte' ? 0.36 : ambiance === 'siege' ? 0.3 : 0.58
 }
 
 /** programme la suite de la musique quelques temps à l'avance */
@@ -340,16 +363,19 @@ function planifier(): void {
     if (ambiance === 'paix') {
       const i = pas % PHRASE_PAIX.length
       const deg = PHRASE_PAIX[i]
-      // un temps sur trois est un silence : c'est lui qui rend la boucle reposante
       if (deg >= 0) {
         // la lyre et la flûte se répondent, ce qui évite la ritournelle mécanique
-        if (i % 2 === 0) pincee(PENTA[deg], t, 2.8, 0.075, gainMusique)
-        else flute(PENTA[deg], t, 2.4, 0.062, gainMusique)
+        if (i % 2 === 0) pincee(PENTA[deg], t, 2.6, 0.15, gainMusique)
+        else flute(PENTA[deg], t, 2.2, 0.13, gainMusique)
+        // une tierce complice sous la mélodie : c'est elle qui rend la phrase chaude
+        if (deg >= 2) flute(PENTA[deg - 2], t + 0.05, 1.9, 0.045, gainMusique)
       }
-      // bourdon très bas toutes les huit mesures, en fondu long
-      if (i % 8 === 0) bourdon(PENTA[0] / 2, t, 7.6, 0.05, gainMusique)
+      // basse pincée sur les temps forts : fondamentale, puis quinte
+      if (i % 4 === 0) pincee(BASSE_PAIX[(i / 4) % 2], t, 3.4, 0.075, gainMusique)
+      // bourdon chaud, renouvelé avant de s'éteindre : le fond ne se troue jamais
+      if (i % 8 === 0) bourdon(PENTA[0] / 2, t, 9.6, 0.08, gainMusique)
       // et de loin en loin, une réponse à l'octave — comme un berger sur la colline
-      if (i === 13) flute(PENTA[6], t + dt * 0.5, 2, 0.04, gainMusique)
+      if (i === 29) flute(PENTA[8], t + dt * 0.5, 2.4, 0.06, gainMusique)
     } else if (ambiance === 'alerte') {
       const deg = PHRASE_ALERTE[pas % PHRASE_ALERTE.length]
       pincee(PHRYGIEN[deg], t, 1.1, 0.1, gainMusique)

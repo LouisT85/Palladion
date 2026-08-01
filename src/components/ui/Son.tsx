@@ -13,6 +13,8 @@ import {
   type Ambiance,
 } from '../../game/audio'
 import { BUILDING_IDS } from '../../game/data'
+import { descVague, tailleVague } from '../../game/combat'
+import { avertir, basculerNotifs, etatNotifs, type EtatNotifs } from '../../game/notifications'
 import { useGame } from '../../game/store'
 
 /*
@@ -52,7 +54,27 @@ export function useSons(): void {
       if (amb !== ambianceCourante()) setAmbiance(amb)
 
       // ── éclaireurs : les cors montent sur les murs ──
-      if (s.warned && !prec.warned) jouer('cor')
+      if (s.warned && !prec.warned) {
+        jouer('cor')
+        /*
+         * Et l'on prévient hors de l'onglet. C'est le seul endroit du code qui
+         * sache qu'une vague vient d'être ANNONCÉE — le tick, lui, ne connaît que
+         * des états, pas des transitions.
+         */
+        avertir(
+          'assaut',
+          '⚔️ Assaut annoncé sur votre village',
+          s.incomingWave ? `${tailleVague(s.incomingWave)} assaillants — ${descVague(s.incomingWave)}.` : 'Vos éclaireurs ont vu la poussière se lever.',
+        )
+      }
+      // ── un village implore votre aide : la fenêtre est courte ──
+      if (s.appelSecours && !prec.appelSecours) {
+        avertir(
+          'secours',
+          '🙏 Un village implore votre aide',
+          'Aucun butin à espérer — mais une alliance, et Zeus qui compte qui vient.',
+        )
+      }
       // ── l'assaut commence ──
       if (s.battle && !prec.battle) jouer('cor')
       // ── un pan de mur cède ──
@@ -110,6 +132,7 @@ export function useSons(): void {
 export function ControleSon() {
   const [reglages, setReglages] = useState(reglagesAudio)
   const [ouvert, setOuvert] = useState(false)
+  const [notifs, setNotifs] = useState<EtatNotifs>(etatNotifs)
 
   const maj = (f: () => void) => {
     f()
@@ -166,6 +189,17 @@ export function ControleSon() {
               onChange={(e) => maj(() => setVolumeMusique(Number(e.target.value) / 100))}
             />
           </label>
+          {/* les avertissements du navigateur : la seule chose qui prévienne
+              quand l'onglet n'est pas regardé, et le jeu continue sans nous */}
+          <button className="son-muet" onClick={() => void basculerNotifs().then(setNotifs)} disabled={notifs === 'indisponible' || notifs === 'refuse'}>
+            {notifs === 'allume'
+              ? '🔔 Avertir hors de l’onglet — activé'
+              : notifs === 'refuse'
+                ? '🔕 Avertissements bloqués par le navigateur'
+                : notifs === 'indisponible'
+                  ? '🔕 Avertissements indisponibles ici'
+                  : '🔔 Avertir hors de l’onglet (assauts, secours)'}
+          </button>
           <div className="son-note">
             Lyre, flûte de berger et bourdon chaud au village ; cors à l’alerte, tambour au siège. Tout est synthétisé,
             rien n’est téléchargé.

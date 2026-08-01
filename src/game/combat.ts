@@ -198,14 +198,27 @@ export interface ResultatHorsLigne {
   pertes: Partial<Record<UnitId, number>>
   degatsRemparts: number
   volePct: number
+  /** angles des pans qui se sont effondrés — vides si l'enceinte a tenu partout */
+  anglesOuverts: number[]
 }
 
+/**
+ * Assaut résolu sans spectacle, pour la nuit passée onglet fermé.
+ *
+ * Les fronts comptent, ici aussi. La résolution hors-ligne marquait
+ * forfaitairement la porte comme enfoncée dès que `wallHp` tombait à zéro : au
+ * réveil, le joueur voyait toujours la même brèche au même endroit, quel que
+ * soit le nombre de colonnes annoncées la veille. On répartit donc la structure
+ * entre les pans assaillis — comme le fait `creerBataille` — et l'on rend la
+ * liste de ceux qui ont réellement cédé.
+ */
 export function resoudreHorsLigne(
   wave: WaveUnit[],
   army: Record<UnitId, number>,
   wallLevel: number,
   wallHp: number,
   tours = 0,
+  fronts: { angle: number }[] = [],
 ): ResultatHorsLigne {
   const atk = puissanceVague(wave)
   const def = puissanceDefense(army, wallLevel, wallHp, tours)
@@ -217,8 +230,32 @@ export function resoudreHorsLigne(
     const p = Math.round(army[u] * pertesPct)
     if (p > 0) pertes[u] = p
   }
-  const degatsRemparts = Math.min(wallHp, Math.round(atk * (victoire ? 0.8 : 1.6)))
-  return { victoire, pertes, degatsRemparts, volePct: victoire ? 0 : 0.3 }
+  /*
+   * Les coups portés, puis ce que la structure peut en encaisser. La distinction
+   * compte : c'est la force BRUTE qui décide si un pan s'ouvre — un mur réduit à
+   * vingt points ne « limite » pas le bélier, il cède.
+   */
+  const degatsBruts = Math.round(atk * (victoire ? 0.8 : 1.6))
+  const degatsRemparts = Math.min(wallHp, degatsBruts)
+  /*
+   * Chaque pan assailli reçoit sa part de la structure ET sa part des coups — mais
+   * les pans ne se valent pas. La porte est le plus épais (corps de garde,
+   * vantaux doublés) et les tours ne couvrent que leur arc, dans l'ordre où on
+   * les bâtit : les deux premières flanquent la porte, la troisième le mur du sud,
+   * la quatrième celui du nord (cf. TOUR_ANGLES). Un mur du nord sans tour cède
+   * donc là où la porte tient, ce qui est exactement ce qu'on voit en bataille.
+   */
+  const anglesOuverts: number[] = []
+  if (wallLevel > 0 && fronts.length > 0) {
+    const partMur = wallHp / fronts.length
+    const partDegats = degatsBruts / fronts.length
+    fronts.forEach((f, i) => {
+      const epaisseur = i === 0 ? 1.3 : 1
+      const couvert = i === 0 ? tours >= 1 : i === 1 ? tours >= 3 : tours >= 4
+      if (partMur * epaisseur * (couvert ? 1.25 : 1) - partDegats <= 0.5) anglesOuverts.push(f.angle)
+    })
+  }
+  return { victoire, pertes, degatsRemparts, volePct: victoire ? 0 : 0.3, anglesOuverts }
 }
 
 // ── Bataille animée ───────────────────────────────────────────────────────────
@@ -256,6 +293,12 @@ export interface OptionsBataille {
   sansSiege?: boolean
   /** héros descendus sur le terrain, avec leur niveau */
   herosPresents?: { id: HeroId; niveau: number }[]
+  /**
+   * Part des défenseurs dépêchée par les alliés. Ils sont comptés dans
+   * `defenseurs` (ils se battent), mais marqués `allie` pour se distinguer à
+   * l'œil : les derniers arrivés sur la ligne portent les couleurs de leur cité.
+   */
+  renforts?: Partial<Record<UnitId, number>>
 }
 
 export function creerBataille(opts: OptionsBataille): BattleState {
@@ -333,6 +376,12 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     engages[u] = n
     const visibles = Math.min(n, 16)
     const mult = n / visibles
+    /*
+     * Combien de ces figurines représentent des alliés. On compte en FIGURINES et
+     * non en hommes : une garnison de quarante tient dans seize silhouettes, et
+     * cinq alliés sur quarante doivent donc en colorer deux, pas cinq.
+     */
+    const partAlliee = Math.round(((opts.renforts?.[u] ?? 0) / n) * visibles)
     for (let k = 0; k < visibles; k++) {
       const def = UNITS[u]
       const p = posteRalliement(geo, placeDef++)
@@ -340,6 +389,8 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         id: uid('def'),
         camp: 'defense',
         type: u,
+        // les alliés ferment la marche : ce sont les derniers postes de la ligne
+        allie: k >= visibles - partAlliee ? true : undefined,
         hp: def.hp * mult,
         maxHp: def.hp * mult,
         atk: def.atk * mult,
@@ -395,6 +446,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     const postes = postesArchers(geo, wallLevel)
     const visibles = Math.min(nArchers, 8)
     const mult = nArchers / visibles
+    const partAlliee = Math.round(((opts.renforts?.archer ?? 0) / nArchers) * visibles)
     for (let k = 0; k < visibles; k++) {
       const p = postes[k % postes.length]
       const def = UNITS.archer
@@ -402,6 +454,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         id: uid('arc'),
         camp: 'defense',
         type: 'archer',
+        allie: k >= visibles - partAlliee ? true : undefined,
         hp: def.hp * mult,
         maxHp: def.hp * mult,
         atk: def.atk * mult,

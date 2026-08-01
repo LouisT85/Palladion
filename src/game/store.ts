@@ -666,6 +666,28 @@ function frontsAnnonces(s: GameState): typeof SECTEURS {
   return trouves.length > 0 ? trouves : choisirFronts(s.threat)
 }
 
+/**
+ * Fronts d'un assaut nocturne. On préfère ceux que les éclaireurs avaient
+ * annoncés ; à défaut — un assaut tombé pendant l'absence, sans alerte — on
+ * reprend la règle du jeu : c'est la menace qui décide du nombre de colonnes.
+ */
+function frontsDeLaNuit(s: GameState): typeof SECTEURS {
+  const annonces = (s.incomingFronts ?? [])
+    .map((id) => SECTEURS.find((x) => x.id === id))
+    .filter((x): x is (typeof SECTEURS)[number] => !!x)
+  return annonces.length > 0 ? annonces : SECTEURS.slice(0, nbFronts(s.threat))
+}
+
+/** « la porte de l'est », « la porte de l'est et le mur du nord » */
+function motPans(angles: number[]): string {
+  const noms = angles
+    .map((a) => SECTEURS.find((x) => Math.abs(x.angle - a) < 0.01)?.nom.toLowerCase())
+    .filter((n): n is string => !!n)
+  if (noms.length === 0) return 'un pan de mur'
+  if (noms.length === 1) return noms[0]
+  return `${noms.slice(0, -1).join(', ')} et ${noms[noms.length - 1]}`
+}
+
 function snap(s: GameState): GameSnap {
   return s
 }
@@ -1607,21 +1629,34 @@ function simulerHorsLigne(s: GameState, now: number): void {
   while (s.nextAttackAt <= now && n < 3) {
     n++
     const wave = s.incomingWave ?? genererVague(calcThreat(s, s.nextAttackAt))
-    const res = resoudreHorsLigne(wave, s.army, s.buildings.remparts.level, s.wallHp, s.tours)
+    // les fronts annoncés la veille, ou ceux que la menace commandait cette nuit-là
+    const fronts = frontsDeLaNuit(s)
+    const res = resoudreHorsLigne(wave, s.army, s.buildings.remparts.level, s.wallHp, s.tours, fronts)
     for (const [u, p] of Object.entries(res.pertes) as [UnitId, number][]) {
       s.army[u] = Math.max(0, s.army[u] - p)
     }
     s.wallHp = Math.max(0, s.wallHp - res.degatsRemparts)
+    // au réveil, on doit voir par où ils sont passés — et sur QUELS pans
+    if (res.anglesOuverts.length > 0) {
+      s.brechesMur = [...new Set([...s.brechesMur, ...res.anglesOuverts])]
+    }
     if (res.victoire) {
       s.stats.repousses++
-      lignes.push(`⚔️ Assaut nocturne (${descVague(wave)}) repoussé par la garnison !`)
+      const nomsPans = res.anglesOuverts.length > 0 ? ` — ${motPans(res.anglesOuverts)} à relever` : ''
+      lignes.push(`⚔️ Assaut nocturne (${descVague(wave)}) repoussé par la garnison !${nomsPans}`)
     } else {
       s.stats.perdus++
       const vol = volerPct(s, res.volePct)
-      // au réveil, on doit voir par où ils sont entrés : la porte a cédé
-      if (s.buildings.remparts.level > 0 && s.wallHp <= 0) s.brechesMur = [0]
-      lignes.push(`💀 Assaut nocturne (${descVague(wave)}) : le village a été pillé (${vol})`)
+      const par = res.anglesOuverts.length > 0 ? ` par ${motPans(res.anglesOuverts)}` : ''
+      lignes.push(`💀 Assaut nocturne (${descVague(wave)}) : le village a été pillé${par} (${vol})`)
       s.moraleMods.push({ id: uid('m'), label: 'Pillé pendant la nuit', delta: -10, expiresAt: now + 8 * 60_000 })
+      // un sac coûte des vies, pas seulement des réserves
+      const civils = Math.min(Math.max(0, s.pop - 2), 1 + Math.floor(Math.random() * 2))
+      if (civils > 0) {
+        s.pop -= civils
+        noter(s, 'pertesCiviles', civils)
+        lignes.push(`⚰️ ${civils} habitant${civils > 1 ? 's' : ''} n’${civils > 1 ? 'ont' : 'a'} pas survécu au sac.`)
+      }
     }
     s.incomingWave = null
     s.incomingFronts = null
@@ -1954,8 +1989,13 @@ export const useGame = create<GameState>()(
                 tours: s.tours,
                 fronts: frontsAnnonces(s),
                 wallHpTotal: s.wallHp,
+                // les alliés ferment la ligne, à leurs couleurs : on doit voir
+                // qui est venu mourir pour vos murs
+                renforts: totalRenf > 0 ? renf : undefined,
                 bonusAtkJoueur: 1 + bh.degatsMeleePct,
-                reducJoueur: 1 - bh.gardeDuCorpsPct * 0.5,
+                // `gardeDuCorpsPct` porte désormais la valeur ANNONCÉE au joueur :
+                // plus de division cachée par deux entre la fiche et l'usage
+                reducJoueur: 1 - bh.gardeDuCorpsPct,
                 // les héros ne regardent pas depuis les murs : ils descendent
                 herosPresents: herosAuCombat(s, now),
               })
@@ -2224,10 +2264,18 @@ export const useGame = create<GameState>()(
         s.gods[g].cooldownUntil = now + dieu.benediction.cooldown / (MODE_TEST ? 12 : 1)
         s.gods[g].relation = Math.min(100, s.gods[g].relation + 2)
         noter(s, 'benedictions')
-        // ferveur : plus le dieu vous chérit, plus son bras est lourd — et plus
-        // sa manifestation est spectaculaire (le palier pilote la mise en scène)
-        const force = multRelation(s.gods[g].relation)
-        const palier = palierFerveur(s.gods[g].relation)
+        /*
+         * Ferveur : plus le dieu vous chérit, plus son bras est lourd — et plus sa
+         * manifestation est spectaculaire (le palier pilote la mise en scène).
+         *
+         * On lit la relation EFFECTIVE, pas la brute : l'orgueil d'Agamemnon
+         * (−10 sur tous les Olympiens) était jusqu'ici purement cosmétique sur les
+         * bénédictions. Le panthéon annonçait ×1,24, le joueur recevait ×1,30 — et
+         * le seul héros dont le passif soit un DÉFAUT ne coûtait rien.
+         */
+        const rel = relationEffective(s, g)
+        const force = multRelation(rel)
+        const palier = palierFerveur(rel)
         const pct = (x: number) => Math.round(x * 100)
         if (bataille && g !== 'zeus') marqueDivine(bataille, now, g, palier)
 
@@ -2595,6 +2643,9 @@ export const useGame = create<GameState>()(
             campJoueur: 'attaque',
             sansSiege: ruse,
             bonusAtkJoueur: 1 + bh.degatsMeleePct + bh.degatsExpeditionPct,
+            // la garde d'Ajax vaut aussi loin de chez soi : sa fiche la promet sans
+            // réserve, et le store l'oubliait en expédition
+            reducJoueur: 1 - bh.gardeDuCorpsPct,
             // ils marchent avec la colonne, en tête
             herosPresents: herosAuCombat(s, now),
           }),

@@ -451,6 +451,18 @@ function lookHeros(h: HeroId): Look {
 }
 
 /** allure par type — la couleur de tunique dépend du camp du joueur */
+/*
+ * Les couleurs des renforts alliés. Ils portaient les vôtres — l'aide d'un allié
+ * ne se lisait donc que dans le rapport d'après-bataille. Ils passent au vert
+ * olive : franchement distinct du bleu du joueur comme du rouge de l'assaillant,
+ * et cohérent avec le 🤝 des alliances.
+ */
+const TUNIQUE_ALLIEE: Record<'lancier' | 'archer' | 'hoplite', string> = {
+  lancier: '#4d6b3a',
+  archer: '#5c7245',
+  hoplite: '#415c32',
+}
+
 function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' {
   if (f.heros) return lookHeros(f.heros)
   switch (f.type) {
@@ -463,11 +475,16 @@ function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' {
     case 'mercenaire':
       return { tunique: '#5a3140', arme: 'bouclier-lourd', taille: 1.2, crete: true }
     case 'lancier':
-      return { tunique: estJoueur ? '#3e5a7a' : '#8a4636', arme: 'lance', taille: 1 }
+      return { tunique: f.allie ? TUNIQUE_ALLIEE.lancier : estJoueur ? '#3e5a7a' : '#8a4636', arme: 'lance', taille: 1 }
     case 'archer':
-      return { tunique: estJoueur ? '#4a6a5a' : '#7d5a44', arme: 'arc', taille: 0.95 }
+      return { tunique: f.allie ? TUNIQUE_ALLIEE.archer : estJoueur ? '#4a6a5a' : '#7d5a44', arme: 'arc', taille: 0.95 }
     case 'hoplite':
-      return { tunique: estJoueur ? '#31506e' : '#6e3348', arme: 'bouclier-lourd', taille: 1.15, crete: true }
+      return {
+        tunique: f.allie ? TUNIQUE_ALLIEE.hoplite : estJoueur ? '#31506e' : '#6e3348',
+        arme: 'bouclier-lourd',
+        taille: 1.15,
+        crete: true,
+      }
   }
 }
 
@@ -557,6 +574,15 @@ function FigurineCombattant({
           >
             {HEROS[f.heros].nom}
           </text>
+        </g>
+      )}
+      {/* le fanion d'un allié : petit, planté derrière l'épaule, aux couleurs de
+          sa cité. Assez pour compter les venus d'ailleurs sans lire un rapport */}
+      {f.allie && !f.heros && (
+        <g pointerEvents="none">
+          <path d="M6.4,-15 L6.4,-24.5" stroke="#4a3a22" strokeWidth={0.9} />
+          <path d="M6.8,-24.2 L12.4,-22.4 L6.8,-20.6 Z" fill="#6f9a52" />
+          <path d="M6.8,-24.2 L12.4,-22.4 L9.6,-21.5 Z" fill="#86b565" />
         </g>
       )}
       <g transform={versLaGauche ? 'scale(-1,1)' : undefined}>{contenu}</g>

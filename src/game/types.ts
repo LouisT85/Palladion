@@ -205,6 +205,12 @@ export interface Fighter {
    * blessé, pas rayé de l'effectif.
    */
   heros?: HeroId
+  /**
+   * Dépêché par un village allié. Ils tombent avant vos hommes — encore faut-il
+   * les reconnaître sur le rempart : ils portaient jusqu'ici vos propres
+   * couleurs, si bien que l'aide d'un allié ne se voyait que dans le rapport.
+   */
+  allie?: boolean
 }
 
 export interface Projectile {

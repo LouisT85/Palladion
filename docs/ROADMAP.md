@@ -1,6 +1,6 @@
 # PALLADION — feuille de route
 
-État au 31 juillet 2026. Chaque entrée porte une estimation d'**effort** (S/M/L/XL)
+État au 1er août 2026. Chaque entrée porte une estimation d'**effort** (S/M/L/XL)
 et d'**impact joueur** (★ à ★★★). Les lots livrés sont conservés pour mémoire.
 
 ---
@@ -17,18 +17,29 @@ et d'**impact joueur** (★ à ★★★). Les lots livrés sont conservés pour
 | Graphismes | Refonte peinte réaliste (AoE/Zeus) : 11 domaines, lumière NW, ombres portées, matières |
 | Confort | Reset de partie, étiquettes au survol, chantiers à 3 stades, garnison visible |
 
-## 🔨 Lot 2 — en cours de spécification
+## ✅ Lot 2 — livré
 
-Les six chantiers demandés, dans l'ordre où je les attaquerais.
+| # | Chantier | Ce qui a été fait |
+|---|---|---|
+| 1 | **Visuels divins selon la ferveur** | Sept paliers pilotent la mise en scène : éclair pâle et avorté pour un dieu offensé, jaune en grâce, bleu-blanc quand il vous chérit, pourpre fendant le ciel pour son élu. Onde de Poséidon → raz-de-marée d'écume ; halo d'Athéna → égide à Gorgone tournoyante ; brume d'Arès → aura sanglante et corbeaux. Un aperçu figé s'affiche dans le panthéon. |
+| 2 | **Saisons et météo** | Quatre saisons de quatre journées, météo tirée toutes les 4 min. Multiplicateurs de récolte par ressource, hiver qui ferme la mer (port au tiers, îles inaccessibles). En bataille : portée, allure et force des tirs modulées ; orage = foudre de Zeus renforcée. Carte : feuillages saisonniers, congères, feuilles mortes, brûlis, pluie/neige/brume/canicule/éclairs en SMIL. |
+| 3 | **Héros récurrents à arcs narratifs** | Les huit héros, avec conditions d'apparition, entretien par minute, départ au bout de trois rappels impayés, niveaux 1→5 gagnés au combat, passifs cumulés, capacités actives résolues sur le champ de bataille, et arcs à embranchements dont certaines branches tuent ou plafonnent définitivement. |
+| 4 | **Expéditions : piller ou secourir** | Deux intentions. Pillage : Zeus −5, menace +4, garnison renforcée de 25 % par pillage encaissé. Secours : appel à fenêtre limitée, aucun butin, Zeus +12 / Athéna +7, alliance (tribut toutes les 3 min + renforts qui tombent avant vos hommes). Trahir un allié est possible — et compté. |
+| 5 | **Succès, hauts faits et prestige** | 45 hauts faits en cinq catégories, score de prestige détaillé ligne à ligne, titres de « Roi de pacotille » à « Égal des dieux », et abdication qui fige le bilan avant de refonder une cité. |
+| 6 | **Sons et musique** | Tout synthétisé en Web Audio, zéro octet téléchargé : lyre en mode phrygien au village, cors à l'alerte, tambour de siège, fracas d'armes, craquement de brèche, tonnerre des bénédictions, chant d'aède à la victoire. Coupe-son et deux curseurs persistés ; aucun son avant le premier geste. |
 
-| # | Chantier | Effort | Impact | Notes de conception |
-|---|---|---|---|---|
-| 1 | **Visuels divins selon la ferveur** | S | ★★★ | Zeus : éclair jaune (en grâce) → bleu-blanc (chéri) → rouge-pourpre fendant le ciel (élu). Poséidon : onde verte → turquoise → raz-de-marée d'écume. Athéna : halo gris-perle → or pâle → égide à tête de Gorgone tournoyante. Arès : brume rouge → braise → aura sanglante avec corbeaux. Un dieu **offensé** doit avoir un visuel *pâle et avorté* : la punition se voit. |
-| 2 | **Saisons et météo** | M | ★★★ | Cycle de 4 saisons (≈ 4 journées de jeu chacune). Printemps +grain, été sécheresse/incendies, automne récolte, hiver production ↓ et pas d'expédition maritime. Météo par-dessus : pluie (arcs −30 %, boue = marche plus lente), brume (portée des tours ↓, éclaireurs aveugles), orage (Zeus plus généreux), canicule. Doit **changer la carte** visuellement : champs dorés, arbres nus, neige légère sur l'Ida. |
-| 3 | **Héros récurrents à arcs narratifs** | XL | ★★★ | Le gros morceau — voir la section détaillée ci-dessous. |
-| 4 | **Expéditions : piller ou secourir** | M | ★★ | Deux intentions par cible. *Pillage* : butin élevé, relation avec les dieux de l'hospitalité en baisse, menace en hausse, le village se souvient (garnison renforcée). *Secours* : un village assiégé appelle à l'aide (fenêtre de temps limitée), butin nul mais +relation Zeus/Athéna, alliance débloquée (tribut régulier, renforts en cas d'assaut), et la possibilité d'y perdre des hommes pour rien. Le choix doit être cornélien : richesse contre réseau. |
-| 5 | **Succès, hauts faits et prestige** | M | ★★ | ~40 hauts faits (« tenir un assaut sur 3 fronts sans perdre un homme », « Élu des quatre Olympiens », « 3★ sur les 8 villages »). Écran de fin de partie avec score de prestige (bâtiments, dieux, hauts faits, survie) et titre (« Roi de pacotille » → « Égal des dieux »). Le prestige alimente la Nouvelle Partie + (voir modes de jeu). |
-| 6 | **Sons et musique** | M | ★★ | Lyre en fond (village paisible), cors de guerre à l'alerte, tambour de siège, fracas d'armes, craquement de la brèche, chant d'aède aux fêtes, tonnerre des bénédictions. Web Audio API, sons de synthèse ou échantillons libres, **bouton coupe-son et volume persistés**, aucun son sans interaction préalable (politique navigateur). |
+## ✅ Lot 3 — livré
+
+| Sujet | Ce qui a été fait |
+|---|---|
+| Zoom et déplacement manuels | Molette (zoom au curseur), glisser pour déplacer, double-clic pour recentrer, boutons +/− ; la caméra de bataille rend la main dès qu'on y touche. Sur la carte comme sur la scène d'assaut. |
+| Remparts endommagés hors combat | Les pans effondrés restent à terre jusqu'à réparation (ou jusqu'au trident de Poséidon), y compris après un assaut nocturne. |
+| Icônes de ressources | Pictogrammes peints : grume écorcée, bloc de taille équarri, gerbe de blé, lingot « peau de bœuf ». Fini le caillou et la médaille de bronze. |
+| Descriptions du HUD | Nom sous chaque jeton de ressource, infobulles complètes partout, et l'ambiance du village en un mot (Exaltée → Révolte) qui ne disparaît plus jamais au rétrécissement. |
+| Animation de victoire | Couronne de laurier, rayons d'or tournants, paillettes ; trois secondes par-dessus la scène, sans jamais intercepter un clic. |
+| Jauge de ferveur | Rail à sept bandes du rouge sang au vert franc, le palier atteint à pleine saturation. |
+| Villages d'expédition | Les huit places fortes ont leur décor peint et leur cadre (plaine, colline, grève, île) : camp de tentes, hameau de chaume, comptoir à amphores, village dardanien, fort achéen, cité à colonnade, citadelle sur éperon, forteresse à donjon. |
+| Zone de portée des tours | Le disque jaune plein devient un halo de bord et un liseré fin : on lit la limite, plus la tache. |
 
 ### Héros — conception détaillée
 
@@ -126,11 +137,19 @@ et peut partir si on l'ignore. Ils sont une puissance, pas un cadeau.
 
 ---
 
-## Ordre conseillé
+## Ordre conseillé (après les lots 2 et 3)
 
-1. **Terminer le lot 2** en commençant par les visuels divins (rapide, très visible) et les saisons, avant les héros (le plus lourd).
-2. **Siège sans fin** + **hauts faits** : peu de code, beaucoup de rejouabilité.
-3. **Sauvegardes multiples** et **tests automatisés** : dette à payer avant que le jeu grossisse encore.
-4. **Formations et unités** puis **héros ennemis** : le combat est déjà le point fort, on l'approfondit.
-5. **Familles et lignées** : le prolongement le plus naturel des villageois nommés, et ce qui attacherait le plus le joueur à son village.
-6. **Campagne narrative** en dernier : c'est un projet à part entière, à lancer quand tout le socle est stable.
+1. **Tests automatisés** : le jeu tient maintenant dans ~15 000 lignes et tout se vérifie encore à la main. Vitest sur l'économie, le combat, la résolution hors-ligne et les hauts faits — c'est le plus rentable désormais.
+2. **Découpage du bundle** : 870 kB en un seul morceau. L'art des bâtiments et les décors d'expédition sont les premiers candidats à l'import dynamique.
+3. **Siège sans fin** : peu de code, beaucoup de rejouabilité — et les hauts faits sont déjà là pour le noter.
+4. **Nouvelle Partie +** : le prestige est calculé et figé à l'abdication ; il ne reste qu'à le reporter sur la partie suivante.
+5. **Formations et unités** puis **héros ennemis** (Achille assiégeant *votre* village, avec ses capacités retournées contre vous — tout le socle existe).
+6. **Familles et lignées** : le prolongement le plus naturel des villageois nommés.
+7. **Campagne narrative** en dernier : un projet à part entière, à lancer quand tout le socle est stable.
+
+## 🐞 Dette connue
+
+- Le bundle dépasse 500 kB : aucun découpage dynamique pour l'instant.
+- Aucun test automatisé : chaque lot est vérifié à la compilation et à la main.
+- Les renforts alliés ne sont pas figurés distinctement sur le champ de bataille (ils portent les couleurs du joueur).
+- La résolution hors-ligne ne connaît pas les secteurs : un assaut nocturne perdu marque forfaitairement la porte comme enfoncée.

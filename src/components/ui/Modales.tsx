@@ -168,11 +168,42 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>🗺️ Les expéditions</h3>
+          <h3>🗺️ Piller ou secourir</h3>
           <p>
-            À votre tour de piller ! Envoyez jusqu’à 20 soldats contre les 8 places fortes de la Troade : brisez leurs
-            murs, éliminez la garnison, raflez le butin. Moins vous perdez d’hommes, plus vous gagnez d’étoiles
-            (★★★ à moins de 20 % de pertes). Les dieux peuvent être invoqués pendant vos raids.
+            Envoyez jusqu’à 20 soldats contre les 8 places fortes de la Troade. <b>Piller</b> rapporte gros — mais Zeus
+            Xenios n’aime pas cela, la menace monte, et le village renforce sa garnison pour votre prochaine visite.
+            Quand un village assiégé <b>appelle à l’aide</b>, vous avez quelques minutes pour trancher : aucun butin,
+            mais la faveur des dieux et une <b>alliance</b> — tribut régulier et renforts sur vos remparts à chaque
+            assaut. Moins de pertes = plus d’étoiles (★★★ sous 20 % de pertes).
+          </p>
+        </div>
+        <div className="aide-section">
+          <h3>🛡️ Les héros</h3>
+          <p>
+            Huit héros de la matière troyenne peuvent entrer à votre service — mais seulement si la cité en est digne :
+            Hector veut des remparts de niveau 3, Ulysse un port et la confiance d’Athéna, Achille du sang déjà versé.
+            Chacun apporte un <b>passif permanent</b> et une <b>capacité</b> à invoquer, gagne des niveaux en
+            combattant, <b>mange chaque minute</b> — et s’en va si on l’ignore trois fois. Leur <b>arc narratif</b>
+            pose des choix sans retour : certains y perdent la vie, d’autres n’en sortent plus jamais grandis.
+          </p>
+        </div>
+        <div className="aide-section">
+          <h3>🌱 Saisons et météo</h3>
+          <p>
+            Quatre journées de jeu par saison. Le printemps fait lever les blés, l’été durcit la terre et ouvre la mer,
+            l’automne remplit les greniers, l’<b>hiver ferme la mer</b> (port au tiers, îles inaccessibles). Par-dessus,
+            un ciel qui tourne : la <b>pluie</b> détend les cordes d’arc, la <b>brume</b> rogne la portée des tours et
+            aveugle vos éclaireurs, l’<b>orage</b> rend la foudre de Zeus plus lourde, la <b>neige</b> ralentit les
+            colonnes. Tout se voit sur la carte.
+          </p>
+        </div>
+        <div className="aide-section">
+          <h3>🏅 Hauts faits et prestige</h3>
+          <p>
+            Quarante-cinq hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
+            « élu des quatre Olympiens », « trois étoiles sur les huit places fortes ». Ils alimentent votre{' '}
+            <b>prestige</b>, la seule note finale. Quand vous jugez le règne accompli, <b>abdiquez</b> : le score se
+            fige, les aèdes vous donnent un titre — de « Roi de pacotille » à « Égal des dieux ».
           </p>
         </div>
         <div className="aide-section">
@@ -196,6 +227,14 @@ export function ModaleAide() {
             Comme dans les Sims : les boutons <b>×1 ×2 ×4 ×8</b> (ou les touches 1–4) accélèrent tout — production,
             chantiers, recrues, cycle du jour… et le compte à rebours des attaques. Le jeu repasse automatiquement en
             ×1 pendant les batailles.
+          </p>
+        </div>
+        <div className="aide-section">
+          <h3>🔎 Regarder de plus près</h3>
+          <p>
+            <b>Molette</b> pour zoomer là où pointe le curseur, <b>glisser</b> pour déplacer la carte,{' '}
+            <b>double-clic</b> pour rendre la main à la caméra. Pendant un assaut, elle se rapproche seule du front le
+            plus menacé — jusqu’à ce que vous y touchiez. Le bouton 🔊 règle la lyre, les cors et le tambour de siège.
           </p>
         </div>
         <div className="aide-section">

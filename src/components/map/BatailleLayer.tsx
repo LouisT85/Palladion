@@ -1,4 +1,5 @@
-import type { BattleGeo, BattleState, Fighter, SecteurBataille } from '../../game/types'
+import { HEROS } from '../../game/heros'
+import type { BattleGeo, BattleState, Fighter, HeroId, SecteurBataille } from '../../game/types'
 import { assaillantsParSecteur, indexSecteurChaud } from './camera'
 import { EffetDivin, EffetHeros } from './EffetsDivins'
 
@@ -435,8 +436,23 @@ interface Look {
   crete?: boolean
 }
 
+/**
+ * Un héros ne ressemble pas à un hoplite de plus : il porte les couleurs de sa
+ * maison, une crête, et il est plus grand que les autres. On doit le repérer
+ * dans la mêlée sans lire son nom.
+ */
+function lookHeros(h: HeroId): Look {
+  const def = HEROS[h]
+  // l'arme suit sa légende : l'arc pour personne, le grand bouclier pour ceux
+  // qui tiennent le rang, la lance pour ceux qui chargent
+  const arme: Look['arme'] =
+    h === 'hector' || h === 'ajax' || h === 'agamemnon' ? 'bouclier-lourd' : h === 'cassandre' ? 'dague' : 'lance'
+  return { tunique: def.couleur, arme, taille: h === 'cassandre' ? 1.15 : 1.32, crete: h !== 'cassandre' }
+}
+
 /** allure par type — la couleur de tunique dépend du camp du joueur */
 function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' {
+  if (f.heros) return lookHeros(f.heros)
   switch (f.type) {
     case 'belier':
       return 'belier'
@@ -522,6 +538,27 @@ function FigurineCombattant({
 
   return (
     <g style={{ transform: `translate(${f.x}px,${f.y}px)`, transition: 'transform 0.3s linear' }}>
+      {/* un héros se distingue avant même qu'on lise son nom : cercle à ses
+          couleurs sous ses pieds, et son nom gravé au-dessus de la mêlée */}
+      {f.heros && (
+        <g pointerEvents="none">
+          <ellipse cx={0} cy={1} rx={13} ry={4.6} fill={HEROS[f.heros].couleur} opacity={0.28} />
+          <ellipse cx={0} cy={1} rx={13} ry={4.6} fill="none" stroke={HEROS[f.heros].couleur} strokeWidth={1.2} opacity={0.75} />
+          <text
+            x={0}
+            y={-33}
+            textAnchor="middle"
+            fontSize={10}
+            fontWeight={700}
+            fill="#f4ecd8"
+            stroke="#0d1722"
+            strokeWidth={2.4}
+            style={{ paintOrder: 'stroke' }}
+          >
+            {HEROS[f.heros].nom}
+          </text>
+        </g>
+      )}
       <g transform={versLaGauche ? 'scale(-1,1)' : undefined}>{contenu}</g>
       {blesse && (
         <g transform="translate(0,-22)">

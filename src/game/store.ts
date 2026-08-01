@@ -80,6 +80,7 @@ import {
 import {
   BONUS_NEUTRE,
   HEROS,
+  HERO_CONVALESCENCE_MS,
   HERO_IDS,
   NIVEAU_MAX,
   XP_ASSAUT_REPOUSSE,
@@ -859,6 +860,34 @@ function tournerCiel(s: GameState, now: number): void {
 
 // ── Héros : expérience, entretien, arcs ──────────────────────────────────────
 
+/** les héros qui descendent sur le terrain : présents, vivants, et pas alités */
+function herosAuCombat(s: GameState, now: number): { id: HeroId; niveau: number }[] {
+  return HERO_IDS.filter((h) => {
+    const e = s.heros[h]
+    return e?.recrute && !e.mort && now >= e.boudeJusqua
+  }).map((h) => ({ id: h, niveau: s.heros[h].niveau }))
+}
+
+/**
+ * Après la bataille, on relève les héros tombés. Ils ne meurent pas ici — seul
+ * leur arc peut les tuer — mais ils sortent blessés : capacité indisponible
+ * le temps de la convalescence, et le village le sait.
+ */
+function relverHerosTombes(s: GameState, b: BattleState, now: number): void {
+  for (const f of b.fighters) {
+    if (!f.heros || f.etat !== 'mort') continue
+    const e = s.heros[f.heros]
+    if (!e?.recrute || e.mort) continue
+    e.boudeJusqua = Math.max(e.boudeJusqua, now + HERO_CONVALESCENCE_MS)
+    pushToast(s, '🩹', `${HEROS[f.heros].nom} est tombé au combat — on le relève, mais il ne se battra plus avant un moment.`)
+    pushReport(s, '🩹', `${HEROS[f.heros].nom} blessé`, [
+      'On l’a sorti de la mêlée le bouclier fendu et le souffle court.',
+      `Sa capacité reste indisponible ${Math.round(HERO_CONVALESCENCE_MS / 60_000)} minutes, le temps qu’il se relève.`,
+      'Un héros ne meurt que dans son propre récit — pas dans une échauffourée.',
+    ])
+  }
+}
+
 /** distribue de l'expérience aux héros présents et fait monter ceux qui le peuvent */
 function gagnerXp(s: GameState, n: number): void {
   for (const h of HERO_IDS) {
@@ -1096,6 +1125,8 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
   if (!b) return
   const pertes = pertesDefense(b)
   const lignes: string[] = []
+  // les héros tombés sont relevés blessés, jamais rayés de l'effectif
+  relverHerosTombes(s, b, now)
   // les renforts alliés meurent en premier : c'est tout l'intérêt d'un allié
   const renf = s.renfortsEngages
   let alliesTombes = 0
@@ -1193,6 +1224,8 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   if (!exp) return
   const b = exp.battle
   const lignes: string[] = []
+  // un héros mis à terre au loin rentre blessé, pas mort
+  relverHerosTombes(s, b, now)
 
   // survivants (les fuyards hp>0 rentrent au village) — et ceux qu'Énée arrache
   // à la déroute : sa capacité ne joue qu'une fois, et seulement sur une défaite
@@ -1673,6 +1706,8 @@ export const useGame = create<GameState>()(
                 wallHpTotal: s.wallHp,
                 bonusAtkJoueur: 1 + bh.degatsMeleePct,
                 reducJoueur: 1 - bh.gardeDuCorpsPct * 0.5,
+                // les héros ne regardent pas depuis les murs : ils descendent
+                herosPresents: herosAuCombat(s, now),
               })
               if (s.buildings.ferme.level > 0) {
                 s.resources.grain = Math.max(0, s.resources.grain * 0.97) // champs piétinés
@@ -2300,6 +2335,8 @@ export const useGame = create<GameState>()(
             campJoueur: 'attaque',
             sansSiege: ruse,
             bonusAtkJoueur: 1 + bh.degatsMeleePct + bh.degatsExpeditionPct,
+            // ils marchent avec la colonne, en tête
+            herosPresents: herosAuCombat(s, now),
           }),
           result: null,
         }

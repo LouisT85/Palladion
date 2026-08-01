@@ -12,6 +12,16 @@ export type BuildingId =
   | 'temple'
   | 'port'
 export type UnitId = 'lancier' | 'archer' | 'hoplite'
+/** les héros de la matière troyenne — leurs fiches vivent dans heros.ts */
+export type HeroId =
+  | 'hector'
+  | 'ulysse'
+  | 'achille'
+  | 'ajax'
+  | 'agamemnon'
+  | 'cassandre'
+  | 'enee'
+  | 'diomede'
 export type EnemyId = 'pillard' | 'guerrier' | 'mercenaire' | 'belier'
 export type GodId = 'zeus' | 'poseidon' | 'athena' | 'ares'
 
@@ -189,6 +199,12 @@ export interface Fighter {
   seed: number
   /** instant de la mort (les dépouilles restent visibles quelques secondes) */
   mortAt?: number
+  /**
+   * Ce combattant EST un héros : il porte ses couleurs sur le champ de bataille
+   * et ne compte pas dans les pertes de la garnison — un héros abattu est
+   * blessé, pas rayé de l'effectif.
+   */
+  heros?: HeroId
 }
 
 export interface Projectile {

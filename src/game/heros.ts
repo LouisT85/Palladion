@@ -1,4 +1,8 @@
-import type { BuildingId, Cost, GodId, UnitId } from './types'
+import type { BuildingId, Cost, GodId, HeroId, UnitId } from './types'
+
+// l'identifiant vit dans types.ts (comme UnitId ou GodId) pour que le moteur de
+// bataille puisse marquer un combattant « héros » sans dépendre de ce module
+export type { HeroId }
 
 /*
  * Les héros de la matière troyenne. Ils ne s'achètent pas : ils viennent quand
@@ -6,16 +10,6 @@ import type { BuildingId, Cost, GodId, UnitId } from './types'
  * un arc à embranchements — et peuvent mourir. C'est ce qui rend leur présence
  * tendue plutôt que confortable.
  */
-
-export type HeroId =
-  | 'hector'
-  | 'ulysse'
-  | 'achille'
-  | 'ajax'
-  | 'agamemnon'
-  | 'cassandre'
-  | 'enee'
-  | 'diomede'
 
 /** état d'un héros dans une partie */
 export interface HeroState {
@@ -862,6 +856,23 @@ export function xpRequise(def: HeroDef, niveau: number): number {
 /** puissance d'une capacité selon le niveau : ×1 au niveau 1, ×1.8 au niveau 5 */
 export function forceNiveau(niveau: number): number {
   return 1 + (niveau - 1) * 0.2
+}
+
+/*
+ * Un héros ne reste pas au chaud pendant qu'on se bat pour lui : il descend sur
+ * le champ de bataille avec les autres. Il y vaut trois hoplites, encaisse
+ * comme un mur — mais s'il tombe, il n'est pas rayé de l'effectif : il est
+ * BLESSÉ, et sa capacité reste indisponible le temps qu'il se relève. Seul son
+ * arc narratif peut le tuer pour de bon.
+ */
+export const HERO_HP_BASE = 240
+export const HERO_ATK_BASE = 26
+/** temps de convalescence après avoir été mis à terre en bataille */
+export const HERO_CONVALESCENCE_MS = 5 * 60_000
+
+export function statsCombatHeros(niveau: number): { hp: number; atk: number } {
+  const f = forceNiveau(niveau)
+  return { hp: Math.round(HERO_HP_BASE * f), atk: Math.round(HERO_ATK_BASE * f) }
 }
 
 /** prochain nœud d'arc à déclencher, s'il est mûr — sinon null */

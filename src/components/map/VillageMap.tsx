@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, TOUR_ANGLES, TOUR_PORTEE, pointMur } from '../../game/data'
+import { HERO_IDS } from '../../game/heros'
 import { murMax, postesPourvus, postesTotal, useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
 import { DefsArt } from './art'
@@ -8,6 +9,7 @@ import { Batisseur, Ouvriers, Porteurs } from './Ouvriers'
 import { BatailleLayer } from './BatailleLayer'
 import { useCamera, vientDeGlisser, ZOOM_MAX, ZOOM_MIN, type VueScene } from './camera'
 import { Meteo, VoileSaison } from './Ciel'
+import { HerosVillage } from './HerosVillage'
 import { Garnison } from './Garnison'
 import { Murailles } from './Murailles'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
@@ -176,6 +178,16 @@ export function VillageMap() {
   const meteo = useGame((s) => s.meteo)
   // structure maximale de l'enceinte — Hector l'épaissit tant qu'il est là
   const wallMax = useGame(murMax)
+  // liste stable : on ne recrée pas de tableau dans le sélecteur (React 18)
+  const heros = useGame((s) => s.heros)
+  const herosPresents = useMemo(
+    () =>
+      HERO_IDS.filter((h) => heros[h]?.recrute && !heros[h].mort).map((h) => ({
+        id: h,
+        blesse: heros[h].boudeJusqua > Date.now(),
+      })),
+    [heros],
+  )
   const select = useGame((s) => s.select)
   const selected = useGame((s) => s.selected)
   const [hoverMur, setHoverMur] = useState(false)
@@ -279,6 +291,8 @@ export function VillageMap() {
           ))}
 
           <Villageois pop={pop} morale={morale} now={now} enBataille={battle !== null} />
+          {/* les héros sont des habitants : ils arpentent la place comme les autres */}
+          <HerosVillage presents={herosPresents} now={now} enBataille={battle !== null} />
 
           <Murailles
             niveau={wallLevel}

@@ -1,10 +1,12 @@
 import { ENEMIES, MAP, TOUR_ANGLES, TOUR_CADENCE_MS, TOUR_DMG, TOUR_PORTEE, UNITS, WALL_HP } from './data'
+import { statsCombatHeros } from './heros'
 import type {
   BattleGeo,
   BattleState,
   EnemyId,
   Fighter,
   GodId,
+  HeroId,
   SecteurBataille,
   UnitId,
   WaveUnit,
@@ -65,6 +67,29 @@ function posteSiege(geo: BattleGeo, i: number, angleSecteur = 0): { x: number; y
   return {
     x: geo.cx + (geo.rx + off) * Math.cos(angle),
     y: geo.cy + (geo.ry + off) * Math.sin(angle),
+  }
+}
+
+/**
+ * Place du i-ème défenseur de mêlée. Ils convergeaient tous vers le MÊME point,
+ * ce qui donnait une pile de figurines superposées — illisible, et impossible
+ * d'y distinguer un héros. Ils tiennent maintenant trois rangs face à la porte.
+ */
+function posteRalliement(geo: BattleGeo, i: number): { x: number; y: number } {
+  const parRang = 6
+  const rang = Math.floor(i / parRang)
+  const col = i % parRang
+  return {
+    x: geo.ralliement.x - rang * 27,
+    y: geo.ralliement.y + (col - (parRang - 1) / 2) * 23,
+  }
+}
+
+/** place d'un héros : devant la ligne, bien espacé pour qu'on lise son nom */
+function posteHeros(geo: BattleGeo, i: number, total: number): { x: number; y: number } {
+  return {
+    x: geo.ralliement.x + 30,
+    y: geo.ralliement.y + (i - (total - 1) / 2) * 54,
   }
 }
 
@@ -229,6 +254,8 @@ export interface OptionsBataille {
   reducJoueur?: number
   /** les murs sont déjà ouverts avant le premier coup (ruse d'Ulysse) */
   sansSiege?: boolean
+  /** héros descendus sur le terrain, avec leur niveau */
+  herosPresents?: { id: HeroId; niveau: number }[]
 }
 
 export function creerBataille(opts: OptionsBataille): BattleState {
@@ -298,6 +325,8 @@ export function creerBataille(opts: OptionsBataille): BattleState {
 
   // Défenseurs de mêlée — au point de ralliement
   const engages: Partial<Record<UnitId, number>> = {}
+  // un compteur commun aux lanciers et aux hoplites : la ligne est unique
+  let placeDef = 0
   for (const u of ['lancier', 'hoplite'] as UnitId[]) {
     const n = defenseurs[u] ?? 0
     if (n <= 0) continue
@@ -306,6 +335,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     const mult = n / visibles
     for (let k = 0; k < visibles; k++) {
       const def = UNITS[u]
+      const p = posteRalliement(geo, placeDef++)
       fighters.push({
         id: uid('def'),
         camp: 'defense',
@@ -313,10 +343,10 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         hp: def.hp * mult,
         maxHp: def.hp * mult,
         atk: def.atk * mult,
-        x: geo.ralliement.x - 10 - Math.random() * 50,
-        y: geo.ralliement.y + (Math.random() - 0.5) * 70,
-        tx: geo.ralliement.x,
-        ty: geo.ralliement.y,
+        x: p.x - 12 - Math.random() * 16,
+        y: p.y + (Math.random() - 0.5) * 8,
+        tx: p.x,
+        ty: p.y,
         speed: 42,
         etat: 'melee',
         nextHit: 0,
@@ -324,6 +354,39 @@ export function creerBataille(opts: OptionsBataille): BattleState {
       })
     }
   }
+
+  /*
+   * Les héros. Ils se battent au premier rang du camp du joueur — devant la
+   * ligne quand on défend, en tête de colonne quand on attaque — et ne sont
+   * jamais comptés dans `engages` : leurs blessures ne coûtent pas de soldats.
+   */
+  const listeHeros = opts.herosPresents ?? []
+  listeHeros.forEach((h, i) => {
+    const st = statsCombatHeros(h.niveau)
+    const enDefense = campJoueur === 'defense'
+    const p = enDefense
+      ? posteHeros(geo, i, listeHeros.length)
+      : { x: geo.spawn.x - 30 - i * 22, y: geo.spawn.y + (i - (listeHeros.length - 1) / 2) * 34 }
+    fighters.push({
+      id: uid('hero'),
+      camp: campJoueur,
+      // le moteur raisonne en unités : un héros se bat comme l'infanterie lourde
+      type: 'hoplite',
+      heros: h.id,
+      hp: st.hp,
+      maxHp: st.hp,
+      atk: st.atk,
+      x: p.x - (enDefense ? 14 : 0),
+      y: p.y,
+      tx: enDefense ? p.x : geo.porte.x,
+      ty: enDefense ? p.y : geo.porte.y,
+      speed: 46,
+      etat: enDefense ? 'melee' : 'marche',
+      secteur: enDefense ? undefined : 0,
+      nextHit: 0,
+      seed: Math.random(),
+    })
+  })
 
   // Archers défenseurs — postés sur les remparts
   const nArchers = defenseurs.archer ?? 0
@@ -723,7 +786,9 @@ export function pertesDefense(b: BattleState): Partial<Record<UnitId, number>> {
   const pertes: Partial<Record<UnitId, number>> = {}
   for (const u of Object.keys(b.engages) as UnitId[]) {
     const engages = b.engages[u] ?? 0
-    const figs = b.fighters.filter((f) => f.camp === 'defense' && f.type === u)
+    // les héros combattent avec la garnison mais n'en font pas partie : les
+    // compter ici rayerait des hoplites de l'effectif à chaque bataille
+    const figs = b.fighters.filter((f) => f.camp === 'defense' && f.type === u && !f.heros)
     const totalMax = figs.reduce((a, f) => a + f.maxHp, 0)
     const totalHp = figs.reduce((a, f) => a + (f.etat === 'mort' ? 0 : Math.max(0, f.hp)), 0)
     const survivants = totalMax > 0 ? Math.round(engages * (totalHp / totalMax)) : 0

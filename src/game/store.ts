@@ -231,6 +231,8 @@ export interface GameState {
   renfortsEngages: Record<UnitId, number> | null
   expedition: ExpeditionEnCours | null
   battleReport: Report | null
+  /** salve de victoire à jouer par-dessus la scène (runtime, éphémère) */
+  victoire: { at: number; type: 'defense' | 'expedition'; etoiles: number; detail: string } | null
   offlineSummary: string[] | null
   toasts: Toast[]
   selected: BuildingId | null
@@ -269,6 +271,7 @@ export interface GameState {
   openPanel: (p: GameState['panel']) => void
   fermerOffline: () => void
   fermerBattleReport: () => void
+  fermerVictoire: () => void
   save: () => void
   reset: () => void
 }
@@ -682,6 +685,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     renfortsEngages: null,
     expedition: null,
     battleReport: null,
+    victoire: null,
     offlineSummary: null,
     toasts: [],
     selected: null,
@@ -720,6 +724,7 @@ type ActionsOnly = {
   openPanel: unknown
   fermerOffline: unknown
   fermerBattleReport: unknown
+  fermerVictoire: unknown
   save: unknown
   reset: unknown
 }
@@ -1109,9 +1114,16 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
     const r = pushReport(s, '🏆', fuite ? 'L’ennemi est en déroute !' : 'Assaut repoussé !', [
       `La bande (${descVague(b.wave)}) a été ${fuite ? 'mise en fuite' : 'anéantie'} : ${morts} assaillants abattus${fuyards ? `, ${fuyards} en fuite` : ''}.`,
       lignes.length ? `Vos pertes : ${lignes.join(', ')}.` : 'Aucune perte dans vos rangs — les aèdes chanteront ce jour.',
-      `🎁 Récompense : +${bronze} 🥉, +${faveur} ✨${rec.bonus ? ' (bonus d’audace +25 %)' : ''}. Ambiance +10.`,
+      `🎁 Récompense : +${bronze} 🪙, +${faveur} ✨${rec.bonus ? ' (bonus d’audace +25 %)' : ''}. Ambiance +10.`,
     ])
     s.battleReport = r
+    // la salve de victoire : trois secondes de lauriers par-dessus la scène
+    s.victoire = {
+      at: now,
+      type: 'defense',
+      etoiles: sansPerte ? 3 : murIntact ? 2 : 1,
+      detail: sansPerte ? 'Pas un homme perdu' : fuite ? 'L’ennemi en déroute' : 'Assaut repoussé',
+    }
   } else {
     s.stats.perdus++
     s.threatMod -= 15
@@ -1211,6 +1223,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
         'Zeus +12, Athéna +7, ambiance +9.',
       )
       exp.result = { victoire: true, etoiles, lignes }
+      s.victoire = { at: now, type: 'expedition', etoiles, detail: `${v.nom} délivré` }
       pushReport(s, '⛑️', `Secours porté — ${v.nom}`, lignes)
     } else {
       s.moraleMods.push({ id: uid('m'), label: 'Secours manqué', delta: -8, expiresAt: now + 10 * 60_000 })
@@ -1258,6 +1271,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       ...(trahison ? ['🗡️ L’alliance est rompue : on ne pille pas impunément ceux qu’on a sauvés.'] : []),
     )
     exp.result = { victoire: true, etoiles, lignes }
+    s.victoire = { at: now, type: 'expedition', etoiles, detail: `${v.nom} est tombé` }
     pushReport(s, '🏴‍☠️', `Raid victorieux — ${v.nom}`, lignes)
   } else {
     s.expeditions[v.id] = { etoiles: deja, dernierRaid: now, pillages }
@@ -2409,6 +2423,7 @@ export const useGame = create<GameState>()(
       }),
     fermerOffline: () => set((s) => void (s.offlineSummary = null)),
     fermerBattleReport: () => set((s) => void (s.battleReport = null)),
+    fermerVictoire: () => set((s) => void (s.victoire = null)),
 
     save: () => {
       const s = get()

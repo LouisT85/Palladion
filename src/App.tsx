@@ -8,6 +8,7 @@ import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker } from './components/ui/Missions'
 import { ControleSon, useSons } from './components/ui/Son'
+import { AnimationVictoire } from './components/ui/Victoire'
 import { PanneauBatiment } from './components/ui/PanneauBatiment'
 import { Pantheon } from './components/ui/Pantheon'
 import { ExpeditionScene, PanneauExpeditions } from './components/ui/Expeditions'
@@ -122,6 +123,7 @@ export default function App() {
       <ModaleArcHeros />
       <ModaleRapportBataille />
       <ModaleFinPartie />
+      <AnimationVictoire />
     </div>
   )
 }

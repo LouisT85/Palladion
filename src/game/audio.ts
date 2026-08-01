@@ -37,24 +37,50 @@ export interface ReglagesAudio {
 /*
  * v2 : les réglages d'origine sortaient beaucoup trop bas. La musique passait
  * par un bus à 0,275 et des notes à 0,075 — au bout de la chaîne, un vingtième
- * de la puissance des bruits de bataille. On repart donc sur une clé neuve pour
- * que tout le monde récupère les volumes revus, au lieu de traîner un 0,5
- * enregistré la première fois.
+ * de la puissance des bruits de bataille. La chaîne a été refaite, d'où la clé
+ * neuve : un 0,5 enregistré du temps de l'ancienne échelle ne veut plus rien
+ * dire.
+ *
+ * Mais on ne jette pas pour autant ce que le joueur avait choisi : le coupe-son
+ * se reporte tel quel (c'est une intention, pas un dosage), et un réglage
+ * volontairement BAS reste bas — simplement remonté à l'échelle nouvelle. Seul
+ * le cas « je n'y avais pas touché » repart des valeurs par défaut.
  */
 const CLE = 'palladion-audio-v2'
+const CLE_V1 = 'palladion-audio-v1'
 
 const DEFAUT: ReglagesAudio = { muet: false, volume: 0.8, musique: 0.85 }
+/** les valeurs par défaut de la v1 : y reconnaître « jamais touché » */
+const DEFAUT_V1 = { volume: 0.6, musique: 0.5 }
 
 function lireReglages(): ReglagesAudio {
+  const borne = (x: number) => Math.max(0, Math.min(1, x))
   try {
     const brut = localStorage.getItem(CLE)
-    if (!brut) return { ...DEFAUT }
-    const d = JSON.parse(brut) as Partial<ReglagesAudio>
-    return {
-      muet: !!d.muet,
-      volume: Math.max(0, Math.min(1, d.volume ?? DEFAUT.volume)),
-      musique: Math.max(0, Math.min(1, d.musique ?? DEFAUT.musique)),
+    if (brut) {
+      const d = JSON.parse(brut) as Partial<ReglagesAudio>
+      return {
+        muet: !!d.muet,
+        volume: borne(d.volume ?? DEFAUT.volume),
+        musique: borne(d.musique ?? DEFAUT.musique),
+      }
     }
+    // pas de v2 : on reprend la v1 s'il y en a une
+    const ancien = localStorage.getItem(CLE_V1)
+    if (!ancien) return { ...DEFAUT }
+    const d = JSON.parse(ancien) as Partial<ReglagesAudio>
+    const v = d.volume ?? DEFAUT_V1.volume
+    const m = d.musique ?? DEFAUT_V1.musique
+    const repris = {
+      muet: !!d.muet,
+      // un curseur laissé au défaut de la v1 n'était pas un choix : on l'ignore.
+      // Un curseur déplacé, si — reporté proportionnellement sur la nouvelle échelle.
+      volume: borne(Math.abs(v - DEFAUT_V1.volume) < 0.02 ? DEFAUT.volume : v * (DEFAUT.volume / DEFAUT_V1.volume)),
+      musique: borne(Math.abs(m - DEFAUT_V1.musique) < 0.02 ? DEFAUT.musique : m * (DEFAUT.musique / DEFAUT_V1.musique)),
+    }
+    localStorage.setItem(CLE, JSON.stringify(repris))
+    localStorage.removeItem(CLE_V1)
+    return repris
   } catch {
     return { ...DEFAUT }
   }

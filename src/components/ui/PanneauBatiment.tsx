@@ -276,10 +276,26 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
  * échange maintenant à la VALEUR, et la marge du port se resserre à chaque
  * niveau — c'est ce qui rend le port franc désirable.
  */
+/*
+ * Le troc choisi survit à la fermeture du panneau. C'est un état d'INTERFACE, pas
+ * de partie : il vit donc dans ce module et non dans le store, et il ne part pas
+ * dans la sauvegarde. Mais un joueur qui échange dix fois du grain contre du
+ * bronze ne veut pas reposer les deux jetons à chaque visite au port.
+ */
+let dernierTroc: { donner: ResourceId; recevoir: ResourceId } = { donner: 'bois', recevoir: 'bronze' }
+
 function BlocPort() {
   const s = useGame()
-  const [donner, setDonner] = useState<ResourceId>('bois')
-  const [recevoir, setRecevoir] = useState<ResourceId>('bronze')
+  const [donner, setDonner] = useState<ResourceId>(dernierTroc.donner)
+  const [recevoir, setRecevoir] = useState<ResourceId>(dernierTroc.recevoir)
+  const poserDonner = (r: ResourceId) => {
+    dernierTroc = { ...dernierTroc, donner: r }
+    setDonner(r)
+  }
+  const poserRecevoir = (r: ResourceId) => {
+    dernierTroc = { ...dernierTroc, recevoir: r }
+    setRecevoir(r)
+  }
   const niveau = s.buildings.port.level
   if (niveau === 0) return null
   const marge = MARGE_PORT[niveau]
@@ -317,11 +333,11 @@ function BlocPort() {
       </div>
       <div className="troc-ligne">
         <span className="troc-label">Je donne</span>
-        {choix(donner, setDonner, recevoir)}
+        {choix(donner, poserDonner, recevoir)}
       </div>
       <div className="troc-ligne">
         <span className="troc-label">Je reçois</span>
-        {choix(recevoir, setRecevoir, donner)}
+        {choix(recevoir, poserRecevoir, donner)}
       </div>
       <div className="troc-bilan">
         <span className="troc-part perte">

@@ -1,10 +1,5 @@
 import { useState } from 'react'
-import {
-  ACTES_CAMPAGNE,
-  NB_ACTES,
-  avancementActeCampagne,
-  type ActeCampagne,
-} from '../../game/campagne'
+import { ACTES_CAMPAGNE, NB_ACTES, type ActeCampagne } from '../../game/campagne'
 import { etatActe, useGame } from '../../game/store'
 import type { ResourceId } from '../../game/types'
 import { HEROS } from '../../game/heros'
@@ -212,7 +207,11 @@ export function SuiviActe() {
   const acte = ACTES_CAMPAGNE[s.campagne.acte]
   if (!acte) return null
   const vue = etatActe(s)
-  const { faits, total } = avancementActeCampagne(acte, vue)
+  // un objectif verrouillé reste coché, même si l'assaut a défait ce qu'il comptait
+  const verrouilles = s.campagne.objectifsFaits
+  const obligatoires = acte.objectifs.filter((o) => !o.facultatif)
+  const faits = obligatoires.filter((o) => verrouilles.includes(o.id)).length
+  const total = obligatoires.length
 
   return (
     <div className={`missions suivi-acte${replie ? ' replie' : ''}`} data-tuto="objectifs">
@@ -228,7 +227,7 @@ export function SuiviActe() {
           <div className="acte-lieu-suivi">{acte.lieu}</div>
           {acte.objectifs.map((o) => {
             const p = o.progres(vue)
-            const ok = p.cur >= p.max
+            const ok = verrouilles.includes(o.id) || p.cur >= p.max
             return (
               <div key={o.id} className={`mission${ok ? ' faite' : ''}${o.facultatif ? ' facultatif' : ''}`}>
                 <div className="mission-ligne">

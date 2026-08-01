@@ -6,6 +6,8 @@ import {
   ANCIEN_STORAGE_KEY,
   ASSAUT_MAX_MS,
   ASSAUT_MIN_MS,
+  ASSAUTS_DE_GRACE,
+  MENACE_PREMIERS_ASSAUTS,
   BASE_PROD,
   BUILDINGS,
   BUILDING_IDS,
@@ -73,8 +75,10 @@ import {
   TRIBUT_MS,
   VILLAGES_CIBLES,
   VILLAGES_PAR_ID,
+  appelsAPortee,
   assiegeants,
   garnisonEffective,
+  puissanceAssiegeants,
   renfortsDe,
   tributDe,
   type Intention,
@@ -172,6 +176,14 @@ export interface EtatCampagne {
   base: { repousses: number; perdus: number; evenements: number; exploits: Record<string, number> }
   /** le prologue a été lu : on ne le remontre pas à chaque rechargement */
   prologueVu: boolean
+  /**
+   * Objectifs déjà FRANCHIS, par id. Ils sont verrouillés : un objectif accompli
+   * ne doit pas être défait par la conséquence du suivant. Le premier acte le
+   * montrait cruellement — « levez trois soldats » repassait à 2/3 dès qu'un
+   * lancier tombait pendant l'assaut que le même acte demande de repousser, et
+   * l'acte ne s'achevait jamais.
+   */
+  objectifsFaits: string[]
   /** tous les objectifs obligatoires sont franchis — l'épilogue attend */
   accompli: boolean
   /** condition de défaite atteinte : l'acte est à reprendre */
@@ -567,10 +579,33 @@ function calcMorale(s: GameState, now: number): number {
 }
 
 function calcThreat(s: GameState, now: number): number {
+  /*
+   * EN CAMPAGNE, la menace est ÉCRITE, pas émergente. Chaque acte annonce la
+   * sienne, calculée par son auteur pour que ses objectifs soient tenables —
+   * l'acte I promet une bande qui « tâte le terrain », le V une colonne qui se
+   * scinde en trois fronts. La formule du bac à sable, qui monte avec les
+   * bâtiments et les minutes, écrasait cette valeur dès le premier battement : un
+   * acte ne pouvait pas doser sa propre difficulté, et le premier assaut du
+   * premier acte arrivait à dix pillards contre trois lanciers.
+   *
+   * `threatMod` continue de jouer : un pillage l'alourdit, un assaut repoussé
+   * l'allège. Ce que le joueur fait compte encore, à l'intérieur de l'acte.
+   */
+  if (s.campagne && !s.campagne.fini) {
+    const acte = ACTES_CAMPAGNE[s.campagne.acte]
+    if (acte) return Math.max(5, Math.min(100, acte.menace.threat + s.threatMod))
+  }
   const niveaux = BUILDING_IDS.reduce((a, b) => a + s.buildings[b].level, 0)
   const minutes = (now - s.createdAt) / 60_000
   // chaque tour d'archers attire la convoitise : les vagues grossissent en face
-  return Math.max(5, Math.min(100, 8 + niveaux * 1.2 + s.tours * 4 + minutes * 0.15 + s.threatMod))
+  const brute = Math.max(5, Math.min(100, 8 + niveaux * 1.2 + s.tours * 4 + minutes * 0.15 + s.threatMod))
+  /*
+   * Grâce des premiers assauts. Un village sans mur ni garnison ne doit pas
+   * recevoir cinq pillards à la septième minute : les deux premières bandes tâtent
+   * le terrain, et c'est ce que le jeu promet depuis son premier écran.
+   */
+  const assauts = s.stats.repousses + s.stats.perdus
+  return assauts < ASSAUTS_DE_GRACE ? Math.min(brute, MENACE_PREMIERS_ASSAUTS) : brute
 }
 
 function clampRes(s: GameState, _res: ResourceId, val: number): number {
@@ -737,7 +772,15 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     // décalé d'un dixième de journée : la partie commence au matin, pas en pleine nuit
     createdAt: now - DAY_MS * 0.1,
     lastSeen: now,
-    resources: { bois: 220, pierre: 150, grain: 220, bronze: 20 },
+    /*
+     * La mise de départ, calculée sur la chaîne que le premier assaut exige :
+     * ferme, camp de bûcherons, palissade, caserne et deux lances — 310 de bois
+     * et 90 de pierre. À 220 de bois il fallait attendre la cueillette pour la
+     * caserne, et la première bande trouvait un village sans un seul soldat. La
+     * troisième lance, elle, se paie sur les premières minutes de production :
+     * c'est le premier enseignement du jeu, pas une punition.
+     */
+    resources: { bois: 330, pierre: 180, grain: 220, bronze: 24 },
     faveur: 10,
     // sept bras au départ : de quoi tenir les premiers postes ET enrôler
     pop: 7,
@@ -1192,6 +1235,7 @@ function appliquerActe(s: GameState, i: number, now: number): void {
     debutActe: now,
     base: baseFaits(s),
     prologueVu: false,
+    objectifsFaits: [],
     accompli: false,
     perdu: false,
     fini: false,
@@ -1252,10 +1296,19 @@ function tirerAppelSecours(s: GameState, now: number): void {
   )
   s.prochainAppelAt = now + 7 * 60_000 + Math.random() * 5 * 60_000
   if (pool.length === 0 || armeeTotale(s.army) < 3) return
-  const v = pool[Math.floor(Math.random() * pool.length)]
+  /*
+   * On n'appelle à l'aide que celui qui peut venir. Le tirage était uniforme sur
+   * les huit places fortes : un chef à trois lanciers se voyait offrir la
+   * délivrance de la citadelle de Ténédos, dont les assiégeants pèsent 247 — une
+   * fenêtre qu'il ne pouvait qu'ignorer, et Zeus comptait son absence.
+   */
+  const aPortee = appelsAPortee(pool, s.army)
+  if (aPortee.length === 0) return
+  // le plus fort de ceux qu'on peut délivrer : un secours doit rester un risque
+  const v = aPortee.reduce((a, b) => (puissanceAssiegeants(b) > puissanceAssiegeants(a) ? b : a))
   s.appelSecours = { villageId: v.id, expireAt: now + SECOURS_FENETRE_MS }
-  pushToast(s, '⛑️', `${v.nom} est assiégé et implore votre aide !`)
-  pushReport(s, '⛑️', `${v.nom} appelle au secours`, [
+  pushToast(s, '🤝', `${v.nom} est assiégé et implore votre aide !`)
+  pushReport(s, '🤝', `${v.nom} appelle au secours`, [
     `Un coureur arrive, les pieds en sang : une bande armée cerne ${v.nom}.`,
     'Aucun butin à espérer — mais Zeus veille sur qui répond aux suppliants, et un village sauvé n’oublie pas.',
     `La fenêtre se referme dans ${Math.round(SECOURS_FENETRE_MS / 60_000)} minutes.`,
@@ -1509,7 +1562,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       )
       exp.result = { victoire: true, etoiles, lignes }
       s.victoire = { at: now, type: 'expedition', etoiles, detail: `${v.nom} délivré` }
-      pushReport(s, '⛑️', `Secours porté — ${v.nom}`, lignes)
+      pushReport(s, '🤝', `Secours porté — ${v.nom}`, lignes)
     } else {
       s.moraleMods.push({ id: uid('m'), label: 'Secours manqué', delta: -8, expiresAt: now + 10 * 60_000 })
       s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 3)
@@ -1521,7 +1574,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
         'Mourir pour rien reste mourir : ambiance −8, Zeus −3.',
       )
       exp.result = { victoire: false, etoiles: 0, lignes }
-      pushReport(s, '⛑️', `Secours manqué — ${v.nom}`, lignes)
+      pushReport(s, '🤝', `Secours manqué — ${v.nom}`, lignes)
     }
     if (s.appelSecours?.villageId === v.id) s.appelSecours = null
     return
@@ -1821,10 +1874,24 @@ export const useGame = create<GameState>()(
           const acte = ACTES_CAMPAGNE[s.campagne.acte]
           const vue = etatActe(s)
           if (acte && !s.campagne.accompli && !s.campagne.perdu) {
+            /*
+             * On VERROUILLE chaque objectif au moment où sa jauge se remplit. Sans
+             * cela, tenir tous les objectifs EN MÊME TEMPS devenait le vrai
+             * objectif — et l'acte I était infinissable, puisque l'assaut qu'il
+             * demande de repousser tue les lances qu'il demande de lever.
+             */
+            for (const o of acte.objectifs) {
+              if (s.campagne.objectifsFaits.includes(o.id)) continue
+              const p = o.progres(vue)
+              if (p.cur >= p.max) {
+                s.campagne.objectifsFaits.push(o.id)
+                pushToast(s, '◆', `Objectif franchi : ${o.texte}`)
+              }
+            }
             if (acte.defaite?.atteinte(vue)) {
               s.campagne.perdu = true
               pushToast(s, '💀', `${acte.titre} : le village n’a pas tenu.`)
-            } else if (acteAccompli(acte, vue)) {
+            } else if (acteAccompli(acte, s.campagne.objectifsFaits)) {
               s.campagne.accompli = true
               pushToast(s, acte.emoji, `${acte.titre} — accompli !`)
             }
@@ -2606,7 +2673,7 @@ export const useGame = create<GameState>()(
         }
         const secours = intention === 'secours'
         if (secours && s.appelSecours?.villageId !== villageId) {
-          pushToast(s, '⛑️', `${v.nom} n’a rien demandé — on ne secourt pas les gens de force.`)
+          pushToast(s, '🤝', `${v.nom} n’a rien demandé — on ne secourt pas les gens de force.`)
           return
         }
         const dernier = s.expeditions[villageId]?.dernierRaid ?? 0
@@ -2658,7 +2725,7 @@ export const useGame = create<GameState>()(
         s.panel = null
         pushToast(
           s,
-          secours ? '⛑️' : '🏴‍☠️',
+          secours ? '🤝' : '🏴‍☠️',
           secours ? `Vos troupes courent délivrer ${v.nom} !` : `Vos troupes marchent sur ${v.nom} !`,
         )
       })

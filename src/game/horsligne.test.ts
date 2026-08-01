@@ -602,7 +602,7 @@ describe('chargement de la sauvegarde', () => {
     expect(Object.keys(s.heros).sort()).toEqual([...HERO_IDS].sort())
     // le village est jouable : de quoi bâtir, de quoi manger, un moral, et le
     // temps de souffler avant le premier assaut
-    expect(s.resources).toEqual({ bois: 220, pierre: 150, grain: 220, bronze: 20 })
+    expect(s.resources).toEqual({ bois: 330, pierre: 180, grain: 220, bronze: 24 })
     expect(s.morale).toBe(52)
     expect(s.nextAttackAt).toBeGreaterThan(now + 6 * 60_000)
     // sans `lastSeen`, il n'y a pas d'absence à raconter
@@ -629,7 +629,7 @@ describe('chargement de la sauvegarde', () => {
      * SAUVÉ (70 → ×1,025), pas à celui de l'état initial : 3,5 🪵/min × 1,025 ×
      * 1,05 de printemps, deux minutes durant.
      */
-    expect(s.resources.bois).toBeCloseTo(220 + 3.5 * 1.025 * 1.05 * 2, 1)
+    expect(s.resources.bois).toBeCloseTo(330 + 3.5 * 1.025 * 1.05 * 2, 1)
     // deux minutes = deux naissances (une toutes les 45 s), et le champ sauvé
     // n'est pas écrasé — le moral n'est pas recalculé hors-ligne
     expect(s.pop).toBe(5)
@@ -665,7 +665,7 @@ describe('chargement de la sauvegarde', () => {
     const s = useGame.getState()
     expect(s.pop).toBe(7)
     expect(s.faveur).toBe(10)
-    expect(s.resources).toEqual({ bois: 220, pierre: 150, grain: 220, bronze: 20 })
+    expect(s.resources).toEqual({ bois: 330, pierre: 180, grain: 220, bronze: 24 })
     /*
      * Et l'on repose la question du mode : bac à sable ou campagne. C'est le
      * choix qui lance ensuite la leçon de Zeus ou l'acte I — d'où un tutoriel

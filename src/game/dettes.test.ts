@@ -1,7 +1,21 @@
-﻿import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { resoudreHorsLigne, creerBataille, GEO_VILLAGE } from './combat'
-import { BUILDING_IDS, SECTEURS, STORAGE_KEY, WALL_HP } from './data'
+import {
+  ASSAUTS_DE_GRACE,
+  BASE_PROD,
+  BUILDINGS,
+  BUILDING_IDS,
+  ENEMIES,
+  MENACE_PREMIERS_ASSAUTS,
+  PREMIER_ASSAUT_MS,
+  SECTEURS,
+  STORAGE_KEY,
+  UNITS,
+  WALL_HP,
+} from './data'
 import { relationEffective, useGame } from './store'
+import { ACTES_CAMPAGNE } from './campagne'
+import { VILLAGES_CIBLES, appelsAPortee, puissanceAssiegeants, puissanceTroupe } from './expeditions'
 import { HEROS, etatHeroInitial, type HeroId, type HeroState } from './heros'
 import type { BuildingId, UnitId } from './types'
 
@@ -310,6 +324,163 @@ describe('les réglages de son survivent au changement d’échelle', () => {
     vi.resetModules()
     const { reglagesAudio } = await import('./audio')
     expect(reglagesAudio().muet).toBe(true)
+  })
+})
+
+describe('la menace d’un acte est écrite, pas émergente', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.restoreAllMocks()
+  })
+
+  /*
+   * Le défaut : `calcThreat` recalculait la menace à chaque battement depuis les
+   * bâtiments et les minutes écoulées, écrasant la valeur annoncée par l'acte. Le
+   * premier assaut du premier acte arrivait donc à dix pillards contre les trois
+   * lanciers que l'acte exige — un acte qui perd son propre assaut.
+   */
+  it('tient la menace annoncée par l’acte, quoi que le joueur bâtisse', () => {
+    const t0 = 7_000_000
+    vi.spyOn(Date, 'now').mockReturnValue(t0)
+    useGame.getState().init()
+    useGame.getState().choisirMode('campagne')
+    const acte = ACTES_CAMPAGNE[0]
+    // on bâtit tout, on avance le calendrier : rien ne doit faire monter la menace
+    useGame.setState((s) => ({
+      buildings: Object.fromEntries(BUILDING_IDS.map((b) => [b, { level: 4 }])) as typeof s.buildings,
+      tours: 4,
+      createdAt: t0 - 200 * 60_000,
+    }))
+    vi.spyOn(Date, 'now').mockReturnValue(t0 + 1000)
+    useGame.getState().tick()
+    expect(useGame.getState().threat).toBe(acte.menace.threat)
+    /*
+     * En bac à sable, la même cité fait bel et bien flamber la convoitise — mais
+     * seulement passé la grâce des deux premiers assauts, qui plafonne la menace
+     * le temps qu'un village neuf se dote d'un mur.
+     */
+    useGame.setState({
+      campagne: null,
+      mode: 'bac-a-sable',
+      stats: { repousses: 3, perdus: 0, evenements: 0 },
+    })
+    vi.spyOn(Date, 'now').mockReturnValue(t0 + 2000)
+    useGame.getState().tick()
+    expect(useGame.getState().threat).toBeGreaterThan(acte.menace.threat + 20)
+  })
+
+  it('laisse le joueur alléger sa menace à l’intérieur de l’acte', () => {
+    const t0 = 8_000_000
+    vi.spyOn(Date, 'now').mockReturnValue(t0)
+    useGame.getState().init()
+    useGame.getState().choisirMode('campagne')
+    const annoncee = ACTES_CAMPAGNE[0].menace.threat
+    // un assaut repoussé retire 5 à `threatMod` : ce que le joueur fait compte encore
+    useGame.setState({ threatMod: -4 })
+    vi.spyOn(Date, 'now').mockReturnValue(t0 + 1000)
+    useGame.getState().tick()
+    expect(useGame.getState().threat).toBe(Math.max(5, annoncee - 4))
+  })
+
+  it('promet une vague que la garnison exigée peut repousser, au premier acte', () => {
+    /*
+     * Trois lanciers — ce que l'acte I demande — pèsent 126 pv et 24 d'attaque.
+     * Le budget d'une vague vaut `menace × 5,5`, un pillard en coûte 10 : à la
+     * menace annoncée, la vague la plus lourde possible doit rester sous ce que
+     * trois lances battent, palissade tombée. Au-delà de quatre pillards, elles y
+     * restent — c'est la borne que ce test garde.
+     */
+    const budgetMax = ACTES_CAMPAGNE[0].menace.threat * 5.5 * 1.15
+    expect(Math.floor(budgetMax / ENEMIES.pillard.budget)).toBeLessThanOrEqual(4)
+  })
+})
+
+describe('le début de partie laisse le temps de se défendre', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.restoreAllMocks()
+  })
+
+  it('plafonne la menace des deux premiers assauts, puis lâche la bride', () => {
+    const t0 = 4_000_000
+    vi.spyOn(Date, 'now').mockReturnValue(t0)
+    useGame.getState().init()
+    useGame.getState().choisirMode('bac-a-sable')
+    // une cité déjà bâtie : sans la grâce, la menace serait bien au-delà
+    useGame.setState((s) => ({
+      buildings: Object.fromEntries(BUILDING_IDS.map((b) => [b, { level: 3 }])) as typeof s.buildings,
+      stats: { repousses: 0, perdus: 0, evenements: 0 },
+    }))
+    vi.spyOn(Date, 'now').mockReturnValue(t0 + 1000)
+    useGame.getState().tick()
+    expect(useGame.getState().threat).toBeLessThanOrEqual(MENACE_PREMIERS_ASSAUTS)
+
+    // le deuxième assaut passé, la convoitise reprend son cours
+    useGame.setState({ stats: { repousses: ASSAUTS_DE_GRACE, perdus: 0, evenements: 0 } })
+    vi.spyOn(Date, 'now').mockReturnValue(t0 + 2000)
+    useGame.getState().tick()
+    expect(useGame.getState().threat).toBeGreaterThan(MENACE_PREMIERS_ASSAUTS * 3)
+  })
+
+  it('finance dès le départ la chaîne que le premier assaut exige', () => {
+    /*
+     * Ce que le premier assaut réclame vraiment : de quoi manger (la ferme), de
+     * quoi produire (le camp de bûcherons), un mur, une caserne et deux lances.
+     * Tout cela doit être payable AVEC LA MISE DE DÉPART — sinon le joueur passe
+     * ses onze minutes à attendre la cueillette et reçoit la bande sans un soldat.
+     * La troisième lance, elle, se gagne sur les premières minutes de production.
+     */
+    const chaine = ['ferme', 'scierie', 'remparts', 'caserne'] as const
+    const boisChaine = chaine.reduce((a, b) => a + (BUILDINGS[b].costs[0].bois ?? 0), 0)
+    const pierreChaine = chaine.reduce((a, b) => a + (BUILDINGS[b].costs[0].pierre ?? 0), 0)
+    localStorage.clear()
+    vi.spyOn(Date, 'now').mockReturnValue(2_000_000)
+    useGame.getState().init()
+    const depart = useGame.getState().resources
+    expect(boisChaine + 2 * UNITS.lancier.cost.bois!).toBeLessThanOrEqual(depart.bois)
+    expect(pierreChaine).toBeLessThanOrEqual(depart.pierre)
+    // et le bronze de trois lances, que rien ne produit avant la forge
+    expect(3 * UNITS.lancier.cost.bronze!).toBeLessThanOrEqual(depart.bronze)
+    // la troisième lance tient dans le délai, à la seule cueillette
+    const resteBois = depart.bois - boisChaine - 2 * UNITS.lancier.cost.bois!
+    const minutes = Math.max(0, (UNITS.lancier.cost.bois! - resteBois) / BASE_PROD.bois)
+    expect(minutes).toBeLessThan(PREMIER_ASSAUT_MS / 60_000)
+  })
+})
+
+describe('on n’appelle à l’aide que celui qui peut venir', () => {
+  it('n’offre jamais un secours hors de portée de la garnison', () => {
+    const troisLanciers = ARMEE(3, 0, 0)
+    const aPortee = appelsAPortee(VILLAGES_CIBLES, troisLanciers)
+    const force = puissanceTroupe(troisLanciers)
+    // tous ceux retenus sont à portée…
+    for (const v of aPortee) expect(puissanceAssiegeants(v), v.nom).toBeLessThanOrEqual(force * 1.15)
+    // …et la citadelle, dont les assiégeants pèsent 247, n'en est jamais
+    expect(aPortee.map((v) => v.id)).not.toContain('citadelle-tenedos')
+    expect(aPortee.map((v) => v.id)).not.toContain('forteresse-mysienne')
+  })
+
+  it('ouvre la Troade entière à une armée qui en a les moyens', () => {
+    const armee = ARMEE(12, 8, 8)
+    expect(appelsAPortee(VILLAGES_CIBLES, armee)).toHaveLength(VILLAGES_CIBLES.length)
+  })
+
+  it('ne tire aucun appel quand rien n’est à la portée du joueur', () => {
+    localStorage.clear()
+    const t0 = 3_000_000
+    vi.spyOn(Date, 'now').mockReturnValue(t0)
+    useGame.getState().init()
+    useGame.getState().choisirMode('bac-a-sable')
+    // trois lanciers : le minimum pour qu'un appel puisse tomber…
+    useGame.setState({ army: ARMEE(3, 0, 0), tutorialDone: true, tutoriel: null, prochainAppelAt: t0 - 1 })
+    vi.spyOn(Date, 'now').mockReturnValue(t0 + 1000)
+    useGame.getState().tick()
+    const appel = useGame.getState().appelSecours
+    // …et s'il tombe, c'est sur une place que trois lances peuvent délivrer
+    if (appel) {
+      const v = VILLAGES_CIBLES.find((x) => x.id === appel.villageId)!
+      expect(puissanceAssiegeants(v)).toBeLessThanOrEqual(puissanceTroupe(ARMEE(3, 0, 0)) * 1.15)
+    }
   })
 })
 

@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { BUILDINGS, FAVEUR_MAX, GOD_IDS, POP_CAP, STOCKAGE, UNITS, multRelation } from './data'
 import { VILLAGES_CIBLES } from './expeditions'
 import {

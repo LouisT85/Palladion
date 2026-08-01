@@ -217,9 +217,27 @@ export function nomFerveur(relation: number): string {
 export const CONSO_POP = 0.25
 export const CONSO_SOLDAT = 0.5
 /** premier assaut ~7 min après création du village, puis toutes les 8–16 min */
-export const PREMIER_ASSAUT_MS = 7 * 60_000
+/*
+ * Le premier assaut d'une partie neuve. Sept minutes ne suffisaient pas : avec
+ * 220 de bois au départ, il faut compter la ferme (60), le camp de bûcherons
+ * (30 + 30), la palissade (90) et la caserne (70 + 60) avant d'avoir une seule
+ * lance — soit plus que la réserve, donc il faut attendre la cueillette. Onze
+ * minutes laissent le temps de bâtir DANS L'ORDRE plutôt que de choisir entre
+ * manger et se défendre.
+ */
+export const PREMIER_ASSAUT_MS = 11 * 60_000
 export const ASSAUT_MIN_MS = 8 * 60_000
 export const ASSAUT_MAX_MS = 16 * 60_000
+
+/**
+ * Menace maximale des deux premiers assauts d'une partie. Ils tâtent le terrain :
+ * une bande de trois pillards, pas une colonne. Sans ce plafond, la formule
+ * générale (bâtiments + minutes) offrait cinq à six pillards à un village qui
+ * n'avait encore ni mur ni garnison — et la partie commençait par un pillage
+ * qu'aucune décision du joueur ne pouvait éviter.
+ */
+export const MENACE_PREMIERS_ASSAUTS = 6
+export const ASSAUTS_DE_GRACE = 2
 /** délai d'alerte avant un assaut (remparts ≥2 : éclaireurs voient plus loin) */
 export const ALERTE_MS = 5 * 60_000
 export const ALERTE_LONGUE_MS = 6.5 * 60_000

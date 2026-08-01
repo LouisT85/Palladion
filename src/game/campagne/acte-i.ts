@@ -59,7 +59,17 @@ export const ACTE_I: ActeCampagne = {
   menace: {
     // douze minutes : de quoi bâtir la palissade sans courir, mais pas de quoi flâner
     premierAssautMs: 12 * 60_000,
-    threat: 12,
+    /*
+     * Six, et le chiffre est calculé, pas choisi au hasard : le budget d'une vague
+     * vaut `menace × 5,5`, soit 28 à 38 ici, et un pillard en coûte 10 — donc trois
+     * pillards, exactement ce que « ils tâtent le terrain » promet.
+     *
+     * C'est aussi la limite de ce que les trois lances exigées par l'acte peuvent
+     * repousser : 3 lanciers (126 pv, 24 d'attaque) battent 3 pillards (90 pv,
+     * 18 d'attaque) une fois la palissade tombée ; à cinq pillards, ils y restent.
+     * Un acte ne doit pas demander une garnison qui perd son propre assaut.
+     */
+    threat: 6,
     threatMod: 0,
   },
   // aucun héros : personne d'illustre ne s'arrête encore chez un fermier

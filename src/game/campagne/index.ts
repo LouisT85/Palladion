@@ -29,20 +29,20 @@ export function objectifFait(a: ActeCampagne, id: string, s: EtatActe): boolean 
   return p.cur >= p.max
 }
 
-/** l'acte est accompli quand tous ses objectifs OBLIGATOIRES sont franchis */
-export function acteAccompli(a: ActeCampagne, s: EtatActe): boolean {
-  return a.objectifs.filter((o) => !o.facultatif).every((o) => {
-    const p = o.progres(s)
-    return p.cur >= p.max
-  })
+/**
+ * L'acte est accompli quand tous ses objectifs OBLIGATOIRES ont été franchis.
+ *
+ * On raisonne sur la liste des objectifs VERROUILLÉS, et non sur l'état courant :
+ * tenir tous les objectifs au même instant serait un tout autre contrat, et un
+ * contrat impossible — l'assaut que l'acte I demande de repousser tue les soldats
+ * que le même acte demande de lever.
+ */
+export function acteAccompli(a: ActeCampagne, faits: string[]): boolean {
+  return a.objectifs.filter((o) => !o.facultatif).every((o) => faits.includes(o.id))
 }
 
 /** avancement global de l'acte, pour la jauge du panneau */
-export function avancementActeCampagne(a: ActeCampagne, s: EtatActe): { faits: number; total: number } {
+export function avancementActeCampagne(a: ActeCampagne, faits: string[]): { faits: number; total: number } {
   const obligatoires = a.objectifs.filter((o) => !o.facultatif)
-  const faits = obligatoires.filter((o) => {
-    const p = o.progres(s)
-    return p.cur >= p.max
-  }).length
-  return { faits, total: obligatoires.length }
+  return { faits: obligatoires.filter((o) => faits.includes(o.id)).length, total: obligatoires.length }
 }

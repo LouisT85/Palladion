@@ -1,4 +1,4 @@
-﻿import { BUILDING_IDS } from './data'
+import { BUILDING_IDS } from './data'
 import type { BuildingId, GodId, HeroId, ResourceId, UnitId } from './types'
 
 /*

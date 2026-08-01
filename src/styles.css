@@ -446,6 +446,40 @@ svg.carte-exp {
   font-size: 12.5px;
   font-weight: 700;
 }
+/* le moral de la garnison, avec son seuil de rupture tracé dessus */
+.moral-ligne {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  justify-content: center;
+  margin-top: 5px;
+}
+.moral-jauge {
+  position: relative;
+  flex: 0 0 120px;
+  height: 7px;
+  border-radius: 4px;
+  background: #2a1a12;
+  border: 1px solid #6b3f2c;
+  overflow: hidden;
+}
+.moral-jauge > div {
+  height: 100%;
+  background: #8fae5f;
+  transition: width 0.4s;
+}
+.moral-jauge.rompt > div {
+  background: #e0715a;
+}
+.moral-seuil {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: #f0d9a0;
+  opacity: 0.85;
+}
+
 /* l'appel au secours n'est pas une menace : il est doré, pas rouge sang — et il
    porte ses deux réponses, pour qu'on ne puisse pas l'ignorer par distraction */
 .bandeau.secours {

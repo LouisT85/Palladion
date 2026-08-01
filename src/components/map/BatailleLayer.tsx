@@ -576,6 +576,14 @@ function FigurineCombattant({
           </text>
         </g>
       )}
+      {/* celui qui rompt jette son bouclier : on doit voir la ligne s'effriter,
+          pas seulement la voir raccourcir */}
+      {f.etat === 'fuite' && !f.heros && (
+        <g pointerEvents="none" opacity={0.9}>
+          <path d="M4,-16 L4,-25" stroke="#6b5a3c" strokeWidth={0.9} />
+          <path d="M4.4,-24.6 L11,-23 L4.4,-21.4 Z" fill="#e8e2d0" />
+        </g>
+      )}
       {/* le fanion d'un allié : petit, planté derrière l'épaule, aux couleurs de
           sa cité. Assez pour compter les venus d'ailleurs sans lire un rapport */}
       {f.allie && !f.heros && (

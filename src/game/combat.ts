@@ -585,7 +585,20 @@ export interface TickBatailleOut {
   fuite: boolean
   /** les assaillants atteignent le cœur du village */
   pillage: boolean
+  /** identifiants des combattants qui ont rompu ce battement — pour le son */
+  rompus: string[]
 }
+
+/*
+ * Seuils de rupture, en part des effectifs encore debout. Un camp qui a perdu
+ * plus de la moitié des siens commence à céder ; avec un héros au premier rang,
+ * il tient jusqu'à n'être plus qu'un cinquième. C'est là tout l'écart entre une
+ * troupe menée et une troupe abandonnée.
+ */
+export const SEUIL_PANIQUE = 0.45
+export const SEUIL_PANIQUE_HEROS = 0.2
+/** probabilité qu'un homme rompe, par seconde, à moral nul */
+export const TAUX_PANIQUE = 0.55
 
 /** Fait avancer la bataille d'un pas. `b` est un draft mutable (immer). */
 export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBatailleOut {
@@ -596,6 +609,8 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
   const geo = b.geo
   const atkVivants = vivants(b, 'attaque')
   const defVivants = vivants(b, 'defense')
+  /** ceux qui rompent ce battement : le store en fait un son et une ligne */
+  const rompus: string[] = []
   // bénédictions : elles servent le camp du joueur, d'autant plus que le dieu est chéri
   const protege = now < b.defBuffUntil ? b.campJoueur : null
   const enrage = now < b.atkBuffUntil ? b.campJoueur : null
@@ -631,6 +646,51 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       f.etat = 'fuite'
       f.tx = geo.spawn.x + 40
       f.ty = geo.spawn.y
+    }
+  }
+
+  /*
+   * ── LE MORAL DE LA TROUPE ────────────────────────────────────────────────
+   *
+   * Une bataille ne se décide pas au dernier homme : elle se décide quand une
+   * ligne casse. Jusqu'ici, chaque figurine se battait jusqu'à la mort, ce qui
+   * rendait toutes les mêlées identiques — on additionnait des points de vie.
+   *
+   * Le moral d'un camp, c'est la part de ses effectifs encore debout. Sous un
+   * seuil, chaque combattant peut ROMPRE, un par un, en commençant par les plus
+   * entamés : c'est ce qui fait qu'une ligne s'effrite au lieu de fondre.
+   *
+   * Et un héros RALLIE. Tant qu'il tient debout, le seuil de rupture de son camp
+   * s'abaisse fortement — sa seule présence vaut mieux que dix hommes de plus,
+   * ce qui est exactement ce que promettent les fiches de héros.
+   */
+  const moralDe = (camp: 'attaque' | 'defense'): number => {
+    const total = camp === 'attaque' ? initial : b.fighters.filter((f) => f.camp === camp).length
+    if (total <= 0) return 1
+    return Math.min(1, vivants(b, camp).length / total)
+  }
+  const heroDebout = (camp: 'attaque' | 'defense'): boolean =>
+    b.fighters.some((f) => f.camp === camp && f.heros && f.etat !== 'mort' && f.etat !== 'fuite')
+  b.moral = { attaque: moralDe('attaque'), defense: moralDe('defense') }
+  if (b.phase !== 'fini') {
+    for (const camp of ['attaque', 'defense'] as const) {
+      // les assaillants d'un village n'ont pas de ligne à tenir : ils pillent
+      if (camp === 'attaque' && b.campJoueur === 'defense') continue
+      const seuil = heroDebout(camp) ? SEUIL_PANIQUE_HEROS : SEUIL_PANIQUE
+      const m = b.moral[camp]
+      if (m >= seuil) continue
+      // plus on est bas sous le seuil, plus la rupture est probable
+      const risque = ((seuil - m) / seuil) * TAUX_PANIQUE * dt
+      const debout = vivants(b, camp)
+      // un seul homme peut rompre par battement : une ligne s'effrite, elle
+      // ne s'évapore pas — et l'on part par les plus mal en point
+      const candidat = debout.filter((f) => !f.heros).sort((x, y) => x.hp / x.maxHp - y.hp / y.maxHp)[0]
+      if (candidat && Math.random() < risque) {
+        candidat.etat = 'fuite'
+        candidat.tx = camp === 'attaque' ? geo.spawn.x + 40 : geo.place.x
+        candidat.ty = camp === 'attaque' ? geo.spawn.y : geo.place.y
+        rompus.push(candidat.id)
+      }
     }
   }
 
@@ -831,7 +891,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
 
   // total des points de structure restants, tous secteurs confondus
   const wallHp = b.secteurs.reduce((a, s) => a + Math.max(0, s.hp), 0)
-  return { wallHp, brecheOuverte, finie, victoireDefense, fuite, pillage }
+  return { wallHp, brecheOuverte, finie, victoireDefense, fuite, pillage, rompus }
 }
 
 /** Pertes défenseurs : effectifs engagés − survivants (par proportion de PV visibles). */

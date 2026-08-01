@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BUILDING_IDS, DAY_MS, GODS, GOD_IDS, MODE_TEST, RES, SECTEURS, nbFronts } from '../../game/data'
-import { descVague, tailleVague } from '../../game/combat'
+import { SEUIL_PANIQUE, SEUIL_PANIQUE_HEROS, descVague, tailleVague } from '../../game/combat'
 import {
   BATIMENTS_A_POSTES,
   VITESSES,
@@ -510,10 +510,35 @@ export function BandeauAlerte() {
 
   if (battle) {
     const restants = battle.fighters.filter((f) => f.camp === 'attaque' && f.etat !== 'mort').length
+    /*
+     * Le moral de la garnison. Sans ce chiffre, la panique se voyait sans se
+     * comprendre : des hommes rompaient et le joueur n'avait aucun moyen de
+     * savoir qu'il était à deux pertes de voir sa ligne céder — ni qu'un héros
+     * appelé maintenant la retiendrait.
+     */
+    const moral = battle.moral?.defense ?? 1
+    const heroTient = battle.fighters.some((f) => f.heros && f.camp === 'defense' && f.etat !== 'mort' && f.etat !== 'fuite')
+    const seuil = heroTient ? SEUIL_PANIQUE_HEROS : SEUIL_PANIQUE
+    const rompt = moral < seuil
     return (
       <div className="bandeau">
         <div className="gros">⚔️ ASSAUT EN COURS — {restants} assaillants</div>
         <div className="detail">{battle.breche ? '💥 Les remparts sont percés : mêlée dans le village !' : 'Vos remparts encaissent le choc.'}</div>
+        <div className="detail moral-ligne">
+          <span className={`moral-jauge${rompt ? ' rompt' : ''}`}>
+            <div style={{ width: `${Math.round(moral * 100)}%` }} />
+            {/* le seuil de rupture, tracé sur la jauge : on voit venir */}
+            <span className="moral-seuil" style={{ left: `${Math.round(seuil * 100)}%` }} />
+          </span>
+          {rompt ? (
+            <b style={{ color: '#e0715a' }}>La ligne rompt — vos hommes lâchent un par un</b>
+          ) : (
+            <span>
+              Ligne tenue · rupture sous {Math.round(seuil * 100)} %
+              {heroTient && <b style={{ color: '#f0d9a0' }}> — un héros rallie</b>}
+            </span>
+          )}
+        </div>
         <DieuxRapides />
       </div>
     )

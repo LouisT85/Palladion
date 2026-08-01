@@ -302,6 +302,12 @@ export interface BattleState {
   /** passifs de héros appliqués au camp du joueur, pour toute la bataille */
   bonusAtkJoueur?: number
   reducJoueur?: number
+  /**
+   * Moral de chaque camp : la part de ses effectifs encore debout. Sous un seuil,
+   * les hommes rompent un par un — et un héros vivant abaisse ce seuil. C'est ce
+   * qui fait qu'une ligne s'effrite au lieu de fondre jusqu'au dernier.
+   */
+  moral?: { attaque: number; defense: number }
   result: BattleResult | null
   /** effectifs défenseurs engagés au départ (pour calculer les pertes) */
   engages: Partial<Record<UnitId, number>>

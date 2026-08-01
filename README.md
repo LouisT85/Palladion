@@ -18,6 +18,23 @@ Zéro image, zéro son téléchargé : **tout est dessiné et synthétisé par l
 
 ## ✨ Ce qui rend PALLADION différent
 
+### 🐴 « La Chute » — une campagne en cinq actes
+Au premier lancement, on choisit : **bac à sable** (bâtir sans fin, cinquante-cinq missions,
+abdication au moment voulu) ou **campagne**. La campagne suit l'Iliade — les mille nefs, la
+colère d'Achille, sous les murs, le fleuve, le cheval — mais d'un point de vue qui n'est pas
+celui de l'épopée : **vous n'êtes pas Troie**. Vous tenez un village de la Troade sur la route
+des armées, et la grande guerre vous écrase par accident.
+
+Chaque acte **impose une situation héritée** plutôt qu'un départ à zéro : les bâtiments debout,
+la garnison, la saison, le ciel, les relations divines — et jusqu'à un pan de mur déjà à terre à
+l'acte IV, qui s'ouvre donc sur un siège en cours. Les objectifs ne demandent pas des totaux mais
+**une manière de tenir** : « trois assauts sans qu'un seul pan cède », « un assaut sans perdre un
+homme », « la quatrième tour avant la nuit du sac ». Chacun peut se perdre, et l'on reprend l'acte,
+pas la campagne. Certains héros s'imposent à vous sans rançon parce que le récit les amène : Hector
+à l'acte III, Achille au IV, Énée et Cassandre dans les cendres du V.
+
+![Le prologue de l'acte I](docs/campagne.jpg)
+
 ### ⚡ Zeus vous prend par la main
 La première partie ne commence pas par un pavé d'aide : le maître de l'Olympe
 descend et fait la leçon lui-même, en quinze étapes. À chaque fois, tout
@@ -159,7 +176,8 @@ confiance d'un dieu… Chaque réclamation finance l'étape suivante : pas de te
 Et elles ne sont pas une liste posée à côté du jeu : **chaque mission a un bouton qui
 ouvre l'écran où elle se joue** (« 👥 Recensement », « 🏛️ Agora », « 🗺️ Expéditions »…),
 le bandeau du haut porte le fil complet acte par acte, et une récompense réclamée laisse
-une ligne au journal du village comme une bataille.
+une ligne au journal du village comme une bataille. Trois missions sont ouvertes à la fois,
+**jamais au-delà de l'acte en cours** : il faut achever un acte pour que le suivant se descelle.
 
 | Le suivi, toujours à l'écran | Le fil complet, cinq actes |
 | --- | --- |
@@ -172,15 +190,15 @@ greniers, promettez (et tenez parole !), ou réprimez dans le sang. À 0, vos so
 désertent. L'ambiance tient en un mot, toujours lisible dans le bandeau du haut.
 
 ### 🎵 Une bande-son entièrement synthétisée
-Pas un octet d'audio téléchargé : tout est fabriqué à la volée en **Web Audio**. Au
-village, une lyre et une flûte de berger se répondent sur une **pentatonique majeure**
-(aucun demi-ton : il est musicalement impossible d'y sonner inquiétant), soutenues par une
-basse pincée sur les temps forts, une tierce complice sous la mélodie et un bourdon chaud
-qui ne s'interrompt jamais. Deux phrases alternent, l'une posant la question et l'autre y
-répondant — de quoi tenir trente-deux temps avant de se répéter. **C'est une pièce, pas un
-signal.** Les cors de guerre montent à l'alerte, le tambour de siège prend le relais quand
-la colonne touche les murs, et le chant de l'aède salue la victoire. Coupe-son et deux
-curseurs persistés — et rien ne joue avant votre premier geste.
+Pas un octet d'audio téléchargé : tout est fabriqué à la volée en **Web Audio**. Au village,
+une flûte de berger égrène une **pentatonique majeure** (aucun demi-ton : il est musicalement
+impossible d'y sonner inquiétant) au-dessus d'un bourdon qui ne s'interrompt jamais, avec une
+figure de lyre par phrase. **Une note toutes les deux secondes et demie, pas davantage** : le
+défaut d'une musique fatigante n'est ni son mode ni son volume mais son nombre d'attaques, et
+celle-ci en compte vingt-quatre à la minute là où la version précédente en comptait cent
+soixante. Les cors de guerre montent à l'alerte, le tambour de siège prend le relais quand la
+colonne touche les murs, et le chant de l'aède salue la victoire. Coupe-son et deux curseurs
+persistés — et rien ne joue avant votre premier geste.
 
 ### 🌙 Le temps continue sans vous — et vous menez la caméra
 Jeu en temps réel avec cycle jour/nuit. Onglet fermé, le village vit : production,
@@ -190,10 +208,11 @@ tout, avec retour automatique en ×1 pendant les batailles. Et la carte se manip
 **molette** pour zoomer là où pointe le curseur, **glisser** pour se déplacer,
 **double-clic** pour rendre la main à la caméra automatique.
 
-Chaque jeton du bandeau du haut — ressources, ambiance, menace, saison, ciel, vitesse du
-temps — ouvre au survol un **encart chiffré** qui dit à quoi il sert, ce qu'il vaut et ce
-qui le fait bouger. Et tout menu se referme de trois façons : sa **croix**, la touche
-**Échap**, ou un clic à côté.
+Le bandeau du haut se lit en **deux rangs** : ce que le village *possède* (réserves, faveur,
+habitants, garnison), puis ce qui lui *arrive* (ambiance, menace, jour, ciel, vitesse du temps).
+Chaque jeton ouvre au survol un **encart chiffré** qui dit à quoi il sert, ce qu'il vaut et ce
+qui le fait bouger. Et tout menu se referme de trois façons : sa **croix**, la touche **Échap**,
+ou un clic à côté.
 
 ## 🎮 Systèmes de jeu
 
@@ -215,7 +234,11 @@ qui le fait bouger. Et tout menu se referme de trois façons : sa **croix**, la 
 - **Campagne** : 8 villages à piller ou à secourir, étoiles, butin dégressif, garnisons qui
   se renforcent, alliances à tribut — le moteur de bataille est le même en attaque et en défense
 - **4 saisons × 6 météos** pesant sur la récolte, la portée, l'allure et l'alerte
-- **41 dilemmes** à issues multiples, **55 missions**, **45 hauts faits**
+- **Deux modes** : bac à sable sans fin, ou **campagne « La Chute »** en 5 actes à objectifs
+  imposés, situation héritée et héros scriptés — un acte perdu se reprend, la campagne non
+- **41 dilemmes** à issues multiples, **55 missions** en 5 actes verrouillés, **45 hauts faits**
+- **165 tests** Vitest sur les règles : comptoir, combat, production, hors-ligne, hauts faits,
+  missions, héros, saisons (`npm test`)
 - **Menace** croissante, vagues générées par budget, déroute ennemie à 70 % de pertes
 - Sauvegarde automatique en `localStorage` (aucun serveur, aucun compte)
 
@@ -238,8 +261,9 @@ npm install
 npm run dev       # http://localhost:5173
 npm run dev:test  # 🧪 mode test : ressources illimitées, chantiers/recrues instantanés,
                   #    bouton « Attaque » pour déclencher un assaut à la demande
-npm run build     # production dans dist/
+npm run build     # production dans dist/ (châssis, art et récit en trois morceaux)
 npm run preview   # tester le build
+npm test          # 165 tests Vitest sur les règles du jeu
 ```
 
 ### 📸 Regénérer les captures du README
@@ -266,13 +290,14 @@ c'est aussi le test de fumée du projet.
 
 ## 🗺️ Pistes d'évolution
 
-- **Tests automatisés** (Vitest sur l'économie, le combat, la résolution hors-ligne)
+- **Cartes propres à chaque acte** de la campagne : les cinq cadres (grève, plaine, murailles,
+  fleuve, ruines) sont nommés dans le code et n'attendent que leur terrain peint
 - **Siège sans fin** : vagues de difficulté croissante, score et classement local
 - **Nouvelle Partie +** : rejouer en gardant le prestige du règne précédent
 - **Formations et ordres** en bataille, nouvelles unités (frondeur, char, machines de siège)
 - **Héros ennemis nommés** : Achille assiégeant *votre* village, capacités retournées contre vous
 - **Familles et lignées** : les villageois se marient, vieillissent, transmettent leur métier
-- **Campagne narrative** en cinq actes, de l'Iliade au cheval de bois
+- **Tests de rendu** : les 165 tests couvrent les règles, pas les composants
 - i18n (structure des textes déjà centralisée)
 
 ---

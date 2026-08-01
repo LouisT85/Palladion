@@ -229,6 +229,14 @@ const VIGNETTES = [
     apres: { auTravail: true },
   },
   {
+    nom: 'campagne',
+    format: 'jpeg',
+    quoi: 'Le prologue de l’acte I — objectifs imposés, situation héritée',
+    // aucune sauvegarde : on veut l'écran de choix du mode, puis la campagne
+    save: null,
+    apres: { campagne: true },
+  },
+  {
     nom: 'missions-fil',
     quoi: 'Le fil rouge complet — cinq actes, et un bouton par mission',
     save: sauvegarde(AGE.automne, {
@@ -394,11 +402,16 @@ for (const v of VIGNETTES) {
     if (m.type() === 'error') erreurs.push(`${v.nom} : ${m.text()}`)
   })
 
-  // la sauvegarde est posée AVANT le premier script de la page : `init()` la lit
-  await page.addInitScript(
-    ([cle, data]) => localStorage.setItem(cle, data),
-    ['palladion-save-v1', JSON.stringify(v.save)],
-  )
+  // la sauvegarde est posée AVANT le premier script de la page : `init()` la lit.
+  // `save: null` = première partie, donc l'écran de choix du mode s'ouvre.
+  if (v.save) {
+    await page.addInitScript(
+      ([cle, data]) => localStorage.setItem(cle, data),
+      ['palladion-save-v1', JSON.stringify(v.save)],
+    )
+  } else {
+    await page.addInitScript(() => localStorage.clear())
+  }
   await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'load' })
   await page.waitForFunction(() => !!window.__palladion, null, { timeout: 20_000 })
   await page.waitForTimeout(RESPIRE)
@@ -426,6 +439,8 @@ for (const v of VIGNETTES) {
           }
         }
       }
+      // la campagne : on choisit le mode, l'acte I se pose et le prologue s'ouvre
+      if (a.campagne) jeu.getState().choisirMode('campagne')
       if (a.panel) jeu.getState().openPanel(a.panel)
       if (a.assaut) jeu.setState({ nextAttackAt: Date.now() + 400 })
       // la leçon de Zeus : on se pose sur l'étape voulue, panneau déjà ouvert

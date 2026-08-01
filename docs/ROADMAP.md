@@ -39,6 +39,20 @@ et d'**impact joueur** (★ à ★★★). Les lots livrés sont conservés pour
 | Héros incarnés | Ils arpentent la place du village à leurs couleurs, et descendent se battre au premier rang (stats liées au niveau). Tombés, ils sont **blessés** et non retirés de l'effectif — seul l'arc tue. La ligne de défense est passée d'un point unique à trois rangs, ce qui rend la mêlée lisible. |
 | Pictogrammes | Les icônes peintes gagnent missions, agora, port, héros, panthéon ; la médaille de bronze 🥉 disparaît des 61 textes qui la traînaient encore. |
 
+## ✅ Lot 6 — livré
+
+| Sujet | Ce qui a été fait |
+|---|---|
+| **Campagne « La Chute »** | Cinq actes qui suivent l'Iliade — les mille nefs, la colère, sous les murs, le fleuve, le cheval. Chaque acte impose son état de départ (bâtiments debout, garnison, saison, ciel, relations, jusqu'à un pan de mur déjà à terre à l'acte IV), quatre à six objectifs dont deux au moins portent sur la MANIÈRE de tenir (« trois assauts sans qu'un pan cède », « un assaut sans perdre un homme »), une condition de défaite réelle, un prologue et un épilogue, et parfois un héros que le récit impose sans rançon — Hector à l'acte III, Achille au IV, Énée et Cassandre au V. Les compteurs d'acte sont des DIFFÉRENCES : un acte ne mesure que ce qui s'y passe. L'écran d'accueil demande désormais le mode ; le fil rouge du bac à sable se tait en campagne. |
+| Tests automatisés | Vitest + jsdom, **165 tests** sur huit domaines : comptoir et métiers, moteur de bataille (invariants d'une bataille entière), production et postes, résolution hors-ligne et sauvegardes partielles, hauts faits et prestige, missions et actes, héros et arcs, saisons et météo. `npm test`. Trois vrais défauts de production sont documentés au passage (voir dette). |
+| Découpage du bundle | Un seul morceau de 916 kB → **491 kB** de châssis + 355 kB d'art de bâtiments + 107 kB de récit, chargés à part. Le premier écran ne porte plus les 6 500 lignes de SVG des dix domaines. |
+| Actes de missions verrouillés | Le fil rouge du bac à sable respire : trois missions ouvertes à la fois **jamais au-delà de l'acte en cours**, en-têtes d'acte permanents (achevé / en cours / scellé) avec leur avancement, et l'acte courant rappelé dans le suivi de carte. |
+| Musique de la paix, troisième version | Elle sonnait « la sonnerie d'école » : cinq voix résonnaient en permanence et une attaque pincée toutes les six dixièmes de seconde. Le coupable n'était ni le mode ni le volume mais le NOMBRE D'ATTAQUES — 160 par minute. Une seule voix soufflée désormais (attaque d'une demi-seconde), une note toutes les deux secondes et demie, un bourdon continu, une figure de lyre par phrase : **24 attaques par minute**, mesurées au navigateur. |
+| Bandeau du haut | Deux rangs assumés — « ce que je possède » (réserves, faveur, habitants, garnison), « ce qui m'arrive » (ambiance, menace, jour, ciel, vitesse) — séparés par un filet, avec des jetons plus aérés et des paliers de repli bien plus tardifs. Vérifié sans un chevauchement de 1920 à 980 px. |
+| Vue de bataille nettoyée | Le liseré doré au pied du pan menacé et l'émoji explosion clignotant ont disparu : la jauge de secteur dit déjà lequel souffre, en toutes lettres. |
+| Sortie de la leçon | L'encart de Zeus ne peut plus se poser sur la croix de fermeture d'un panneau : les barres de titre sont des « zones sacrées » qui pèsent quarante fois plus lourd dans le calcul de placement. Les trois étapes « ouvrez puis refermez » nomment la croix. |
+| Départs de famine | Un grenier vide ne coûtait qu'un malus d'ambiance : on part maintenant, par foyers, jamais sous deux âmes. C'est ce qui donne du mordant aux défaites d'acte. |
+
 ## ✅ Lot 5 — livré
 
 | Sujet | Ce qui a été fait |
@@ -104,7 +118,7 @@ et peut partir si on l'ignore. Ils sont une puissance, pas un cadeau.
 
 | Mode | Effort | Impact | Description |
 |---|---|---|---|
-| **Campagne — La Chute** | XL | ★★★ | 5 actes scénarisés suivant l'Iliade, du débarquement achéen à la ruse du cheval. Objectifs imposés, cartes différentes, héros scriptés. C'est ce qui transformerait le jeu en *jeu narratif* plutôt qu'en bac à sable. |
+| ~~**Campagne — La Chute**~~ | ~~XL~~ | ★★★ | **Livré au lot 6** — voir ci-dessus. |
 | **Siège sans fin** | M | ★★★ | Vagues de difficulté croissante, sans répit, score et classement local. Le meilleur rapport plaisir/effort : réutilise tout le moteur de bataille. |
 | **Nouvelle Partie +** | M | ★★ | Rejouer en gardant le prestige : bonus de départ, héros déjà connus, difficulté accrue. Donne une raison de finir une partie. |
 | **Défi de la semaine** | M | ★★ | Graine fixe partagée par tous (même carte, mêmes vagues, mêmes dilemmes), score comparable. Excellent pour le partage. |
@@ -159,21 +173,27 @@ et peut partir si on l'ignore. Ils sont une puissance, pas un cadeau.
 
 ---
 
-## Ordre conseillé (après les lots 2 à 5)
+## Ordre conseillé (après les lots 2 à 6)
 
-1. **Tests automatisés** : le jeu tient maintenant dans ~15 000 lignes et tout se vérifie encore à la main. Vitest sur l'économie, le combat, la résolution hors-ligne et les hauts faits — c'est le plus rentable désormais.
-2. **Découpage du bundle** : 870 kB en un seul morceau. L'art des bâtiments et les décors d'expédition sont les premiers candidats à l'import dynamique.
-3. **Siège sans fin** : peu de code, beaucoup de rejouabilité — et les hauts faits sont déjà là pour le noter.
-4. **Nouvelle Partie +** : le prestige est calculé et figé à l'abdication ; il ne reste qu'à le reporter sur la partie suivante.
-5. **Formations et unités** puis **héros ennemis** (Achille assiégeant *votre* village, avec ses capacités retournées contre vous — tout le socle existe).
-6. **Familles et lignées** : le prolongement le plus naturel des villageois nommés.
-7. **Campagne narrative** en dernier : un projet à part entière, à lancer quand tout le socle est stable.
+1. **Cartes propres à chaque acte** : la campagne change la saison, le ciel, l'état de départ et le récit, mais tous les actes se jouent sur la même plaine. C'est la dette la plus visible du lot 6 — cinq terrains (grève, plaine, murailles, fleuve, ruines) sont déjà nommés dans le type `CadreActe` et n'attendent que leur art.
+2. **Siège sans fin** : peu de code, beaucoup de rejouabilité — et les hauts faits sont déjà là pour le noter.
+3. **Nouvelle Partie +** : le prestige est calculé et figé à l'abdication ; il ne reste qu'à le reporter sur la partie suivante.
+4. **Formations et unités** puis **héros ennemis** (Achille assiégeant *votre* village, avec ses capacités retournées contre vous — tout le socle existe).
+5. **Familles et lignées** : le prolongement le plus naturel des villageois nommés.
+6. **Tests de rendu** : les 165 tests couvrent les règles, pas les composants. Un test de rendu sur le HUD et les panneaux attraperait ce que seul l'œil voit aujourd'hui.
 
 ## 🐞 Dette connue
 
-- Le bundle dépasse 500 kB : aucun découpage dynamique pour l'instant.
-- Aucun test automatisé : chaque lot est vérifié à la compilation, aux captures (qui échouent
-  sur la moindre erreur JS) et à des parcours Playwright joués à la main.
+- **Les cinq cadres d'acte (`CadreActe`) ne sont pas peints** : la campagne joue sur la carte du
+  village, avec la saison et le ciel de l'acte pour tout dépaysement. La grève de Sigée et les
+  ruines d'Ilion méritent leur propre terrain.
+- Trois défauts trouvés par les tests et **non corrigés** (ils demandent un arbitrage d'équilibrage) :
+  `lancerExpedition` ne transmet pas `reducJoueur`, donc la garde d'Ajax ne protège personne en
+  expédition ; `benir` calcule la puissance sur la relation BRUTE alors que le panthéon affiche la
+  relation effective (l'orgueil d'Agamemnon est cosmétique sur les bénédictions) ; l'arc d'Achille a
+  un cul-de-sac (plafond 3 contre un nœud qui exige le niveau 4).
+- `pertesCiviles` ne compte que les départs de famine : un assaut perdu vole des réserves, il ne
+  tue personne.
 - Le réglage du son a changé de clé (`palladion-audio-v2`) pour imposer les nouveaux volumes :
   un joueur qui avait baissé la musique la retrouvera au réglage par défaut.
 - Le comptoir d'échange n'a pas de mémoire : il propose toujours bois → bronze à l'ouverture.

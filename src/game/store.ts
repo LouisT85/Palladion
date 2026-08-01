@@ -2454,6 +2454,16 @@ export const useGame = create<GameState>()(
   })),
 )
 
+/*
+ * Atelier de captures et de mise au point. En DÉVELOPPEMENT SEULEMENT, le store
+ * est accessible depuis la console et depuis `scripts/captures.mjs`, qui pose
+ * des états de jeu précis avant de photographier l'écran. `import.meta.env.DEV`
+ * étant statiquement faux en production, tout ceci disparaît du bundle.
+ */
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  ;(window as unknown as { __palladion?: typeof useGame }).__palladion = useGame
+}
+
 /** total d'étoiles gagnées en campagne */
 export function totalEtoiles(expeditions: Record<string, EtatExpedition>): number {
   return Object.values(expeditions).reduce((a, e) => a + e.etoiles, 0)

@@ -102,13 +102,16 @@ import {
 } from './heros'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives, rangMission } from './missions'
+import { ACTES_CAMPAGNE, NB_ACTES, acteAccompli, type EtatActe } from './campagne'
 import { NB_ETAPES, type SnapTuto } from './tutoriel'
 import {
   BONUS_ORAGE_ZEUS,
   DUREE_METEO_MS,
+  JOURS_PAR_SAISON,
   METEOS,
   PORT_HIVER,
   SAISONS,
+  SAISON_IDS,
   modsBataille,
   multProduction,
   saisonDe,
@@ -153,6 +156,28 @@ export interface ExpeditionEnCours {
   wallHp: number
   battle: BattleState
   result: { victoire: boolean; etoiles: number; lignes: string[] } | null
+}
+
+/**
+ * Avancement dans la campagne. Les compteurs d'un acte sont des DIFFÉRENCES : on
+ * fige à l'ouverture de l'acte ce que le règne comptait déjà, et l'acte ne mesure
+ * que ce qui s'est passé depuis. Sans cela, « repoussez trois assauts » serait
+ * accompli d'avance par un joueur qui en a repoussé vingt aux actes précédents.
+ */
+export interface EtatCampagne {
+  /** index dans ACTES_CAMPAGNE */
+  acte: number
+  debutActe: number
+  /** état des compteurs du règne au premier matin de l'acte */
+  base: { repousses: number; perdus: number; evenements: number; exploits: Record<string, number> }
+  /** le prologue a été lu : on ne le remontre pas à chaque rechargement */
+  prologueVu: boolean
+  /** tous les objectifs obligatoires sont franchis — l'épilogue attend */
+  accompli: boolean
+  /** condition de défaite atteinte : l'acte est à reprendre */
+  perdu: boolean
+  /** les cinq actes sont derrière nous */
+  fini: boolean
 }
 
 export interface GameState {
@@ -231,6 +256,13 @@ export interface GameState {
   finDePartie: { score: number; titre: string; desc: string; lignes: string[] } | null
   /** étape courante de la leçon de Zeus — null = pas de tutoriel en cours */
   tutoriel: number | null
+  /**
+   * Comment on joue. `null` = on ne le sait pas encore, l'écran de choix s'ouvre.
+   * Une sauvegarde antérieure à la campagne est forcément un bac à sable.
+   */
+  mode: 'bac-a-sable' | 'campagne' | null
+  /** avancement dans « La Chute » — null hors campagne */
+  campagne: EtatCampagne | null
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -245,7 +277,7 @@ export interface GameState {
   offlineSummary: string[] | null
   toasts: Toast[]
   selected: BuildingId | null
-  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | 'hauts-faits' | 'missions' | null
+  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | 'hauts-faits' | 'missions' | 'campagne' | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
    * dans le store et non dans le HUD : le tutoriel doit pouvoir le refermer
@@ -286,6 +318,14 @@ export interface GameState {
   reclamerMission: (id: string) => void
   /** conduit le joueur là où la mission se joue : bâtiment, recensement, panneau */
   allerAMission: (id: string) => void
+  /** choisit le mode de jeu au premier lancement */
+  choisirMode: (m: 'bac-a-sable' | 'campagne') => void
+  /** le prologue est lu : le compte à rebours du premier assaut démarre */
+  commencerActe: () => void
+  /** l'épilogue est lu : on enchaîne sur l'acte suivant, ou l'on clôt la campagne */
+  acteSuivant: () => void
+  /** reprendre l'acte perdu depuis son premier matin */
+  rejouerActe: () => void
   select: (b: BuildingId | null) => void
   openPanel: (p: GameState['panel']) => void
   ouvrirRecensement: (v: boolean) => void
@@ -730,6 +770,8 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     exploits: {},
     finDePartie: null,
     tutoriel: null,
+    mode: null,
+    campagne: null,
     missionsNotifiees: [],
     battle: null,
     renfortsEngages: null,
@@ -774,6 +816,10 @@ type ActionsOnly = {
   setVitesse: unknown
   reclamerMission: unknown
   allerAMission: unknown
+  choisirMode: unknown
+  commencerActe: unknown
+  acteSuivant: unknown
+  rejouerActe: unknown
   select: unknown
   openPanel: unknown
   ouvrirRecensement: unknown
@@ -835,6 +881,8 @@ const CHAMPS_SAUVES = [
   'hautsFaits',
   'exploits',
   'tutoriel',
+  'mode',
+  'campagne',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -1014,6 +1062,117 @@ export function snapHautFait(s: GameState): SnapHautFait {
     saison: s.saison,
     jour: jourDe(s),
     exploits: s.exploits ?? {},
+  }
+}
+
+// ── Campagne : « La Chute » ──────────────────────────────────────────────────
+
+/** vue que lisent les objectifs d'acte — compteurs ramenés à l'acte en cours */
+export function etatActe(s: GameState): EtatActe {
+  const base = s.campagne?.base
+  const depuis = (cle: string) => (s.exploits[cle] ?? 0) - (base?.exploits[cle] ?? 0)
+  return {
+    resources: s.resources,
+    faveur: s.faveur,
+    pop: s.pop,
+    morale: s.morale,
+    threat: s.threat,
+    wallHp: s.wallHp,
+    tours: s.tours,
+    jour: Math.floor((s.lastSeen - (s.campagne?.debutActe ?? s.createdAt)) / DAY_MS) + 1,
+    buildings: s.buildings,
+    army: s.army,
+    villageois: s.villageois,
+    gods: s.gods,
+    heros: s.heros,
+    alliances: Object.keys(s.alliances ?? {}),
+    faits: {
+      assautsRepousses: s.stats.repousses - (base?.repousses ?? 0),
+      assautsPerdus: s.stats.perdus - (base?.perdus ?? 0),
+      assautsMurIntact: depuis('assautMurIntact'),
+      assautsSansPerte: depuis('assautSansPerte'),
+      raidsReussis: depuis('raids'),
+      secoursPortes: depuis('secours'),
+      dilemmesTranches: s.stats.evenements - (base?.evenements ?? 0),
+      benedictions: depuis('benedictions'),
+      pertesCiviles: depuis('pertesCiviles'),
+    },
+  }
+}
+
+/** fige les compteurs du règne : l'acte ne mesurera que ce qui vient après */
+function baseFaits(s: GameState) {
+  return {
+    repousses: s.stats.repousses,
+    perdus: s.stats.perdus,
+    evenements: s.stats.evenements,
+    exploits: { ...s.exploits },
+  }
+}
+
+/**
+ * Pose l'état de départ d'un acte. Un acte de campagne ne recommence pas de
+ * zéro : il HÉRITE d'une situation écrite, qui raconte à elle seule ce qui vient
+ * de se passer — c'est ce qui permet à l'acte IV de s'ouvrir sur une brèche.
+ */
+function appliquerActe(s: GameState, i: number, now: number): void {
+  const acte = ACTES_CAMPAGNE[i]
+  if (!acte) return
+  const d = acte.depart
+  s.resources = { ...d.resources }
+  s.pop = d.pop
+  s.villageois = []
+  for (const b of BUILDING_IDS) s.buildings[b] = { level: d.batiments[b] ?? 0 }
+  s.army = { ...d.army }
+  s.recruitQueue = []
+  s.morale = d.morale
+  s.moraleMods = []
+  s.faveur = d.faveur
+  s.tours = d.tours
+  s.saison = d.saison
+  s.meteo = d.meteo
+  s.meteoJusqua = now + DUREE_METEO_MS
+  for (const g of GOD_IDS) s.gods[g] = { relation: d.relations[g] ?? 0, cooldownUntil: 0 }
+  // murMax lit les passifs de héros : on pose donc les héros AVANT la structure
+  for (const h of HERO_IDS) s.heros[h] = etatHeroInitial()
+  // les héros que le récit impose entrent sans condition ni rançon
+  for (const h of acte.herosScriptes) s.heros[h] = { ...etatHeroInitial(), recrute: true, niveau: 2 }
+  s.wallHp = Math.round(murMax(s) * d.murPart)
+  s.brechesMur = d.murPart <= 0.55 && (d.batiments.remparts ?? 0) > 0 ? [0] : []
+  s.threat = acte.menace.threat
+  s.threatMod = acte.menace.threatMod
+  s.nextAttackAt = now + acte.menace.premierAssautMs
+  s.warned = false
+  s.incomingWave = null
+  s.incomingFronts = null
+  s.defRecompense = null
+  // le calendrier repart au premier matin de l'acte, dans la bonne saison
+  s.createdAt = now - DAY_MS * (SAISON_IDS.indexOf(d.saison) * JOURS_PAR_SAISON + 0.15)
+  s.lastSeen = now
+  s.nextPopAt = now + 45_000
+  s.battle = null
+  s.expedition = null
+  s.activeEvent = null
+  s.eventOutcome = null
+  s.pendingEffects = []
+  s.arcHeros = null
+  s.arcIssue = null
+  s.appelSecours = null
+  s.prochainAppelAt = now + 6 * 60_000
+  s.selected = null
+  s.panel = null
+  s.popOuvert = false
+  s.victoire = null
+  s.battleReport = null
+  s.reports = []
+  s.campagne = {
+    acte: i,
+    debutActe: now,
+    base: baseFaits(s),
+    prologueVu: false,
+    accompli: false,
+    perdu: false,
+    fini: false,
   }
 }
 
@@ -1515,6 +1674,9 @@ export const useGame = create<GameState>()(
             for (const v of s.villageois) {
               if (!v.metier) v.metier = v.poste ?? tirerMetier()
             }
+            // une sauvegarde antérieure à la campagne est un bac à sable : on ne
+            // rouvre pas l'écran de choix à un joueur qui a déjà une cité
+            if (s.mode == null) s.mode = 'bac-a-sable'
             // une partie reprise qui n'est pas en pleine leçon a déjà commencé :
             // les dilemmes doivent pouvoir tomber, même sur une vieille sauvegarde
             if (s.tutoriel === null) s.tutorialDone = true
@@ -1536,10 +1698,13 @@ export const useGame = create<GameState>()(
           // sauvegarde corrompue : nouvelle partie
         }
       }
-      // première partie : Zeus descend faire la leçon plutôt que d'ouvrir un pavé d'aide
+      /*
+       * Première partie : on demande d'abord COMMENT on veut jouer (bac à sable ou
+       * campagne). C'est `choisirMode` qui lance la leçon de Zeus ou l'acte I —
+       * démarrer le tutoriel ici le ferait passer par-dessus l'écran de choix.
+       */
       set((s) => {
         Object.assign(s, etatInitial(now))
-        s.tutoriel = 0
       })
     },
 
@@ -1611,6 +1776,26 @@ export const useGame = create<GameState>()(
         expirerAppel(s, now)
         verserTributs(s, now)
 
+        /*
+         * Campagne : on relit les objectifs de l'acte à chaque battement. On ne
+         * juge ni pendant une bataille ni pendant une expédition — un acte ne
+         * doit pas s'achever au milieu d'une mêlée, l'épilogue passerait
+         * par-dessus la scène.
+         */
+        if (s.campagne && !s.campagne.fini && s.campagne.prologueVu && !enBataille) {
+          const acte = ACTES_CAMPAGNE[s.campagne.acte]
+          const vue = etatActe(s)
+          if (acte && !s.campagne.accompli && !s.campagne.perdu) {
+            if (acte.defaite?.atteinte(vue)) {
+              s.campagne.perdu = true
+              pushToast(s, '💀', `${acte.titre} : le village n’a pas tenu.`)
+            } else if (acteAccompli(acte, vue)) {
+              s.campagne.accompli = true
+              pushToast(s, acte.emoji, `${acte.titre} — accompli !`)
+            }
+          }
+        }
+
         // mode test : coffres pleins en permanence
         if (MODE_TEST) {
           const max = stockageMax(s)
@@ -1644,10 +1829,21 @@ export const useGame = create<GameState>()(
           s.nextDesertAt = 0
         }
 
-        // population
+        /*
+         * Population. Le grenier vide ne coûtait jusqu'ici qu'un malus de moral :
+         * on pouvait laisser le grain à zéro indéfiniment sans qu'un habitant ne
+         * bouge. Désormais on part — par petits groupes, la nuit, comme le
+         * racontent les rapports. Jamais sous deux âmes cependant : un village
+         * peut se réduire à un hameau, il ne s'éteint pas de faim.
+         */
         if (now >= s.nextPopAt) {
           s.nextPopAt = now + 45_000
           if (s.resources.grain > 0 && s.morale >= 30 && s.pop < popCap(s)) s.pop++
+          else if (s.resources.grain <= 0 && s.pop > 2) {
+            s.pop--
+            noter(s, 'pertesCiviles')
+            pushToast(s, '🥖', 'Un foyer quitte le village : il n’y a plus rien dans les greniers.')
+          }
         }
 
         // constructions
@@ -1822,8 +2018,12 @@ export const useGame = create<GameState>()(
         // ── hauts faits : on regarde si le règne vient d'entrer dans la légende ──
         verifierHautsFaits(s)
 
-        // ── missions prêtes à réclamer (toast unique) ──
-        for (const m of missionsActives(s.missionsReclamees)) {
+        /*
+         * Missions prêtes à réclamer (toast unique). En campagne, le fil rouge du
+         * bac à sable se tait : ce sont les objectifs de l'acte qui commandent, et
+         * deux séries de consignes concurrentes ne feraient qu'embrouiller.
+         */
+        for (const m of s.campagne ? [] : missionsActives(s.missionsReclamees)) {
           if (s.missionsNotifiees.includes(m.id)) continue
           const p = m.progres(s)
           if (p.cur >= p.max && m.id !== 'nouveau-depart') {
@@ -2420,6 +2620,76 @@ export const useGame = create<GameState>()(
         s.appelSecours = null
         s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 4)
         pushToast(s, '🚪', `Vous fermez la porte au coureur de ${v?.nom ?? 'ce village'} — Zeus a vu.`)
+      })
+      get().save()
+    },
+
+    // ── Campagne « La Chute » ───────────────────────────────────────────────
+    choisirMode: (m) => {
+      set((s) => {
+        s.mode = m
+        if (m === 'campagne') {
+          // l'acte I enseigne en jouant : la leçon de Zeus n'a pas sa place ici
+          s.tutoriel = null
+          s.tutorialDone = true
+          appliquerActe(s, 0, Date.now())
+        } else {
+          s.campagne = null
+          s.tutoriel = 0
+        }
+      })
+      get().save()
+    },
+
+    commencerActe: () => {
+      set((s) => {
+        if (!s.campagne) return
+        s.campagne.prologueVu = true
+        /*
+         * Le compte à rebours part quand le joueur prend la main, pas quand il
+         * ouvre le prologue : lire ne doit rien coûter.
+         */
+        const acte = ACTES_CAMPAGNE[s.campagne.acte]
+        if (acte) s.nextAttackAt = Date.now() + acte.menace.premierAssautMs
+      })
+      get().save()
+    },
+
+    acteSuivant: () => {
+      set((s) => {
+        if (!s.campagne) return
+        const acte = ACTES_CAMPAGNE[s.campagne.acte]
+        const prochain = s.campagne.acte + 1
+        if (prochain >= NB_ACTES) {
+          // la campagne est close : le village reste jouable en bac à sable
+          s.campagne.fini = true
+          s.campagne.accompli = false
+          s.mode = 'bac-a-sable'
+          if (acte?.recompense.res) {
+            for (const [r, n] of Object.entries(acte.recompense.res) as [ResourceId, number][]) {
+              s.resources[r] = clampRes(s, r, s.resources[r] + n)
+            }
+          }
+          pushToast(s, '👑', 'La Chute est achevée — votre village a survécu à la guerre de Troie.')
+          return
+        }
+        appliquerActe(s, prochain, Date.now())
+        // la récompense de l'acte accompli s'ajoute à la dot du suivant
+        if (acte?.recompense.res) {
+          for (const [r, n] of Object.entries(acte.recompense.res) as [ResourceId, number][]) {
+            s.resources[r] = clampRes(s, r, s.resources[r] + n)
+          }
+        }
+        if (acte?.recompense.faveur) s.faveur = Math.min(FAVEUR_MAX, s.faveur + acte.recompense.faveur)
+        if (acte?.recompense.pop) s.pop += acte.recompense.pop
+      })
+      get().save()
+    },
+
+    rejouerActe: () => {
+      set((s) => {
+        if (!s.campagne) return
+        appliquerActe(s, s.campagne.acte, Date.now())
       })
       get().save()
     },

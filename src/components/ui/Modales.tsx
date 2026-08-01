@@ -287,6 +287,11 @@ export function ModaleAide() {
         >
           ⚡ Refaire la leçon de Zeus
         </button>
+        {s.campagne && !s.campagne.fini ? (
+          <button style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('campagne')}>
+            🐴 Relire les cinq actes de « La Chute »
+          </button>
+        ) : null}
         <div className="aide-reset">
           {confirmeReset ? (
             <>

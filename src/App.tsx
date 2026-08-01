@@ -4,10 +4,18 @@ import { HERO_IDS } from './game/heros'
 import { missionsActives } from './game/missions'
 import { herosDisponible, totalEtoiles, useGame } from './game/store'
 import { VillageMap } from './components/map/VillageMap'
-import { BandeauAlerte, BarreRessources, BoutonPleinEcran, Toasts } from './components/ui/Hud'
+import { BandeauAlerte, BarreRessources, BoutonPleinEcran, JetonsEtat, Toasts } from './components/ui/Hud'
 import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker, PanneauMissions } from './components/ui/Missions'
+import {
+  ModaleChoixMode,
+  ModaleEchecActe,
+  ModaleEpilogue,
+  ModaleProlologue,
+  PanneauCampagne,
+  SuiviActe,
+} from './components/ui/Campagne'
 import { ControleSon, useSons } from './components/ui/Son'
 import { Tutoriel } from './components/ui/Tutoriel'
 import { AnimationVictoire } from './components/ui/Victoire'
@@ -30,6 +38,8 @@ export default function App() {
   // pastilles d'appel : un héros à recruter, un village qui crie au secours
   const herosARecruter = useGame((s) => HERO_IDS.filter((h) => herosDisponible(s, h)).length)
   const appel = useGame((s) => s.appelSecours !== null)
+  // en campagne, le bandeau change de boutons : l'acte prime sur le fil rouge
+  const campagne = useGame((s) => s.campagne !== null && !s.campagne.fini)
   // une récompense de mission qui attend est une pastille, comme un héros à recruter
   const missionsPretes = useGame((s) =>
     missionsActives(s.missionsReclamees).filter((m) => {
@@ -64,13 +74,21 @@ export default function App() {
 
   return (
     <div className="app">
+      {/*
+        Deux rangs, deux idées : en haut ce que le village POSSÈDE, en bas ce qui
+        lui ARRIVE — avec les boutons qui ouvrent les grands panneaux. Tout tenait
+        sur une ligne, et rien ne s'y lisait plus.
+      */}
       <header className="hud">
-        <div className="logo">
-          PALLADION
-          <small>guerre de Troie</small>
+        <div className="hud-rang">
+          <div className="logo">
+            PALLADION
+            <small>guerre de Troie</small>
+          </div>
+          <BarreRessources />
         </div>
-        <BarreRessources />
-        {/* les libellés s'effacent sous 1400 px : les pictogrammes suffisent, le titre reste */}
+        <div className="hud-rang">
+        {/* les libellés s'effacent sur écran étroit : les pictogrammes suffisent */}
         <div className="hud-actions">
           <button
             data-tuto="bouton-expeditions"
@@ -97,15 +115,21 @@ export default function App() {
             🛡️<span className="lbl"> Héros</span>
             {herosARecruter > 0 ? ` ${herosARecruter}` : ''}
           </button>
-          <button
-            data-tuto="bouton-missions"
-            onClick={() => openPanel('missions')}
-            title="Le fil rouge : cinquante missions à récompense, acte par acte"
-            className={missionsPretes > 0 ? 'appelle' : undefined}
-          >
-            🏅<span className="lbl"> Missions</span>
-            {missionsPretes > 0 ? ` 🎁${missionsPretes}` : ''}
-          </button>
+          {campagne ? (
+            <button onClick={() => openPanel('campagne')} title="Les cinq actes de « La Chute »">
+              🐴<span className="lbl"> La Chute</span>
+            </button>
+          ) : (
+            <button
+              data-tuto="bouton-missions"
+              onClick={() => openPanel('missions')}
+              title="Le fil rouge : cinquante-cinq missions à récompense, acte par acte"
+              className={missionsPretes > 0 ? 'appelle' : undefined}
+            >
+              🏅<span className="lbl"> Missions</span>
+              {missionsPretes > 0 ? ` 🎁${missionsPretes}` : ''}
+            </button>
+          )}
           <button
             onClick={() => openPanel('hauts-faits')}
             title="Hauts faits, prestige et bilan du règne"
@@ -120,18 +144,22 @@ export default function App() {
           </button>
           <ControleSon />
           <BoutonPleinEcran />
+          </div>
+          <JetonsEtat />
         </div>
       </header>
 
       <main className="scene">
         <VillageMap />
         <BandeauAlerte />
-        <MissionsTracker />
+        {/* en campagne, l'acte remplace le fil rouge : c'est lui qui dit pourquoi on joue */}
+        {campagne ? <SuiviActe /> : <MissionsTracker />}
         <PanneauBatiment />
         <Toasts />
       </main>
 
       {panel === 'aide' && <ModaleAide />}
+      {panel === 'campagne' && <PanneauCampagne />}
       {panel === 'pantheon' && <Pantheon />}
       {panel === 'heros' && <PanneauHeros />}
       {panel === 'missions' && <PanneauMissions />}
@@ -145,6 +173,11 @@ export default function App() {
       <ModaleRapportBataille />
       <ModaleFinPartie />
       <AnimationVictoire />
+      {/* la campagne encadre la partie : choix du mode, prologue, épilogue, échec */}
+      <ModaleChoixMode />
+      <ModaleProlologue />
+      <ModaleEpilogue />
+      <ModaleEchecActe />
       {/* la leçon de Zeus passe au-dessus de tout : c'est elle qui mène la main */}
       <Tutoriel />
     </div>

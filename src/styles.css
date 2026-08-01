@@ -1921,6 +1921,203 @@ svg.carte-exp {
   }
 }
 
+/* ── campagne « La Chute » ─────────────────────────────── */
+/* le choix du mode : deux cartes, pas un menu déroulant. On doit voir en un
+   coup d'œil que l'une ne finit jamais et que l'autre peut se perdre. */
+.choix-mode {
+  max-width: 640px;
+  text-align: center;
+  padding: 26px 28px 28px;
+}
+.choix-zeus {
+  line-height: 0;
+  margin-bottom: 6px;
+}
+.choix-intro {
+  color: #cfc4a8;
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 2px 0 16px;
+}
+.choix-cartes {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.choix-carte {
+  flex: 1 1 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  text-align: left;
+  padding: 14px 16px;
+  border-radius: 12px;
+  white-space: normal;
+}
+.choix-carte b {
+  font-family: Georgia, serif;
+  font-size: 16px;
+}
+.cc-emoji {
+  font-size: 26px;
+  line-height: 1;
+}
+.cc-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+  opacity: 0.92;
+}
+
+/* prologue et épilogue : du parchemin, comme les dilemmes */
+.acte-modale {
+  max-width: 660px;
+}
+.acte-bandeau {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 2px solid #c9b58a;
+  padding-bottom: 9px;
+  margin-bottom: 10px;
+}
+.acte-bandeau h2 {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+.acte-emoji {
+  font-size: 30px;
+  line-height: 1;
+}
+.acte-lieu {
+  font-size: 12.5px;
+  color: #7a5f38;
+  font-style: italic;
+}
+.acte-numero {
+  margin-left: auto;
+  font-size: 12px;
+  color: #8c7a55;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.acte-recit p {
+  font-family: Georgia, serif;
+  font-size: 14.5px;
+  line-height: 1.62;
+  margin: 9px 0;
+  color: var(--parchemin-texte);
+}
+.acte-objectifs-liste {
+  margin-top: 12px;
+  border-top: 1px solid #c9b58a;
+  padding-top: 9px;
+}
+.acte-objectifs-liste h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #6e4a1f;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.acte-obj {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 13px;
+  color: var(--parchemin-texte);
+}
+.acte-obj.facultatif {
+  opacity: 0.74;
+}
+.ao-puce {
+  color: #8c6f4e;
+}
+.ao-fac {
+  font-size: 11.5px;
+  color: #8c7a55;
+  font-style: italic;
+}
+.ao-pourquoi {
+  font-size: 12px;
+  color: #6b5b40;
+  font-style: italic;
+  line-height: 1.42;
+  margin-top: 1px;
+}
+.acte-heros,
+.acte-recompense {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: #5e4a2a;
+}
+.acte-defaite {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid #a8724e;
+  border-radius: 8px;
+  background: #efe0bd;
+  font-size: 12.5px;
+  color: #6e3b1f;
+  line-height: 1.45;
+}
+
+/* le suivi d'acte, à la place du fil rouge */
+.suivi-acte .missions-titre {
+  border-color: var(--gold-sombre);
+}
+.acte-lieu-suivi {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  padding: 0 2px 2px;
+}
+.suivi-acte .mission.facultatif {
+  border-left-color: #3a4a5a;
+  opacity: 0.82;
+}
+
+/* la fiche d'acte, dans le panneau récapitulatif */
+.acte-fiche {
+  border: 1px solid var(--bord);
+  border-left: 3px solid #3a4a5a;
+  border-radius: 10px;
+  background: #10202e;
+  padding: 10px 12px;
+  margin-top: 8px;
+}
+.acte-fiche.courant {
+  border-left-color: var(--gold);
+  box-shadow: 0 0 14px #e8c04a26;
+}
+.acte-fiche.acheve {
+  border-left-color: #4d7a58;
+  opacity: 0.76;
+}
+.acte-fiche.scelle {
+  opacity: 0.55;
+}
+.acte-fiche .acte-bandeau {
+  border-bottom: 1px solid #23394e;
+  margin-bottom: 6px;
+}
+.acte-fiche .acte-lieu {
+  color: var(--muted);
+}
+.acte-fiche .acte-numero {
+  color: var(--muted);
+}
+.acte-liste-obj {
+  margin: 4px 0 0;
+  padding-left: 4px;
+  list-style: none;
+  font-size: 12.5px;
+  color: #cfc4a8;
+  line-height: 1.5;
+}
+
 /* ── salve de victoire ─────────────────────────────────── */
 /* elle passe par-dessus tout, y compris les modales, et n'intercepte rien :
    c'est une fanfare, pas une fenêtre de plus */

@@ -101,7 +101,7 @@ import {
   type HeroState,
 } from './heros'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
-import { MISSIONS_PAR_ID, missionsActives } from './missions'
+import { MISSIONS_PAR_ID, missionsActives, rangMission } from './missions'
 import { NB_ETAPES, type SnapTuto } from './tutoriel'
 import {
   BONUS_ORAGE_ZEUS,
@@ -245,7 +245,7 @@ export interface GameState {
   offlineSummary: string[] | null
   toasts: Toast[]
   selected: BuildingId | null
-  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | 'hauts-faits' | null
+  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | 'hauts-faits' | 'missions' | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
    * dans le store et non dans le HUD : le tutoriel doit pouvoir le refermer
@@ -284,6 +284,8 @@ export interface GameState {
   attaqueTest: () => void
   setVitesse: (v: number) => void
   reclamerMission: (id: string) => void
+  /** conduit le joueur là où la mission se joue : bâtiment, recensement, panneau */
+  allerAMission: (id: string) => void
   select: (b: BuildingId | null) => void
   openPanel: (p: GameState['panel']) => void
   ouvrirRecensement: (v: boolean) => void
@@ -771,6 +773,7 @@ type ActionsOnly = {
   attaqueTest: unknown
   setVitesse: unknown
   reclamerMission: unknown
+  allerAMission: unknown
   select: unknown
   openPanel: unknown
   ouvrirRecensement: unknown
@@ -2550,8 +2553,39 @@ export const useGame = create<GameState>()(
         if (rec.pop) s.pop += rec.pop
         s.missionsReclamees.push(id)
         pushToast(s, def.emoji, `${def.titre} : récompense reçue !`)
+        // le fil rouge laisse une trace dans la chronique, comme les batailles
+        const gains: string[] = []
+        if (rec.res) {
+          for (const [r, n] of Object.entries(rec.res) as [ResourceId, number][]) {
+            gains.push(`+${n} ${RES[r].emoji}`)
+          }
+        }
+        if (rec.faveur) gains.push(`+${rec.faveur} ✨`)
+        if (rec.pop) gains.push(`+${rec.pop} habitant${rec.pop > 1 ? 's' : ''}`)
+        pushReport(s, def.emoji, `Mission ${rangMission(id)} — ${def.titre}`, [
+          def.desc,
+          `Récompense : ${gains.join(' · ')}`,
+        ])
       })
       get().save()
+    },
+
+    /*
+     * « Y aller » : la mission cesse d'être une consigne pour devenir un bouton.
+     * On referme ce qui traîne avant d'ouvrir la bonne chose, sinon deux modales
+     * se superposent et l'on ne voit plus rien.
+     */
+    allerAMission: (id) => {
+      set((s) => {
+        const cible = MISSIONS_PAR_ID[id]?.cible
+        if (!cible) return
+        s.panel = null
+        s.selected = null
+        s.popOuvert = false
+        if (cible.quoi === 'batiment') s.selected = cible.id
+        else if (cible.quoi === 'habitants') s.popOuvert = true
+        else s.panel = cible.id
+      })
     },
 
     select: (b) => set((s) => void (s.selected = b)),

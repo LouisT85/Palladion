@@ -212,10 +212,11 @@ export const ETAPES: EtapeTuto[] = [
     id: 'missions',
     titre: 'De quoi t’occuper',
     texte: [
-      'Cinquante-cinq objectifs jalonnent ton règne, du premier toit à la cité de légende. Chacun paie une récompense qui finance le suivant.',
-      'Quand un objectif est atteint, le bandeau s’allume : réclame, et enchaîne.',
+      'Cinquante-cinq objectifs jalonnent ton règne, du premier toit à la cité de légende, en cinq actes. Chacun paie une récompense qui finance le suivant.',
+      'Quand un objectif est atteint, le bandeau s’allume : réclame, et enchaîne. Si tu ne sais pas où t’y prendre, chaque mission a un bouton qui t’emmène au bon endroit.',
+      'Le bouton **Missions**, en haut, déroule le fil entier.',
     ],
-    cibles: ['missions'],
+    cibles: ['missions', 'bouton-missions'],
     place: 'droite',
   },
   {

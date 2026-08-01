@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import { TICK_MS } from './game/data'
 import { HERO_IDS } from './game/heros'
+import { missionsActives } from './game/missions'
 import { herosDisponible, totalEtoiles, useGame } from './game/store'
 import { VillageMap } from './components/map/VillageMap'
 import { BandeauAlerte, BarreRessources, BoutonPleinEcran, Toasts } from './components/ui/Hud'
 import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
-import { MissionsTracker } from './components/ui/Missions'
+import { MissionsTracker, PanneauMissions } from './components/ui/Missions'
 import { ControleSon, useSons } from './components/ui/Son'
 import { Tutoriel } from './components/ui/Tutoriel'
 import { AnimationVictoire } from './components/ui/Victoire'
@@ -29,6 +30,13 @@ export default function App() {
   // pastilles d'appel : un héros à recruter, un village qui crie au secours
   const herosARecruter = useGame((s) => HERO_IDS.filter((h) => herosDisponible(s, h)).length)
   const appel = useGame((s) => s.appelSecours !== null)
+  // une récompense de mission qui attend est une pastille, comme un héros à recruter
+  const missionsPretes = useGame((s) =>
+    missionsActives(s.missionsReclamees).filter((m) => {
+      const p = m.progres(s)
+      return p.cur >= p.max
+    }).length,
+  )
   const openPanel = useGame((s) => s.openPanel)
   // la bande-son suit l'état du jeu : lyre, cors, tambour de siège
   useSons()
@@ -90,10 +98,19 @@ export default function App() {
             {herosARecruter > 0 ? ` ${herosARecruter}` : ''}
           </button>
           <button
+            data-tuto="bouton-missions"
+            onClick={() => openPanel('missions')}
+            title="Le fil rouge : cinquante missions à récompense, acte par acte"
+            className={missionsPretes > 0 ? 'appelle' : undefined}
+          >
+            🏅<span className="lbl"> Missions</span>
+            {missionsPretes > 0 ? ` 🎁${missionsPretes}` : ''}
+          </button>
+          <button
             onClick={() => openPanel('hauts-faits')}
             title="Hauts faits, prestige et bilan du règne"
           >
-            🏅<span className="lbl"> Hauts faits</span>
+            👑<span className="lbl"> Hauts faits</span>
           </button>
           <button onClick={() => openPanel('journal')} title="Rapports et chroniques">
             📜<span className="lbl"> Journal</span>
@@ -117,6 +134,7 @@ export default function App() {
       {panel === 'aide' && <ModaleAide />}
       {panel === 'pantheon' && <Pantheon />}
       {panel === 'heros' && <PanneauHeros />}
+      {panel === 'missions' && <PanneauMissions />}
       {panel === 'hauts-faits' && <PanneauHautsFaits />}
       {panel === 'journal' && <ModaleJournal />}
       {panel === 'expeditions' && !expedition && <PanneauExpeditions />}

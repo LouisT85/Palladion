@@ -1362,10 +1362,16 @@ svg.carte-exp {
   -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 16px), transparent);
   mask-image: linear-gradient(180deg, #000 calc(100% - 16px), transparent);
 }
+.missions-tete {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
 .missions-titre {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 1;
   text-align: left;
   background: #14273ae0;
   backdrop-filter: blur(7px);
@@ -1376,6 +1382,29 @@ svg.carte-exp {
   font-size: 13.5px;
   color: var(--gold);
   box-shadow: 0 6px 18px #0009;
+}
+/* accès au fil rouge complet, à côté du suivi : les cinquante missions,
+   acte par acte, au lieu des trois en cours */
+.missions-tout {
+  flex: 0 0 auto;
+  background: #14273ae0;
+  backdrop-filter: blur(7px);
+  border: 1px solid #35526d;
+  border-radius: 10px;
+  padding: 4px 9px;
+  color: var(--muted);
+  box-shadow: 0 6px 18px #0009;
+}
+.missions-tout:hover {
+  color: var(--gold);
+}
+/* « y aller » : le suivi cesse d'être une consigne pour devenir un bouton */
+.mission-aller {
+  width: 100%;
+  margin-top: 7px;
+  padding: 4px 9px;
+  font-size: 11.5px;
+  color: #cbd8e2;
 }
 .compte-missions {
   color: var(--muted);
@@ -1448,6 +1477,107 @@ svg.carte-exp {
   margin-top: 7px;
   padding: 5px 10px;
   font-size: 12.5px;
+}
+
+/* ── le fil rouge en entier ────────────────────────────── */
+.mission-jauge-tout {
+  height: 8px;
+  border-radius: 4px;
+  background: #0a141d;
+  border: 1px solid var(--bord);
+  overflow: hidden;
+  margin: 4px 0 12px;
+}
+.mission-jauge-tout > div {
+  height: 100%;
+  background: linear-gradient(90deg, #8b6f28, var(--gold));
+  transition: width 0.4s;
+}
+.mission-ligne-tout {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--bord);
+  border-left: 3px solid #3a4a5a;
+  background: #10202e;
+  margin-top: 6px;
+}
+.mission-ligne-tout.reclamee {
+  opacity: 0.62;
+  border-left-color: #4d7a58;
+}
+.mission-ligne-tout.ouverte {
+  border-left-color: var(--gold-sombre);
+}
+.mission-ligne-tout.prete {
+  border-left-color: var(--gold);
+  box-shadow: 0 0 12px #e8c04a2e;
+}
+.mission-ligne-tout.verrouillee {
+  opacity: 0.55;
+}
+.mlt-rang {
+  flex: 0 0 26px;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.mlt-emoji {
+  flex: 0 0 auto;
+  font-size: 17px;
+  width: 22px;
+  text-align: center;
+}
+.mission-ligne-tout.reclamee .mlt-emoji {
+  color: #7fc79b;
+}
+.mlt-corps {
+  flex: 1;
+  min-width: 0;
+}
+.mlt-nom {
+  font-weight: 700;
+  font-size: 13px;
+}
+.mission-ligne-tout.reclamee .mlt-nom {
+  text-decoration: line-through;
+  text-decoration-color: #4d7a5899;
+}
+.mlt-desc {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.35;
+  margin: 1px 0 3px;
+}
+.mlt-rec {
+  font-size: 11.5px;
+  color: #cfc4a8;
+}
+/* pleine largeur, la jauge se lisait comme un soulignement de la consigne */
+.mlt-corps .mission-progres {
+  max-width: 190px;
+  height: 4px;
+  margin: 4px 0 4px;
+}
+.mlt-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  min-width: 96px;
+  justify-content: flex-end;
+}
+.mlt-actions button {
+  font-size: 11.5px;
+  padding: 4px 9px;
+}
+.mlt-fait,
+.mlt-attente {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
 }
 
 .toasts {

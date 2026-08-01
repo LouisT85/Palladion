@@ -38,6 +38,17 @@ export interface EtatMissions {
   gods: Record<GodId, { relation: number }>
 }
 
+/**
+ * Où la mission se joue. C'est ce qui rattache le fil rouge au jeu : un clic sur
+ * la mission ouvre l'écran concerné — le chantier, le recensement, la carte des
+ * expéditions. Sans cela, les missions n'étaient qu'une liste à côté du jeu, et
+ * « affectez un villageois au temple » laissait le joueur chercher où.
+ */
+export type CibleMission =
+  | { quoi: 'batiment'; id: BuildingId }
+  | { quoi: 'habitants' }
+  | { quoi: 'panneau'; id: 'expeditions' | 'pantheon' | 'heros' }
+
 export interface MissionDef {
   id: string
   emoji: string
@@ -46,7 +57,15 @@ export interface MissionDef {
   /** progression courante (fait quand cur ≥ max) */
   progres: (s: EtatMissions) => { cur: number; max: number }
   recompense: { res?: Cost; faveur?: number; pop?: number }
+  /** l'écran où l'accomplir — absent quand il n'y a rien à aller cliquer */
+  cible?: CibleMission
 }
+
+/** raccourcis de lisibilité pour les cibles les plus fréquentes */
+const AU = (id: BuildingId): CibleMission => ({ quoi: 'batiment', id })
+const HABITANTS: CibleMission = { quoi: 'habitants' }
+const CARTE: CibleMission = { quoi: 'panneau', id: 'expeditions' }
+const OLYMPE: CibleMission = { quoi: 'panneau', id: 'pantheon' }
 
 type Progres = { cur: number; max: number }
 
@@ -549,7 +568,90 @@ export const MISSIONS: MissionDef[] = [
   },
 ]
 
+/*
+ * Où chaque mission se joue, en un seul tableau plutôt qu'une ligne de plus dans
+ * chacune des cinquante définitions ci-dessus. Les missions absentes d'ici ne
+ * mènent nulle part — « repoussez un assaut » ne s'accomplit sur aucun écran.
+ */
+const CIBLES: Record<string, CibleMission> = {
+  'le-pain-d-abord': AU('ferme'),
+  'bras-aux-champs': HABITANTS,
+  'bois-pour-l-hiver': AU('scierie'),
+  'pierre-du-pays': AU('carriere'),
+  'trois-au-travail': HABITANTS,
+  'premiers-remparts': AU('remparts'),
+  'appel-aux-armes': AU('caserne'),
+  'trois-lances': AU('caserne'),
+  'maison-des-dieux': AU('temple'),
+  'un-pretre-au-temple': HABITANTS,
+  grandir: AU('agora'),
+  'un-toit-pour-tous': AU('maisons'),
+  'dix-habitants': AU('maisons'),
+  'champs-a-deux-mains': HABITANTS,
+  'yeux-sur-les-murs': AU('caserne'),
+  'bucherons-et-carriers': HABITANTS,
+  'premier-raid': CARTE,
+  'muraille-de-pierre': AU('remparts'),
+  'premiere-tour': AU('remparts'),
+  'forge-de-bronze': AU('forge'),
+  'un-forgeron': HABITANTS,
+  'commerce-egeen': AU('port'),
+  'le-docker': HABITANTS,
+  'reserves-du-village': AU('agora'),
+  devotion: OLYMPE,
+  'deux-etoiles': CARTE,
+  prosperite: AU('agora'),
+  'quinze-habitants': AU('maisons'),
+  'cour-d-armes': AU('caserne'),
+  'muraille-d-hoplites': AU('caserne'),
+  'remparts-crenelees': AU('remparts'),
+  'deux-tours': AU('remparts'),
+  'dix-au-travail': HABITANTS,
+  'deux-fronts': AU('remparts'),
+  'cheri-des-dieux': OLYMPE,
+  'trois-etoiles': CARTE,
+  'six-etoiles': CARTE,
+  'temple-d-ares': AU('temple'),
+  'tresor-de-bronze': AU('forge'),
+  'murs-de-poseidon': AU('remparts'),
+  'enceinte-restauree': AU('remparts'),
+  'les-quatre-tours': AU('remparts'),
+  'trois-fronts': AU('remparts'),
+  'elu-du-dieu': OLYMPE,
+  'ferme-a-plein': AU('ferme'),
+  'trente-habitants': AU('maisons'),
+  'douze-etoiles': CARTE,
+  'tous-aux-postes': HABITANTS,
+  'cite-de-legende': AU('agora'),
+  palladion: AU('agora'),
+}
+for (const m of MISSIONS) m.cible = CIBLES[m.id]
+
 export const MISSIONS_PAR_ID: Record<string, MissionDef> = Object.fromEntries(MISSIONS.map((m) => [m.id, m]))
+
+/** rang de la mission dans le fil rouge (1 = la première) */
+export function rangMission(id: string): number {
+  return MISSIONS.findIndex((m) => m.id === id) + 1
+}
+
+/**
+ * Les cinq actes, bornés par le rang de leur dernière mission. Ils n'étaient
+ * jusqu'ici que des commentaires dans ce fichier ; le panneau du fil rouge les
+ * affiche, ce qui donne au joueur une idée du chemin plutôt qu'une liste de
+ * cinquante-cinq lignes.
+ */
+export const ACTES: { nom: string; fin: number }[] = [
+  { nom: 'Acte I — Le hameau', fin: 10 },
+  { nom: 'Acte II — Le village s’organise', fin: 20 },
+  { nom: 'Acte III — La pierre et le bronze', fin: 29 },
+  { nom: 'Acte IV — La cité fortifiée', fin: 40 },
+  { nom: 'Acte V — Vers la légende', fin: MISSIONS.length },
+]
+
+/** l'acte auquel appartient cette mission (par son rang, 1-indexé) */
+export function acteDe(rang: number): string {
+  return (ACTES.find((a) => rang <= a.fin) ?? ACTES[ACTES.length - 1]).nom
+}
 
 /** les 3 premières missions non réclamées, dans l'ordre du fil rouge */
 export function missionsActives(reclamees: string[]): MissionDef[] {

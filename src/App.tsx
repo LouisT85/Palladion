@@ -8,6 +8,7 @@ import { BandeauAlerte, BarreRessources, BoutonPleinEcran, JetonsEtat, Toasts } 
 import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker, PanneauMissions } from './components/ui/Missions'
+import { PanneauSauvegardes } from './components/ui/Sauvegardes'
 import {
   ModaleChoixMode,
   ModaleEchecActe,
@@ -161,6 +162,7 @@ export default function App() {
 
       {panel === 'aide' && <ModaleAide />}
       {panel === 'campagne' && <PanneauCampagne />}
+      {panel === 'sauvegardes' && <PanneauSauvegardes />}
       {panel === 'pantheon' && <Pantheon />}
       {panel === 'heros' && <PanneauHeros />}
       {panel === 'missions' && <PanneauMissions />}

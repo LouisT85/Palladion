@@ -107,6 +107,7 @@ import {
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives, rangMission } from './missions'
 import { ACTES_CAMPAGNE, NB_ACTES, acteAccompli, type EtatActe } from './campagne'
+import { cleEmplacement, emplacementActif, poserEmplacementActif } from './sauvegardes'
 import { NB_ETAPES, type SnapTuto } from './tutoriel'
 import {
   BONUS_ORAGE_ZEUS,
@@ -289,7 +290,7 @@ export interface GameState {
   offlineSummary: string[] | null
   toasts: Toast[]
   selected: BuildingId | null
-  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | 'hauts-faits' | 'missions' | 'campagne' | null
+  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | 'hauts-faits' | 'missions' | 'campagne' | 'sauvegardes' | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
    * dans le store et non dans le HUD : le tutoriel doit pouvoir le refermer
@@ -338,6 +339,8 @@ export interface GameState {
   acteSuivant: () => void
   /** reprendre l'acte perdu depuis son premier matin */
   rejouerActe: () => void
+  /** range la partie en cours et ouvre celle d'un autre emplacement */
+  changerEmplacement: (i: number) => void
   select: (b: BuildingId | null) => void
   openPanel: (p: GameState['panel']) => void
   ouvrirRecensement: (v: boolean) => void
@@ -885,6 +888,7 @@ type ActionsOnly = {
   commencerActe: unknown
   acteSuivant: unknown
   rejouerActe: unknown
+  changerEmplacement: unknown
   select: unknown
   openPanel: unknown
   ouvrirRecensement: unknown
@@ -1733,8 +1737,14 @@ export const useGame = create<GameState>()(
     ...etatInitial(Date.now()),
 
     init: () => {
-      // migration : les sauvegardes de l'époque « ILION » sont reprises telles quelles
-      const brut = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(ANCIEN_STORAGE_KEY)
+      /*
+       * On charge l'emplacement ACTIF. La clé historique reste celle du premier :
+       * un joueur qui rouvre le jeu après la mise à jour retrouve sa partie là où
+       * elle a toujours été, et découvre seulement qu'il y a deux cases de plus.
+       * La migration « ILION » ne vaut, elle, que pour ce premier emplacement.
+       */
+      const cle = cleEmplacement(emplacementActif())
+      const brut = localStorage.getItem(cle) ?? (cle === STORAGE_KEY ? localStorage.getItem(ANCIEN_STORAGE_KEY) : null)
       const now = Date.now()
       if (brut) {
         try {
@@ -2813,6 +2823,19 @@ export const useGame = create<GameState>()(
     },
 
     /**
+     * Changer d'emplacement, c'est ranger sa partie et en ouvrir une autre. On
+     * SAUVEGARDE d'abord, toujours : basculer ne doit jamais coûter les cinq
+     * dernières minutes de jeu. Puis `init()` relit la clé du nouvel emplacement,
+     * comme au premier chargement — un emplacement vide rouvre donc l'écran de
+     * choix du mode, ce qui est exactement ce qu'on attend d'une case libre.
+     */
+    changerEmplacement: (i) => {
+      get().save()
+      poserEmplacementActif(i)
+      get().init()
+    },
+
+    /**
      * Abdiquer, c'est choisir la fin de son règne : le score se fige, les aèdes
      * donnent un titre, puis la cité repart de zéro. Rien d'autre ne termine
      * une partie — un village peut être pillé cent fois et se relever.
@@ -2994,7 +3017,7 @@ export const useGame = create<GameState>()(
       const data: Record<string, unknown> = {}
       for (const k of CHAMPS_SAUVES) data[k] = s[k]
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+        localStorage.setItem(cleEmplacement(emplacementActif()), JSON.stringify(data))
       } catch {
         // stockage plein / indisponible : tant pis pour cette fois
       }
@@ -3009,7 +3032,7 @@ export const useGame = create<GameState>()(
         pushToast(s, '🏛️', 'Une nouvelle cité s’élève — tout est à rebâtir.')
       })
       try {
-        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(cleEmplacement(emplacementActif()))
         localStorage.removeItem(ANCIEN_STORAGE_KEY)
       } catch {
         // stockage indisponible : la partie repart tout de même de zéro

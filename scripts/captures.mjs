@@ -162,6 +162,22 @@ const VIGNETTES = [
     apres: { auTravail: true },
   },
   {
+    nom: 'tutoriel',
+    format: 'jpeg',
+    quoi: 'La leçon de Zeus — focus verrouillé sur le geste attendu',
+    save: sauvegarde(AGE.printemps, {
+      resources: { bois: 220, pierre: 150, grain: 220, bronze: 20 },
+      buildings: { ...NIVEAUX(0), agora: { level: 1 } },
+      pop: 7,
+      army: ARMEE(0, 0, 0),
+      morale: 52,
+      saison: 'printemps',
+      meteo: 'clair',
+    }),
+    // étape 3 : « Bâtis d'abord une ferme », panneau de la ferme déjà ouvert
+    apres: { tuto: 3, tutoSelection: 'ferme' },
+  },
+  {
     nom: 'village-max',
     format: 'jpeg',
     quoi: 'La cité de légende — dix domaines au niveau 4, quatre tours',
@@ -394,6 +410,8 @@ for (const v of VIGNETTES) {
       }
       if (a.panel) jeu.getState().openPanel(a.panel)
       if (a.assaut) jeu.setState({ nextAttackAt: Date.now() + 400 })
+      // la leçon de Zeus : on se pose sur l'étape voulue, panneau déjà ouvert
+      if (a.tuto !== undefined) jeu.setState({ tutoriel: a.tuto, selected: a.tutoSelection ?? null })
       // le tick ouvre de lui-même le nœud d'arc mûr : il suffit de l'y autoriser
       if (a.arcHeros) jeu.setState({ tutorialDone: true })
       if (a.expedition) {

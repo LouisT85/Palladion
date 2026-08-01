@@ -28,6 +28,17 @@ et d'**impact joueur** (★ à ★★★). Les lots livrés sont conservés pour
 | 5 | **Succès, hauts faits et prestige** | 45 hauts faits en cinq catégories, score de prestige détaillé ligne à ligne, titres de « Roi de pacotille » à « Égal des dieux », et abdication qui fige le bilan avant de refonder une cité. |
 | 6 | **Sons et musique** | Tout synthétisé en Web Audio, zéro octet téléchargé : lyre en mode phrygien au village, cors à l'alerte, tambour de siège, fracas d'armes, craquement de brèche, tonnerre des bénédictions, chant d'aède à la victoire. Coupe-son et deux curseurs persistés ; aucun son avant le premier geste. |
 
+## ✅ Lot 4 — livré
+
+| Sujet | Ce qui a été fait |
+|---|---|
+| Tutoriel scénarisé | Zeus descend en personne : 14 étapes, portrait dessiné en SVG (aucune image chargée), focus verrouillé par masque à plusieurs trous + interception des clics en phase de capture. Les étapes clés exigent le **geste** (bâtir, affecter, ouvrir) et se valident seules ; « Passer la leçon » reste possible, et l'aide la rejoue. |
+| Encarts au survol | Le `title` du navigateur remplacé par un vrai composant : titre, résumé, chiffres alignés (saison × météo × ambiance) et avertissement contextuel. |
+| Musique du village | La paix était en mode phrygien — la seconde mineure met l'oreille en alerte. Remplacée par une pentatonique majeure à 0,95 s/temps, flûte + lyre en alternance, neuf silences sur vingt-quatre temps, bourdon grave. L'alerte garde le phrygien : là, c'est voulu. |
+| Métiers et assignation manuelle | Chaque habitant naît d'un métier ; il rend 55 % ailleurs. L'affectation automatique en fin de chantier est supprimée, le bouton « tous au travail » aussi. Un écriteau sur la carte signale l'atelier à vide. |
+| Héros incarnés | Ils arpentent la place du village à leurs couleurs, et descendent se battre au premier rang (stats liées au niveau). Tombés, ils sont **blessés** et non retirés de l'effectif — seul l'arc tue. La ligne de défense est passée d'un point unique à trois rangs, ce qui rend la mêlée lisible. |
+| Pictogrammes | Les icônes peintes gagnent missions, agora, port, héros, panthéon ; la médaille de bronze 🥉 disparaît des 61 textes qui la traînaient encore. |
+
 ## ✅ Lot 3 — livré
 
 | Sujet | Ce qui a été fait |

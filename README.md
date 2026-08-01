@@ -18,6 +18,16 @@ Zéro image, zéro son téléchargé : **tout est dessiné et synthétisé par l
 
 ## ✨ Ce qui rend PALLADION différent
 
+### ⚡ Zeus vous prend par la main
+La première partie ne commence pas par un pavé d'aide : le maître de l'Olympe
+descend et fait la leçon lui-même, en quatorze étapes. À chaque fois, tout
+l'écran s'éteint **sauf ce qu'il faut toucher** — et il ne suffit pas de cliquer
+« suivant » : les étapes qui comptent exigent le geste. Bâtir la ferme, y placer
+un paysan, dresser l'enceinte, ouvrir le temple. On ne peut ni se perdre, ni
+survoler.
+
+![La leçon de Zeus](docs/tutoriel.jpg)
+
 ### 🧱 Une évolution **visuelle** des bâtiments
 Chaque bâtiment est dessiné **en SVG par code**, en volumes texturés (tuiles, pierre,
 chaume, sillons) avec une apparence distincte par niveau. Les remparts passent de la
@@ -51,12 +61,27 @@ suit, jusqu'à ce que vous repreniez la main à la molette.
 
 ![Un assaut sur trois fronts](docs/bataille.jpg)
 
+### 👷 Chaque habitant a un métier, et vous le placez vous-même
+Un villageois naît paysan, bûcheron, tailleur de pierre, forgeron, prêtre ou docker.
+**À son métier il rend pleinement ; ailleurs, 55 %.** Et surtout : personne ne prend
+son poste tout seul — pas d'affectation automatique, c'est votre décision à chaque
+chantier livré. Un atelier laissé vide plante un écriteau rouge sur la carte, pour
+qu'on n'ait pas à ouvrir un panneau pour s'en apercevoir.
+
+Le même arbitrage vaut pour l'armée : **un soldat est un villageois en moins** — il
+quitte l'atelier, ne produit plus et mange le double.
+
 ### 🛡️ Huit héros — qu'on nourrit, qu'on perd
 Ils ne s'achètent pas : ils viennent quand la cité en est digne. Hector veut des remparts
 de niveau 3 et Zeus en grâce ; Ulysse un port et la confiance d'Athéna ; Achille du sang
 déjà versé. Chacun apporte un **passif permanent** et une **capacité** à invoquer en
 bataille, gagne des niveaux en combattant — et **mange chaque minute**. Trois rappels
 d'entretien sans réponse, et il reprend la route.
+
+Ce sont de vrais habitants : on les voit **arpenter la place du village**, chacun à ses
+couleurs et sous son nom, et ils **descendent se battre** au premier rang de vos lignes.
+Un héros mis à terre dans la mêlée n'est pas rayé de l'effectif — il est blessé, et sa
+capacité reste indisponible le temps qu'il se relève. Seul son arc peut le tuer.
 
 Surtout, chacun traverse un **arc à embranchements** dont certaines branches ne se
 rejouent pas : Achille peut mourir sous la flèche de Pâris, ou survivre inutile ; Hector
@@ -134,11 +159,12 @@ greniers, promettez (et tenez parole !), ou réprimez dans le sang. À 0, vos so
 désertent. L'ambiance tient en un mot, toujours lisible dans le bandeau du haut.
 
 ### 🎵 Une bande-son entièrement synthétisée
-Pas un octet d'audio téléchargé : tout est fabriqué à la volée en **Web Audio**. Une lyre
-égrène un mode phrygien au village paisible, les cors de guerre montent à l'alerte, le
-tambour de siège prend le relais quand la colonne touche les murs, et le chant de l'aède
-salue la victoire. Coupe-son et deux curseurs persistés — et rien ne joue avant votre
-premier geste.
+Pas un octet d'audio téléchargé : tout est fabriqué à la volée en **Web Audio**. Au
+village, une lyre et une flûte de berger se répondent sur une **pentatonique majeure**,
+avec de vrais silences — aucun demi-ton, donc rien d'inquiétant : on est chez soi. Les
+cors de guerre montent à l'alerte, le tambour de siège prend le relais quand la colonne
+touche les murs, et le chant de l'aède salue la victoire. Coupe-son et deux curseurs
+persistés — et rien ne joue avant votre premier geste.
 
 ### 🌙 Le temps continue sans vous — et vous menez la caméra
 Jeu en temps réel avec cycle jour/nuit. Onglet fermé, le village vit : production,
@@ -153,12 +179,15 @@ tout, avec retour automatique en ×1 pendant les batailles. Et la carte se manip
 - **4 ressources** (bois, pierre, grain, bronze) + faveur divine + population nommée
 - **10 bâtiments** à 4 niveaux, chacun avec son art SVG par niveau ; l'Agora gouverne le
   niveau maximal des autres, 2 chantiers simultanés maximum
-- **Postes de travail** : un atelier sans ouvrier ne produit rien — affectez vos villageois
+- **Métiers et postes** : chaque habitant naît d'un métier, rend 55 % ailleurs, et
+  n'est jamais affecté automatiquement — un atelier vide ne produit rien et le dit
 - **3 unités** (lancier, archer, hoplite) — les archers tirent depuis les remparts tant que
   leur pan de muraille tient
 - **Assauts multi-fronts** : jusqu'à 3 secteurs assaillis, chacun avec ses points de
   structure et sa propre brèche
-- **8 héros** avec passif, capacité active, niveaux 1→5, entretien et arc narratif mortel
+- **8 héros** avec passif, capacité active, niveaux 1→5, entretien et arc narratif mortel —
+  visibles sur la carte du village et combattants au premier rang
+- **Tutoriel scénarisé** en 14 étapes à focus verrouillé, rejouable depuis l'aide
 - **Campagne** : 8 villages à piller ou à secourir, étoiles, butin dégressif, garnisons qui
   se renforcent, alliances à tribut — le moteur de bataille est le même en attaque et en défense
 - **4 saisons × 6 météos** pesant sur la récolte, la portée, l'allure et l'alerte

@@ -459,7 +459,7 @@ export const HAUTS_FAITS: HautFaitDef[] = [
   },
   {
     id: 'le-sauveur',
-    emoji: '⛑️',
+    emoji: '🤝',
     titre: 'Le sauveur',
     desc: 'Lever le siège d’un village qui appelait à l’aide.',
     cat: 'legende',

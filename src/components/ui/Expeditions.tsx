@@ -79,7 +79,7 @@ export function PanneauExpeditions() {
           <div className={`intention ${intention}`}>
             {secours ? (
               <>
-                <b>⛑️ Secourir</b> — aucun butin, mais Zeus et Athéna vous en sauront gré, et {cible.nom} deviendra un
+                <b>🤝 Secourir</b> — aucun butin, mais Zeus et Athéna vous en sauront gré, et {cible.nom} deviendra un
                 allié : tribut régulier et renforts à chaque assaut sur vos murs. Vous pouvez y perdre des hommes pour
                 rien.
               </>
@@ -148,7 +148,7 @@ export function PanneauExpeditions() {
               disabled={total === 0 || s.battle !== null || s.expedition !== null}
               onClick={() => s.lancerExpedition(cible.id, troupes, intention)}
             >
-              {secours ? '⛑️ Courir à leur secours' : '🏴‍☠️ Lancer l’assaut'}
+              {secours ? '🤝 Courir à leur secours' : '🏴‍☠️ Lancer l’assaut'}
             </button>
           </div>
         </>
@@ -174,7 +174,7 @@ export function PanneauExpeditions() {
         {appel && s.appelSecours && (
           <div className="appel-secours">
             <div className="appel-titre">
-              ⛑️ {appel.nom} est assiégé et implore votre aide
+              🙏 {appel.nom} est assiégé et implore votre aide
               <span className="appel-compte">{fmtDuree(Math.max(0, s.appelSecours.expireAt - now))}</span>
             </div>
             <div className="appel-texte">
@@ -187,7 +187,7 @@ export function PanneauExpeditions() {
                 disabled={s.battle !== null || s.expedition !== null}
                 onClick={() => ouvrir(appel.id, 'secours')}
               >
-                ⛑️ Porter secours
+                🤝 Porter secours
               </button>
               <button className="danger" onClick={() => s.ignorerSecours()} title="Zeus Xenios protège les suppliants">
                 🚪 Fermer la porte (Zeus −4)
@@ -283,7 +283,7 @@ export function ExpeditionScene() {
         onClick={(e) => e.stopPropagation()}
       >
         <h2>
-          {exp.intention === 'secours' ? `⛑️ Délivrance de ${v.nom}` : `${v.emoji} Assaut sur ${v.nom}`}
+          {exp.intention === 'secours' ? `🤝 Délivrance de ${v.nom}` : `${v.emoji} Assaut sur ${v.nom}`}
         </h2>
         {/* hauteur pilotée, largeur déduite du ratio 900×560 : aucune bande noire */}
         <svg

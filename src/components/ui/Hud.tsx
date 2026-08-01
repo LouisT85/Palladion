@@ -15,6 +15,7 @@ import {
   useGame,
 } from '../../game/store'
 import { METEOS, SAISONS } from '../../game/saisons'
+import { VILLAGES_PAR_ID } from '../../game/expeditions'
 import { nomPhase, phaseJour } from '../map/Terrain'
 import { HerosRapides } from './Heros'
 import { Icone, Montant } from './Icones'
@@ -449,6 +450,48 @@ export function DieuxRapides() {
   )
 }
 
+/**
+ * Un village de la Troade implore votre aide. C'était signalé par un seul émoji
+ * accolé au bouton « Expéditions » : qui ne le remarquait pas ne pouvait pas
+ * savoir qu'une fenêtre se refermait — et l'alliance passait sans un mot.
+ *
+ * Le voici en bandeau plein écran, avec son compte à rebours et les deux seules
+ * réponses possibles. On ne peut plus le manquer, et on ne peut plus l'ignorer
+ * sans le savoir.
+ */
+function BandeauSecours() {
+  const appel = useGame((s) => s.appelSecours)
+  const now = useGame((s) => s.lastSeen)
+  const enCours = useGame((s) => s.battle !== null || s.expedition !== null)
+  const openPanel = useGame((s) => s.openPanel)
+  const ignorer = useGame((s) => s.ignorerSecours)
+  if (!appel) return null
+  const v = VILLAGES_PAR_ID[appel.villageId]
+  const reste = Math.max(0, appel.expireAt - now)
+  return (
+    <div className="bandeau secours">
+      <div className="gros">
+        🙏 {v?.nom ?? 'Un village'} implore votre aide
+        <span className="compte">
+          {Math.floor(reste / 60000)}:{String(Math.floor((reste % 60000) / 1000)).padStart(2, '0')}
+        </span>
+      </div>
+      <div className="detail">
+        Des assiégeants sont sous leurs murs. <b>Aucun butin à espérer</b> — mais la faveur de Zeus et d’Athéna, et une{' '}
+        <b>alliance</b> : tribut régulier et renforts sur vos remparts à chaque assaut.
+      </div>
+      <div className="secours-actions">
+        <button className="principal" disabled={enCours} onClick={() => openPanel('expeditions')}>
+          🤝 Voir et porter secours
+        </button>
+        <button className="danger" onClick={() => ignorer()} title="Zeus Xenios protège les suppliants">
+          🚪 Fermer la porte (Zeus −4)
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export function BandeauAlerte() {
   const battle = useGame((s) => s.battle)
   const expedition = useGame((s) => s.expedition)
@@ -511,7 +554,8 @@ export function BandeauAlerte() {
       </div>
     )
   }
-  return null
+  // aucun assaut en vue : c'est le moment où un appel au secours doit se voir
+  return <BandeauSecours />
 }
 
 export function Toasts() {

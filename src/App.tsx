@@ -101,7 +101,8 @@ export default function App() {
             className={appel ? 'appelle' : undefined}
           >
             🗺️<span className="lbl"> Expéditions</span>
-            {appel ? ' ⛑️' : etoiles > 0 ? ` ★${etoiles}` : ''}
+            {/* un émoji seul ne disait rien à qui ne le remarquait pas : on écrit le mot */}
+            {appel ? <span className="badge-secours">🙏 SECOURS</span> : etoiles > 0 ? ` ★${etoiles}` : ''}
           </button>
           <button data-tuto="bouton-pantheon" onClick={() => openPanel('pantheon')} title="Les dieux de l'Olympe">
             ⚡<span className="lbl"> Panthéon</span>

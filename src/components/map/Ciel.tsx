@@ -202,16 +202,14 @@ export function Meteo({ meteo, w, h }: { meteo: MeteoId; w: number; h: number })
 export function VoileSaison({ saison, w, h }: { saison: SaisonId; w: number; h: number }) {
   const def = SAISONS[saison]
   return (
-    <rect
-      x={0}
-      y={0}
-      width={w}
-      height={h}
-      fill={def.teinte}
-      opacity={def.teinteOpacite}
-      pointerEvents="none"
-      style={{ mixBlendMode: 'soft-light' }}
-    />
+    <g pointerEvents="none">
+      <rect x={0} y={0} width={w} height={h} fill={def.teinte} opacity={def.teinteOpacite} style={{ mixBlendMode: 'soft-light' }} />
+      {/* l'hiver ne teinte pas seulement : il DÉLAVE. Une nappe froide en fondu
+          normal éteint le vert de la plaine, ce qu'un soft-light ne fait pas. */}
+      {saison === 'hiver' && <rect x={0} y={0} width={w} height={h} fill="#cfe0ea" opacity={0.17} />}
+      {/* l'été écrase de lumière rasante le bas de la scène */}
+      {saison === 'ete' && <rect x={0} y={h * 0.45} width={w} height={h * 0.55} fill="#f0d789" opacity={0.05} />}
+    </g>
   )
 }
 

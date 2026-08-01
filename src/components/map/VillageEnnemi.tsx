@@ -103,27 +103,36 @@ export function DecorExpedition({ v, saison }: { v: VillageCible; saison: Saison
       {t === 'ile' && (
         <g>
           <rect x={0} y={148} width={900} height={412} fill="url(#xp-mer)" />
-          <ellipse cx={440} cy={330} rx={392} ry={196} fill="#d8c495" />
-          <ellipse cx={438} cy={326} rx={368} ry={180} fill="url(#xp-sol)" />
+          {/* haut-fond turquoise qui cerne l'île, puis la grève, puis la terre */}
+          <ellipse cx={438} cy={330} rx={386} ry={186} fill="#6fc4bc" opacity={0.5} />
+          <ellipse cx={438} cy={330} rx={344} ry={164} fill="#e0cb99" />
+          <ellipse cx={436} cy={324} rx={318} ry={148} fill="url(#xp-sol)" />
           <ellipse
-            cx={440}
+            cx={438}
             cy={330}
-            rx={392}
-            ry={196}
+            rx={344}
+            ry={164}
             fill="none"
-            stroke="#f2faf6"
+            stroke="#f6fdf9"
             strokeWidth={2.4}
-            strokeDasharray="20 12 34 14"
-            opacity={0.7}
+            strokeDasharray="22 13 36 15"
+            opacity={0.75}
           />
-          {/* houle au large */}
+          {/* houle au large, sur les quatre coins d'eau libre */}
           <path
-            d="M40,214 q22,-7 44,0 M760,232 q22,-7 44,0 M96,470 q22,-7 44,0 M726,486 q22,-7 44,0"
+            d="M42,236 q22,-7 44,0 M812,252 q22,-7 44,0 M74,486 q22,-7 44,0 M770,502 q22,-7 44,0 M20,392 q22,-7 44,0 M840,404 q22,-7 44,0"
             stroke="#bfe4e2"
-            strokeWidth={1.6}
+            strokeWidth={1.8}
             fill="none"
-            opacity={0.5}
+            opacity={0.55}
           />
+          {/* une voile au large : on est bien venu par la mer */}
+          <g transform="translate(122,268) scale(1.35)" opacity={0.95}>
+            <ellipse cx={0} cy={1} rx={9} ry={1.6} fill="#12313f" opacity={0.35} />
+            <path d="M-7,0 Q0,3 8,0 L5,-2 L-5,-2 Z" fill="#5d4a33" />
+            <path d="M0,-2 L0,-13 L7.5,-3 Z" fill="#efe9db" />
+            <path d="M0,-2 L0,-13 L2.4,-10 L2.4,-2.6 Z" fill="#d8cfba" />
+          </g>
         </g>
       )}
       {t === 'colline' && (
@@ -278,8 +287,24 @@ function Etendard({ x, y, c }: { x: number; y: number; c: string }) {
 
 // ── Les huit cœurs de village ────────────────────────────────────────────────
 
-/** ce que l'on voit DANS l'enceinte — ancré sur la place du village visé */
+/**
+ * Ce que l'on voit DANS l'enceinte, ancré sur la place du village visé.
+ * L'échelle est commune : l'enceinte fait 470 × 260, les cœurs sont dessinés
+ * sur ±150 et remis à l'échelle ici pour occuper vraiment la place — un temple
+ * perdu au milieu d'un pré ne ressemble pas à une cité.
+ */
 export function CoeurVillage({ decor }: { decor: Decor }) {
+  return (
+    <g transform="scale(1.28)">
+      {/* aire de vie : le sol de l'enceinte est piétiné, plus clair que la plaine */}
+      <ellipse cx={0} cy={10} rx={172} ry={82} fill="#c9b98a" opacity={0.32} />
+      <ellipse cx={-14} cy={2} rx={124} ry={56} fill="#d6c795" opacity={0.28} />
+      <Interieur decor={decor} />
+    </g>
+  )
+}
+
+function Interieur({ decor }: { decor: Decor }) {
   switch (decor) {
     case 'camp':
       return (

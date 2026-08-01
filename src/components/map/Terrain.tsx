@@ -359,26 +359,36 @@ function HabitsSaison({ saison }: { saison: SaisonId }) {
   if (saison === 'hiver') {
     return (
       <g pointerEvents="none">
-        {/* congères : nappes de neige tassée, plus épaisses au nord de la carte */}
+        {/* congères : neige tassée, ourlée d'une ombre bleutée au sud-est pour
+            qu'elle se lise comme un relief et non comme une tache pâle */}
         {CONGERES.map((t, i) => (
           <g key={i}>
+            <ellipse
+              cx={t.x + t.rx * 0.1}
+              cy={t.y + t.ry * 0.5}
+              rx={t.rx * 1.02}
+              ry={t.ry * 0.9}
+              transform={`rotate(${t.r} ${t.x} ${t.y})`}
+              fill="#9db6cf"
+              opacity={0.3}
+            />
             <ellipse
               cx={t.x}
               cy={t.y}
               rx={t.rx}
               ry={t.ry}
               transform={`rotate(${t.r} ${t.x} ${t.y})`}
-              fill="#eef4f7"
-              opacity={0.62 - (t.y - 235) / 2400}
+              fill="#f4f9fc"
+              opacity={0.92 - (t.y - 235) / 3200}
             />
             <ellipse
               cx={t.x - t.rx * 0.18}
-              cy={t.y - t.ry * 0.3}
-              rx={t.rx * 0.62}
-              ry={t.ry * 0.6}
+              cy={t.y - t.ry * 0.34}
+              rx={t.rx * 0.6}
+              ry={t.ry * 0.55}
               transform={`rotate(${t.r} ${t.x} ${t.y})`}
-              fill="#fbfdff"
-              opacity={0.5}
+              fill="#ffffff"
+              opacity={0.75}
             />
           </g>
         ))}

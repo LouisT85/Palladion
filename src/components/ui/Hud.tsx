@@ -22,19 +22,38 @@ import { Infobulle } from './Infobulle'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
 
-/** contrôle de vitesse façon Sims — verrouillé à ×1 pendant les batailles */
+/**
+ * Contrôle de vitesse façon Sims — verrouillé à ×1 pendant les batailles.
+ *
+ * Il portait un `title` du navigateur là où tous ses voisins du bandeau (météo,
+ * saison, ambiance, menace) ont un encart mis en forme : c'était le seul jeton
+ * du haut qui n'expliquait rien correctement.
+ */
 export function ControleVitesse() {
   const vitesse = useGame((s) => s.vitesse)
   const setVitesse = useGame((s) => s.setVitesse)
   const enBataille = useGame((s) => s.battle !== null || (s.expedition !== null && s.expedition.result === null))
   return (
-    <span
-      data-tuto="vitesses"
+    <Infobulle
+      dataTuto="vitesses"
       className="vitesses"
-      title={
+      emoji={enBataille ? '⏸' : '⏩'}
+      titre={enBataille ? 'Temps verrouillé — bataille en cours' : `Vitesse du temps — ×${vitesse}`}
+      resume="Tout suit la même horloge : la production, les chantiers, la formation des recrues, le cycle du jour et des saisons… et le compte à rebours du prochain assaut."
+      lignes={[
+        { label: 'Vitesse actuelle', valeur: `×${enBataille ? 1 : vitesse}`, fort: true },
+        { label: 'Au clavier', valeur: '1 · 2 · 3 · 4' },
+        { label: 'Une journée', valeur: `${(8 / (enBataille ? 1 : vitesse)).toFixed(1)} min réelles` },
+        {
+          label: 'En bataille',
+          valeur: enBataille ? 'verrouillé ×1' : 'retour forcé en ×1',
+          couleur: enBataille ? '#d98a4e' : undefined,
+        },
+      ]}
+      note={
         enBataille
-          ? 'Vitesse ×1 pendant les batailles'
-          : 'Vitesse du jeu (touches 1–4) : production, chantiers, recrues, cycle du jour… et compte à rebours des attaques !'
+          ? '⏸ On ne double pas la vitesse d’un assaut : les dieux et les héros s’invoquent en temps réel.'
+          : '⚠️ Accélérer rapproche aussi l’ennemi. Bâtissez vite, mais regardez le compte à rebours.'
       }
     >
       <span className="ico">{enBataille ? '⏸' : '⏩'}</span>
@@ -48,7 +67,7 @@ export function ControleVitesse() {
           ×{v}
         </button>
       ))}
-    </span>
+    </Infobulle>
   )
 }
 

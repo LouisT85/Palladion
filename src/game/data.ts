@@ -207,8 +207,39 @@ export const PROD = {
   port: [0, 0.8, 1.5, 2.4, 3.6], // bronze (commerce)
 }
 
-/** taux d'échange au port : donner N ressources → recevoir 1 (index = niveau) */
-export const TAUX_PORT = [0, 4, 3, 2.5, 2]
+/*
+ * ── LE COMPTOIR D'ÉCHANGE ────────────────────────────────────────────────────
+ *
+ * L'ancien comptoir appliquait le MÊME taux à tout : 40 de n'importe quoi
+ * donnaient 10 de n'importe quoi d'autre. On y fabriquait donc du bronze avec
+ * du grain — la forge et le port devenaient inutiles, et l'inverse (40 bronze
+ * pour 10 bois) n'avait aucun sens pour le joueur.
+ *
+ * Le comptoir raisonne maintenant en VALEUR. La référence est le bois, qui
+ * sort le plus vite de terre (10/min au premier niveau) ; le bronze, quatre
+ * fois plus lent à produire, vaut quatre fois plus. La marge du comptoir est
+ * ce que les marchands prélèvent : écrasante au petit quai, honnête au port
+ * franc — améliorer le port change vraiment quelque chose.
+ */
+export const VALEUR_RES: Record<ResourceId, number> = {
+  bois: 1,
+  pierre: 1.25,
+  grain: 1,
+  bronze: 4,
+}
+
+/** marge prélevée par les marchands (index = niveau du port) */
+export const MARGE_PORT = [0, 1.7, 1.45, 1.28, 1.15]
+
+/** lot reçu à chaque échange — un chiffre rond, le joueur n'a rien à calculer */
+export const LOT_ECHANGE = 10
+
+/** ce que coûte un lot de `recevoir`, payé en `donner`, au port de ce niveau */
+export function coutEchange(niveau: number, donner: ResourceId, recevoir: ResourceId): number {
+  const marge = MARGE_PORT[niveau] ?? 0
+  if (marge === 0) return 0
+  return Math.ceil((LOT_ECHANGE * VALEUR_RES[recevoir] * marge) / VALEUR_RES[donner])
+}
 
 // ── Bâtiments ─────────────────────────────────────────────────────────────────
 export const BUILDINGS: Record<BuildingId, BuildingDef> = {

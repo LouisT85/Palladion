@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS } from '../../game/data'
+import { BUILDINGS, BUILDING_IDS, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
 import { candidatsPour, fmtDuree, metierDe, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
 import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
-import { PanneauPopulation, couleurRendement } from './Population'
+import { couleurRendement } from './Population'
 
 function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, number>>; resources: Record<ResourceId, number> }) {
   return (
@@ -265,53 +265,80 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
   )
 }
 
+/**
+ * Le comptoir d'échange.
+ *
+ * Deux défauts corrigés d'un coup. Le premier était visuel : le bouton alignait
+ * ses pictogrammes en flux de texte, et comme l'icône était un bloc, la ligne se
+ * cassait — on lisait « −40 » puis « → +10 » sur trois lignes, les images
+ * perdues dans l'or du bouton. Le second était de règle : le même taux
+ * s'appliquait à tout, donc 40 de grain donnaient 10 de bronze. Le comptoir
+ * échange maintenant à la VALEUR, et la marge du port se resserre à chaque
+ * niveau — c'est ce qui rend le port franc désirable.
+ */
 function BlocPort() {
   const s = useGame()
   const [donner, setDonner] = useState<ResourceId>('bois')
   const [recevoir, setRecevoir] = useState<ResourceId>('bronze')
   const niveau = s.buildings.port.level
   if (niveau === 0) return null
-  const taux = TAUX_PORT[niveau]
-  const coutDonne = Math.round(taux * 10)
+  const marge = MARGE_PORT[niveau]
+  const coutDonne = coutEchange(niveau, donner, recevoir)
+  const memeRes = donner === recevoir
+  const assez = s.resources[donner] >= coutDonne
+  const choix = (
+    actuel: ResourceId,
+    poser: (r: ResourceId) => void,
+    interdit: ResourceId,
+  ) => (
+    <span className="troc-choix">
+      {(Object.keys(RES) as ResourceId[]).map((r) => (
+        <button
+          key={r}
+          className={`troc-jeton${actuel === r ? ' actif' : ''}`}
+          disabled={r === interdit}
+          onClick={() => poser(r)}
+          title={r === interdit ? 'Déjà de l’autre côté du troc' : RES[r].nom}
+          aria-label={RES[r].nom}
+        >
+          <Icone id={r} taille={17} />
+        </button>
+      ))}
+    </span>
+  )
+
   return (
     <div className="bloc">
-      <h3>Comptoir d’échange ({taux}:1)</h3>
-      <div className="ligne">
-        <span>Donner :</span>
-        <span>
-          {(Object.keys(RES) as ResourceId[]).map((r) => (
-            <button
-              key={r}
-              style={{ padding: '2px 7px', marginLeft: 3, borderColor: donner === r ? '#e8c04a' : undefined }}
-              onClick={() => setDonner(r)}
-            >
-              <Icone id={r} taille={16} />
-            </button>
-          ))}
-        </span>
+      <h3>⚓ Comptoir d’échange</h3>
+      <div className="desc" style={{ fontSize: 12, color: '#93a7b4', marginBottom: 7 }}>
+        Les marchands prélèvent <b style={{ color: '#d98a4e' }}>+{Math.round((marge - 1) * 100)} %</b> sur la valeur
+        échangée. Le bronze vaut quatre charretées de bois, la pierre un peu plus qu’une : le comptoir compte en valeur,
+        pas en tas.
       </div>
-      <div className="ligne">
-        <span>Recevoir :</span>
-        <span>
-          {(Object.keys(RES) as ResourceId[]).map((r) => (
-            <button
-              key={r}
-              style={{ padding: '2px 7px', marginLeft: 3, borderColor: recevoir === r ? '#e8c04a' : undefined }}
-              onClick={() => setRecevoir(r)}
-            >
-              <Icone id={r} taille={16} />
-            </button>
-          ))}
+      <div className="troc-ligne">
+        <span className="troc-label">Je donne</span>
+        {choix(donner, setDonner, recevoir)}
+      </div>
+      <div className="troc-ligne">
+        <span className="troc-label">Je reçois</span>
+        {choix(recevoir, setRecevoir, donner)}
+      </div>
+      <div className="troc-bilan">
+        <span className="troc-part perte">
+          −{coutDonne} <Icone id={donner} taille={18} />
+        </span>
+        <span className="troc-fleche">→</span>
+        <span className="troc-part gain">
+          +{LOT_ECHANGE} <Icone id={recevoir} taille={18} />
         </span>
       </div>
       <button
         className="principal"
-        style={{ width: '100%', marginTop: 6 }}
-        disabled={donner === recevoir || s.resources[donner] < coutDonne}
+        style={{ width: '100%', marginTop: 8 }}
+        disabled={memeRes || !assez}
         onClick={() => s.echanger(donner, recevoir)}
       >
-        <span className="montant">−{coutDonne}</span> <Icone id={donner} taille={15} /> → <span className="montant">+10</span>{' '}
-        <Icone id={recevoir} taille={15} />
+        {memeRes ? 'Choisissez deux ressources' : assez ? 'Conclure le marché' : `Il manque ${Math.ceil(coutDonne - s.resources[donner])} ${RES[donner].nom.toLowerCase()}`}
       </button>
     </div>
   )
@@ -395,8 +422,6 @@ function BlocTours() {
 
 export function PanneauBatiment() {
   const s = useGame()
-  // le store ne connaît pas de panneau « population » : on l'ouvre en local
-  const [habitantsOuverts, setHabitantsOuverts] = useState(false)
   const id = s.selected
   if (!id) return null
   const def = BUILDINGS[id]
@@ -407,11 +432,12 @@ export function PanneauBatiment() {
   const agoraOk = id === 'agora' || cible <= s.buildings.agora.level
   const chantiers = BUILDING_IDS.filter((x) => s.buildings[x].targetLevel !== undefined).length
 
-  const voirHabitants = () => setHabitantsOuverts(true)
+  // le recensement vit dans le store : la leçon de Zeus et les missions doivent
+  // pouvoir l'ouvrir et le refermer sans passer par ce panneau
+  const voirHabitants = () => s.ouvrirRecensement(true)
 
   return (
     <aside className="panneau" data-tuto="panneau">
-      {habitantsOuverts && <PanneauPopulation onFermer={() => setHabitantsOuverts(false)} />}
       <button className="fermer" onClick={() => s.select(null)} aria-label="Fermer">
         ✕
       </button>

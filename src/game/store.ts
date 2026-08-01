@@ -33,7 +33,8 @@ import {
   palierFerveur,
   STOCKAGE,
   STORAGE_KEY,
-  TAUX_PORT,
+  coutEchange,
+  LOT_ECHANGE,
   TOURS_MAX,
   TOUR_COUTS,
   UNITS,
@@ -1955,16 +1956,21 @@ export const useGame = create<GameState>()(
       set((s) => {
         const niveau = s.buildings.port.level
         if (niveau < 1 || donner === recevoir) return
-        const taux = TAUX_PORT[niveau]
-        const coutDonne = Math.round(taux * 10)
+        // le comptoir échange à la valeur, marge du port comprise
+        const coutDonne = coutEchange(niveau, donner, recevoir)
         const cout: Partial<Record<ResourceId, number>> = {}
         cout[donner] = coutDonne
+        // entrepôt plein : on refuse AVANT d'encaisser, sinon le joueur paie pour rien
+        if (s.resources[recevoir] >= stockageMax(s)) {
+          pushToast(s, '📦', `L’entrepôt est plein de ${RES[recevoir].nom.toLowerCase()} : agrandissez l’Agora.`)
+          return
+        }
         if (!payer(s, cout)) {
           pushToast(s, '❌', `Il faut ${coutDonne} ${RES[donner].emoji} pour cet échange.`)
           return
         }
-        s.resources[recevoir] = clampRes(s, recevoir, s.resources[recevoir] + 10)
-        pushToast(s, '⚓', `Échange : −${coutDonne} ${RES[donner].emoji} → +10 ${RES[recevoir].emoji}`)
+        s.resources[recevoir] = clampRes(s, recevoir, s.resources[recevoir] + LOT_ECHANGE)
+        pushToast(s, '⚓', `Échange : −${coutDonne} ${RES[donner].emoji} → +${LOT_ECHANGE} ${RES[recevoir].emoji}`)
       })
     },
 

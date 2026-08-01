@@ -211,7 +211,7 @@ export function PanneauHeros() {
 
   return (
     <div className="voile" onClick={() => s.openPanel(null)}>
-      <div className="modale large" onClick={(e) => e.stopPropagation()}>
+      <div className="modale large" data-tuto="modale-heros" onClick={(e) => e.stopPropagation()}>
         <h2>🛡️ Les héros de la matière troyenne</h2>
         <div style={{ color: '#93a7b4', fontSize: 13, lineHeight: 1.45 }}>
           Ils ne s’achètent pas : ils viennent quand la cité en est digne, exigent des honneurs chaque minute, gagnent

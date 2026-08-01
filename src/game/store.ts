@@ -99,7 +99,7 @@ import {
 } from './heros'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives } from './missions'
-import { ETAPES, NB_ETAPES, type SnapTuto } from './tutoriel'
+import { NB_ETAPES, type SnapTuto } from './tutoriel'
 import {
   BONUS_ORAGE_ZEUS,
   DUREE_METEO_MS,
@@ -243,6 +243,12 @@ export interface GameState {
   toasts: Toast[]
   selected: BuildingId | null
   panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | 'hauts-faits' | null
+  /**
+   * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
+   * dans le store et non dans le HUD : le tutoriel doit pouvoir le refermer
+   * entre deux étapes, sinon il reste en travers de la cible suivante.
+   */
+  popOuvert: boolean
 
   // actions
   init: () => void
@@ -277,6 +283,7 @@ export interface GameState {
   reclamerMission: (id: string) => void
   select: (b: BuildingId | null) => void
   openPanel: (p: GameState['panel']) => void
+  ouvrirRecensement: (v: boolean) => void
   fermerOffline: () => void
   fermerBattleReport: () => void
   fermerVictoire: () => void
@@ -720,6 +727,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     toasts: [],
     selected: null,
     panel: null,
+    popOuvert: false,
   }
 }
 type ActionsOnly = {
@@ -754,6 +762,7 @@ type ActionsOnly = {
   reclamerMission: unknown
   select: unknown
   openPanel: unknown
+  ouvrirRecensement: unknown
   fermerOffline: unknown
   fermerBattleReport: unknown
   fermerVictoire: unknown
@@ -1492,6 +1501,9 @@ export const useGame = create<GameState>()(
             for (const v of s.villageois) {
               if (!v.metier) v.metier = v.poste ?? tirerMetier()
             }
+            // une partie reprise qui n'est pas en pleine leçon a déjà commencé :
+            // les dilemmes doivent pouvoir tomber, même sur une vieille sauvegarde
+            if (s.tutoriel === null) s.tutorialDone = true
             // sauvegardes antérieures aux héros : on complète les champs manquants
             // sans jamais écraser ce qui a déjà été joué
             s.heros = Object.fromEntries(
@@ -1764,6 +1776,7 @@ export const useGame = create<GameState>()(
           !s.arcHeros &&
           !s.battle &&
           !s.expedition &&
+          s.tutoriel === null &&
           s.tutorialDone &&
           now - s.lastEventAt > 60_000
         ) {
@@ -2446,9 +2459,15 @@ export const useGame = create<GameState>()(
           return
         }
         s.tutoriel = suivant
-        // l'étape suivante s'explique à découvert : on referme ce qui traîne
-        // on referme les panneaux, sauf quand l'étape suivante en ouvre un elle-même
-        if (!ETAPES[suivant].cibles?.some((c) => c.startsWith('bouton-'))) s.panel = null
+        /*
+         * On referme TOUT ce qui pourrait couvrir la cible suivante : modale,
+         * panneau de bâtiment, recensement. C'était le défaut le plus pénible
+         * de la première version — le recensement restait en travers de l'étape
+         * des remparts, et la leçon devenait injouable.
+         */
+        s.panel = null
+        s.selected = null
+        s.popOuvert = false
         s.nextAttackAt = Math.max(s.nextAttackAt, Date.now() + 4 * 60_000)
       })
       get().save()
@@ -2520,12 +2539,14 @@ export const useGame = create<GameState>()(
     },
 
     select: (b) => set((s) => void (s.selected = b)),
-    openPanel: (p) =>
-      set((s) => {
-        s.panel = p
-        if (p === 'aide') return
-        if (!s.tutorialDone) s.tutorialDone = true
-      }),
+    ouvrirRecensement: (v) => set((s) => void (s.popOuvert = v)),
+    /*
+     * Ouvrir un panneau n'a plus d'effet de bord sur `tutorialDone` : ce drapeau
+     * appartient désormais à la leçon de Zeus. Le lever ici rallumait les
+     * dilemmes EN PLEINE leçon — et une modale d'événement se plantait en
+     * travers de l'étape suivante.
+     */
+    openPanel: (p) => set((s) => void (s.panel = p)),
     fermerOffline: () => set((s) => void (s.offlineSummary = null)),
     fermerBattleReport: () => set((s) => void (s.battleReport = null)),
     fermerVictoire: () => set((s) => void (s.victoire = null)),

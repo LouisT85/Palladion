@@ -20,7 +20,7 @@ Zéro image, zéro son téléchargé : **tout est dessiné et synthétisé par l
 
 ### ⚡ Zeus vous prend par la main
 La première partie ne commence pas par un pavé d'aide : le maître de l'Olympe
-descend et fait la leçon lui-même, en quatorze étapes. À chaque fois, tout
+descend et fait la leçon lui-même, en quinze étapes. À chaque fois, tout
 l'écran s'éteint **sauf ce qu'il faut toucher** — et il ne suffit pas de cliquer
 « suivant » : les étapes qui comptent exigent le geste. Bâtir la ferme, y placer
 un paysan, dresser l'enceinte, ouvrir le temple. On ne peut ni se perdre, ni
@@ -187,7 +187,7 @@ tout, avec retour automatique en ×1 pendant les batailles. Et la carte se manip
   structure et sa propre brèche
 - **8 héros** avec passif, capacité active, niveaux 1→5, entretien et arc narratif mortel —
   visibles sur la carte du village et combattants au premier rang
-- **Tutoriel scénarisé** en 14 étapes à focus verrouillé, rejouable depuis l'aide
+- **Tutoriel scénarisé** en 15 étapes à focus verrouillé, rejouable depuis l'aide
 - **Campagne** : 8 villages à piller ou à secourir, étoiles, butin dégressif, garnisons qui
   se renforcent, alliances à tribut — le moteur de bataille est le même en attaque et en défense
 - **4 saisons × 6 météos** pesant sur la récolte, la portée, l'allure et l'alerte

@@ -125,8 +125,8 @@ const DESC_RES: Record<ResourceId, string> = {
 
 export function BarreRessources() {
   const s = useGame()
-  // la liste des habitants n'appartient pas à la partie : simple état d'affichage
-  const [popOuvert, setPopOuvert] = useState(false)
+  // ouvert/fermé vit dans le store : le tutoriel doit pouvoir le refermer
+  const popOuvert = s.popOuvert
   const taux = tauxParMinute(s)
   const stock = stockageMax(s)
   const cap = popCap(s)
@@ -249,7 +249,7 @@ export function BarreRessources() {
               : 'Cliquez pour ouvrir le recensement du village.'
           }
         >
-          <button className="pastille" onClick={() => setPopOuvert(true)}>
+          <button className="pastille" onClick={() => s.ouvrirRecensement(true)}>
             👥<span className="opt">Habitants</span> <b>{s.pop}</b>/{cap}
             <span className={`oisifs${sansEmploi === 0 ? ' zero' : ''}`}>
               ({sansEmploi} oisif{sansEmploi > 1 ? 's' : ''})
@@ -362,7 +362,7 @@ export function BarreRessources() {
         </Infobulle>
         <ControleVitesse />
       </div>
-      {popOuvert && <PanneauPopulation onFermer={() => setPopOuvert(false)} />}
+      {popOuvert && <PanneauPopulation onFermer={() => s.ouvrirRecensement(false)} />}
     </>
   )
 }

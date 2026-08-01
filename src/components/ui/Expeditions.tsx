@@ -156,7 +156,7 @@ export function PanneauExpeditions() {
 
   return (
     <div className="voile" onClick={() => s.openPanel(null)}>
-      <div className="modale large" onClick={(e) => e.stopPropagation()}>
+      <div className="modale large" data-tuto="modale-expeditions" onClick={(e) => e.stopPropagation()}>
         <h2>🗺️ Expéditions — la Troade à feu et à sang</h2>
         <div style={{ color: '#93a7b4', fontSize: 13, marginBottom: 4 }}>
           Envoyez vos troupes piller les places fortes de la région — ou les sauver. Moins de pertes = plus d’étoiles.{' '}

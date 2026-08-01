@@ -32,7 +32,7 @@ et d'**impact joueur** (★ à ★★★). Les lots livrés sont conservés pour
 
 | Sujet | Ce qui a été fait |
 |---|---|
-| Tutoriel scénarisé | Zeus descend en personne : 14 étapes, portrait dessiné en SVG (aucune image chargée), focus verrouillé par masque à plusieurs trous + interception des clics en phase de capture. Les étapes clés exigent le **geste** (bâtir, affecter, ouvrir) et se valident seules ; « Passer la leçon » reste possible, et l'aide la rejoue. |
+| Tutoriel scénarisé | Zeus descend en personne : 15 étapes, portrait dessiné en SVG (aucune image chargée), focus verrouillé par masque à plusieurs trous + interception des clics en phase de capture. Les étapes clés exigent le **geste** (bâtir, affecter, ouvrir) et se valident seules ; « Passer la leçon » reste possible, et l'aide la rejoue. |
 | Encarts au survol | Le `title` du navigateur remplacé par un vrai composant : titre, résumé, chiffres alignés (saison × météo × ambiance) et avertissement contextuel. |
 | Musique du village | La paix était en mode phrygien — la seconde mineure met l'oreille en alerte. Remplacée par une pentatonique majeure à 0,95 s/temps, flûte + lyre en alternance, neuf silences sur vingt-quatre temps, bourdon grave. L'alerte garde le phrygien : là, c'est voulu. |
 | Métiers et assignation manuelle | Chaque habitant naît d'un métier ; il rend 55 % ailleurs. L'affectation automatique en fin de chantier est supprimée, le bouton « tous au travail » aussi. Un écriteau sur la carte signale l'atelier à vide. |

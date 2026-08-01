@@ -51,6 +51,13 @@ export interface EtapeTuto {
    */
   ordre?: string
   fait?: (s: SnapTuto) => boolean
+  /**
+   * Variante « ouvre, regarde, referme » pour les grands panneaux. On ne peut
+   * pas se contenter de valider à l'ouverture : l'étape suivante refermerait le
+   * panneau au quart de seconde, et le joueur n'aurait rien vu. On attend donc
+   * qu'il l'ait ouvert PUIS refermé lui-même.
+   */
+  voir?: 'pantheon' | 'expeditions' | 'heros'
 }
 
 const enChantier = (s: SnapTuto, b: BuildingId): boolean =>
@@ -101,14 +108,27 @@ export const ETAPES: EtapeTuto[] = [
     fait: (s) => enChantier(s, 'ferme'),
   },
   {
+    id: 'chantier',
+    titre: 'Le temps des bâtisseurs',
+    texte: [
+      'Rien ne se bâtit d’un claquement de doigts. Tes ouvriers y sont, la barre au-dessus du chantier dit où ils en sont. Deux chantiers de front, pas plus.',
+      'Tu n’as pas à regarder pousser les murs : presse le temps. **×2, ×4, ×8** — ou les touches 1 à 4. Tout accélère, la production comme les assauts.',
+      'Fais-le maintenant, et attends que le champ sorte de terre.',
+    ],
+    cibles: ['vitesses', 'carte-ferme'],
+    place: 'bas',
+    ordre: 'Accélérez le temps et laissez le chantier s’achever',
+    fait: (s) => s.buildings.ferme.level >= 1,
+  },
+  {
     id: 'metiers',
     titre: 'Un atelier sans bras ne rend rien',
     texte: [
-      'Tu croyais qu’une ferme se cultive toute seule ? Chacun de tes habitants est né avec un métier : paysan, bûcheron, tailleur de pierre, forgeron, prêtre, docker.',
-      'À son métier, il donne tout. Ailleurs, il fait ce qu’il peut — un peu plus de la moitié. Personne ne prend son poste sans qu’on le lui dise : c’est ton travail.',
-      'Ouvre le recensement et envoie quelqu’un à la ferme. Un paysan, si tu en as un.',
+      'Tu croyais qu’un champ se cultive tout seul ? Chacun de tes habitants est né avec un métier : paysan, bûcheron, tailleur de pierre, forgeron, prêtre, docker.',
+      'À son métier, il donne tout. Ailleurs, il fait ce qu’il peut — un peu plus de la moitié. Et **personne ne prend son poste sans qu’on le lui dise** : c’est ton travail, pas le mien.',
+      'Ouvre le recensement et envoie quelqu’un à la ferme. Un paysan, si le sort t’en a donné un.',
     ],
-    cibles: ['habitants', 'recensement', 'panneau'],
+    cibles: ['habitants', 'recensement'],
     place: 'bas',
     ordre: 'Ouvrez « Habitants » et affectez quelqu’un à la ferme',
     fait: (s) => s.villageois.some((v) => v.poste === 'ferme'),
@@ -130,14 +150,12 @@ export const ETAPES: EtapeTuto[] = [
     id: 'caserne',
     titre: 'Une lance, un homme en moins aux champs',
     texte: [
-      'Retiens bien ceci : **un soldat est un villageois en moins**. Il quitte l’atelier, il ne produit plus, et il mange le double.',
+      'Là, sur la carte, l’emplacement de la caserne. Tu la bâtiras quand ton bois le permettra — mais retiens d’abord la règle.',
+      '**Un soldat est un villageois en moins.** Il quitte l’atelier, il ne produit plus, et il mange le double.',
       'Une armée trop grosse affame la cité qu’elle protège. C’est le premier arbitrage d’un chef, et le plus mal compris.',
-      'Bâtis la caserne — tu enrôleras quand tu auras des bras à perdre.',
     ],
-    cibles: ['carte-caserne', 'panneau'],
+    cibles: ['carte-caserne'],
     place: 'gauche',
-    ordre: 'Cliquez la caserne sur la carte, puis « Lancer la construction »',
-    fait: (s) => enChantier(s, 'caserne'),
   },
   {
     id: 'assaut',
@@ -159,10 +177,10 @@ export const ETAPES: EtapeTuto[] = [
       'La **faveur** paie nos bénédictions. La **relation** en fixe la force : de la moitié pour qui nous offense au double pour notre élu. Et un dieu offensé le montre — sa foudre n’atteint même plus le sol.',
       'Ouvre le panthéon. Regarde à quoi ressemble ma main quand elle est contente de toi.',
     ],
-    cibles: ['bouton-pantheon'],
+    cibles: ['bouton-pantheon', 'modale-pantheon'],
     place: 'bas',
-    ordre: 'Ouvrez le Panthéon',
-    fait: (s) => s.panel === 'pantheon',
+    ordre: 'Ouvrez le Panthéon — puis refermez-le quand vous aurez vu',
+    voir: 'pantheon',
   },
   {
     id: 'expeditions',
@@ -172,10 +190,10 @@ export const ETAPES: EtapeTuto[] = [
       'Ou les **secourir** quand elles appellent. Rien à rafler, des hommes à perdre pour rien — mais un allié qui paiera tribut et enverra ses lances mourir sur tes murs à ta place.',
       'La richesse ou le réseau. Choisis souvent, tu verras ce que tu es.',
     ],
-    cibles: ['bouton-expeditions'],
+    cibles: ['bouton-expeditions', 'modale-expeditions'],
     place: 'bas',
-    ordre: 'Ouvrez la carte des expéditions',
-    fait: (s) => s.panel === 'expeditions',
+    ordre: 'Ouvrez la carte des expéditions — puis refermez-la',
+    voir: 'expeditions',
   },
   {
     id: 'heros',
@@ -185,10 +203,10 @@ export const ETAPES: EtapeTuto[] = [
       'Ils mangent chaque minute, ils exigent des honneurs, et ils s’en vont si tu les ignores trois fois. En échange, ils se battent au premier rang de tes lignes.',
       'Et chacun traverse une histoire dont certaines fins sont sans retour. Achille peut mourir sous tes yeux. Ne l’oublie pas au moment de choisir.',
     ],
-    cibles: ['bouton-heros'],
+    cibles: ['bouton-heros', 'modale-heros'],
     place: 'bas',
-    ordre: 'Ouvrez le panneau des héros',
-    fait: (s) => s.panel === 'heros',
+    ordre: 'Ouvrez le panneau des héros — puis refermez-le',
+    voir: 'heros',
   },
   {
     id: 'missions',

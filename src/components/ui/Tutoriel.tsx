@@ -49,31 +49,68 @@ function memeCadres(a: Cadre[], b: Cadre[]): boolean {
   return a.every((c, i) => Math.abs(c.x - b[i].x) < 0.5 && Math.abs(c.y - b[i].y) < 0.5 && c.w === b[i].w && c.h === b[i].h)
 }
 
-/** où poser l'encart pour qu'il ne recouvre ni la cible ni le bord de l'écran */
-function placerCarte(c: Cadre | undefined, place: PlaceCarte | undefined, taille: { w: number; h: number }) {
+/** aire commune à deux rectangles — 0 s'ils ne se touchent pas */
+function recouvrement(a: Cadre, b: Cadre): number {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
+  return w > 0 && h > 0 ? w * h : 0
+}
+
+/**
+ * Où poser l'encart de Zeus.
+ *
+ * `place` n'est qu'une PRÉFÉRENCE : on essaie plusieurs positions et on garde
+ * la première qui ne recouvre AUCUNE cible. Sans cela, l'encart se mettait en
+ * travers du bouton à cliquer — au recensement, il masquait précisément la
+ * ligne « + Danaé » qu'il demandait d'actionner, et la leçon était bloquée.
+ */
+function placerCarte(cadres: Cadre[], place: PlaceCarte | undefined, taille: { w: number; h: number }) {
   const vw = window.innerWidth
   const vh = window.innerHeight
-  if (!c || place === 'centre') {
-    return { left: (vw - taille.w) / 2, top: Math.max(20, (vh - taille.h) / 2) }
-  }
   const marge = 18
-  let left = c.x + c.w / 2 - taille.w / 2
-  let top = c.y + c.h + marge
-  if (place === 'haut') top = c.y - taille.h - marge
-  if (place === 'gauche') {
-    left = c.x - taille.w - marge
-    top = c.y + c.h / 2 - taille.h / 2
+  const bord = 12
+  const centre = { left: (vw - taille.w) / 2, top: Math.max(bord, (vh - taille.h) / 2) }
+  if (cadres.length === 0 || place === 'centre') return centre
+
+  // enveloppe de toutes les cibles : c'est d'elle qu'on s'écarte
+  const x0 = Math.min(...cadres.map((c) => c.x))
+  const y0 = Math.min(...cadres.map((c) => c.y))
+  const x1 = Math.max(...cadres.map((c) => c.x + c.w))
+  const y1 = Math.max(...cadres.map((c) => c.y + c.h))
+  const union: Cadre = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+
+  const clamp = (p: { left: number; top: number }) => ({
+    left: Math.max(bord, Math.min(vw - taille.w - bord, p.left)),
+    top: Math.max(bord, Math.min(vh - taille.h - bord, p.top)),
+  })
+  const relatif = (p: PlaceCarte) => {
+    if (p === 'haut') return { left: union.x + union.w / 2 - taille.w / 2, top: union.y - taille.h - marge }
+    if (p === 'gauche') return { left: union.x - taille.w - marge, top: union.y + union.h / 2 - taille.h / 2 }
+    if (p === 'droite') return { left: union.x + union.w + marge, top: union.y + union.h / 2 - taille.h / 2 }
+    return { left: union.x + union.w / 2 - taille.w / 2, top: union.y + union.h + marge }
   }
-  if (place === 'droite') {
-    left = c.x + c.w + marge
-    top = c.y + c.h / 2 - taille.h / 2
+
+  // la place demandée d'abord, puis les autres, puis les quatre coins
+  const candidats = [
+    ...([place ?? 'bas', 'bas', 'haut', 'droite', 'gauche'] as PlaceCarte[]).map(relatif),
+    { left: bord, top: vh - taille.h - bord },
+    { left: vw - taille.w - bord, top: vh - taille.h - bord },
+    { left: bord, top: bord },
+    { left: vw - taille.w - bord, top: bord },
+  ].map(clamp)
+
+  let meilleur = candidats[0]
+  let pire = Infinity
+  for (const c of candidats) {
+    const rect: Cadre = { x: c.left, y: c.top, w: taille.w, h: taille.h }
+    const chevauche = cadres.reduce((a, t) => a + recouvrement(rect, t), 0)
+    if (chevauche === 0) return c
+    if (chevauche < pire) {
+      pire = chevauche
+      meilleur = c
+    }
   }
-  // si ça déborde en bas, on bascule au-dessus de la cible plutôt que hors écran
-  if (top + taille.h > vh - 12) top = Math.max(12, c.y - taille.h - marge)
-  return {
-    left: Math.max(12, Math.min(vw - taille.w - 12, left)),
-    top: Math.max(12, Math.min(vh - taille.h - 12, top)),
-  }
+  return meilleur
 }
 
 export function Tutoriel() {
@@ -111,7 +148,7 @@ export function Tutoriel() {
     if (!etape) return
     const el = carte.current
     if (!el) return
-    setPos(placerCarte(cadres[0], etape.place, { w: el.offsetWidth, h: el.offsetHeight }))
+    setPos(placerCarte(cadres, etape.place, { w: el.offsetWidth, h: el.offsetHeight }))
   }, [etape, cadres])
 
   /*
@@ -141,18 +178,34 @@ export function Tutoriel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etape])
 
-  // geste attendu : on relit l'état du jeu et on avance dès qu'il est accompli
+  /*
+   * Geste attendu. Deux régimes :
+   *  · `fait` — une condition sur l'état du jeu, relue quatre fois par seconde ;
+   *  · `voir` — le joueur doit avoir OUVERT le panneau puis l'avoir REFERMÉ.
+   *    Sans le second temps, l'étape se validerait à l'ouverture et la suivante
+   *    refermerait le panneau au quart de seconde : rien à voir, leçon perdue.
+   */
+  const dejaVu = useRef(false)
   useEffect(() => {
-    if (!etape?.fait) return
-    const test = etape.fait
+    dejaVu.current = false
+  }, [etape])
+
+  useEffect(() => {
+    if (!etape || (!etape.fait && !etape.voir)) return
     const id = window.setInterval(() => {
-      if (test(snapTuto(useGame.getState()))) suivant()
+      const st = useGame.getState()
+      if (etape.voir) {
+        if (st.panel === etape.voir) dejaVu.current = true
+        else if (dejaVu.current && st.panel === null) suivant()
+        return
+      }
+      if (etape.fait?.(snapTuto(st))) suivant()
     }, 250)
     return () => clearInterval(id)
   }, [etape, suivant])
 
   if (!etape || etapeIdx === null) return null
-  const attend = !!etape.fait
+  const attend = !!etape.fait || !!etape.voir
 
   return (
     <div className="tuto">

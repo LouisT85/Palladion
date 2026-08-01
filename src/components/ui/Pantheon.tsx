@@ -107,7 +107,7 @@ export function Pantheon() {
 
   return (
     <div className="voile" onClick={() => s.openPanel(null)}>
-      <div className="modale" onClick={(e) => e.stopPropagation()}>
+      <div className="modale" data-tuto="modale-pantheon" onClick={(e) => e.stopPropagation()}>
         <h2>⚡ Le Panthéon</h2>
         <div style={{ color: '#93a7b4', fontSize: 13 }}>
           Faveur : <b style={{ color: '#e8c04a' }}>{Math.floor(s.faveur)}</b>/100 — la faveur paie les bénédictions, la{' '}

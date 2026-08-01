@@ -390,7 +390,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(3, 'Un suppliant protégé', 6 * MIN)
               return [
                 'Le fugitif dort dans la réserve à grain et travaille comme dix.',
-                'Trois jours après, un intendant achéen le cherche : trente lingots achètent sa mauvaise vue. (+1 population, −30 🥉, Zeus +10)',
+                'Trois jours après, un intendant achéen le cherche : trente lingots achètent sa mauvaise vue. (+1 population, −30 🪙, Zeus +10)',
               ]
             },
           },
@@ -435,7 +435,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-6, 'Un suppliant livré', 8 * MIN)
               return [
                 'On le rend lié. L’intendant paie sans un mot et note votre nom sur une tablette.',
-                'Le village regarde ailleurs. (+45 🥉, Zeus −16, ambiance −6)',
+                'Le village regarde ailleurs. (+45 🪙, Zeus −16, ambiance −6)',
               ]
             },
           },
@@ -448,7 +448,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-9, 'La honte du marché', 10 * MIN)
               return [
                 'L’intendant surenchérit : le garçon savait lire les comptes du camp, il valait cher.',
-                'Le prix reçu est excellent ; l’odeur qu’il laisse, moins. (+60 🥉, Zeus −20, Athéna −5, ambiance −9)',
+                'Le prix reçu est excellent ; l’odeur qu’il laisse, moins. (+60 🪙, Zeus −20, Athéna −5, ambiance −9)',
               ]
             },
           },
@@ -526,7 +526,7 @@ export const EVENTS: EventDef[] = [
         ],
       }),
       choix({
-        label: 'Lui commander la geste de vos ancêtres (−15 🥉)',
+        label: 'Lui commander la geste de vos ancêtres (−15 🪙)',
         cout: { bronze: 15 },
         issues: [
           {
@@ -581,7 +581,7 @@ export const EVENTS: EventDef[] = [
     cooldown: 11 * MIN,
     choices: [
       choix({
-        label: 'Imposer le prix du sang (−40 🥉 du trésor)',
+        label: 'Imposer le prix du sang (−40 🪙 du trésor)',
         cout: { bronze: 40 },
         issues: [
           {
@@ -906,7 +906,7 @@ export const EVENTS: EventDef[] = [
     cooldown: 9 * MIN,
     choices: [
       choix({
-        label: 'Doter le couple (−50 🌾, −20 🥉)',
+        label: 'Doter le couple (−50 🌾, −20 🪙)',
         cout: { grain: 50, bronze: 20 },
         issues: [
           {
@@ -1069,7 +1069,7 @@ export const EVENTS: EventDef[] = [
               ctx.add('bronze', 15)
               return [
                 'En creusant, on trouve dans l’ancienne fosse une pointe de lance de bronze vert-de-gris, du temps de la fondation.',
-                'On la scelle dans le mur du tombeau — après en avoir fondu la moitié. (+15 🥉, Athéna +7, ambiance +9)',
+                'On la scelle dans le mur du tombeau — après en avoir fondu la moitié. (+15 🪙, Athéna +7, ambiance +9)',
               ]
             },
           },
@@ -1115,7 +1115,7 @@ export const EVENTS: EventDef[] = [
     cooldown: 12 * MIN,
     choices: [
       choix({
-        label: 'Accueillir les jeux (−50 🌾, −20 🥉)',
+        label: 'Accueillir les jeux (−50 🌾, −20 🪙)',
         cout: { grain: 50, bronze: 20 },
         issues: [
           {
@@ -1638,7 +1638,7 @@ export const EVENTS: EventDef[] = [
               ctx.add('bronze', -25)
               return [
                 'Trois jours après, un prêtre de Poséidon arrive, furieux : la bête était consacrée à l’Ébranleur.',
-                'On l’apaise avec du métal, faute de pouvoir lui rendre son taureau. (Zeus +18, Poséidon −12, −25 🥉)',
+                'On l’apaise avec du métal, faute de pouvoir lui rendre son taureau. (Zeus +18, Poséidon −12, −25 🪙)',
               ]
             },
           },
@@ -1698,7 +1698,7 @@ export const EVENTS: EventDef[] = [
               ctx.add('grain', -25)
               return [
                 'Un éleveur de la côte arrive au sixième jour, reconnaît sa bête et laisse vingt lingots pour la garde.',
-                'Entre-temps, le taureau a mangé le quart d’un champ. (+20 🥉, −25 🌾, Zeus +8)',
+                'Entre-temps, le taureau a mangé le quart d’un champ. (+20 🪙, −25 🌾, Zeus +8)',
               ]
             },
           },
@@ -1728,7 +1728,7 @@ export const EVENTS: EventDef[] = [
     cooldown: 10 * MIN,
     choices: [
       choix({
-        label: 'Acheter le remède (−30 🥉)',
+        label: 'Acheter le remède (−30 🪙)',
         cout: { bronze: 30 },
         issues: [
           {
@@ -2407,7 +2407,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-3, 'Le grain qui s’en va', 7 * MIN)
               return [
                 'Deux navires chargent jusqu’au plat-bord. Le bronze rentre, le grain part.',
-                'Les femmes regardent partir les sacs sans rien dire. (+70 🥉, ambiance −3)',
+                'Les femmes regardent partir les sacs sans rien dire. (+70 🪙, ambiance −3)',
               ]
             },
           },
@@ -2419,7 +2419,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-5, 'Marché de dupes', 8 * MIN)
               return [
                 'Le facteur phénicien pèse avec ses propres pierres, et ses pierres sont légères.',
-                'On a vendu la moisson du siècle pour une poignée de lingots. (+40 🥉, ambiance −5)',
+                'On a vendu la moisson du siècle pour une poignée de lingots. (+40 🪙, ambiance −5)',
               ]
             },
           },
@@ -2431,7 +2431,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-6, 'Les greniers vides et le coffre plein', 9 * MIN)
               return [
                 'La sécheresse a frappé toute la côte : votre orge se vend au prix du métal.',
-                'Le coffre est lourd. Les greniers sonnent creux, et cela s’entend. (+115 🥉, ambiance −6)',
+                'Le coffre est lourd. Les greniers sonnent creux, et cela s’entend. (+115 🪙, ambiance −6)',
               ]
             },
           },
@@ -2490,7 +2490,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-5, 'Le forgeron humilié', 8 * MIN)
               return [
                 'Straton refait la fournée sous les yeux du village, la joue enflée et les mains sûres.',
-                'Le métal est bon. L’atelier ne rit plus. (+20 🥉, Arès +4, ambiance −5)',
+                'Le métal est bon. L’atelier ne rit plus. (+20 🪙, Arès +4, ambiance −5)',
               ]
             },
           },
@@ -2501,7 +2501,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-8, 'La main brisée', 10 * MIN)
               return [
                 'Le coup part trop haut : Straton se protège de la main droite, qui casse net.',
-                'Le village n’a plus de forgeron, et le bronze gâté reste gâté. (−25 🥉, ambiance −8)',
+                'Le village n’a plus de forgeron, et le bronze gâté reste gâté. (−25 🪙, ambiance −8)',
               ]
             },
           },
@@ -2519,7 +2519,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(3, 'Le vieux rit', 7 * MIN)
               return [
                 'Straton boit, chante, et sort de sa forge trente pointes qui sonnent comme des cloches.',
-                'Personne ne comprend, tout le monde en profite. (+40 🥉, ambiance +3)',
+                'Personne ne comprend, tout le monde en profite. (+40 🪙, ambiance +3)',
               ]
             },
           },
@@ -2531,7 +2531,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-4, 'Forge éteinte', 7 * MIN)
               return [
                 'Il boit, s’endort sur son enclume, et la coulée figée arrache le fond du creuset.',
-                'Deux jours de production dans un bloc informe. (−30 🥉, ambiance −4)',
+                'Deux jours de production dans un bloc informe. (−30 🪙, ambiance −4)',
               ]
             },
           },
@@ -2544,7 +2544,7 @@ export const EVENTS: EventDef[] = [
               ctx.faveur(10)
               return [
                 'Au troisième jour, Straton sort un bouclier gravé de chouettes et de vagues, comme il n’en a jamais fait.',
-                'On le suspend au temple. Athéna, dit le prêtre, a tenu le marteau. (+20 🥉, Athéna +10, +10 ✨)',
+                'On le suspend au temple. Athéna, dit le prêtre, a tenu le marteau. (+20 🪙, Athéna +10, +10 ✨)',
               ]
             },
           },
@@ -2561,7 +2561,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(2, 'Une forge sobre', 7 * MIN)
               return [
                 'Le fils travaille lentement, proprement, sans génie. Le père quitte le village au bout d’un mois.',
-                'On ne sait pas où il est allé boire. (+15 🥉, population −1, ambiance +2)',
+                'On ne sait pas où il est allé boire. (+15 🪙, population −1, ambiance +2)',
               ]
             },
           },
@@ -2572,7 +2572,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-3, 'L’apprenti maladroit', 7 * MIN)
               return [
                 'Le garçon n’a pas la main : deux moules éclatent, une coulée part sur le sol de terre battue.',
-                'Le père regarde en buvant. (−25 🥉, ambiance −3)',
+                'Le père regarde en buvant. (−25 🪙, ambiance −3)',
               ]
             },
           },
@@ -2593,7 +2593,7 @@ export const EVENTS: EventDef[] = [
     cooldown: 7 * MIN,
     choices: [
       choix({
-        label: 'Acheter le bronze (−200 🪵 → 🥉)',
+        label: 'Acheter le bronze (−200 🪵 → 🪙)',
         cout: { bois: 200 },
         issues: [
           {
@@ -2601,7 +2601,7 @@ export const EVENTS: EventDef[] = [
             murmure: '« Le métal sonne clair. Affaire honnête. »',
             effet: (ctx) => {
               ctx.add('bronze', 60)
-              return ['Le bronze est excellent — les forgerons le font sonner du plat de l’épée et hochent la tête. (+60 🥉)']
+              return ['Le bronze est excellent — les forgerons le font sonner du plat de l’épée et hochent la tête. (+60 🪙)']
             },
           },
           {
@@ -2612,7 +2612,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-3, 'Floués par un marchand', 7 * MIN)
               return [
                 'Une fois le navire à l’horizon, la moitié des lingots se révèlent fourrés de plomb.',
-                'On a payé du bois de charpente pour du remplissage. (+25 🥉, ambiance −3)',
+                'On a payé du bois de charpente pour du remplissage. (+25 🪙, ambiance −3)',
               ]
             },
           },
@@ -2624,7 +2624,7 @@ export const EVENTS: EventDef[] = [
               ctx.relation('ares', 5)
               return [
                 'Le marchand, qui fuit une galère crétoise, solde sa cale et glisse un poignard chypriote dans la main du chef.',
-                'La lame est superbe et le manche sent le sang. (+80 🥉, Arès +5)',
+                'La lame est superbe et le manche sent le sang. (+80 🪙, Arès +5)',
               ]
             },
           },
@@ -2641,7 +2641,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(6, 'Étoffes de pourpre', 10 * MIN)
               return [
                 'Deux pièces d’étoffe pourpre et trois fioles d’huile : de quoi habiller les fêtes pour dix ans.',
-                'Le marchand reprend le reste en métal. (+35 🥉, ambiance +6)',
+                'Le marchand reprend le reste en métal. (+35 🪙, ambiance +6)',
               ]
             },
           },
@@ -2653,7 +2653,7 @@ export const EVENTS: EventDef[] = [
               ctx.relation('athena', -4)
               return [
                 'On se dispute les étoffes avant même qu’elles soient déballées, et la teinture déteint au premier lavage.',
-                'Le village est très fier de ses guenilles roses. (+15 🥉, Athéna −4, ambiance +8)',
+                'Le village est très fier de ses guenilles roses. (+15 🪙, Athéna −4, ambiance +8)',
               ]
             },
           },
@@ -2730,7 +2730,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(5, 'La gratitude d’un armateur', 9 * MIN)
               return [
                 'Parmi les rescapés, un armateur de Phocée. Sa maison envoie une récompense un mois plus tard.',
-                '(+50 🥉, Poséidon +14, ambiance +5)',
+                '(+50 🪙, Poséidon +14, ambiance +5)',
               ]
             },
           },
@@ -2750,7 +2750,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-5, 'Des noyés qu’on n’a pas secourus', 9 * MIN)
               return [
                 'On repêche les amphores et les poutres — pas les hommes.',
-                '« La mer rendra ce qu’on lui doit », dit le vieux pêcheur. (+120 🪵, +40 🥉, Poséidon −20, Zeus −6)',
+                '« La mer rendra ce qu’on lui doit », dit le vieux pêcheur. (+120 🪵, +40 🪙, Poséidon −20, Zeus −6)',
               ]
             },
           },
@@ -2764,7 +2764,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-9, 'La honte du rivage', 10 * MIN)
               return [
                 'La cale était pleine de cèdre et de lingots. Un seul homme survit, et il a tout vu.',
-                'Il part vers le sud en jurant de raconter. (+160 🪵, +60 🥉, Poséidon −24, ambiance −9)',
+                'Il part vers le sud en jurant de raconter. (+160 🪵, +60 🪙, Poséidon −24, ambiance −9)',
               ]
             },
           },
@@ -2826,7 +2826,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(6, 'Sauvetage exemplaire', 10 * MIN)
               return [
                 'La mer se calme une heure entière, juste le temps qu’il faut. Tout est sauvé, hommes et cale.',
-                'On appellera cette heure « le calme de Poséidon ». (+2 population, +90 🪵, +25 🥉, Poséidon +12, ambiance +6)',
+                'On appellera cette heure « le calme de Poséidon ». (+2 population, +90 🪵, +25 🪙, Poséidon +12, ambiance +6)',
               ]
             },
           },
@@ -2854,7 +2854,7 @@ export const EVENTS: EventDef[] = [
             effet: (ctx) => {
               ctx.add('bronze', 90)
               ctx.relation('poseidon', 4)
-              return ['Trois semaines plus tard, le navire rentre au port chargé de métal et de nouvelles. (+90 🥉, Poséidon +4)']
+              return ['Trois semaines plus tard, le navire rentre au port chargé de métal et de nouvelles. (+90 🪙, Poséidon +4)']
             },
           },
           {
@@ -2877,7 +2877,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(5, 'Le voyage fructueux', 9 * MIN)
               return [
                 'À Lemnos, on s’arrache l’orge à prix d’or. Le capitaine rentre avec du métal, du vin et un chien.',
-                '(+145 🥉, ambiance +5)',
+                '(+145 🪙, ambiance +5)',
               ]
             },
           },
@@ -2894,7 +2894,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(3, 'Notre homme à Lemnos', 8 * MIN)
               return [
                 'Kallias, qui sait compter, part avec la cargaison et surveille la balance jusqu’à la dernière once.',
-                'Il rentre maigre, brûlé, et avec tout le métal. (+110 🥉, ambiance +3)',
+                'Il rentre maigre, brûlé, et avec tout le métal. (+110 🪙, ambiance +3)',
               ]
             },
           },
@@ -2906,7 +2906,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-5, 'Un homme resté au loin', 8 * MIN)
               return [
                 'Kallias vend bien, puis épouse une Lemnienne et envoie le tiers de la somme avec ses excuses.',
-                'On ne le reverra pas. (+30 🥉, population −1, ambiance −5)',
+                'On ne le reverra pas. (+30 🪙, population −1, ambiance −5)',
               ]
             },
           },
@@ -2993,7 +2993,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-4, 'Deux hommes livrés', 8 * MIN)
               return [
                 'Le camp paie sans discuter et les emmène pour l’exemple. On entend les cris depuis le rivage.',
-                '(+60 🥉, Arès −10, ambiance −4)',
+                '(+60 🪙, Arès −10, ambiance −4)',
               ]
             },
           },
@@ -3006,7 +3006,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-7, 'Le prix des parjures', 9 * MIN)
               return [
                 'L’un des deux était neveu d’un capitaine : sa tête vaut cher. On paie, on remercie, on note votre nom.',
-                'Le village apprend que son chef vend des suppliants. (+85 🥉, Arès −12, Zeus −6, ambiance −7)',
+                'Le village apprend que son chef vend des suppliants. (+85 🪙, Arès −12, Zeus −6, ambiance −7)',
               ]
             },
           },
@@ -3049,7 +3049,7 @@ export const EVENTS: EventDef[] = [
     cooldown: 10 * MIN,
     choices: [
       choix({
-        label: 'Engager la bande (−70 🥉)',
+        label: 'Engager la bande (−70 🪙)',
         cout: { bronze: 70 },
         issues: [
           {
@@ -3094,7 +3094,7 @@ export const EVENTS: EventDef[] = [
         ],
       }),
       choix({
-        label: 'N’en prendre qu’un, comme maître d’arc (−25 🥉)',
+        label: 'N’en prendre qu’un, comme maître d’arc (−25 🪙)',
         cout: { bronze: 25 },
         issues: [
           {
@@ -3231,7 +3231,7 @@ export const EVENTS: EventDef[] = [
               ctx.add('bronze', 40)
               return [
                 '« Hector voulait des lances », grince l’émissaire — mais l’intendant de Priam renvoie du métal pour l’orge.',
-                'Marché de marchands, pas de guerriers. (+40 🥉, Zeus +6, Arès −4)',
+                'Marché de marchands, pas de guerriers. (+40 🪙, Zeus +6, Arès −4)',
               ]
             },
           },
@@ -3405,7 +3405,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(4, 'La rançon du noble', 9 * MIN)
               return [
                 'Un intendant apporte le métal au bout de six jours et repart avec le garçon, très digne.',
-                'Il a fallu le nourrir comme un hôte pendant l’attente. (+90 🥉, −20 🌾, Arès +4, ambiance +4)',
+                'Il a fallu le nourrir comme un hôte pendant l’attente. (+90 🪙, −20 🌾, Arès +4, ambiance +4)',
               ]
             },
           },
@@ -3418,7 +3418,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(2, 'Un otage de valeur', 8 * MIN)
               return [
                 'Les négociations traînent trois semaines ; le garçon dort dans la fosse à grain, aux fers.',
-                'Le prix est superbe, la manière ne l’est pas. (+140 🥉, Zeus −8)',
+                'Le prix est superbe, la manière ne l’est pas. (+140 🪙, Zeus −8)',
               ]
             },
           },
@@ -3462,7 +3462,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(2, 'Générosité récompensée', 8 * MIN)
               return [
                 'Un mois plus tard, un chariot dépose devant l’agora un cratère de bronze et un mot de remerciement.',
-                'On n’avait rien demandé. (+30 🥉, Zeus +20, ambiance +2)',
+                'On n’avait rien demandé. (+30 🪙, Zeus +20, ambiance +2)',
               ]
             },
           },
@@ -3535,7 +3535,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(6, 'Le présent des dieux', 9 * MIN)
               return [
                 'Le ventre du cheval regorge d’offrandes votives : bronze ciselé, bois précieux, une coupe d’or.',
-                'Un ex-voto abandonné par une armée pressée. (+200 🪵, +60 🥉, ambiance +6)',
+                'Un ex-voto abandonné par une armée pressée. (+200 🪵, +60 🪙, ambiance +6)',
               ]
             },
           },
@@ -3590,7 +3590,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(8, 'Le piège retourné', 10 * MIN)
               return [
                 'Les planches s’effondrent sur onze hommes en armes qui ne sortiront pas. On récupère leurs lames dans la cendre.',
-                'Le village dort très bien cette nuit-là. (+30 🥉, Athéna +10, Arès +6, ambiance +8)',
+                'Le village dort très bien cette nuit-là. (+30 🪙, Athéna +10, Arès +6, ambiance +8)',
               ]
             },
           },
@@ -3609,7 +3609,7 @@ export const EVENTS: EventDef[] = [
               ctx.relation('athena', 6)
               return [
                 'On perce le flanc en gardant les lances hautes : rien qu’un ventre d’offrandes et de sciure.',
-                'Le bois démonté fait de belles poutres. (+150 🪵, +40 🥉, Athéna +6)',
+                'Le bois démonté fait de belles poutres. (+150 🪵, +40 🪙, Athéna +6)',
               ]
             },
           },
@@ -3622,7 +3622,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-4, 'Combat sous le ventre du cheval', 8 * MIN)
               return [
                 'Sept hommes jaillissent par la trappe et se battent comme des rats acculés.',
-                `On les tue tous, au prix de ${morts || 'un'} des nôtres. Leurs armes valent quelque chose. (+50 🥉, Arès +6)`,
+                `On les tue tous, au prix de ${morts || 'un'} des nôtres. Leurs armes valent quelque chose. (+50 🪙, Arès +6)`,
               ]
             },
           },
@@ -3653,7 +3653,7 @@ export const EVENTS: EventDef[] = [
     cooldown: 12 * MIN,
     choices: [
       choix({
-        label: 'Payer le tribut (−150 🌾, −40 🥉)',
+        label: 'Payer le tribut (−150 🌾, −40 🪙)',
         cout: { grain: 150, bronze: 40 },
         issues: [
           {
@@ -3729,7 +3729,7 @@ export const EVENTS: EventDef[] = [
         ],
       }),
       choix({
-        label: 'Négocier un serment contre du métal (−80 🥉)',
+        label: 'Négocier un serment contre du métal (−80 🪙)',
         cout: { bronze: 80 },
         issues: [
           {
@@ -3980,7 +3980,7 @@ export const EVENTS: EventDef[] = [
         ],
       }),
       choix({
-        label: 'Acheter du grain aux Phéniciens (−90 🥉)',
+        label: 'Acheter du grain aux Phéniciens (−90 🪙)',
         cout: { bronze: 90 },
         requiert: (s) => s.buildings.port.level >= 1,
         requiertLabel: 'port requis',
@@ -4094,7 +4094,7 @@ export const EVENTS: EventDef[] = [
         ],
       }),
       choix({
-        label: 'Grande hécatombe au temple (−100 🌾, −30 🥉)',
+        label: 'Grande hécatombe au temple (−100 🌾, −30 🪙)',
         cout: { grain: 100, bronze: 30 },
         issues: [
           {
@@ -4196,7 +4196,7 @@ export const EVENTS: EventDef[] = [
     priorite: true,
     choices: [
       choix({
-        label: 'Taureau noir jeté à la mer (−60 🌾, −25 🥉)',
+        label: 'Taureau noir jeté à la mer (−60 🌾, −25 🪙)',
         cout: { grain: 60, bronze: 25 },
         issues: [
           {
@@ -4270,7 +4270,7 @@ export const EVENTS: EventDef[] = [
     priorite: true,
     choices: [
       choix({
-        label: 'Grande offrande (−80 🌾, −25 🥉)',
+        label: 'Grande offrande (−80 🌾, −25 🪙)',
         cout: { grain: 80, bronze: 25 },
         issues: [
           {
@@ -4379,7 +4379,7 @@ export const EVENTS: EventDef[] = [
     priorite: true,
     choices: [
       choix({
-        label: 'Apaiser la mer (−60 🌾, −20 🥉)',
+        label: 'Apaiser la mer (−60 🌾, −20 🪙)',
         cout: { grain: 60, bronze: 20 },
         issues: [
           {
@@ -4416,7 +4416,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-4, 'Barques à sec', 8 * MIN)
               return [
                 'Les barques restent tirées sur le sable, les filets pendus aux poutres. Le dieu apprécie l’aveu.',
-                'Le commerce, lui, s’arrête. (−40 🥉, Poséidon +18, ambiance −4)',
+                'Le commerce, lui, s’arrête. (−40 🪙, Poséidon +18, ambiance −4)',
               ]
             },
           },
@@ -4428,7 +4428,7 @@ export const EVENTS: EventDef[] = [
               ctx.morale(-7, 'Les pêcheurs en colère', 9 * MIN)
               return [
                 'Trois familles de pêcheurs sortent quand même, de nuit. On les ramène, et l’une manque un homme.',
-                'Le dieu n’est qu’à demi satisfait, et le port gronde. (−25 🥉, Poséidon +14, ambiance −7)',
+                'Le dieu n’est qu’à demi satisfait, et le port gronde. (−25 🪙, Poséidon +14, ambiance −7)',
               ]
             },
           },
@@ -4475,7 +4475,7 @@ export const EVENTS: EventDef[] = [
     priorite: true,
     choices: [
       choix({
-        label: 'Offrande d’armes ciselées (−40 🥉)',
+        label: 'Offrande d’armes ciselées (−40 🪙)',
         cout: { bronze: 40 },
         issues: [
           {
@@ -4567,7 +4567,7 @@ export const EVENTS: EventDef[] = [
     priorite: true,
     choices: [
       choix({
-        label: 'Solde d’honneur (−50 🥉)',
+        label: 'Solde d’honneur (−50 🪙)',
         cout: { bronze: 50 },
         issues: [
           {

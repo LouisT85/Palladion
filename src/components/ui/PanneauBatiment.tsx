@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { BUILDINGS, BUILDING_IDS, METIERS, PROD, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS } from '../../game/data'
 import { fmtDuree, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
 import type { BuildingId, ResourceId } from '../../game/types'
-import { Icone, type IconeId } from './Icones'
+import { Icone, Montant, type IconeId } from './Icones'
 import { PanneauPopulation, couleurRendement } from './Population'
 
 function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, number>>; resources: Record<ResourceId, number> }) {
@@ -196,9 +196,9 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
                 </div>
                 <div className="stats">
                   ⚔{def.atk} ❤{def.hp} · {def.time}s ·{' '}
-                  {(Object.entries(def.cost) as [ResourceId, number][])
-                    .map(([r, n]) => `${n}${RES[r].emoji}`)
-                    .join(' ')}
+                  {(Object.entries(def.cost) as [ResourceId, number][]).map(([r, n]) => (
+                    <Montant key={r} n={n} id={r} taille={13} />
+                  ))}
                 </div>
               </div>
               {debloque ? (
@@ -270,7 +270,7 @@ function BlocPort() {
               style={{ padding: '2px 7px', marginLeft: 3, borderColor: donner === r ? '#e8c04a' : undefined }}
               onClick={() => setDonner(r)}
             >
-              {RES[r].emoji}
+              <Icone id={r} taille={16} />
             </button>
           ))}
         </span>
@@ -284,7 +284,7 @@ function BlocPort() {
               style={{ padding: '2px 7px', marginLeft: 3, borderColor: recevoir === r ? '#e8c04a' : undefined }}
               onClick={() => setRecevoir(r)}
             >
-              {RES[r].emoji}
+              <Icone id={r} taille={16} />
             </button>
           ))}
         </span>
@@ -295,7 +295,8 @@ function BlocPort() {
         disabled={donner === recevoir || s.resources[donner] < coutDonne}
         onClick={() => s.echanger(donner, recevoir)}
       >
-        −{coutDonne} {RES[donner].emoji} → +10 {RES[recevoir].emoji}
+        <span className="montant">−{coutDonne}</span> <Icone id={donner} taille={15} /> → <span className="montant">+10</span>{' '}
+        <Icone id={recevoir} taille={15} />
       </button>
     </div>
   )
@@ -328,7 +329,7 @@ function BlocRemparts() {
           disabled={s.resources.pierre < cout || s.battle !== null}
           onClick={() => s.reparerRemparts()}
         >
-          Réparer (−{cout} 🪨)
+          Réparer (<Montant n={-cout} id="pierre" taille={14} />)
         </button>
       )}
     </div>

@@ -14,7 +14,7 @@ import {
 import { METEOS, SAISONS } from '../../game/saisons'
 import { nomPhase, phaseJour } from '../map/Terrain'
 import { HerosRapides } from './Heros'
-import { Icone } from './Icones'
+import { Icone, Montant } from './Icones'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
 
@@ -265,7 +265,8 @@ export function DieuxRapides() {
               onClick={() => benir(g)}
               title={`${dieu.benediction.nom} — ${dieu.benediction.desc}`}
             >
-              {dieu.emoji} {cd > 0 ? `${Math.ceil(cd / 1000)}s` : `${cout}✨`}
+              {dieu.emoji}{' '}
+              {cd > 0 ? `${Math.ceil(cd / 1000)}s` : <Montant n={cout} id="faveur" taille={13} />}
             </button>
           )
         })}
@@ -325,7 +326,8 @@ export function BandeauAlerte() {
         )}
         {defRecompense && (
           <div className="detail recompense">
-            🎁 Récompense si repoussé : <b>+{defRecompense.bronze} 🥉</b> · <b>+{defRecompense.faveur} ✨</b> · ambiance +10
+            🎁 Récompense si repoussé : <b><Montant n={defRecompense.bronze} id="bronze" taille={14} signe /></b> ·{' '}
+            <b><Montant n={defRecompense.faveur} id="faveur" taille={14} signe /></b> · ambiance +10
           </div>
         )}
         {expedition ? (

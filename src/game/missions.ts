@@ -431,7 +431,7 @@ export const MISSIONS: MissionDef[] = [
   },
   {
     id: 'tresor-de-bronze',
-    emoji: '🥉',
+    emoji: '🪙',
     titre: 'Le trésor de bronze',
     desc: 'Amassez 600 de bronze : forge, port et butins doivent tourner ensemble.',
     progres: (s) => seuil(s.resources.bronze, 600),

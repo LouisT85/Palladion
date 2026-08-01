@@ -1,7 +1,7 @@
-import { RES } from '../../game/data'
 import { HEROS, HERO_IDS, NIVEAU_MAX, forceNiveau, peutMonter, xpRequise, type HeroId } from '../../game/heros'
 import { conditionsHeros, entretienHeros, fmtDuree, herosDisponible, peutPayer, useGame } from '../../game/store'
 import type { Cost, ResourceId } from '../../game/types'
+import { Montant } from './Icones'
 
 /*
  * Les héros ne sont pas une collection : ce sont des hôtes exigeants. Ce panneau
@@ -9,14 +9,37 @@ import type { Cost, ResourceId } from '../../game/types'
  * ils en sont de leur histoire — y compris quand elle s'est mal terminée.
  */
 
-function coutTxt(c: Cost): string {
-  return (Object.entries(c) as [ResourceId, number][]).map(([r, n]) => `${n} ${RES[r].emoji}`).join(' · ')
+/** coût en pictogrammes peints — jamais d'émoji dans une fiche de héros */
+function Cout({ c, taille = 14 }: { c: Cost; taille?: number }) {
+  return (
+    <>
+      {(Object.entries(c) as [ResourceId, number][]).map(([r, n]) => (
+        <Montant key={r} n={n} id={r} taille={taille} />
+      ))}
+    </>
+  )
 }
 
-function entretienTxt(h: HeroId): string {
+/** ce qu'un héros coûte chaque minute : grain sur la table, honneurs à l'autel */
+function Entretien({ h }: { h: HeroId }) {
   const e = HEROS[h].entretien
-  const parts = [e.grain ? `${e.grain} 🌾/min` : '', e.faveur ? `${e.faveur} ✨/min` : ''].filter(Boolean)
-  return parts.length ? parts.join(' + ') : 'aucun'
+  if (!e.grain && !e.faveur) return <>aucun</>
+  return (
+    <>
+      {e.grain ? (
+        <>
+          <Montant n={e.grain} id="grain" taille={13} />
+          /min{' '}
+        </>
+      ) : null}
+      {e.faveur ? (
+        <>
+          <Montant n={e.faveur} id="faveur" taille={13} />
+          /min
+        </>
+      ) : null}
+    </>
+  )
 }
 
 /** cinq lauriers : pleins jusqu'au niveau atteint, barrés au-delà du plafond */
@@ -131,7 +154,7 @@ export function PanneauHeros() {
               )}
               <div className="heros-pied">
                 <span className="heros-entretien" title="Prélevé en continu sur vos réserves">
-                  🍖 {entretienTxt(h)}
+                  🍖 <Entretien h={h} />
                 </span>
                 <span className="heros-arc">
                   📜 arc {Math.min(e.arc, etapes)}/{etapes}
@@ -169,8 +192,8 @@ export function PanneauHeros() {
                 ))}
               </div>
               <div className="heros-pied">
-                <span className="heros-entretien">🎁 {coutTxt(def.coutRecrutement)}</span>
-                <span className="heros-entretien">🍖 {entretienTxt(h)}</span>
+                <span className="heros-entretien">🎁 <Cout c={def.coutRecrutement} /></span>
+                <span className="heros-entretien">🍖 <Entretien h={h} /></span>
                 <button
                   className="principal"
                   disabled={!dispo || !peutPayer(s.resources, def.coutRecrutement)}
@@ -255,7 +278,12 @@ export function ModaleArcHeros() {
                   onClick={() => s.choisirArc(i)}
                 >
                   {o.label}
-                  {o.cout ? ` — ${coutTxt(o.cout)}` : ''}
+                  {o.cout ? (
+                    <>
+                      {' — '}
+                      <Cout c={o.cout} taille={13} />
+                    </>
+                  ) : null}
                 </button>
               ))}
             </div>

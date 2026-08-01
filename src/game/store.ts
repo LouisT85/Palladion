@@ -1061,9 +1061,9 @@ function appliquerEffetDiffere(s: GameState, eff: PendingEffect, now: number): v
       s.resources.grain = clampRes(s, 'grain', s.resources.grain + 60)
       pushReport(s, '🏰', 'La gratitude de Troie', [
         'Un char aux couleurs de Priam livre votre part du butin de la sortie d’Hector.',
-        '+120 🥉, +60 🌾. Vos soldats reviendront couverts de gloire — ceux qui reviendront.',
+        '+120 🪙, +60 🌾. Vos soldats reviendront couverts de gloire — ceux qui reviendront.',
       ])
-      pushToast(s, '🏰', 'Troie partage le butin : +120 🥉, +60 🌾')
+      pushToast(s, '🏰', 'Troie partage le butin : +120 🪙, +60 🌾')
       break
     }
   }

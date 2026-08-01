@@ -2,6 +2,7 @@ import { GODS, GOD_IDS, multRelation, nomFerveur, palierFerveur } from '../../ga
 import { coutBenediction, murMax, relationEffective, useGame } from '../../game/store'
 import type { GodId } from '../../game/types'
 import { ApercuDivin } from '../map/EffetsDivins'
+import { Montant } from './Icones'
 
 /** ×1.60 → « 1.6 », ×1.00 → « 1 » : on ne montre que les décimales qui portent du sens */
 function fmtMult(f: number): string {
@@ -176,7 +177,7 @@ export function Pantheon() {
                     <div style={{ fontSize: 12.5, marginTop: 6 }}>
                       <b>{dieu.benediction.nom}</b>{' '}
                       <span style={{ color: '#93a7b4' }}>
-                        ({cout} ✨{dieu.benediction.batailleUniquement ? ', en bataille' : ''})
+                        (<Montant n={cout} id="faveur" taille={13} />{dieu.benediction.batailleUniquement ? ', en bataille' : ''})
                       </span>
                       <div style={{ color: couleur, fontWeight: 700, margin: '2px 0 1px' }}>
                         À votre ferveur : {effetChiffre(g, force, mur)}
@@ -193,7 +194,7 @@ export function Pantheon() {
                         {cd > 0 ? `⏳ ${Math.ceil(cd / 1000)}s` : `Invoquer (${cout} ✨)`}
                       </button>
                       <button disabled={s.resources.grain < 50} onClick={() => s.sacrifier(g)} title="+8 relation, +5 faveur">
-                        Sacrifice (−50 🌾)
+                        Sacrifice (<Montant n={-50} id="grain" taille={13} />)
                       </button>
                       {etat.relation < 0 && (
                         <span style={{ fontSize: 11.5, color: '#d98a4e', alignSelf: 'center' }}>

@@ -162,10 +162,24 @@ export function Icone({ id, taille = 18, titre }: { id: IconeId; taille?: number
   )
 }
 
-/** « 120 [bronze] » — un montant suivi de son pictogramme */
-export function Montant({ n, id, taille = 15 }: { n: number; id: IconeId; taille?: number }) {
+/**
+ * « 120 [bronze] » — un montant suivi de son pictogramme. `signe` force le
+ * « + » devant les gains, comme dans les récompenses de mission.
+ */
+export function Montant({
+  n,
+  id,
+  taille = 15,
+  signe,
+}: {
+  n: number
+  id: IconeId
+  taille?: number
+  signe?: boolean
+}) {
   return (
     <span className="montant">
+      {signe && n > 0 ? '+' : ''}
       {n}
       <Icone id={id} taille={taille} />
     </span>

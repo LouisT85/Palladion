@@ -1,19 +1,27 @@
-import { useState } from 'react'
-import { RES } from '../../game/data'
+import { Fragment, useState } from 'react'
 import { MISSIONS, missionsActives, type MissionDef } from '../../game/missions'
 import { useGame } from '../../game/store'
 import type { ResourceId } from '../../game/types'
+import { Montant } from './Icones'
 
-function texteRecompense(m: MissionDef): string {
-  const parts: string[] = []
-  if (m.recompense.res) {
-    for (const [r, n] of Object.entries(m.recompense.res) as [ResourceId, number][]) {
-      parts.push(`+${n} ${RES[r].emoji}`)
-    }
-  }
-  if (m.recompense.faveur) parts.push(`+${m.recompense.faveur} ✨`)
-  if (m.recompense.pop) parts.push(`+${m.recompense.pop} 👥`)
-  return parts.join(' · ')
+/** récompense d'une mission, avec les pictogrammes peints et non des émojis */
+function Recompense({ m }: { m: MissionDef }) {
+  const res = Object.entries(m.recompense.res ?? {}) as [ResourceId, number][]
+  return (
+    <>
+      {res.map(([r, n]) => (
+        <Fragment key={r}>
+          <Montant n={n} id={r} taille={13} signe />{' '}
+        </Fragment>
+      ))}
+      {m.recompense.faveur ? (
+        <>
+          <Montant n={m.recompense.faveur} id="faveur" taille={13} signe />{' '}
+        </>
+      ) : null}
+      {m.recompense.pop ? <span className="montant">+{m.recompense.pop} 👥</span> : null}
+    </>
+  )
 }
 
 /** sur écran étroit, le tracker démarre replié : la carte reste dégagée */
@@ -73,7 +81,9 @@ export function MissionsTracker() {
                         <div style={{ width: `${(p.cur / p.max) * 100}%` }} />
                       </div>
                     )}
-                    <div className="mission-rec">🎁 {texteRecompense(m)}</div>
+                    <div className="mission-rec">
+                      🎁 <Recompense m={m} />
+                    </div>
                   </div>
                 </div>
                 {fait && (

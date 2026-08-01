@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { GEO_EXPEDITION } from '../../game/combat'
-import { MODE_TEST, RES, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
+import { MODE_TEST, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
 import {
   MAX_TROUPES,
   RAID_COOLDOWN_MS,
@@ -15,6 +15,7 @@ import {
 } from '../../game/expeditions'
 import { fmtDuree, merFermee, totalEtoiles, useGame } from '../../game/store'
 import type { ResourceId, UnitId } from '../../game/types'
+import { Montant } from './Icones'
 import { BatailleLayer } from '../map/BatailleLayer'
 import { useCamera, type VueScene } from '../map/camera'
 import { DefsArt } from '../map/art'
@@ -211,9 +212,9 @@ export function PanneauExpeditions() {
                     .map((u) => `${garnison[u]}${UNITS[u].emoji}`)
                     .join(' ')}
                   {'  ·  '}🎁{' '}
-                  {(Object.entries(v.butin) as [ResourceId, number][])
-                    .map(([r, n]) => `${Math.round(n * (etat?.etoiles ? 0.4 : 1))} ${RES[r].emoji}`)
-                    .join(' ')}
+                  {(Object.entries(v.butin) as [ResourceId, number][]).map(([r, n]) => (
+                    <Montant key={r} n={Math.round(n * (etat?.etoiles ? 0.4 : 1))} id={r} />
+                  ))}
                   {etat?.etoiles ? ' (déjà pillé)' : ''}
                   {pillages > 0 && <span style={{ color: '#d98a4e' }}> · garde renforcée ×{pillages}</span>}
                 </div>

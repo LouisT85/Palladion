@@ -14,6 +14,7 @@ import {
 import { METEOS, SAISONS } from '../../game/saisons'
 import { nomPhase, phaseJour } from '../map/Terrain'
 import { HerosRapides } from './Heros'
+import { Icone } from './Icones'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
 
@@ -97,12 +98,24 @@ export function BoutonPleinEcran() {
   )
 }
 
-function labelMorale(m: number): { txt: string; c: string } {
-  if (m >= 80) return { txt: 'Exaltée', c: '#5fae7d' }
-  if (m >= 60) return { txt: 'Bonne', c: '#8fae5f' }
-  if (m >= 40) return { txt: 'Correcte', c: '#d9b545' }
-  if (m >= 25) return { txt: 'Morose', c: '#d98a4e' }
-  return { txt: 'RÉVOLTE', c: '#d05a41' }
+/**
+ * L'ambiance du village en UN mot — c'est ainsi qu'on la lit d'un coup d'œil,
+ * et ce mot ne disparaît jamais, quelle que soit la largeur de l'écran.
+ */
+function labelMorale(m: number): { txt: string; c: string; quoi: string } {
+  if (m >= 80) return { txt: 'Exaltée', c: '#5fae7d', quoi: 'On chante aux ateliers : tout rend au maximum.' }
+  if (m >= 60) return { txt: 'Bonne', c: '#8fae5f', quoi: 'Le village travaille de bon cœur.' }
+  if (m >= 40) return { txt: 'Correcte', c: '#d9b545', quoi: 'Ni révolte ni enthousiasme — on fait ce qu’on doit.' }
+  if (m >= 25) return { txt: 'Morose', c: '#d98a4e', quoi: 'Les bras traînent, la production s’en ressent.' }
+  return { txt: 'Révolte', c: '#d05a41', quoi: 'Sous 25, les soldats désertent et les meneurs s’agitent.' }
+}
+
+/** ce que chaque ressource sert à faire, pour l'infobulle du HUD */
+const DESC_RES: Record<ResourceId, string> = {
+  bois: 'Charpentes, palissades, navires et flèches. Vient de la scierie et de la cueillette.',
+  pierre: 'Murailles, tours et grands bâtiments. Vient de la carrière — et des réparations qu’elle paie.',
+  grain: 'Nourrit habitants et soldats. Un grenier vide, et c’est la famine puis la désertion.',
+  bronze: 'Armes, armures et commerce. Vient de la forge et du port.',
 }
 
 export function BarreRessources() {
@@ -123,30 +136,44 @@ export function BarreRessources() {
         {(Object.keys(RES) as ResourceId[]).map((r) => {
           const t = taux[r]
           return (
-            <div key={r} className={`res${r === 'grain' && s.resources.grain <= 0 ? ' alerte' : ''}`} title={`${RES[r].nom} — stock max ${stock}`}>
-              <span className="ico">{RES[r].emoji}</span>
+            <div
+              key={r}
+              className={`res${r === 'grain' && s.resources.grain <= 0 ? ' alerte' : ''}`}
+              title={`${RES[r].nom} — ${Math.floor(s.resources[r])} en réserve sur ${stock} de capacité (Agora niveau ${s.buildings.agora.level})\n${DESC_RES[r]}\n${t >= 0 ? '+' : ''}${t.toFixed(1)} par minute, saison et ambiance comprises.`}
+            >
+              <Icone id={r} taille={19} />
               <span className="chiffres">
-                <span className="val">{Math.floor(s.resources[r])}</span>
-                <span className={`taux${t < 0 ? ' neg' : ''}`}>
-                  {MODE_TEST ? (
-                    '∞'
-                  ) : (
-                    <>
-                      {t >= 0 ? '+' : ''}
-                      {t.toFixed(1)}
-                      <span className="par-min">/min</span>
-                    </>
-                  )}
+                <span className="nom-res">{RES[r].nom}</span>
+                <span className="val">
+                  {Math.floor(s.resources[r])}
+                  <span className={`taux${t < 0 ? ' neg' : ''}`}>
+                    {MODE_TEST ? (
+                      ' ∞'
+                    ) : (
+                      <>
+                        {' '}
+                        {t >= 0 ? '+' : ''}
+                        {t.toFixed(1)}
+                        <span className="par-min">/min</span>
+                      </>
+                    )}
+                  </span>
                 </span>
               </span>
             </div>
           )
         })}
-        <div className="res" title="Faveur divine (temple, sacrifices, victoires)">
-          <span className="ico">✨</span>
+        <div
+          className="res"
+          title={`Faveur divine — la monnaie des bénédictions.\nProduite par le temple (avec un prêtre à son poste), les sacrifices et les victoires.`}
+        >
+          <Icone id="faveur" taille={19} />
           <span className="chiffres">
-            <span className="val">{Math.floor(s.faveur)}</span>
-            <span className="taux">/100</span>
+            <span className="nom-res">Faveur</span>
+            <span className="val">
+              {Math.floor(s.faveur)}
+              <span className="taux">/100</span>
+            </span>
           </span>
         </div>
       </div>
@@ -164,27 +191,36 @@ export function BarreRessources() {
         <button
           className="pastille"
           onClick={() => setPopOuvert(true)}
-          title={`Habitants : ${s.pop}/${cap} — ${sansEmploi} sans emploi. Cliquez pour affecter vos villageois aux postes de travail.`}
+          title={`Habitants : ${s.pop} sur ${cap} places (Habitations niveau ${s.buildings.maisons.level}).\n${sansEmploi} sans emploi — cliquez pour les affecter aux ateliers ou les enrôler.`}
         >
-          👥 <b>{s.pop}</b>/{cap}
+          👥<span className="opt">Habitants</span> <b>{s.pop}</b>/{cap}
           <span className={`oisifs${sansEmploi === 0 ? ' zero' : ''}`}>
             ({sansEmploi} oisif{sansEmploi > 1 ? 's' : ''})
           </span>
         </button>
-        <span className="pastille" title="Garnison">
-          ⚔️ <b>{armeeTotale(s.army)}</b>
+        <span
+          className="pastille"
+          title={`Garnison : ${armeeTotale(s.army)} soldats sous les armes.\nIls défendent les remparts et partent en expédition — et mangent ${(armeeTotale(s.army) * 0.5).toFixed(1)} 🌾/min.`}
+        >
+          ⚔️<span className="opt">Garnison</span> <b>{armeeTotale(s.army)}</b>
         </span>
-        <span className="pastille" title={`Ambiance du village : ${morale.txt} — ${Math.round(s.morale)}/100, production ×${(0.5 + (s.morale / 100) * 0.75).toFixed(2)}`}>
+        <span
+          className="pastille"
+          title={`Ambiance du village : ${morale.txt} (${Math.round(s.morale)}/100).\n${morale.quoi}\nProduction ×${(0.5 + (s.morale / 100) * 0.75).toFixed(2)}.`}
+        >
           🎭
-          <b className="opt" style={{ color: morale.c }}>
+          <b className="ambiance-mot" style={{ color: morale.c }}>
             {morale.txt}
           </b>
           <span className="jauge-morale">
             <div style={{ width: `${s.morale}%`, background: morale.c }} />
           </span>
         </span>
-        <span className="pastille" title="Menace : attire des vagues d'assaut de plus en plus fortes">
-          🔥 <b>{Math.round(s.threat)}</b>
+        <span
+          className="pastille"
+          title={`Menace : ${Math.round(s.threat)}/100.\nElle monte avec vos bâtiments, vos tours, vos pillages et le temps qui passe — et grossit les vagues d’assaut.`}
+        >
+          🔥<span className="opt">Menace</span> <b>{Math.round(s.threat)}</b>
         </span>
         <span className="pastille" title={`Jour ${jour} — ${phase}`}>
           ☀️<span className="opt">Jour</span> <b>{jour}</b>

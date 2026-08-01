@@ -2,14 +2,19 @@ import { useState } from 'react'
 import { BUILDINGS, BUILDING_IDS, METIERS, PROD, RES, TAUX_PORT, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS } from '../../game/data'
 import { fmtDuree, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
 import type { BuildingId, ResourceId } from '../../game/types'
+import { Icone, type IconeId } from './Icones'
 import { PanneauPopulation, couleurRendement } from './Population'
 
 function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, number>>; resources: Record<ResourceId, number> }) {
   return (
     <div className="cout">
       {(Object.entries(cout) as [ResourceId, number][]).map(([r, n]) => (
-        <span key={r} className={resources[r] >= n ? 'okk' : 'ko'}>
-          {RES[r].emoji} {n}
+        <span
+          key={r}
+          className={`montant ${resources[r] >= n ? 'okk' : 'ko'}`}
+          title={`${n} ${RES[r].nom.toLowerCase()} — vous en avez ${Math.floor(resources[r])}`}
+        >
+          <Icone id={r} taille={15} /> {n}
         </span>
       ))}
     </div>
@@ -18,17 +23,17 @@ function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, numbe
 
 function BlocProduction({ id, level }: { id: BuildingId; level: number }) {
   const s = useGame()
-  const emojis: Partial<Record<BuildingId, string>> = {
-    ferme: '🌾',
-    scierie: '🪵',
-    carriere: '🪨',
-    forge: '🥉',
-    temple: '✨',
-    port: '🥉',
+  const produit: Partial<Record<BuildingId, IconeId>> = {
+    ferme: 'grain',
+    scierie: 'bois',
+    carriere: 'pierre',
+    forge: 'bronze',
+    temple: 'faveur',
+    port: 'bronze',
   }
-  const emoji = emojis[id]
+  const quoi = produit[id]
   const brut = (PROD as Partial<Record<BuildingId, number[]>>)[id]?.[level]
-  if (!emoji || brut === undefined || level === 0) return null
+  if (!quoi || brut === undefined || level === 0) return null
   // ce qui compte vraiment, c'est ce qui rentre : le brut n'est qu'un plafond
   const r = rendement(s, id)
   const total = postesTotal(s, id)
@@ -39,8 +44,8 @@ function BlocProduction({ id, level }: { id: BuildingId; level: number }) {
       {total > 0 ? (
         <>
           <div style={{ fontSize: 15 }}>
-            <b style={{ color: couleurRendement(r) }}>
-              {emoji} +{net}/min
+            <b className="montant" style={{ color: couleurRendement(r) }}>
+              <Icone id={quoi} taille={17} /> +{net}/min
             </b>
             <span style={{ color: '#93a7b4', fontSize: 12 }}>
               {' '}
@@ -52,8 +57,8 @@ function BlocProduction({ id, level }: { id: BuildingId; level: number }) {
           </div>
         </>
       ) : (
-        <div>
-          {emoji} +{brut}/min{id === 'port' ? ' (commerce)' : ''}
+        <div className="montant">
+          <Icone id={quoi} taille={16} /> +{brut}/min{id === 'port' ? ' (commerce)' : ''}
         </div>
       )}
     </div>

@@ -137,13 +137,19 @@ header.hud {
   min-width: 62px;
   white-space: nowrap;
 }
-/* valeur au-dessus du taux : le jeton perd 40 % de largeur, le HUD tient
-   sur une seule ligne et la carte récupère la hauteur */
+/* nom de la ressource au-dessus, valeur et débit dessous : on sait ce qu'on
+   regarde sans survoler, et le jeton reste compact */
 .res .chiffres {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  line-height: 1.2;
+  line-height: 1.15;
+}
+.res .nom-res {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f93a1;
 }
 .res .val {
   font-weight: 700;
@@ -153,6 +159,7 @@ header.hud {
   font-size: 10.5px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  font-weight: 400;
 }
 .res .ico {
   font-size: 15px;
@@ -162,6 +169,22 @@ header.hud {
 }
 .res.alerte .val {
   color: var(--danger);
+}
+/* pictogrammes peints : ils remplacent l'émoji dans tout le châssis */
+.icone-res {
+  display: block;
+  flex: 0 0 auto;
+}
+.montant {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* le mot d'ambiance ne disparaît JAMAIS : c'est la lecture la plus rapide du HUD */
+.ambiance-mot {
+  font-size: 12.5px;
 }
 
 .hud-droite {
@@ -1462,9 +1485,10 @@ svg.carte-exp {
  * gagné par la carte. On sacrifie d'abord le décor (sous-titre,
  * libellés des boutons), jamais un chiffre de jeu.
  * ────────────────────────────────────────────────────────── */
-/* les seuils suivent la largeur réellement occupée par le HUD, mesurée au
-   navigateur (1830 · 1510 · 1360 · 1220 px) avec ~50 px de marge pour les
-   polices plus larges que Segoe UI */
+/* les seuils suivent la largeur réellement occupée par le HUD. On sacrifie
+   d'abord le décor (sous-titre, mots redondants des pastilles), puis les
+   libellés des boutons — jamais l'ambiance du village, qui doit rester lisible
+   en un mot quelle que soit la largeur. */
 @media (max-width: 1899px) {
   .logo {
     font-size: 17px;
@@ -1472,18 +1496,21 @@ svg.carte-exp {
   .logo small {
     display: none;
   }
-  /* les boutons deviennent des pictogrammes — le libellé reste dans l'infobulle */
-  .hud-actions button .lbl {
-    display: none;
-  }
-  /* les mots décoratifs s'effacent, les chiffres restent (infobulles complètes) */
+  /* les mots redondants des pastilles s'effacent, les chiffres restent */
   .hud .opt {
     display: none;
   }
 }
 
-@media (max-width: 1559px) {
+@media (max-width: 1699px) {
   .logo {
+    display: none;
+  }
+}
+
+@media (max-width: 1499px) {
+  /* les boutons deviennent des pictogrammes — le libellé reste dans l'infobulle */
+  .hud-actions button .lbl {
     display: none;
   }
 }
@@ -1497,6 +1524,9 @@ svg.carte-exp {
     display: none;
   }
   .res .par-min {
+    display: none;
+  }
+  .res .nom-res {
     display: none;
   }
   .jauge-morale {

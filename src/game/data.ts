@@ -150,11 +150,17 @@ export const ALERTE_LONGUE_MS = 6.5 * 60_000
 /** mode test : `npm run dev:test` → ressources illimitées, chantiers quasi instantanés */
 export const MODE_TEST: boolean = import.meta.env.MODE === 'test'
 
+/**
+ * Les pictogrammes peints (composant `Icone`) remplacent l'émoji partout où
+ * l'interface a la place. L'émoji ne sert plus qu'aux textes courants —
+ * rapports, toasts — d'où le choix du lingot 🪙 plutôt que de la médaille 🥉,
+ * qui se lisait « troisième place » et non « métal ».
+ */
 export const RES: Record<ResourceId, { nom: string; emoji: string }> = {
   bois: { nom: 'Bois', emoji: '🪵' },
   pierre: { nom: 'Pierre', emoji: '🪨' },
   grain: { nom: 'Grain', emoji: '🌾' },
-  bronze: { nom: 'Bronze', emoji: '🥉' },
+  bronze: { nom: 'Bronze', emoji: '🪙' },
 }
 
 // ── Production par minute, par niveau (index = niveau du bâtiment) ───────────

@@ -20,7 +20,9 @@ import { BatailleLayer } from '../map/BatailleLayer'
 import { useCamera, type VueScene } from '../map/camera'
 import { DefsArt } from '../map/art'
 import { DefsBatiments } from '../map/Batiments'
+import { Meteo, VoileSaison } from '../map/Ciel'
 import { Murailles } from '../map/Murailles'
+import { CoeurVillage, DecorExpedition } from '../map/VillageEnnemi'
 import { DieuxRapides } from './Hud'
 
 function puissance(troupes: Record<UnitId, number>): number {
@@ -289,52 +291,28 @@ export function ExpeditionScene() {
           aria-label={`Assaut sur ${v.nom}`}
         >
           <defs>
-            <linearGradient id="ciel-exp" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8fb4c4" />
-              <stop offset="100%" stopColor="#d3e3de" />
-            </linearGradient>
-            <linearGradient id="sol-exp" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#b3aa74" />
-              <stop offset="100%" stopColor="#9d9663" />
-            </linearGradient>
             <DefsArt />
             <DefsBatiments />
           </defs>
           {/* la caméra se rapproche de la mêlée pendant l'assaut */}
           <g ref={scene}>
-            <rect x={0} y={0} width={900} height={120} fill="url(#ciel-exp)" />
-            <path d="M0,120 L120,64 L230,102 L360,52 L470,100 L600,66 L720,104 L830,72 L900,96 L900,120 Z" fill="#87988a" />
-            <rect x={0} y={116} width={900} height={444} fill="url(#sol-exp)" />
-            <ellipse cx={450} cy={330} rx={330} ry={130} fill="#c0b67d" opacity={0.35} />
-            {/* route d'assaut depuis l'est */}
-            <path d={`M900,380 C 800,360 740,335 ${geo.porte.x + 10},${geo.porte.y + 6}`} stroke="#c9b085" strokeWidth={16} fill="none" strokeLinecap="round" opacity={0.9} />
+            {/* chaque place forte a son cadre : plaine, colline, grève ou île */}
+            <DecorExpedition v={v} saison={s.saison} />
 
             <Murailles niveau={v.mur} hp={exp.wallHp} max={wallMax} breche={exp.battle.breche} layer="back" geo={geo} />
 
-            {/* l'intérieur du village ennemi */}
+            {/* l'intérieur du village visé, peint selon son archétype */}
             <g transform={`translate(${geo.place.x},${geo.place.y})`}>
-              <ellipse cx={0} cy={6} rx={60} ry={20} fill="#c2b380" opacity={0.5} />
-              <g transform="translate(-38,-12)">
-                <rect x={-11} y={-11} width={22} height={12} fill="#b3906b" stroke="#8c6f4e" strokeWidth={0.8} />
-                <path d="M-13,-11 L0,-20 L13,-11 Z" fill="#c8b26a" stroke="#a3904f" strokeWidth={0.8} />
-              </g>
-              <g transform="translate(26,4)">
-                <rect x={-10} y={-10} width={20} height={11} fill="#bfa988" stroke="#8c6f4e" strokeWidth={0.8} />
-                <path d="M-12,-10 L0,-18 L12,-10 Z" fill="#b3543f" stroke="#8a3f30" strokeWidth={0.8} />
-              </g>
-              {/* le butin convoité */}
-              <g transform="translate(-2,-28)">
-                <ellipse cx={0} cy={4} rx={12} ry={4} fill="#000" opacity={0.12} />
-                <ellipse cx={-6} cy={0} rx={3} ry={4.5} fill="#a3673f" />
-                <ellipse cx={1} cy={1} rx={3} ry={4.5} fill="#8c552f" />
-                <rect x={5} y={-3} width={9} height={7} fill="#8c6b3f" stroke="#5d4a33" strokeWidth={0.8} />
-              </g>
+              <CoeurVillage decor={v.decor} />
             </g>
 
             <Murailles niveau={v.mur} hp={exp.wallHp} max={wallMax} breche={exp.battle.breche} layer="front" geo={geo} />
 
             <BatailleLayer battle={exp.battle} now={s.lastSeen} wallHp={exp.wallHp} wallMax={wallMax} />
           </g>
+          {/* le ciel du jour vaut aussi loin de chez soi */}
+          <Meteo meteo={s.meteo} w={900} h={560} />
+          <VoileSaison saison={s.saison} w={900} h={560} />
         </svg>
         {camera.manuel && (
           <button className="exp-recentrer" onClick={camera.recentrer}>

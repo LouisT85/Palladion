@@ -17,6 +17,8 @@ import {
   GODS,
   GOD_IDS,
   METIERS,
+  METIERS_DEPART,
+  metierManquant,
   MODE_TEST,
   NOMS_VILLAGEOIS,
   OFFLINE_CAP_MS,
@@ -363,8 +365,16 @@ function syncVillageois(s: GameState): void {
     const utilises = new Set(s.villageois.map((v) => v.nom))
     const libres = NOMS_VILLAGEOIS.filter((n) => !utilises.has(n))
     const nom = libres.length > 0 ? libres[Math.floor(Math.random() * libres.length)] : `Habitant ${s.villageois.length + 1}`
-    // chacun naît avec un métier : c'est ce qui donne du sens à l'affectation
-    s.villageois.push({ id: uid('v'), nom, poste: null, metier: tirerMetier() })
+    /*
+     * Chacun naît avec un métier — et la fournée de départ est écrite d'avance :
+     * un homme de chaque métier, plus un second paysan. Ensuite, chaque naissance
+     * comble le plus grand manque. Le tirage purement aléatoire donnait des
+     * villages à quatre paysans sans un seul prêtre : la faveur ne montait pas
+     * et le joueur n'y pouvait rien.
+     */
+    const i = s.villageois.length
+    const metier = i < METIERS_DEPART.length ? METIERS_DEPART[i] : metierManquant(s.villageois.map((v) => v.metier))
+    s.villageois.push({ id: uid('v'), nom, poste: null, metier })
   }
   while (s.villageois.length > s.pop) {
     // on retire d'abord les oisifs : un artisan ne disparaît qu'en dernier

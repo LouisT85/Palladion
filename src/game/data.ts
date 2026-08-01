@@ -125,6 +125,49 @@ export function tirerMetier(): BuildingId {
   return 'ferme'
 }
 
+/**
+ * Les sept premiers habitants, dans l'ordre où ils arrivent. Un métier de
+ * chaque, plus un second paysan — parce que la ferme ouvre deux postes avant
+ * tous les autres.
+ *
+ * Le tirage pondéré seul ne suffisait pas : sur sept lancers, il laissait
+ * couramment le village sans prêtre ET sans docker, donc sans faveur ni
+ * commerce, avec quatre paysans qui se marchaient dessus. Un village de départ
+ * ne doit pas dépendre d'un coup de dé.
+ */
+export const METIERS_DEPART: BuildingId[] = [
+  'ferme',
+  'scierie',
+  'carriere',
+  'ferme',
+  'temple',
+  'forge',
+  'port',
+]
+
+/**
+ * Métier du prochain-né, choisi pour combler le plus grand MANQUE du village
+ * au regard des poids ci-dessus. Toujours pondéré à long terme — il naîtra bien
+ * trois fois plus de paysans que de prêtres — mais sans jamais laisser un métier
+ * entier absent pendant vingt minutes.
+ */
+export function metierManquant(deja: BuildingId[]): BuildingId {
+  const somme = POIDS_METIERS.reduce((a, m) => a + m.poids, 0)
+  const n = deja.length + 1
+  let choix: BuildingId = 'ferme'
+  let pire = -Infinity
+  for (const m of POIDS_METIERS) {
+    const attendu = (m.poids / somme) * n
+    const manque = attendu - deja.filter((x) => x === m.id).length
+    // à égalité, le métier le plus courant passe devant : l'ordre des poids tranche
+    if (manque > pire) {
+      pire = manque
+      choix = m.id
+    }
+  }
+  return choix
+}
+
 /** noms grecs donnés aux habitants — le village cesse d'être un compteur */
 export const NOMS_VILLAGEOIS = [
   'Alexios', 'Nikandros', 'Théron', 'Kleitos', 'Damon', 'Lysandre', 'Périclès', 'Straton',

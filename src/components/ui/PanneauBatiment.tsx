@@ -410,7 +410,7 @@ export function PanneauBatiment() {
   const voirHabitants = () => setHabitantsOuverts(true)
 
   return (
-    <aside className="panneau">
+    <aside className="panneau" data-tuto="panneau">
       {habitantsOuverts && <PanneauPopulation onFermer={() => setHabitantsOuverts(false)} />}
       <button className="fermer" onClick={() => s.select(null)} aria-label="Fermer">
         ✕

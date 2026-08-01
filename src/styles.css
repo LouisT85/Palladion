@@ -1441,6 +1441,135 @@ svg.carte-exp {
   margin-left: 1px;
 }
 
+/* ── la leçon de Zeus ──────────────────────────────────── */
+/* Quatre volets opaques encadrent la cible : le trou du milieu est un VRAI vide,
+   donc l'élément visé reste cliquable et rien d'autre ne l'est. */
+.tuto {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+.tuto-volet {
+  position: fixed;
+  background: #050a10e8;
+  pointer-events: auto;
+  transition: opacity 0.15s;
+}
+.tuto-cible {
+  position: fixed;
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px #e8c04a2e, 0 0 26px #e8c04a55;
+  pointer-events: none;
+  animation: tuto-pulse 1.9s ease-in-out infinite;
+}
+@keyframes tuto-pulse {
+  50% {
+    box-shadow: 0 0 0 6px #e8c04a1a, 0 0 34px #e8c04a77;
+  }
+}
+.tuto-carte {
+  position: fixed;
+  width: min(520px, 92vw);
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  pointer-events: auto;
+  background: linear-gradient(180deg, #1d2c3ffa, #101c28fd);
+  border: 2px solid var(--gold-sombre);
+  border-radius: 16px;
+  padding: 15px 17px;
+  box-shadow: 0 22px 60px #000e, inset 0 1px 0 #ffffff12;
+  animation: tuto-in 0.28s cubic-bezier(0.16, 1.2, 0.4, 1);
+}
+@keyframes tuto-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+.tuto-zeus {
+  flex: 0 0 auto;
+  line-height: 0;
+}
+.tuto-zeus .zeus {
+  filter: drop-shadow(0 4px 14px #000a);
+}
+.tuto-corps {
+  flex: 1;
+  min-width: 0;
+}
+.tuto-compteur {
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7f93a1;
+}
+.tuto-corps h3 {
+  margin: 2px 0 7px;
+  font-family: Georgia, serif;
+  font-size: 18px;
+  color: var(--gold);
+}
+.tuto-corps p {
+  margin: 6px 0;
+  font-size: 13.5px;
+  line-height: 1.52;
+  color: #dfd3b8;
+  font-family: Georgia, serif;
+}
+.tuto-corps p b {
+  color: #f4e6bd;
+}
+.tuto-pied {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bord);
+}
+.tuto-ordre {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.tuto-doigt {
+  font-size: 17px;
+  animation: tuto-doigt 1.1s ease-in-out infinite;
+}
+@keyframes tuto-doigt {
+  50% {
+    transform: translateX(4px);
+  }
+}
+.tuto-pied .principal {
+  flex: 1;
+}
+.tuto-passer {
+  font-size: 11.5px;
+  padding: 4px 9px;
+  color: var(--muted);
+  background: none;
+  border-color: transparent;
+}
+.tuto-passer:hover:not(:disabled) {
+  background: none;
+  color: var(--texte);
+  border-color: var(--bord);
+}
+@media (max-width: 700px) {
+  .tuto-zeus {
+    display: none;
+  }
+}
+
 /* ── salve de victoire ─────────────────────────────────── */
 /* elle passe par-dessus tout, y compris les modales, et n'intercepte rien :
    c'est une fanfare, pas une fenêtre de plus */

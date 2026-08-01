@@ -255,6 +255,15 @@ export function ModaleAide() {
         <button className="principal" style={{ width: '100%', marginTop: 14 }} onClick={() => s.openPanel(null)}>
           Prendre la tête du village
         </button>
+        <button
+          style={{ width: '100%', marginTop: 8 }}
+          onClick={() => {
+            s.openPanel(null)
+            s.demarrerTutoriel()
+          }}
+        >
+          ⚡ Refaire la leçon de Zeus
+        </button>
         <div className="aide-reset">
           {confirmeReset ? (
             <>

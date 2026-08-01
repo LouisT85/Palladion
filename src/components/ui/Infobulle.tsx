@@ -28,6 +28,7 @@ export function Infobulle({
   note,
   children,
   className,
+  dataTuto,
 }: {
   titre: string
   emoji?: ReactNode
@@ -38,6 +39,8 @@ export function Infobulle({
   note?: ReactNode
   children: ReactNode
   className?: string
+  /** cible du tutoriel : c'est cet élément que Zeus met en lumière */
+  dataTuto?: string
 }) {
   const [ouvert, setOuvert] = useState(false)
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
@@ -67,6 +70,7 @@ export function Infobulle({
     <span
       ref={ancre}
       className={className}
+      data-tuto={dataTuto}
       onPointerEnter={() => setOuvert(true)}
       onPointerLeave={() => setOuvert(false)}
       onFocus={() => setOuvert(true)}

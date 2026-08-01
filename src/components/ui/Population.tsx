@@ -143,7 +143,7 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
   // position:fixed dans ses 330 px. La modale doit couvrir tout l'écran.
   return createPortal(
     <div className="voile" onClick={onFermer}>
-      <div className="modale" onClick={(e) => e.stopPropagation()}>
+      <div className="modale" data-tuto="recensement" onClick={(e) => e.stopPropagation()}>
         <h2>👥 Les habitants du village</h2>
         <div style={{ color: '#93a7b4', fontSize: 13 }}>
           <b style={{ color: '#e8dcc0' }}>{s.pop}</b>/{cap} habitants ·{' '}

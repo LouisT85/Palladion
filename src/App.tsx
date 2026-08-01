@@ -8,6 +8,7 @@ import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker } from './components/ui/Missions'
 import { ControleSon, useSons } from './components/ui/Son'
+import { Tutoriel } from './components/ui/Tutoriel'
 import { AnimationVictoire } from './components/ui/Victoire'
 import { PanneauBatiment } from './components/ui/PanneauBatiment'
 import { Pantheon } from './components/ui/Pantheon'
@@ -64,6 +65,7 @@ export default function App() {
         {/* les libellés s'effacent sous 1400 px : les pictogrammes suffisent, le titre reste */}
         <div className="hud-actions">
           <button
+            data-tuto="bouton-expeditions"
             onClick={() => openPanel('expeditions')}
             title={
               appel
@@ -75,10 +77,11 @@ export default function App() {
             🗺️<span className="lbl"> Expéditions</span>
             {appel ? ' ⛑️' : etoiles > 0 ? ` ★${etoiles}` : ''}
           </button>
-          <button onClick={() => openPanel('pantheon')} title="Les dieux de l'Olympe">
+          <button data-tuto="bouton-pantheon" onClick={() => openPanel('pantheon')} title="Les dieux de l'Olympe">
             ⚡<span className="lbl"> Panthéon</span>
           </button>
           <button
+            data-tuto="bouton-heros"
             onClick={() => openPanel('heros')}
             title="Les héros de la matière troyenne — les recruter, les faire monter, trancher leurs dilemmes"
             className={herosARecruter > 0 ? 'appelle' : undefined}
@@ -124,6 +127,8 @@ export default function App() {
       <ModaleRapportBataille />
       <ModaleFinPartie />
       <AnimationVictoire />
+      {/* la leçon de Zeus passe au-dessus de tout : c'est elle qui mène la main */}
+      <Tutoriel />
     </div>
   )
 }

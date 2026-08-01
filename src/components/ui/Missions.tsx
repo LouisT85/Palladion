@@ -41,7 +41,7 @@ export function MissionsTracker() {
   }).length
 
   return (
-    <div className={`missions${replie ? ' replie' : ''}`}>
+    <div className={`missions${replie ? ' replie' : ''}`} data-tuto="missions">
       <button
         className="missions-titre"
         onClick={() => setReplie(!replie)}

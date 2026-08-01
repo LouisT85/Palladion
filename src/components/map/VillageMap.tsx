@@ -89,6 +89,8 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
 
   return (
     <g
+      // cible du tutoriel : Zeus met en lumière l'emplacement qu'il fait bâtir
+      data-tuto={`carte-${id}`}
       transform={`translate(${def.pos.x},${def.pos.y})`}
       onClick={(e) => {
         e.stopPropagation()
@@ -312,6 +314,7 @@ export function VillageMap() {
 
           {/* zone cliquable des remparts (sur la porte) */}
           <g
+            data-tuto="carte-remparts"
             transform={`translate(${MAP.porte.x},${MAP.porte.y})`}
             onClick={(e) => {
               e.stopPropagation()

@@ -99,6 +99,7 @@ import {
 } from './heros'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives } from './missions'
+import { ETAPES, NB_ETAPES, type SnapTuto } from './tutoriel'
 import {
   BONUS_ORAGE_ZEUS,
   DUREE_METEO_MS,
@@ -225,6 +226,8 @@ export interface GameState {
   exploits: Record<string, number>
   /** écran de fin de règne, ouvert par l'abdication */
   finDePartie: { score: number; titre: string; desc: string; lignes: string[] } | null
+  /** étape courante de la leçon de Zeus — null = pas de tutoriel en cours */
+  tutoriel: number | null
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -264,6 +267,9 @@ export interface GameState {
   ignorerSecours: () => void
   abdiquer: () => void
   fermerFin: () => void
+  demarrerTutoriel: () => void
+  etapeTutoSuivante: () => void
+  arreterTutoriel: () => void
   retraiteExpedition: () => void
   fermerExpedition: () => void
   attaqueTest: () => void
@@ -703,6 +709,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     hautsFaits: [],
     exploits: {},
     finDePartie: null,
+    tutoriel: null,
     missionsNotifiees: [],
     battle: null,
     renfortsEngages: null,
@@ -737,6 +744,9 @@ type ActionsOnly = {
   ignorerSecours: unknown
   abdiquer: unknown
   fermerFin: unknown
+  demarrerTutoriel: unknown
+  etapeTutoSuivante: unknown
+  arreterTutoriel: unknown
   retraiteExpedition: unknown
   fermerExpedition: unknown
   attaqueTest: unknown
@@ -801,6 +811,7 @@ const CHAMPS_SAUVES = [
   'alliances',
   'hautsFaits',
   'exploits',
+  'tutoriel',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -980,6 +991,22 @@ export function snapHautFait(s: GameState): SnapHautFait {
     saison: s.saison,
     jour: jourDe(s),
     exploits: s.exploits ?? {},
+  }
+}
+
+/** vue de l'état que lisent les conditions d'avancement du tutoriel */
+export function snapTuto(s: GameState): SnapTuto {
+  return {
+    resources: s.resources,
+    buildings: s.buildings,
+    villageois: s.villageois,
+    army: s.army,
+    recruitQueue: s.recruitQueue,
+    gods: s.gods,
+    heros: s.heros,
+    panel: s.panel,
+    pop: s.pop,
+    faveur: s.faveur,
   }
 }
 
@@ -1483,9 +1510,10 @@ export const useGame = create<GameState>()(
           // sauvegarde corrompue : nouvelle partie
         }
       }
+      // première partie : Zeus descend faire la leçon plutôt que d'ouvrir un pavé d'aide
       set((s) => {
         Object.assign(s, etatInitial(now))
-        s.panel = 'aide'
+        s.tutoriel = 0
       })
     },
 
@@ -2393,6 +2421,48 @@ export const useGame = create<GameState>()(
       set((s) => void (s.finDePartie = null))
     },
 
+    /*
+     * La leçon de Zeus. Elle se déroule dans le jeu réel — aucune simulation à
+     * part : ce que le joueur bâtit pendant le tutoriel, il le garde. On se
+     * contente de repousser le premier assaut le temps de la leçon, pour ne pas
+     * mêler la théorie et la panique.
+     */
+    demarrerTutoriel: () => {
+      set((s) => {
+        s.tutoriel = 0
+        s.panel = null
+        s.nextAttackAt = Math.max(s.nextAttackAt, Date.now() + PREMIER_ASSAUT_MS)
+      })
+    },
+
+    etapeTutoSuivante: () => {
+      set((s) => {
+        if (s.tutoriel === null) return
+        const suivant = s.tutoriel + 1
+        if (suivant >= NB_ETAPES) {
+          s.tutoriel = null
+          s.tutorialDone = true
+          pushToast(s, '⚡', 'Zeus remonte à l’Olympe. La plaine est à vous.')
+          return
+        }
+        s.tutoriel = suivant
+        // l'étape suivante s'explique à découvert : on referme ce qui traîne
+        // on referme les panneaux, sauf quand l'étape suivante en ouvre un elle-même
+        if (!ETAPES[suivant].cibles?.some((c) => c.startsWith('bouton-'))) s.panel = null
+        s.nextAttackAt = Math.max(s.nextAttackAt, Date.now() + 4 * 60_000)
+      })
+      get().save()
+    },
+
+    arreterTutoriel: () => {
+      set((s) => {
+        s.tutoriel = null
+        s.tutorialDone = true
+        pushToast(s, '❔', 'Leçon écourtée — tout est rappelé dans l’aide, en haut à droite.')
+      })
+      get().save()
+    },
+
     retraiteExpedition: () => {
       set((s) => {
         if (!s.expedition || s.expedition.result) return
@@ -2476,7 +2546,7 @@ export const useGame = create<GameState>()(
       // ne peuvent ressusciter l'ancienne partie après ce point
       set((s) => {
         Object.assign(s, etatInitial(Date.now()))
-        s.panel = 'aide'
+        s.tutoriel = 0
         pushToast(s, '🏛️', 'Une nouvelle cité s’élève — tout est à rebâtir.')
       })
       try {

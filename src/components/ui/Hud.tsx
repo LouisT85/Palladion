@@ -29,6 +29,7 @@ export function ControleVitesse() {
   const enBataille = useGame((s) => s.battle !== null || (s.expedition !== null && s.expedition.result === null))
   return (
     <span
+      data-tuto="vitesses"
       className="vitesses"
       title={
         enBataille
@@ -138,7 +139,7 @@ export function BarreRessources() {
 
   return (
     <>
-      <div className="ressources">
+      <div className="ressources" data-tuto="ressources">
         {(Object.keys(RES) as ResourceId[]).map((r) => {
           const t = taux[r]
           const part = Math.min(1, s.resources[r] / Math.max(1, stock))
@@ -228,6 +229,7 @@ export function BarreRessources() {
           </button>
         )}
         <Infobulle
+          dataTuto="habitants"
           emoji="👥"
           titre="Les habitants"
           resume="Chaque villageois est un bras : à l’atelier il produit, à la caserne il devient soldat. Un habitant ne peut pas faire les deux."
@@ -271,6 +273,7 @@ export function BarreRessources() {
           ⚔️<span className="opt">Garnison</span> <b>{armeeTotale(s.army)}</b>
         </Infobulle>
         <Infobulle
+          dataTuto="ambiance"
           className="pastille"
           emoji="🎭"
           titre={`Ambiance : ${morale.txt}`}
@@ -297,6 +300,7 @@ export function BarreRessources() {
           </span>
         </Infobulle>
         <Infobulle
+          dataTuto="menace"
           className="pastille"
           emoji="🔥"
           titre="La menace"

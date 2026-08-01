@@ -68,7 +68,7 @@ function socle(): Partial<GameState> {
     faveur: 0,
     pop: 7,
     villageois: [],
-    army: { lancier: 0, archer: 0, hoplite: 0 },
+    army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     recruitQueue: [],
     morale: 52,
     moraleMods: [],
@@ -222,7 +222,7 @@ describe('production pendant l’absence', () => {
     const s = rechargerApres(4 * 3_600_000, {
       ...socle(),
       resources: { bois: 50, pierre: 50, grain: 80, bronze: 0 },
-      army: { lancier: 40, archer: 0, hoplite: 0 },
+      army: { lancier: 40, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     })
     expect(s.resources.grain).toBe(0)
     for (const r of Object.keys(RES) as ResourceId[]) {
@@ -276,7 +276,7 @@ describe('assauts nocturnes', () => {
     // hommes. Une victoire écrasante ne prouverait rien — avec zéro perte, on
     // pourrait supprimer l'application des pertes sans que rien ne rougisse.
     const vague: WaveUnit[] = [{ enemy: 'guerrier', count: 9 }]
-    const army = { lancier: 10, archer: 0, hoplite: 0 }
+    const army = { lancier: 10, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }
     const attendu = resoudreHorsLigne(vague, army, 1, WALL_HP[1], 0)
     expect(attendu.victoire).toBe(true)
     const tombes = attendu.pertes.lancier ?? 0
@@ -375,7 +375,7 @@ describe('famine et désertion au réveil', () => {
      * éprouve donc la chaîne complète — absence, puis réveil — sur deux villages
      * qui ne diffèrent que par le contenu de leur grenier.
      */
-    const garnison = { lancier: 40, archer: 0, hoplite: 0 }
+    const garnison = { lancier: 40, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }
     const village = { ...socle(), army: garnison }
 
     rechargerApres(60_000, { ...village, resources: { bois: 50, pierre: 50, grain: 2, bronze: 0 } })
@@ -404,7 +404,7 @@ describe('famine et désertion au réveil', () => {
     const s = rechargerApres(OFFLINE_CAP_MS, {
       ...socle(),
       resources: { bois: 100, pierre: 100, grain: 600, bronze: 100 },
-      army: { lancier: 0, archer: 0, hoplite: 5 },
+      army: { lancier: 0, archer: 0, hoplite: 5, frondeur: 0, peltaste: 0, belier: 0 },
       moraleMods: [{ id: 'm-deuil', label: 'Deuil', delta: -80, expiresAt: null }],
     })
     // huit heures de désespoir, et pourtant la garnison est au complet
@@ -503,7 +503,7 @@ describe('chantiers, recrues et effets différés échus', () => {
     const s = rechargerApres(20 * 60_000, {
       ...socle(),
       buildings: niveaux({ agora: 2, caserne: 2 }),
-      army: { lancier: 1, archer: 0, hoplite: 0 },
+      army: { lancier: 1, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
       recruitQueue: [
         // fournée entièrement écoulée : les trois lanciers sortent, la ligne part
         { unit: 'lancier', restant: 3, finishAt: now - 15 * 60_000 },
@@ -578,7 +578,7 @@ describe('chantiers, recrues et effets différés échus', () => {
       ...socle(),
       buildings: niveaux({ agora: 3, maisons: 2 }),
       resources: { bois: 10, pierre: 10, grain: 0, bronze: 0 },
-      army: { lancier: 40, archer: 0, hoplite: 0 },
+      army: { lancier: 40, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     })
     expect(affame.resources.grain).toBe(0)
     expect(affame.pop).toBe(7)

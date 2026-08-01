@@ -557,6 +557,68 @@ export const UNITS: Record<UnitId, UnitDef> = {
     wallDps: 9,
     caserne: 3,
   },
+  /*
+   * ── LES TROIS AJOUTS ─────────────────────────────────────────────────────
+   *
+   * Trois unités, un seul axe : le prix. On n'ARBITRAIT pas, on empilait. Chacune
+   * de celles-ci existe pour une raison qu'aucune autre ne remplit :
+   *
+   *  · le FRONDEUR ne coûte pas un gramme de bronze — le seul soldat qu'un village
+   *    pauvre lève en nombre, et le seul tireur qui vaille sans rempart ;
+   *  · le PELTASTE court et frappe les tireurs : la réponse à une vague d'archers,
+   *    et la seule troupe qui tienne vraiment en rase campagne ;
+   *  · le BÉLIER est une machine, pas un homme. Il ne se bat pas : il ABAT. Seul
+   *    l'ennemi en avait — vos hommes grattaient les murailles à mains nues.
+   */
+  frondeur: {
+    id: 'frondeur',
+    nom: 'Frondeur',
+    emoji: '🪨',
+    desc:
+      'Berger armé d’une fronde de cuir. Aucun bronze à fondre : le soldat des villages pauvres. Tire de loin, tombe vite.',
+    cost: { bois: 18, grain: 12 },
+    time: 12,
+    atk: 5,
+    hp: 22,
+    wallDps: 1.5,
+    ranged: true,
+    caserne: 1,
+  },
+  peltaste: {
+    id: 'peltaste',
+    nom: 'Peltaste',
+    emoji: '🥏',
+    desc:
+      'Javelots et bouclier d’osier. Deux fois plus vif qu’un hoplite, il fond sur les tireurs : la réponse aux archers, et la meilleure troupe d’expédition.',
+    cost: { bois: 30, bronze: 14 },
+    time: 30,
+    atk: 13,
+    hp: 54,
+    wallDps: 6,
+    caserne: 2,
+  },
+  belier: {
+    id: 'belier',
+    nom: 'Bélier de siège',
+    emoji: '🪵',
+    desc:
+      'Une poutre ferrée sous un toit de peaux. Ne se bat pas : il abat. Le seul moyen de percer une place forte sans y laisser la moitié de ses hommes.',
+    cost: { bois: 120, bronze: 30 },
+    time: 70,
+    atk: 4,
+    hp: 240,
+    wallDps: 34,
+    caserne: 3,
+  },
+}
+
+/**
+ * Effectifs complets à partir d'une liste partielle. Les six unités doivent
+ * TOUTES être présentes dans un `Record<UnitId, number>` : ce raccourci évite
+ * d'écrire trois zéros à chaque fois qu'on décrit une garnison.
+ */
+export function troupes(p: Partial<Record<UnitId, number>>): Record<UnitId, number> {
+  return { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, ...p }
 }
 export const UNIT_IDS = Object.keys(UNITS) as UnitId[]
 

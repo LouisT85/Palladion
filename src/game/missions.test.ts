@@ -89,7 +89,7 @@ function etatVide(): EtatMissions {
   return {
     buildings: batiments(0),
     villageois: [],
-    army: { lancier: 0, archer: 0, hoplite: 0 },
+    army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     resources: { bois: 0, pierre: 0, grain: 0, bronze: 0 },
     pop: 0,
     morale: 0,
@@ -127,7 +127,7 @@ function etatAcheve(): EtatMissions {
     buildings: batiments(4),
     villageois: tousAuxPostes(4),
     // 30 soldats + 17 ouvriers tiennent dans les 52 habitants du dernier niveau de maisons
-    army: { lancier: 10, archer: 10, hoplite: 10 },
+    army: { lancier: 10, archer: 10, hoplite: 10, frondeur: 0, peltaste: 0, belier: 0 },
     resources: { bois: stock, pierre: stock, grain: stock, bronze: stock },
     pop: POP_CAP[4],
     morale: 100,
@@ -176,7 +176,7 @@ function etatPlausible(r: () => number): EtatMissions {
   return {
     buildings: b,
     villageois,
-    army: { lancier: Math.floor(r() * 15), archer: Math.floor(r() * 15), hoplite: Math.floor(r() * 10) },
+    army: { lancier: Math.floor(r() * 15), archer: Math.floor(r() * 15), hoplite: Math.floor(r() * 10), frondeur: 0, peltaste: 0, belier: 0 },
     resources: { bois: res(), pierre: res(), grain: res(), bronze: res() },
     pop: Math.floor(r() * (POP_CAP[b.maisons.level] + 1)),
     morale: r() * 100,
@@ -241,7 +241,7 @@ function popExigee(m: MissionDef): number {
 function uniteExigee(m: MissionDef, u: UnitId): number {
   for (let n = 0; n <= 30; n++) {
     const s = etatAcheve()
-    s.army = { lancier: 0, archer: 0, hoplite: 0 }
+    s.army = { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }
     s.army[u] = n
     if (fait(m, s)) return n
   }

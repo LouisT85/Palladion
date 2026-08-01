@@ -93,7 +93,7 @@ function poserVillage(patch: Partial<GameState>): GameState {
     createdAt: 0,
     lastSeen: 0,
     pop: 0,
-    army: { lancier: 0, archer: 0, hoplite: 0 },
+    army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     villageois: [],
     buildings: niveaux({ agora: 1 }),
     resources: { bois: 0, pierre: 0, grain: 0, bronze: 0 },
@@ -459,7 +459,7 @@ describe('taux net par minute', () => {
       buildings: niveaux({ agora: 2, ferme: 2 }),
       villageois: equipe('ferme', 2),
       pop: 10,
-      army: { lancier: 1, archer: 0, hoplite: 0 },
+      army: { lancier: 1, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     })
     const brut = productionParMinute(s, s.lastSeen)
     const net = tauxParMinute(s)
@@ -479,7 +479,7 @@ describe('taux net par minute', () => {
     const s = poserVillage({
       buildings: niveaux({ agora: 2 }), // pas un seul champ : rien que la cueillette
       pop: 20,
-      army: { lancier: 0, archer: 0, hoplite: 30 },
+      army: { lancier: 0, archer: 0, hoplite: 30, frondeur: 0, peltaste: 0, belier: 0 },
     })
     const brut = productionParMinute(s, s.lastSeen).grain
     expect(brut).toBeGreaterThan(0)

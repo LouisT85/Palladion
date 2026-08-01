@@ -75,7 +75,7 @@ function rayonEllipse(geo: BattleGeo, p: { x: number; y: number }): number {
 function bataille(reglages: Partial<OptionsBataille> = {}): BattleState {
   return creerBataille({
     attaquants: [{ enemy: 'pillard', count: 4 }],
-    defenseurs: { lancier: 0, archer: 0, hoplite: 0 },
+    defenseurs: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     wallLevel: 2,
     now: 0,
     geo: GEO_VILLAGE,
@@ -109,7 +109,7 @@ function siegeur(b: BattleState): void {
 
 /** un archer sur le rempart, un assaillant immobile à `ecart` pas de lui */
 function duel(ecart: number): BattleState {
-  const b = bataille({ wallLevel: 3, attaquants: attaquants(1), defenseurs: { lancier: 0, archer: 1, hoplite: 0 } })
+  const b = bataille({ wallLevel: 3, attaquants: attaquants(1), defenseurs: { lancier: 0, archer: 1, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 } })
   const archer = b.fighters.find((f) => f.type === 'archer')!
   const pillard = b.fighters.find((f) => f.camp === 'attaque')!
   archer.x = MAP.porte.x
@@ -128,7 +128,7 @@ describe('creerBataille', () => {
         { enemy: 'pillard', count: 5 },
         { enemy: 'guerrier', count: 2 },
       ],
-      defenseurs: { lancier: 3, archer: 2, hoplite: 1 },
+      defenseurs: { lancier: 3, archer: 2, hoplite: 1, frondeur: 0, peltaste: 0, belier: 0 },
     })
     const parCamp = (camp: 'attaque' | 'defense') => b.fighters.filter((f) => f.camp === camp)
     expect(parCamp('attaque')).toHaveLength(7)
@@ -172,11 +172,12 @@ describe('creerBataille', () => {
     ).toBe(true)
     expect(b.phase).toBe('approche')
     // `engages` sert de base aux pertes : il doit refléter la garnison, pas les figurines
+    // engages ne liste que les unités réellement engagées : pas de zéros
     expect(b.engages).toEqual({ lancier: 3, archer: 2, hoplite: 1 })
   })
 
   it('comprime les grosses garnisons en figurines sans créer ni perdre de pv', () => {
-    const b = bataille({ defenseurs: { lancier: 40, archer: 30, hoplite: 4 } })
+    const b = bataille({ defenseurs: { lancier: 40, archer: 30, hoplite: 4, frondeur: 0, peltaste: 0, belier: 0 } })
     const lanciers = b.fighters.filter((f) => f.type === 'lancier')
     const archers = b.fighters.filter((f) => f.type === 'archer')
     // 16 fantassins et 8 archers au plus à l'écran : au-delà la scène est illisible
@@ -263,7 +264,7 @@ describe('creerBataille', () => {
   })
 
   it('ouvre les murs d’avance avec la ruse d’Ulysse : ni siège, ni pan à abattre', () => {
-    const b = bataille({ sansSiege: true, defenseurs: { lancier: 2, archer: 0, hoplite: 0 } })
+    const b = bataille({ sansSiege: true, defenseurs: { lancier: 2, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 } })
     expect(b.breche).toBe(true)
     expect(b.secteurs.every((s) => s.breche && s.hp === 0 && s.max === 0)).toBe(true)
 
@@ -296,7 +297,7 @@ describe('creerBataille', () => {
      * ne quitte jamais « siege » alors que l'ennemi est dans la place. Ce test
      * verrouille le comportement ACTUEL pour qu'un correctif se voie ici.
      */
-    const b = bataille({ wallLevel: 2, wallHpTotal: 0, defenseurs: { lancier: 2, archer: 0, hoplite: 0 } })
+    const b = bataille({ wallLevel: 2, wallHpTotal: 0, defenseurs: { lancier: 2, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 } })
     expect(b.secteurs.every((s) => s.breche)).toBe(true)
     expect(b.breche).toBe(false)
 
@@ -393,7 +394,7 @@ describe('tickBataille', () => {
           { enemy: 'mercenaire', count: 2 },
           { enemy: 'belier', count: 2 },
         ],
-        defenseurs: { lancier: 24, archer: 12, hoplite: 8 },
+        defenseurs: { lancier: 24, archer: 12, hoplite: 8, frondeur: 0, peltaste: 0, belier: 0 },
         wallLevel: 4,
         tours: 4,
         fronts: SECTEURS,
@@ -521,7 +522,7 @@ describe('tickBataille', () => {
       wallLevel: 2,
       wallHpTotal: 4,
       attaquants: attaquants(1),
-      defenseurs: { lancier: 0, archer: 1, hoplite: 0 },
+      defenseurs: { lancier: 0, archer: 1, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     })
     const archer = b.fighters.find((f) => f.type === 'archer')!
     const pillard = b.fighters.find((f) => f.camp === 'attaque')!
@@ -793,7 +794,7 @@ describe('capacités résolues sur le champ de bataille', () => {
 describe('pertes', () => {
   it('ne raye aucun hoplite de l’effectif quand c’est un héros qui tombe', () => {
     const b = bataille({
-      defenseurs: { lancier: 0, archer: 0, hoplite: 4 },
+      defenseurs: { lancier: 0, archer: 0, hoplite: 4, frondeur: 0, peltaste: 0, belier: 0 },
       herosPresents: [{ id: 'achille', niveau: 3 }],
     })
     const heros = b.fighters.find((f) => f.heros === 'achille')!
@@ -823,7 +824,7 @@ describe('pertes', () => {
   })
 
   it('convertit les pertes de figurines au prorata de la garnison réelle', () => {
-    const b = bataille({ defenseurs: { lancier: 40, archer: 0, hoplite: 0 } })
+    const b = bataille({ defenseurs: { lancier: 40, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 } })
     const figurines = b.fighters.filter((f) => f.type === 'lancier')
     expect(figurines).toHaveLength(16)
     // 4 figurines sur 16, soit un quart des pv : un quart des 40 lanciers y reste

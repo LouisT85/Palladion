@@ -22,7 +22,13 @@ function statsDe(type: EnemyId | UnitId): { atk: number; hp: number; speed: numb
   const e = ENEMIES[type as EnemyId]
   if (e) return { atk: e.atk, hp: e.hp, speed: e.speed, wallDps: e.wallDps }
   const u = UNITS[type as UnitId]
-  return { atk: u.atk, hp: u.hp, speed: 38, wallDps: u.wallDps }
+  // le peltaste court : c'est la moitié de ce qu'on achète en le levant
+  return { atk: u.atk, hp: u.hp, speed: type === 'peltaste' ? 58 : 38, wallDps: u.wallDps }
+}
+
+/** ce qui tire de loin, dans les deux camps — la proie du peltaste */
+export function estTireur(type: EnemyId | UnitId): boolean {
+  return type === 'archer' || type === 'frondeur'
 }
 
 function nomDe(type: EnemyId | UnitId, n: number): string {
@@ -264,6 +270,8 @@ export function resoudreHorsLigne(
 // seule la cadence s'étire : l'issue reste la même, le spectacle respire.
 const PORTEE_ARC_MUR = 300
 const PORTEE_ARC_SOL = 210
+/** la fronde porte les deux tiers d'un arc : c'est le prix de sa gratuité */
+export const PORTEE_FRONDE = 0.66
 export const CADENCE_ARC = 2600
 export const CADENCE_MELEE = 2100
 export const CADENCE_MUR = 1700
@@ -368,9 +376,9 @@ export function creerBataille(opts: OptionsBataille): BattleState {
 
   // Défenseurs de mêlée — au point de ralliement
   const engages: Partial<Record<UnitId, number>> = {}
-  // un compteur commun aux lanciers et aux hoplites : la ligne est unique
+  // un compteur commun à toute l'infanterie : la ligne de mêlée est unique
   let placeDef = 0
-  for (const u of ['lancier', 'hoplite'] as UnitId[]) {
+  for (const u of ['lancier', 'peltaste', 'hoplite'] as UnitId[]) {
     const n = defenseurs[u] ?? 0
     if (n <= 0) continue
     engages[u] = n
@@ -398,7 +406,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         y: p.y + (Math.random() - 0.5) * 8,
         tx: p.x,
         ty: p.y,
-        speed: 42,
+        speed: statsDe(u).speed,
         etat: 'melee',
         nextHit: 0,
         seed: Math.random(),
@@ -439,21 +447,28 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     })
   })
 
-  // Archers défenseurs — postés sur les remparts
-  const nArchers = defenseurs.archer ?? 0
-  if (nArchers > 0) {
-    engages.archer = nArchers
+  /*
+   * Tireurs défenseurs — postés sur les remparts. Archers ET frondeurs : tout ce
+   * qui tire monte sur le mur, et n'en descend que si SON pan tombe. Les deux se
+   * partagent les créneaux, les frondeurs derrière — moins de portée, moins de
+   * valeur, on ne leur donne pas les meilleures places.
+   */
+  let creneau = 0
+  for (const u of ['archer', 'frondeur'] as const) {
+    const n = defenseurs[u] ?? 0
+    if (n <= 0) continue
+    engages[u] = n
     const postes = postesArchers(geo, wallLevel)
-    const visibles = Math.min(nArchers, 8)
-    const mult = nArchers / visibles
-    const partAlliee = Math.round(((opts.renforts?.archer ?? 0) / nArchers) * visibles)
+    const visibles = Math.min(n, u === 'archer' ? 8 : 6)
+    const mult = n / visibles
+    const partAlliee = Math.round(((opts.renforts?.[u] ?? 0) / n) * visibles)
     for (let k = 0; k < visibles; k++) {
-      const p = postes[k % postes.length]
-      const def = UNITS.archer
+      const p = postes[creneau++ % postes.length]
+      const def = UNITS[u]
       fighters.push({
         id: uid('arc'),
         camp: 'defense',
-        type: 'archer',
+        type: u,
         allie: k >= visibles - partAlliee ? true : undefined,
         hp: def.hp * mult,
         maxHp: def.hp * mult,
@@ -759,9 +774,12 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     }
 
     // ── Défenseurs ──
-    if (f.type === 'archer') {
+    // tout ce qui tire depuis le rempart : archers et frondeurs. La fronde porte
+    // moins loin, ce qui est la contrepartie de son prix — aucun bronze
+    if (f.type === 'archer' || f.type === 'frondeur') {
       const surMur = f.etat === 'siege'
-      // un archer ne quitte le rempart que si SON pan de mur est tombé
+      const portePlusCourt = f.type === 'frondeur' ? PORTEE_FRONDE : 1
+      // un tireur ne quitte le rempart que si SON pan de mur est tombé
       if (surMur && secteurProche(b, f).breche) {
         f.etat = 'melee'
         f.tx = geo.ralliement.x + (Math.random() - 0.5) * 40
@@ -771,7 +789,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       if (f.etat === 'melee') versCible(f, dt)
       if (now >= f.nextHit) {
         // par la brume ou sous la pluie, on ne voit ni ne porte aussi loin
-        const portee = (surMur ? PORTEE_ARC_MUR : PORTEE_ARC_SOL) * ciel.portee
+        const portee = (surMur ? PORTEE_ARC_MUR : PORTEE_ARC_SOL) * ciel.portee * portePlusCourt
         const cibles = atkVivants.filter((a) => dist(f, a) <= portee)
         const cible = plusProche(f, cibles)
         if (cible) {
@@ -799,7 +817,13 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     // ils s'y portent — c'est au joueur de compter sur eux pour boucher un trou.
     const dedans = atkVivants.filter((a) => a.etat === 'melee' && estDedans(geo, a))
     const menace = dedans.length > 0 ? dedans : b.secteurs.some((s) => !s.breche) ? [] : atkVivants
-    const cible = plusProche(f, menace)
+    /*
+     * Le peltaste, lui, choisit sa proie : il va d'abord aux TIREURS. C'est toute
+     * sa raison d'être — un javelot rattrape un archer, une lance de milice ne
+     * rattrape rien. Sans ce tri, il n'était qu'un lancier un peu plus cher.
+     */
+    const tireurs = f.type === 'peltaste' ? menace.filter((a) => estTireur(a.type)) : []
+    const cible = plusProche(f, tireurs.length > 0 ? tireurs : menace)
     if (!cible) {
       // se poster devant la brèche la plus menaçante, sinon au ralliement
       const trou = b.secteurs.find((s) => s.breche)

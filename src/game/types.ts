@@ -11,7 +11,7 @@ export type BuildingId =
   | 'caserne'
   | 'temple'
   | 'port'
-export type UnitId = 'lancier' | 'archer' | 'hoplite'
+export type UnitId = 'lancier' | 'archer' | 'hoplite' | 'frondeur' | 'peltaste' | 'belier'
 /** les héros de la matière troyenne — leurs fiches vivent dans heros.ts */
 export type HeroId =
   | 'hector'

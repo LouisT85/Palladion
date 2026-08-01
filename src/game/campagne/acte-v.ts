@@ -1,4 +1,4 @@
-import { TOURS_MAX } from '../data'
+import { TOURS_MAX, troupes } from '../data'
 import { auPoste, jalons, seuil, type ActeCampagne } from './types'
 
 /*
@@ -68,7 +68,7 @@ export const ACTE_V: ActeCampagne = {
       forge: 3,
       port: 2,
     },
-    army: { lancier: 9, archer: 7, hoplite: 4 },
+    army: troupes({ lancier: 9, archer: 7, hoplite: 4, frondeur: 0, peltaste: 0, belier: 0 }),
     // on ne se réjouit pas d'avoir survécu à Achille : on attend la suite
     morale: 50,
     faveur: 76,

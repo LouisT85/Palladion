@@ -485,6 +485,15 @@ function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' {
         taille: 1.15,
         crete: true,
       }
+    /*
+     * Les trois recrues. Le frondeur porte l'arc du tireur (la fronde tourne à la
+     * même cadence), le peltaste la lance et une tunique fauve qui le distingue de
+     * la milice, et le bélier n'est pas un homme : c'est la machine.
+     */
+    case 'frondeur':
+      return { tunique: f.allie ? '#6b7f4a' : estJoueur ? '#6b6a4a' : '#7d6a44', arme: 'arc', taille: 0.9 }
+    case 'peltaste':
+      return { tunique: f.allie ? '#4d6b3a' : estJoueur ? '#8a6a2f' : '#8a5636', arme: 'lance', taille: 1.02 }
   }
 }
 

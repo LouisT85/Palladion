@@ -44,6 +44,7 @@ import {
   UNITS,
   UNIT_IDS,
   WALL_HP,
+  troupes,
 } from './data'
 import {
   GEO_EXPEDITION,
@@ -793,7 +794,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     wallHp: 0,
     tours: 0,
     brechesMur: [],
-    army: { lancier: 0, archer: 0, hoplite: 0 },
+    army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     recruitQueue: [],
     moraleMods: [],
     morale: 52,
@@ -1353,7 +1354,7 @@ function verserTributs(s: GameState, now: number): void {
 
 /** renforts alliés dépêchés sur vos remparts quand l'assaut sonne */
 function renfortsAllies(s: GameState): Record<UnitId, number> {
-  const out: Record<UnitId, number> = { lancier: 0, archer: 0, hoplite: 0 }
+  const out: Record<UnitId, number> = { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }
   for (const id of Object.keys(s.alliances)) {
     const v = VILLAGES_PAR_ID[id]
     if (!v) continue
@@ -2054,11 +2055,11 @@ export const useGame = create<GameState>()(
               }
               s.battle = creerBataille({
                 attaquants: s.incomingWave!,
-                defenseurs: {
-                  lancier: s.army.lancier + renf.lancier,
-                  archer: s.army.archer + renf.archer,
-                  hoplite: s.army.hoplite + renf.hoplite,
-                },
+                // votre garnison ET les renforts alliés, unité par unité : les
+                // six types y passent, y compris ceux qu'un allié n'envoie jamais
+                defenseurs: troupes(
+                  Object.fromEntries(UNIT_IDS.map((u) => [u, s.army[u] + (renf[u] ?? 0)])) as Record<UnitId, number>,
+                ),
                 wallLevel: s.buildings.remparts.level,
                 now,
                 geo: GEO_VILLAGE,

@@ -527,8 +527,8 @@ describe('les passifs branchés sur la partie', () => {
     // Ajax garde rancune : il reste au village, mais son passif, lui, ne dépend
     // pas de son humeur (`cumulerPassifs` ignore `boudeJusqua`)
     etats.ajax.boudeJusqua = Date.now() + 10 * 60_000
-    poserPartie({ army: { lancier: 5, archer: 0, hoplite: 0 }, heros: etats })
-    useGame.getState().lancerExpedition('camp-pillards', { lancier: 5, archer: 0, hoplite: 0 })
+    poserPartie({ army: { lancier: 5, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }, heros: etats })
+    useGame.getState().lancerExpedition('camp-pillards', { lancier: 5, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 })
     const exp = useGame.getState().expedition
     expect(exp).not.toBeNull()
     // 1 + 40 % (Achille, partout) + 25 % (Diomède, en expédition seulement) :
@@ -556,7 +556,7 @@ describe('les passifs branchés sur la partie', () => {
     // expédition » pourrait simplement vouloir dire que le champ ne sert à rien.
     // On force l'assaut par le tick, seul chemin qui construise une bataille
     // défensive, et on lit ce que le store a transmis au moteur
-    const armee = { lancier: 4, archer: 0, hoplite: 0 }
+    const armee = { lancier: 4, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }
     poserPartie({ army: armee, nextAttackAt: Date.now() - 1 })
     useGame.getState().tick()
     const sansHeros = useGame.getState().battle

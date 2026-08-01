@@ -1,4 +1,4 @@
-import { WALL_HP } from '../data'
+import { WALL_HP, troupes } from '../data'
 import { armee, auPoste, jalons, seuil, type ActeCampagne } from './types'
 
 /*
@@ -47,7 +47,7 @@ export const ACTE_I: ActeCampagne = {
     pop: 9,
     // l'agora et deux maisons debout : un village qui vivait déjà avant la guerre
     batiments: { agora: 1, maisons: 1, ferme: 1 },
-    army: { lancier: 0, archer: 0, hoplite: 0 },
+    army: troupes({ lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }),
     morale: 46,
     faveur: 12,
     tours: 0,

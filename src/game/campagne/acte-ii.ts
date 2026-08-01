@@ -1,3 +1,4 @@
+import { troupes } from '../data'
 import { armee, ferveurMax, jalons, seuil, type ActeCampagne } from './types'
 
 /*
@@ -68,7 +69,7 @@ export const ACTE_II: ActeCampagne = {
     batiments: { agora: 2, maisons: 2, ferme: 2, scierie: 1, carriere: 1, remparts: 1, caserne: 1 },
     // quatre lanciers de milice : une caserne de terre battue ne sait rien instruire
     // d'autre (UNITS.archer.caserne = 2)
-    army: { lancier: 4, archer: 0, hoplite: 0 },
+    army: troupes({ lancier: 4, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }),
     // 50 + agora × 2 : exactement ce que `calcMorale` rendra au premier tick
     morale: 54,
     // trente points : de quoi payer un Rempart du Trident (40) vers la dixième

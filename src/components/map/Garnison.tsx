@@ -10,7 +10,11 @@ import { Bonhomme } from './BatailleLayer'
  * restent lisibles dans la caserne. Pendant une bataille, BatailleLayer prend le relais.
  */
 
-const MONTRES: Record<UnitId, number> = { lancier: 6, archer: 4, hoplite: 4 }
+/*
+ * Combien de figurines par unité au repos. Le bélier n'y figure pas : une machine
+ * de siège ne monte pas la garde, elle attend au dépôt qu'on parte en expédition.
+ */
+const MONTRES: Record<UnitId, number> = { lancier: 6, archer: 4, hoplite: 4, frondeur: 5, peltaste: 4, belier: 0 }
 
 function Rang({
   n,
@@ -33,6 +37,10 @@ function Rang({
     lancier: { tunique: '#3e5a7a', arme: 'lance', taille: 0.92 },
     archer: { tunique: '#4a6a5a', arme: 'arc', taille: 0.88 },
     hoplite: { tunique: '#31506e', arme: 'bouclier-lourd', taille: 1.05, crete: true },
+    frondeur: { tunique: '#6b6a4a', arme: 'arc', taille: 0.84 },
+    peltaste: { tunique: '#8a6a2f', arme: 'lance', taille: 0.95 },
+    // jamais dessiné au repos, mais le type l'exige : la machine dort au dépôt
+    belier: { tunique: '#7b6242', arme: 'lance', taille: 1 },
   }
   const figs = []
   for (let i = 0; i < n; i++) {

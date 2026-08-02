@@ -394,6 +394,12 @@ export interface Alliance {
   depuis: number
   /** prochain versement du tribut */
   tributAt: number
+  /**
+   * Un mariage a scellé cette alliance : elle ne se dénoue plus, quoi qu'il
+   * arrive à la relation, et le tribut est doublé. C'est ce qu'on achète en
+   * donnant un habitant — et c'est le seul engagement irréversible du jeu.
+   */
+  mariage?: { villageois: string; lignee?: string; depuis: number }
 }
 
 // ── Toasts (UI) ───────────────────────────────────────────────────────────────

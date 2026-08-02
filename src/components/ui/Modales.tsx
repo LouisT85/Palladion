@@ -188,6 +188,15 @@ export function ModaleAide() {
             mais la faveur des dieux et une <b>alliance</b> — tribut régulier et renforts sur vos remparts à chaque
             assaut. Moins de pertes = plus d’étoiles (★★★ sous 20 % de pertes).
           </p>
+          <p>
+            Chaque place forte tient sa propre <b>relation</b> avec vous, de −100 à +100, et la Troade est petite : ce
+            que vous faites à l’une, les sept autres l’apprennent avant le soir. Un village <b>hostile</b> arme contre
+            vous — chacun grossit la menace qui pèse sur vos murs. Trois façons de traiter sans lever une lance :
+            un <b>présent</b> rachète une rancune (mais réparer coûte plus cher que casser), un <b>pacte</b> s’achète à
+            qui vous voit déjà d’un bon œil et donne tribut et renforts, et un <b>mariage</b> — qui coûte un habitant,
+            définitivement — scelle une alliance que rien ne dénoue, au tribut doublé. Les rancunes s’émoussent avec les
+            journées ; une alliance ordinaire, elle, se rompt si la relation retombe.
+          </p>
         </div>
         <div className="aide-section">
           <h3>⚑ Commander la bataille</h3>
@@ -225,7 +234,7 @@ export function ModaleAide() {
         <div className="aide-section">
           <h3>🏅 Hauts faits et prestige</h3>
           <p>
-            Cinquante hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
+            Cinquante et un hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
             « élu des quatre Olympiens », « trois étoiles sur les huit places fortes ». Ils alimentent votre{' '}
             <b>prestige</b>, la seule note finale. Quand vous jugez le règne accompli, <b>abdiquez</b> : le score se
             fige, les aèdes vous donnent un titre — de « Roi de pacotille » à « Égal des dieux ».

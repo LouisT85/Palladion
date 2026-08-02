@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { GEO_EXPEDITION } from '../../game/combat'
-import { MODE_TEST, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
+import { BUILDINGS, MODE_TEST, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
 import {
   MAX_TROUPES,
   RAID_COOLDOWN_MS,
@@ -13,8 +13,19 @@ import {
   puissanceEffective,
   type Intention,
 } from '../../game/expeditions'
-import { fmtDuree, merFermee, totalEtoiles, useGame } from '../../game/store'
-import type { ResourceId, UnitId } from '../../game/types'
+import {
+  SEUIL_MARIAGE,
+  SEUIL_PACTE,
+  STATUTS,
+  coutMariage,
+  coutPacte,
+  coutPresent,
+  motRelation,
+} from '../../game/diplomatie'
+import { estAdulte } from '../../game/lignees'
+import { fmtDuree, jourDe, merFermee, relationVillage, statutDe, totalEtoiles, useGame } from '../../game/store'
+import type { Cost, ResourceId, UnitId } from '../../game/types'
+import type { VillageCible } from '../../game/expeditions'
 import { Montant } from './Icones'
 import { Modale } from './Modale'
 import { BatailleLayer } from '../map/BatailleLayer'
@@ -29,6 +40,121 @@ import { BarreOrdres } from './Ordres'
 
 function puissance(troupes: Record<UnitId, number>): number {
   return UNIT_IDS.reduce((a, u) => a + (troupes[u] ?? 0) * (UNITS[u].atk + UNITS[u].hp / 8), 0)
+}
+
+/**
+ * La relation avec une place forte, de −100 à +100. Le curseur seul suffit à
+ * dire où l'on en est ; les deux repères marquent les seuils qui ouvrent le
+ * mariage puis le pacte, pour qu'on sache ce qu'il reste à gagner.
+ */
+function JaugeRelation({ valeur, couleur }: { valeur: number; couleur: string }) {
+  const pos = ((Math.max(-100, Math.min(100, valeur)) + 100) / 200) * 100
+  return (
+    <div className="jauge-diplo" title={`Relation : ${motRelation(valeur)}`}>
+      {/* la piste porte ses propres coordonnées : les repères se placent en % de
+          ELLE, jamais de la ligne entière — sinon le curseur déborde sur le chiffre */}
+      <span className="jd-piste">
+        <span className="jd-rail" />
+        <span className="jd-zero" />
+        <span className="jd-seuil" style={{ left: `${((SEUIL_MARIAGE + 100) / 200) * 100}%` }} title="Seuil du mariage" />
+        <span className="jd-seuil" style={{ left: `${((SEUIL_PACTE + 100) / 200) * 100}%` }} title="Seuil du pacte" />
+        <span className="jd-curseur" style={{ left: `${pos}%`, background: couleur, boxShadow: `0 0 7px ${couleur}` }} />
+      </span>
+      <span className="jd-valeur" style={{ color: couleur }}>
+        {motRelation(valeur)}
+      </span>
+    </div>
+  )
+}
+
+/** un coût, écrit avec les icônes du jeu */
+function Prix({ cout }: { cout: Cost }) {
+  return (
+    <>
+      {(Object.entries(cout) as [ResourceId, number][]).map(([r, n]) => (
+        <Montant key={r} n={-n} id={r} taille={12} />
+      ))}
+    </>
+  )
+}
+
+/**
+ * Ce qu'on peut faire d'une place forte sans lever une lance : lui porter un
+ * présent, lui acheter un pacte, ou lui donner un des siens en mariage. Les
+ * trois sont visibles en permanence — un bouton grisé qui dit POURQUOI il l'est
+ * apprend au joueur qu'il existe une voie qu'il n'a pas encore ouverte.
+ */
+function DiplomatieVillage({
+  v,
+  relation,
+  allie,
+  marie,
+}: {
+  v: VillageCible
+  relation: number
+  allie: boolean
+  marie: boolean
+}) {
+  const s = useGame()
+  const [choisirPromis, setChoisirPromis] = useState(false)
+  const jour = jourDe(s)
+  const promis = s.villageois.filter((x) => x.poste === null && !x.conjoint && estAdulte(x, jour))
+  const present = coutPresent(v)
+  const pacte = coutPacte(v)
+  const dot = coutMariage(v)
+
+  return (
+    <div className="diplo">
+      <button onClick={() => s.offrirPresent(v.id)} disabled={relation >= 100} title={STATUTS.ami.desc}>
+        🎁 Présent (<Prix cout={present} />)
+      </button>
+      {!allie && (
+        <button
+          onClick={() => s.proposerPacte(v.id)}
+          disabled={relation < SEUIL_PACTE}
+          title={
+            relation < SEUIL_PACTE
+              ? `Il faut ${SEUIL_PACTE} de relation — vous en êtes à ${motRelation(relation)}`
+              : 'Tribut et renforts, sans qu’un coup soit porté'
+          }
+        >
+          🤝 Pacte (<Prix cout={pacte} />)
+        </button>
+      )}
+      {!marie && (
+        <button
+          onClick={() => setChoisirPromis((x) => !x)}
+          disabled={relation < SEUIL_MARIAGE || promis.length === 0}
+          title={
+            relation < SEUIL_MARIAGE
+              ? `Il faut ${SEUIL_MARIAGE} de relation — vous en êtes à ${motRelation(relation)}`
+              : promis.length === 0
+                ? 'Il faut un adulte sans emploi et sans foyer à donner'
+                : 'Une alliance que rien ne dénoue, au tribut doublé — mais le village perd un bras'
+          }
+        >
+          💍 Mariage (<Prix cout={dot} /> + 1 habitant)
+        </button>
+      )}
+      {choisirPromis && !marie && (
+        <div className="diplo-promis">
+          <span>Qui part pour {v.nom} ?</span>
+          {promis.slice(0, 8).map((x) => (
+            <button
+              key={x.id}
+              onClick={() => {
+                s.scellerMariage(v.id, x.id)
+                setChoisirPromis(false)
+              }}
+              title={`${x.nom}${x.lignee ? ` des ${x.lignee}` : ''} — ${BUILDINGS[x.metier].nom}`}
+            >
+              {BUILDINGS[x.metier].emoji} {x.nom}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function Etoiles({ n, taille = 16 }: { n: number; taille?: number }) {
@@ -202,6 +328,9 @@ export function PanneauExpeditions() {
           const pillages = etat?.pillages ?? 0
           const garnison = garnisonEffective(v, pillages)
           const allie = s.alliances[v.id]
+          const relation = relationVillage(s, v.id)
+          const statut = statutDe(s, v.id)
+          const fiche = STATUTS[statut]
           return (
             <div key={v.id} className={`exp-village${allie ? ' allie' : ''}`}>
               <div className="embleme">{v.emoji}</div>
@@ -209,13 +338,27 @@ export function PanneauExpeditions() {
                 <div className="ligne-titre">
                   <h3>{v.nom}</h3>
                   <Etoiles n={etat?.etoiles ?? 0} />
-                  {allie && (
-                    <span className="badge-allie" title={`Allié depuis ${fmtDuree(now - allie.depuis)} — tribut et renforts`}>
-                      🤝 allié
+                  <span
+                    className="badge-statut"
+                    style={{ color: fiche.couleur, borderColor: `${fiche.couleur}66` }}
+                    title={`${fiche.desc}${allie ? ` — allié depuis ${fmtDuree(now - allie.depuis)}` : ''}`}
+                  >
+                    {fiche.emoji} {fiche.nom}
+                  </span>
+                  {allie?.mariage && (
+                    <span className="badge-allie" title={`${allie.mariage.villageois} y vit désormais`}>
+                      💍 {allie.mariage.villageois}
                     </span>
                   )}
                 </div>
                 <div className="desc-exp">{v.desc}</div>
+                {/*
+                  La relation, en clair. C'était le grand absent : on pillait sans
+                  jamais savoir ce que la côte en pensait, et une alliance nouée ne
+                  pouvait plus bouger.
+                */}
+                <JaugeRelation valeur={relation} couleur={fiche.couleur} />
+                <DiplomatieVillage v={v} relation={relation} allie={!!allie} marie={!!allie?.mariage} />
                 <div className="ligne-exp">
                   🛡️ Puissance ≈ <b>{puissanceEffective(v, pillages)}</b> · 🧱 niv. {v.mur} ·{' '}
                   {UNIT_IDS.filter((u) => garnison[u] > 0)

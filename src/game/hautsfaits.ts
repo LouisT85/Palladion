@@ -314,6 +314,15 @@ export const HAUTS_FAITS: HautFaitDef[] = [
     atteint: (s) => (s.exploits.benedictions ?? 0) >= 20,
   },
   {
+    id: 'par-le-sang',
+    emoji: '💍',
+    titre: 'Par le sang, non par la lance',
+    desc: 'Sceller deux alliances par mariage. Chacune a coûté un habitant — et aucune ne se dénouera.',
+    cat: 'peuple',
+    points: 35,
+    atteint: (s) => (s.exploits.mariagesDiplomatiques ?? 0) >= 2,
+  },
+  {
     id: 'grande-maison',
     emoji: '🏛️',
     titre: 'Une grande maison',

@@ -111,6 +111,27 @@ import {
 } from './heros'
 import { MAX_RELEVES, PAS_RELEVE_MS, type Releve } from './annales'
 import { CHAMPION_PAR_ID, chanceChampion, ficheChampion, tirerChampion } from './champions'
+import {
+  COUT_PILLAGE,
+  COUT_PILLAGE_VOISINS,
+  COUT_TRAHISON_VOISINS,
+  GAIN_PRESENT,
+  GAIN_SECOURS,
+  GAIN_SECOURS_VOISINS,
+  MULT_TRIBUT_MARIAGE,
+  PARDON_PAR_JOUR,
+  RELATION_NEUTRE,
+  SEUIL_MARIAGE,
+  SEUIL_PACTE,
+  SEUIL_RUPTURE,
+  borner,
+  coutMariage,
+  coutPacte,
+  coutPresent,
+  menaceDiplomatique,
+  statutVillage,
+  type StatutVillage,
+} from './diplomatie'
 import { GRACE_PAR_ID, cumulerFaveurs, dieuDe, graceSuivante, type BonusFaveurs } from './faveurs'
 import {
   ageDe,
@@ -288,6 +309,12 @@ export interface GameState {
   prochainAppelAt: number
   /** villages sauvés devenus alliés : tribut régulier et renforts aux remparts */
   alliances: Record<string, Alliance>
+  /**
+   * Ce que chacune des huit places fortes pense de vous (−100…+100). Ce n'était
+   * qu'un compteur de pillages : piller Ténédos ne changeait rien à ce que
+   * pensait Lesbos, et une alliance nouée ne pouvait plus se défaire.
+   */
+  relations: Record<string, number>
   /** hauts faits acquis — une fois gagnés, jamais repris */
   hautsFaits: string[]
   /**
@@ -373,6 +400,12 @@ export interface GameState {
   donnerOrdre: (quoi: 'ligne' | 'tir', valeur: OrdreLigne | OrdreTir) => void
   /** affecter un type d'unité à un secteur de l'enceinte (null = au plus pressé) */
   assignerSecteur: (u: UnitId, secteur: number | null) => void
+  /** porter un présent à une place forte : cela rachète une rancune */
+  offrirPresent: (villageId: string) => void
+  /** acheter une alliance à qui vous voit déjà d'un bon œil */
+  proposerPacte: (villageId: string) => void
+  /** donner un habitant en mariage : une alliance que rien ne dénoue */
+  scellerMariage: (villageId: string, villageoisId: string) => void
   recruterHeros: (h: HeroId) => void
   capaciteHeros: (h: HeroId) => void
   choisirArc: (i: number) => void
@@ -600,6 +633,17 @@ function veuvage(s: GameState, parti: Villageois): void {
  * et ne peut compter que sur des arrivants dont il ne choisit pas le métier.
  */
 function vieDesFamilles(s: GameState, jour: number): void {
+  /*
+   * Les rancunes s'émoussent. Sans cela, un seul raid de la première heure
+   * condamnerait le règne entier à la haine de la Troade : on veut que piller
+   * coûte, pas que ce soit sans retour.
+   */
+  for (const v of VILLAGES_CIBLES) {
+    const r = relationVillage(s, v.id)
+    if (r < 0) s.relations[v.id] = borner(Math.min(0, r + PARDON_PAR_JOUR))
+  }
+  verifierAlliances(s, s.lastSeen)
+
   // ── on marie, deux foyers par journée au plus : une noce reste un événement ──
   for (let n = 0; n < 2; n++) {
     const parti = trouverParti(s.villageois, jour)
@@ -812,8 +856,19 @@ function calcThreat(s: GameState, now: number): number {
   }
   const niveaux = BUILDING_IDS.reduce((a, b) => a + s.buildings[b].level, 0)
   const minutes = (now - s.createdAt) / 60_000
-  // chaque tour d'archers attire la convoitise : les vagues grossissent en face
-  const brute = Math.max(5, Math.min(100, 8 + niveaux * 1.2 + s.tours * 4 + minutes * 0.15 + s.threatMod))
+  /*
+   * Chaque tour d'archers attire la convoitise, et chaque village de la Troade
+   * que l'on s'est mis à dos arme contre nous. La diplomatie a donc un prix
+   * MESURABLE : piller les huit places fortes, c'est doubler la taille des vagues
+   * qui viennent, sans qu'on ait rien bâti de plus.
+   */
+  const brute = Math.max(
+    5,
+    Math.min(
+      100,
+      8 + niveaux * 1.2 + s.tours * 4 + minutes * 0.15 + s.threatMod + menaceDiplomatique(s.relations ?? {}),
+    ),
+  )
   /*
    * Grâce des premiers assauts. Un village sans mur ni garnison ne doit pas
    * recevoir cinq pillards à la septième minute : les deux premières bandes tâtent
@@ -1092,6 +1147,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     appelSecours: null,
     prochainAppelAt: now + 9 * 60_000,
     alliances: {},
+    relations: {},
     hautsFaits: [],
     annales: [],
     prochainReleveAt: now + PAS_RELEVE_MS,
@@ -1129,6 +1185,9 @@ type ActionsOnly = {
   acquerirGrace: unknown
   donnerOrdre: unknown
   assignerSecteur: unknown
+  offrirPresent: unknown
+  proposerPacte: unknown
+  scellerMariage: unknown
   recruterHeros: unknown
   capaciteHeros: unknown
   choisirArc: unknown
@@ -1213,6 +1272,7 @@ const CHAMPS_SAUVES = [
   'appelSecours',
   'prochainAppelAt',
   'alliances',
+  'relations',
   'hautsFaits',
   'annales',
   'prochainReleveAt',
@@ -1583,6 +1643,61 @@ function noter(s: GameState, cle: string, n = 1): void {
 
 // ── Appels au secours et alliances ───────────────────────────────────────────
 
+// ── Diplomatie : ce que la Troade pense de vous ──────────────────────────────
+
+/** relation avec un village — zéro pour celui qu'on n'a jamais approché */
+export function relationVillage(s: Pick<GameState, 'relations'>, id: string): number {
+  return s.relations?.[id] ?? RELATION_NEUTRE
+}
+
+/** statut diplomatique d'un village, tel que l'affiche le panneau */
+export function statutDe(s: Pick<GameState, 'relations' | 'alliances'>, id: string): StatutVillage {
+  const a = s.alliances?.[id]
+  return statutVillage(relationVillage(s, id), !!a, !!a?.mariage)
+}
+
+/**
+ * Bouger une relation. Un village lié par le sang ne se fâche plus : c'est ce
+ * qu'on a payé en donnant un habitant, et le pardon perpétuel en fait partie.
+ */
+function bougerRelation(s: GameState, id: string, delta: number): void {
+  if (delta === 0) return
+  if (s.alliances[id]?.mariage && delta < 0) return
+  s.relations[id] = borner(relationVillage(s, id) + delta)
+}
+
+/**
+ * Ce que la côte apprend de vos actes. La Troade est petite : ce qu'on fait à
+ * Lesbos se sait à Ténédos avant le soir. C'est ce qui empêche de piller les
+ * huit places forte l'une après l'autre sans jamais en payer le prix.
+ */
+function ondeDiplomatique(s: GameState, sauf: string, delta: number): void {
+  for (const v of VILLAGES_CIBLES) {
+    if (v.id === sauf) continue
+    bougerRelation(s, v.id, delta)
+  }
+}
+
+/**
+ * Une alliance ordinaire ne survit pas à une relation tombée à zéro : celui
+ * qu'on a sauvé puis fâché reprend sa parole. Un mariage, lui, tient.
+ */
+function verifierAlliances(s: GameState, now: number): void {
+  for (const [id, a] of Object.entries(s.alliances)) {
+    if (a.mariage) continue
+    if (relationVillage(s, id) > SEUIL_RUPTURE) continue
+    delete s.alliances[id]
+    const v = VILLAGES_PAR_ID[id]
+    pushToast(s, '💔', `${v?.nom ?? id} reprend sa parole : l’alliance est rompue.`)
+    pushReport(s, '💔', `Alliance rompue — ${v?.nom ?? id}`, [
+      'On ne tient pas parole à qui ne la tient pas. Plus de tribut, plus de renforts sur vos remparts.',
+      'Un présent ou deux suffiraient peut-être à renouer — un mariage, lui, aurait tenu.',
+    ])
+    noter(s, 'alliancesRompues')
+  }
+  void now
+}
+
 /**
  * Un village de la Troade est assiégé et appelle à l'aide. La fenêtre est
  * courte, il n'y a rien à rafler au bout — mais un allié vaut mieux qu'un
@@ -1640,11 +1755,16 @@ function verserTributs(s: GameState, now: number): void {
     const v = VILLAGES_PAR_ID[id]
     if (!v) continue
     const parts: string[] = []
+    // un village lié par le sang verse le double : c'est ce qu'on a acheté
+    const mult = a.mariage ? MULT_TRIBUT_MARIAGE : 1
     for (const [r, n] of Object.entries(tributDe(v)) as [ResourceId, number][]) {
-      s.resources[r] = clampRes(s, r, s.resources[r] + n)
-      parts.push(`+${n} ${RES[r].emoji}`)
+      const du = n * mult
+      s.resources[r] = clampRes(s, r, s.resources[r] + du)
+      parts.push(`+${du} ${RES[r].emoji}`)
     }
-    if (parts.length) pushToast(s, '🤝', `Tribut de ${v.nom} : ${parts.join(', ')}`)
+    if (parts.length) {
+      pushToast(s, a.mariage ? '💍' : '🤝', `Tribut de ${v.nom} : ${parts.join(', ')}${a.mariage ? ' (parenté)' : ''}`)
+    }
   }
 }
 
@@ -1866,6 +1986,9 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     if (victoire) {
       noter(s, 'secours')
       s.alliances[v.id] = { depuis: now, tributAt: now + TRIBUT_MS }
+      // la côte entière apprend qu'on est venu : lever un siège vaut du crédit partout
+      bougerRelation(s, v.id, GAIN_SECOURS)
+      ondeDiplomatique(s, v.id, GAIN_SECOURS_VOISINS)
       s.gods.zeus.relation = Math.min(100, s.gods.zeus.relation + 12)
       s.gods.athena.relation = Math.min(100, s.gods.athena.relation + 7)
       s.moraleMods.push({ id: uid('m'), label: 'Le village sauvé', delta: 9, expiresAt: now + 12 * 60_000 })
@@ -1918,10 +2041,21 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     s.threatMod += 4
     s.moraleMods.push({ id: uid('m'), label: 'Raid victorieux', delta: 6, expiresAt: now + 8 * 60_000 })
     s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now, pillages: pillages + 1 }
-    // piller un allié rompt l'alliance sur-le-champ — et cela se retient
+    /*
+     * Piller un allié rompt l'alliance sur-le-champ — et cela se retient. Un
+     * mariage ne protège pas de cela : on peut trahir sa propre parenté, cela
+     * coûte simplement bien plus cher auprès de toute la côte.
+     */
     const trahison = !!s.alliances[v.id]
     if (trahison) noter(s, 'trahisons')
     delete s.alliances[v.id]
+    // ce qu'on fait à l'un, les sept autres l'apprennent avant le soir
+    bougerRelation(s, v.id, COUT_PILLAGE)
+    ondeDiplomatique(s, v.id, trahison ? COUT_TRAHISON_VOISINS : COUT_PILLAGE_VOISINS)
+    if (trahison) {
+      // le sang trahi ne se rachète pas d'un présent
+      s.relations[v.id] = -100
+    }
     lignes.push(
       `${v.nom} est tombé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
       `Butin : ${butinTxt.join(', ')}${deja > 0 ? ' (village déjà pillé : butin réduit)' : ''}.`,
@@ -2914,6 +3048,123 @@ export const useGame = create<GameState>()(
         else return
         const nom = secteur === null ? 'au plus pressé' : b.secteurs[secteur].nom
         pushToast(s, UNITS[u].emoji, `${UNITS[u].nom}s : ${nom}.`)
+      })
+    },
+
+    /*
+     * ── Trois façons de traiter avec la Troade sans lever une lance ──
+     *
+     * Le jeu n'en offrait aucune : on pillait, on secourait, et c'était tout.
+     * Un chef qui avait fâché un voisin ne pouvait plus rien y faire ; un chef
+     * bien vu ne pouvait pas transformer cette estime en quoi que ce soit.
+     */
+
+    /** un présent rachète une rancune — et coûte cher, car réparer coûte plus que casser */
+    offrirPresent: (villageId: string) => {
+      set((s) => {
+        const v = VILLAGES_PAR_ID[villageId]
+        if (!v) return
+        if (relationVillage(s, villageId) >= 100) {
+          pushToast(s, v.emoji, `${v.nom} ne peut pas mieux vous vouloir.`)
+          return
+        }
+        const cout = coutPresent(v)
+        if (!payer(s, cout)) {
+          pushToast(s, '❌', 'De quoi faire les présents d’usage vous manque.')
+          return
+        }
+        bougerRelation(s, villageId, GAIN_PRESENT)
+        noter(s, 'presents')
+        pushToast(s, '🎁', `Présent porté à ${v.nom} (+${GAIN_PRESENT} de relation).`)
+      })
+    },
+
+    /**
+     * Un pacte : l'alliance achetée plutôt que méritée. Elle donne exactement ce
+     * que donne un secours — tribut et renforts — mais elle se dénoue comme lui
+     * si la relation retombe. C'est le chemin des riches, pas celui des braves.
+     */
+    proposerPacte: (villageId: string) => {
+      set((s) => {
+        const v = VILLAGES_PAR_ID[villageId]
+        if (!v) return
+        if (s.alliances[villageId]) {
+          pushToast(s, '🤝', `${v.nom} est déjà votre allié.`)
+          return
+        }
+        if (relationVillage(s, villageId) < SEUIL_PACTE) {
+          pushToast(s, v.emoji, `${v.nom} ne traitera pas avec vous : il faut ${SEUIL_PACTE} de relation.`)
+          return
+        }
+        const cout = coutPacte(v)
+        if (!payer(s, cout)) {
+          pushToast(s, '❌', 'Un pacte se scelle sur des présents que vous n’avez pas.')
+          return
+        }
+        const now = Date.now()
+        s.alliances[villageId] = { depuis: now, tributAt: now + TRIBUT_MS }
+        noter(s, 'pactes')
+        pushToast(s, '🤝', `Pacte scellé avec ${v.nom}.`)
+        pushReport(s, '🤝', `Pacte — ${v.nom}`, [
+          `${v.nom} entre dans votre alliance sans qu’un coup ait été porté.`,
+          `Tribut toutes les ${Math.round(TRIBUT_MS / 60_000)} min et renforts sur vos remparts à chaque assaut.`,
+          'Un pacte se dénoue comme il s’est noué : laissez la relation retomber et l’on reprendra sa parole.',
+        ])
+      })
+    },
+
+    /**
+     * Un mariage. On donne un habitant — un adulte, avec son métier et sa maison —
+     * et l'on reçoit une alliance que rien ne dénoue, au tribut doublé. C'est le
+     * seul engagement irréversible du jeu, et le seul qui coûte un bras au village.
+     */
+    scellerMariage: (villageId: string, villageoisId: string) => {
+      set((s) => {
+        const v = VILLAGES_PAR_ID[villageId]
+        if (!v) return
+        if (s.alliances[villageId]?.mariage) {
+          pushToast(s, '💍', `Une parenté vous lie déjà à ${v.nom}.`)
+          return
+        }
+        if (relationVillage(s, villageId) < SEUIL_MARIAGE) {
+          pushToast(s, v.emoji, `${v.nom} ne donnera pas sa main : il faut ${SEUIL_MARIAGE} de relation.`)
+          return
+        }
+        const jour = jourDe(s)
+        const promis = s.villageois.find((x) => x.id === villageoisId)
+        if (!promis || !estAdulte(promis, jour)) {
+          pushToast(s, '👥', 'Il faut un adulte du village pour sceller une parenté.')
+          return
+        }
+        if (promis.conjoint) {
+          pushToast(s, '💍', `${promis.nom} a déjà un foyer ici.`)
+          return
+        }
+        const cout = coutMariage(v)
+        if (!payer(s, cout)) {
+          pushToast(s, '❌', 'Une dot ne se paie pas avec des promesses.')
+          return
+        }
+        const now = Date.now()
+        // le promis quitte le village : c'est LE coût, et il est définitif
+        s.villageois = s.villageois.filter((x) => x.id !== villageoisId)
+        s.pop = Math.max(0, s.pop - 1)
+        veuvage(s, promis)
+        s.alliances[villageId] = {
+          depuis: now,
+          tributAt: now + TRIBUT_MS,
+          mariage: { villageois: promis.nom, lignee: promis.lignee, depuis: now },
+        }
+        s.relations[villageId] = 100
+        s.gods.zeus.relation = Math.min(100, s.gods.zeus.relation + 8)
+        s.moraleMods.push({ id: uid('m'), label: 'Une noce au loin', delta: 6, expiresAt: now + 10 * 60_000 })
+        noter(s, 'mariagesDiplomatiques')
+        pushToast(s, '💍', `${promis.nom} part pour ${v.nom} : vos maisons ne font plus qu’une.`)
+        pushReport(s, '💍', `Parenté scellée — ${v.nom}`, [
+          `${promis.nom}${promis.lignee ? ` des ${promis.lignee}` : ''} quitte le village pour ${v.nom}.`,
+          'Le village perd un bras et un métier — mais gagne une alliance que rien ne dénoue.',
+          `Tribut doublé, renforts à chaque assaut, et Zeus Xenios approuve (+8).`,
+        ])
       })
     },
 

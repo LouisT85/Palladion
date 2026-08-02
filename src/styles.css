@@ -419,6 +419,9 @@ svg.carte-exp {
   text-align: center;
   box-shadow: 0 6px 24px #000a;
   min-width: 340px;
+  /* les ordres à la troupe élargissent le bandeau : on lui donne de quoi ranger
+     ses boutons sur deux colonnes sans jamais déborder de l'écran */
+  max-width: min(760px, 92vw);
 }
 .bandeau .gros {
   font-weight: 700;
@@ -478,6 +481,139 @@ svg.carte-exp {
   width: 2px;
   background: #f0d9a0;
   opacity: 0.85;
+}
+
+/* ── ordres à la troupe ────────────────────────────────────
+   Encart sombre DANS le bandeau d'assaut : ce sont des boutons, pas du texte,
+   et ils doivent se distinguer du récit de la bataille qui les entoure. */
+.ordres {
+  margin-top: 7px;
+  padding: 6px 8px 7px;
+  border-radius: 8px;
+  background: #1b0d08b0;
+  border: 1px solid #7a3f2c;
+  text-align: left;
+}
+.ordres-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #c99b7d;
+  margin-bottom: 4px;
+}
+.ordres-pret {
+  color: #8fae5f;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+}
+/* le délai se REMPLIT : l'ordre en cours prend, on voit quand on pourra changer */
+.ordres-delai {
+  position: relative;
+  padding: 1px 8px;
+  border-radius: 5px;
+  border: 1px solid #6b3f2c;
+  background: #2a1a12;
+  color: #e6c39f;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  letter-spacing: 0;
+  overflow: hidden;
+}
+.ordres-delai > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: #8a4530;
+  opacity: 0.55;
+  transition: width 0.25s linear;
+}
+.ordres-rangee {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+.ordres button.ordre {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  padding: 4px 8px;
+  background: #2a1a12;
+  border: 1px solid #6b3f2c;
+  color: #e0c3ab;
+  white-space: nowrap;
+}
+.ordres button.ordre:hover:not(:disabled) {
+  background: #3a251a;
+}
+.ordres button.ordre.actif {
+  background: #7a3f2c;
+  border-color: #d79a6c;
+  color: #ffeeda;
+  box-shadow: 0 0 8px #d79a6c44;
+}
+.ordres button.ordre:disabled {
+  opacity: 0.42;
+}
+.ordres-desc {
+  font-size: 11px;
+  color: #c0a08d;
+  line-height: 1.32;
+  margin-top: 3px;
+  font-style: italic;
+}
+.ordres-note {
+  font-size: 11px;
+  color: #a3806b;
+  align-self: center;
+}
+.ordres-secteurs {
+  margin-top: 6px;
+  border-top: 1px dashed #6b3f2c;
+  padding-top: 5px;
+}
+.ordres-titre {
+  font-size: 10.5px;
+  color: #c99b7d;
+  margin-bottom: 3px;
+}
+/* six types d'unité en colonne feraient un bandeau qui mange la carte : on les
+   range en deux colonnes dès que la place le permet */
+.ordres-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 2px 12px;
+}
+.ordres-ligne-unite {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+.ordres-unite {
+  font-size: 15px;
+  width: 20px;
+  text-align: center;
+}
+.ordres button.pan {
+  font-size: 10.5px;
+  padding: 2px 7px;
+  background: #2a1a12;
+  border: 1px solid #5c3626;
+  color: #cdb09c;
+}
+.ordres button.pan.actif {
+  background: #7a3f2c;
+  border-color: #d79a6c;
+  color: #ffeeda;
+}
+/* un pan percé se lit d'un coup d'œil : c'est là qu'il faut des hommes */
+.ordres button.pan.perce {
+  border-color: #e0715a;
+  color: #f0a292;
 }
 
 /* l'appel au secours n'est pas une menace : il est doré, pas rouge sang — et il

@@ -182,6 +182,19 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
+          <h3>⚑ Commander la bataille</h3>
+          <p>
+            Pendant un assaut — chez vous comme en expédition — la <b>barre d’ordres</b> commande vos hommes. Trois
+            postures pour la ligne : <b>tenir</b> (au plus proche, à pleine force), <b>mur de boucliers</b> (on encaisse
+            presque moitié moins, on frappe mou, on ne poursuit plus, et la ligne ne rompt quasiment jamais),{' '}
+            <b>charger</b> (+40 % de dégâts et l’on <i>sort</i> crever les béliers sous le mur — mais on encaisse tout,
+            et la ligne casse vite). Deux façons de tirer : <b>tendu</b> sur l’homme le plus proche, ou{' '}
+            <b>en cloche</b> — moitié plus loin, sur le plus gros tas, mais la flèche arrive amortie. Enfin, sur un
+            assaut à plusieurs fronts, <b>assignez un pan à un type d’unité</b> : ces hommes-là tiendront ce mur et n’en
+            bougeront plus. Un ordre donné se tient <b>cinq secondes</b> avant qu’on puisse en changer.
+          </p>
+        </div>
+        <div className="aide-section">
           <h3>🛡️ Les héros</h3>
           <p>
             Huit héros de la matière troyenne peuvent entrer à votre service — mais seulement si la cité en est digne :
@@ -204,7 +217,7 @@ export function ModaleAide() {
         <div className="aide-section">
           <h3>🏅 Hauts faits et prestige</h3>
           <p>
-            Quarante-cinq hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
+            Quarante-six hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
             « élu des quatre Olympiens », « trois étoiles sur les huit places fortes ». Ils alimentent votre{' '}
             <b>prestige</b>, la seule note finale. Quand vous jugez le règne accompli, <b>abdiquez</b> : le score se
             fige, les aèdes vous donnent un titre — de « Roi de pacotille » à « Égal des dieux ».
@@ -215,7 +228,11 @@ export function ModaleAide() {
           <p>
             Le temple génère la <b>faveur</b> (✨) qui alimente les bénédictions : foudre de Zeus, remparts de Poséidon,
             égide d’Athéna, fureur d’Arès. Vos choix dans les dilemmes forgent vos <b>relations</b> : Zeus punit qui
-            viole l’hospitalité, Athéna souffle la vérité à qui l’honore, un dieu bafoué se venge.
+            viole l’hospitalité, Athéna souffle la vérité à qui l’honore, un dieu bafoué se venge. La relation ne fait
+            pas que régler la puissance d’un bras divin : elle se <b>dépense</b>. Chaque Olympien offre trois{' '}
+            <b>grâces permanentes</b> — récoltes de Zeus Xenios, murs et mer de Poséidon, métier et prudence d’Athéna,
+            butin et fureur d’Arès — payées en points de relation, prises dans l’ordre, et jamais reprises. Monter sa
+            ferveur ou l’échanger contre un don définitif est l’un des vrais arbitrages du règne.
           </p>
         </div>
         <div className="aide-section">

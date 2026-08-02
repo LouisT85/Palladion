@@ -21,6 +21,7 @@ import { nomPhase, phaseJour } from '../map/Terrain'
 import { HerosRapides } from './Heros'
 import { Icone, Montant } from './Icones'
 import { Infobulle } from './Infobulle'
+import { BarreOrdres } from './Ordres'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
 
@@ -544,6 +545,8 @@ export function BandeauAlerte() {
             </span>
           )}
         </div>
+        {/* ce que le joueur peut FAIRE de la bataille, et pas seulement regarder */}
+        <BarreOrdres />
         <DieuxRapides />
       </div>
     )

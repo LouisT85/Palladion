@@ -279,6 +279,28 @@ export interface SecteurBataille {
   abriPart?: number
 }
 
+/**
+ * Posture de la ligne de mêlée du joueur. Trois façons de tenir un choc, et
+ * aucune n'est bonne partout : le mur encaisse mais ne poursuit pas, la charge
+ * tue vite mais expose, tenir ne fait ni l'un ni l'autre.
+ */
+export type OrdreLigne = 'tenir' | 'mur' | 'charge'
+/** Tendu : on vise l'homme le plus proche. En cloche : on arrose le plus gros tas. */
+export type OrdreTir = 'tendu' | 'cloche'
+
+export interface OrdresBataille {
+  ligne: OrdreLigne
+  tir: OrdreTir
+  /**
+   * Secteur assigné à un type d'unité (index dans `secteurs`). Les hommes de ce
+   * type s'y portent et n'y frappent que ce qui l'assaille — c'est ainsi qu'on
+   * répond à un assaut sur trois fronts avec une garnison qui n'est pas triple.
+   */
+  secteurs: Partial<Record<UnitId, number>>
+  /** un ordre se donne, puis se tient : instant du prochain changement permis */
+  prochainAt: number
+}
+
 export interface BattleState {
   wave: WaveUnit[]
   fighters: Fighter[]
@@ -310,6 +332,8 @@ export interface BattleState {
    * qui fait qu'une ligne s'effrite au lieu de fondre jusqu'au dernier.
    */
   moral?: { attaque: number; defense: number }
+  /** ordres donnés par le joueur — absent = posture neutre, tir tendu */
+  ordres?: OrdresBataille
   result: BattleResult | null
   /** effectifs défenseurs engagés au départ (pour calculer les pertes) */
   engages: Partial<Record<UnitId, number>>

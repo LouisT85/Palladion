@@ -7,6 +7,9 @@ import type {
   Fighter,
   GodId,
   HeroId,
+  OrdreLigne,
+  OrdreTir,
+  OrdresBataille,
   SecteurBataille,
   UnitId,
   WaveUnit,
@@ -277,6 +280,132 @@ export const CADENCE_MELEE = 2100
 export const CADENCE_MUR = 1700
 /** vitesse d'une flèche (px/s) — assez lente pour suivre sa course des yeux */
 const VITESSE_FLECHE = 250
+
+/*
+ * ═══════════════════ LES ORDRES DE BATAILLE ═══════════════════
+ *
+ * Jusqu'ici on REGARDAIT la bataille. Les bénédictions mises à part, aucun geste
+ * du joueur ne changeait ce que faisaient ses hommes : ils couraient au plus
+ * proche, frappaient à cadence fixe, et l'issue était décidée avant le premier
+ * coup par les effectifs.
+ *
+ * Trois postures pour la ligne, deux façons de tirer, et un secteur assignable
+ * par type d'unité. Aucun de ces choix n'est bon partout — c'est la condition
+ * pour qu'ils soient des choix :
+ *
+ *  · MUR DE BOUCLIERS — on encaisse deux fois mieux, on frappe mou, on ne
+ *    poursuit personne. La ligne tient là où elle est, et rien ne la fait rompre.
+ *  · TENIR — la posture de toujours : on va au plus proche, à pleine force.
+ *  · CHARGER — on frappe fort et vite, on sort même hors des murs pour aller
+ *    crever les béliers… et l'on encaisse tout ce qui vient, sans bouclier levé.
+ *
+ *  · TIR TENDU — l'homme le plus proche, à pleine force.
+ *  · TIR EN CLOCHE — on porte bien plus loin et l'on arrose le plus gros TAS,
+ *    même hors de vue derrière le mur, mais la flèche arrive amortie.
+ */
+export interface EffetLigne {
+  nom: string
+  emoji: string
+  desc: string
+  /** dégâts infligés par la mêlée du joueur */
+  degats: number
+  /** dégâts subis par la mêlée du joueur */
+  recus: number
+  /** vitesse de déplacement */
+  vitesse: number
+  /** seuil de rupture, en part du seuil ordinaire (< 1 = tient mieux) */
+  seuil: number
+  /** ne quitte pas son poste au-delà de ce rayon (0 = poursuit sans limite) */
+  laisse: number
+  /** va chercher les assaillants jusque devant le mur, brèche ou pas */
+  sortie: boolean
+}
+
+export const EFFETS_LIGNE: Record<OrdreLigne, EffetLigne> = {
+  tenir: {
+    nom: 'Tenir',
+    emoji: '🛡️',
+    desc: 'La ligne va au plus proche et frappe à pleine force. Ni protection, ni élan.',
+    degats: 1,
+    recus: 1,
+    vitesse: 1,
+    seuil: 1,
+    laisse: 0,
+    sortie: false,
+  },
+  mur: {
+    nom: 'Mur de boucliers',
+    emoji: '🧱',
+    desc: 'Boucliers joints : −45 % de dégâts subis, −30 % infligés. La ligne ne poursuit plus et ne rompt presque jamais.',
+    degats: 0.7,
+    recus: 0.55,
+    vitesse: 0.75,
+    seuil: 0.45,
+    laisse: 130,
+    sortie: false,
+  },
+  charge: {
+    nom: 'Charger',
+    emoji: '⚔️',
+    desc: '+40 % de dégâts, +35 % de vitesse — et l’on sort crever les béliers sous le mur. Mais on encaisse tout, et la ligne casse vite.',
+    degats: 1.4,
+    recus: 1.35,
+    vitesse: 1.35,
+    seuil: 1.4,
+    laisse: 0,
+    sortie: true,
+  },
+}
+
+export interface EffetTir {
+  nom: string
+  emoji: string
+  desc: string
+  portee: number
+  degats: number
+  /** vise le tas le plus dense plutôt que l'homme le plus proche */
+  masse: boolean
+}
+
+export const EFFETS_TIR: Record<OrdreTir, EffetTir> = {
+  tendu: {
+    nom: 'Tir tendu',
+    emoji: '🏹',
+    desc: 'On vise l’homme le plus proche, à pleine force.',
+    portee: 1,
+    degats: 1,
+    masse: false,
+  },
+  cloche: {
+    nom: 'Tir en cloche',
+    emoji: '🌙',
+    desc: '+45 % de portée et l’on arrose le plus gros rassemblement — mais la flèche arrive amortie (−30 %).',
+    portee: 1.45,
+    degats: 0.7,
+    masse: true,
+  },
+}
+
+/** un ordre se donne, puis se tient : cinq secondes avant d'en changer */
+export const DELAI_ORDRE_MS = 5000
+
+export const ORDRES_NEUTRES: OrdresBataille = { ligne: 'tenir', tir: 'tendu', secteurs: {}, prochainAt: 0 }
+
+/** le tas le plus dense : celui qui a le plus de voisins à portée d'une gerbe */
+const RAYON_GERBE = 52
+function plusMasse(cibles: Fighter[]): Fighter | null {
+  let best: Fighter | null = null
+  let score = -1
+  for (const c of cibles) {
+    let n = 0
+    for (const o of cibles) if (dist(c, o) <= RAYON_GERBE) n++
+    if (n > score) {
+      score = n
+      best = c
+    }
+  }
+  return best
+}
 
 export interface OptionsBataille {
   attaquants: WaveUnit[]
@@ -637,10 +766,32 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
   // passifs de héros : ils valent pour toute la bataille, en plus des bénédictions
   const bonusHeros = b.bonusAtkJoueur ?? 1
   const reducHeros = b.reducJoueur ?? 1
+  /*
+   * Les ordres du joueur. Ils ne valent QUE pour son camp et QUE pour ceux qu'ils
+   * concernent : la posture de la ligne ne change rien aux archers, le tir en
+   * cloche rien aux lanciers. Un héros, lui, se bat comme il l'entend.
+   */
+  const ordres = b.ordres ?? ORDRES_NEUTRES
+  const ligne = EFFETS_LIGNE[ordres.ligne] ?? EFFETS_LIGNE.tenir
+  const tir = EFFETS_TIR[ordres.tir] ?? EFFETS_TIR.tendu
+  /** cet homme obéit-il à la posture de la ligne ? (mêlée du joueur, hors héros) */
+  const enLigne = (f: Fighter): boolean => f.camp === b.campJoueur && !f.heros && !estTireur(f.type)
   const multDegats = (attaquant: Fighter): number =>
-    (attaquant.camp === enrage ? forceAtk : 1) * (attaquant.camp === b.campJoueur ? bonusHeros : 1)
+    (attaquant.camp === enrage ? forceAtk : 1) *
+    (attaquant.camp === b.campJoueur ? bonusHeros : 1) *
+    (enLigne(attaquant) ? ligne.degats : 1)
   const multRecus = (cible: Fighter): number =>
-    (cible.camp === protege ? forceDef : 1) * (cible.camp === b.campJoueur ? reducHeros : 1)
+    (cible.camp === protege ? forceDef : 1) *
+    (cible.camp === b.campJoueur ? reducHeros : 1) *
+    (enLigne(cible) ? ligne.recus : 1)
+  /** pas de déplacement de cet homme, posture comprise */
+  const pas = (f: Fighter): number => dt * (enLigne(f) ? ligne.vitesse : 1)
+  /** le secteur que le joueur a assigné à ce type d'unité, s'il en a assigné un */
+  const secteurAssigne = (f: Fighter): SecteurBataille | null => {
+    if (f.camp !== b.campJoueur || f.heros) return null
+    const i = ordres.secteurs[f.type as UnitId]
+    return i === undefined ? null : (b.secteurs[Math.min(i, b.secteurs.length - 1)] ?? null)
+  }
   let brecheOuverte = false
 
   /** le secteur d'un assaillant (défaut : le premier front) */
@@ -694,7 +845,9 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     for (const camp of ['attaque', 'defense'] as const) {
       // les assaillants d'un village n'ont pas de ligne à tenir : ils pillent
       if (camp === 'attaque' && b.campJoueur === 'defense') continue
-      const seuil = heroDebout(camp) ? SEUIL_PANIQUE_HEROS : SEUIL_PANIQUE
+      // le mur de boucliers ne rompt presque jamais ; la charge casse vite
+      const seuil =
+        (heroDebout(camp) ? SEUIL_PANIQUE_HEROS : SEUIL_PANIQUE) * (camp === b.campJoueur ? ligne.seuil : 1)
       const m = b.moral[camp]
       if (m >= seuil) continue
       // plus on est bas sous le seuil, plus la rupture est probable
@@ -724,7 +877,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       const sect = secteurDe(f)
       const tient = murTient(sect)
       if (f.etat === 'marche') {
-        if (versCible(f, dt)) f.etat = tient ? 'siege' : 'melee'
+        if (versCible(f, pas(f))) f.etat = tient ? 'siege' : 'melee'
         if (!tient && f.etat === 'siege') f.etat = 'melee'
         // le mur de ce secteur est tombé : entrer par la brèche
         if (f.etat === 'melee' && sect) {
@@ -762,13 +915,13 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
         // plus de défenseurs : cap sur la place (pillage)
         f.tx = geo.place.x
         f.ty = geo.place.y
-        versCible(f, dt)
+        versCible(f, pas(f))
         continue
       }
       f.tx = cible.x
       f.ty = cible.y
       if (dist(f, cible) > 16) {
-        versCible(f, dt)
+        versCible(f, pas(f))
       } else if (now >= f.nextHit) {
         f.nextHit = now + CADENCE_MELEE
         frapper(b, cible, f.atk * multDegats(f) * multRecus(cible), now)
@@ -791,10 +944,23 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       }
       if (f.etat === 'melee') versCible(f, dt)
       if (now >= f.nextHit) {
-        // par la brume ou sous la pluie, on ne voit ni ne porte aussi loin
-        const portee = (surMur ? PORTEE_ARC_MUR : PORTEE_ARC_SOL) * ciel.portee * portePlusCourt
-        const cibles = atkVivants.filter((a) => dist(f, a) <= portee)
-        const cible = plusProche(f, cibles)
+        // par la brume ou sous la pluie, on ne voit ni ne porte aussi loin ;
+        // en cloche, on tire par-dessus tout et l'on porte moitié plus loin
+        const portee = (surMur ? PORTEE_ARC_MUR : PORTEE_ARC_SOL) * ciel.portee * portePlusCourt * tir.portee
+        let cibles = atkVivants.filter((a) => dist(f, a) <= portee)
+        /*
+         * Un tireur affecté à un pan ne gaspille pas ses flèches sur l'autre bout
+         * de la plaine : il couvre SON secteur, et ne regarde ailleurs que s'il
+         * n'y a plus personne devant lui.
+         */
+        const monSecteur = secteurAssigne(f)
+        if (monSecteur) {
+          const i = b.secteurs.indexOf(monSecteur)
+          const sien = cibles.filter((a) => (a.secteur ?? 0) === i)
+          if (sien.length > 0) cibles = sien
+        }
+        // tir en cloche : on n'ajuste plus un homme, on arrose le plus gros tas
+        const cible = tir.masse ? plusMasse(cibles) : plusProche(f, cibles)
         if (cible) {
           f.nextHit = now + CADENCE_ARC
           const d = dist(f, cible)
@@ -807,39 +973,61 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
             start: now,
             dur: Math.max(260, (d / VITESSE_FLECHE) * 1000),
             targetId: cible.id,
-            // corde détendue par la pluie : la flèche arrive, mais mollement
-            dmg: f.atk * multDegats(f) * ciel.tir,
+            // corde détendue par la pluie, ou flèche qui retombe de haut : elle
+            // arrive dans les deux cas, mais mollement
+            dmg: f.atk * multDegats(f) * ciel.tir * tir.degats,
           })
         }
       }
       continue
     }
 
-    // mêlée (lanciers, hoplites) : ils courent au secteur enfoncé.
+    // mêlée (lanciers, hoplites, peltastes) : ils courent au secteur enfoncé.
     // Tant que tout tient, ils patientent au ralliement ; dès qu'un pan cède,
     // ils s'y portent — c'est au joueur de compter sur eux pour boucher un trou.
     const dedans = atkVivants.filter((a) => a.etat === 'melee' && estDedans(geo, a))
-    const menace = dedans.length > 0 ? dedans : b.secteurs.some((s) => !s.breche) ? [] : atkVivants
+    /*
+     * « Charger » change la donne : la ligne ne reste plus à l'abri à attendre
+     * que le mur cède. Elle sort par la porte et va crever les béliers là où ils
+     * cognent. C'est le seul moyen de sauver un pan qui va tomber — et le plus
+     * cher, car dehors, il n'y a plus de mur pour couvrir personne.
+     */
+    const gibier = dedans.length > 0 ? dedans : ligne.sortie ? atkVivants : b.secteurs.some((s) => !s.breche) ? [] : atkVivants
+    /*
+     * Un secteur assigné, c'est une garnison : ces hommes-là tiennent CE pan et
+     * ne courent pas ailleurs, même si l'on s'égorge à l'autre bout de l'enceinte.
+     * Sans cela, un assaut sur trois fronts se répondait toujours en masse au
+     * plus chaud — et les deux autres pans tombaient tout seuls.
+     */
+    const secteur = secteurAssigne(f)
+    const iSecteur = secteur ? b.secteurs.indexOf(secteur) : -1
+    const menace = iSecteur >= 0 ? gibier.filter((a) => (a.secteur ?? 0) === iSecteur) : gibier
+    // où cet homme se tient quand il n'a personne à frapper
+    const trou = b.secteurs.find((s) => s.breche)
+    const ancre = secteur
+      ? entreeSecteur(geo, secteur.angle)
+      : trou
+        ? entreeSecteur(geo, trou.angle)
+        : geo.ralliement
+    // mur de boucliers : on ne rompt pas la ligne pour courir après un homme
+    const aPortee = ligne.laisse > 0 ? menace.filter((a) => dist(a, ancre) <= ligne.laisse) : menace
     /*
      * Le peltaste, lui, choisit sa proie : il va d'abord aux TIREURS. C'est toute
      * sa raison d'être — un javelot rattrape un archer, une lance de milice ne
      * rattrape rien. Sans ce tri, il n'était qu'un lancier un peu plus cher.
      */
-    const tireurs = f.type === 'peltaste' ? menace.filter((a) => estTireur(a.type)) : []
-    const cible = plusProche(f, tireurs.length > 0 ? tireurs : menace)
+    const tireurs = f.type === 'peltaste' ? aPortee.filter((a) => estTireur(a.type)) : []
+    const cible = plusProche(f, tireurs.length > 0 ? tireurs : aPortee)
     if (!cible) {
-      // se poster devant la brèche la plus menaçante, sinon au ralliement
-      const trou = b.secteurs.find((s) => s.breche)
-      const point = trou ? entreeSecteur(geo, trou.angle) : geo.ralliement
-      f.tx = point.x
-      f.ty = point.y + (f.seed - 0.5) * 60
-      versCible(f, dt)
+      f.tx = ancre.x
+      f.ty = ancre.y + (f.seed - 0.5) * 60
+      versCible(f, pas(f))
       continue
     }
     f.tx = cible.x
     f.ty = cible.y
     if (dist(f, cible) > 16) {
-      versCible(f, dt)
+      versCible(f, pas(f))
     } else if (now >= f.nextHit) {
       f.nextHit = now + CADENCE_MELEE
       frapper(b, cible, f.atk * multDegats(f) * multRecus(cible), now)

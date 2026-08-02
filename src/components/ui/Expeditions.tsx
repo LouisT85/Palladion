@@ -25,6 +25,7 @@ import { Meteo, VoileSaison } from '../map/Ciel'
 import { Murailles } from '../map/Murailles'
 import { CoeurVillage, DecorExpedition } from '../map/VillageEnnemi'
 import { DieuxRapides } from './Hud'
+import { BarreOrdres } from './Ordres'
 
 function puissance(troupes: Record<UnitId, number>): number {
   return UNIT_IDS.reduce((a, u) => a + (troupes[u] ?? 0) * (UNITS[u].atk + UNITS[u].hp / 8), 0)
@@ -346,6 +347,8 @@ export function ExpeditionScene() {
               ⚔️ Vos troupes : <b>{vivantsJoueur}</b> · Défenseurs : <b>{vivantsEnnemis}</b>
               {v.mur > 0 && exp.battle.breche && ' · 💥 brèche ouverte !'}
             </div>
+            {/* les mêmes hommes obéissent aux mêmes ordres, loin de chez eux */}
+            <BarreOrdres />
             <DieuxRapides />
             <button className="danger" style={{ width: '100%', marginTop: 8 }} onClick={() => s.retraiteExpedition()}>
               🏳️ Sonner la retraite

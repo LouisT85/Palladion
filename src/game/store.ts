@@ -47,8 +47,12 @@ import {
   troupes,
 } from './data'
 import {
+  DELAI_ORDRE_MS,
+  EFFETS_LIGNE,
+  EFFETS_TIR,
   GEO_EXPEDITION,
   GEO_VILLAGE,
+  ORDRES_NEUTRES,
   abattreChef,
   abriterSecteur,
   boucherBreche,
@@ -140,6 +144,9 @@ import type {
   PendingEffect,
   RecruitJob,
   Report,
+  OrdreLigne,
+  OrdreTir,
+  OrdresBataille,
   ResourceId,
   Toast,
   UnitId,
@@ -319,6 +326,10 @@ export interface GameState {
   benir: (g: GodId) => void
   /** verser des points de relation contre une grâce permanente */
   acquerirGrace: (id: string) => void
+  /** changer la posture de la ligne ou la façon de tirer, pendant la bataille */
+  donnerOrdre: (quoi: 'ligne' | 'tir', valeur: OrdreLigne | OrdreTir) => void
+  /** affecter un type d'unité à un secteur de l'enceinte (null = au plus pressé) */
+  assignerSecteur: (u: UnitId, secteur: number | null) => void
   recruterHeros: (h: HeroId) => void
   capaciteHeros: (h: HeroId) => void
   choisirArc: (i: number) => void
@@ -676,6 +687,22 @@ function pushToast(s: GameState, emoji: string, msg: string): void {
   if (s.toasts.length > 5) s.toasts.shift()
 }
 
+/**
+ * La bataille où le joueur a des hommes engagés : la défense du village, ou son
+ * expédition tant qu'elle n'est pas résolue. Les ordres valent pour les deux —
+ * ce sont les mêmes soldats, et ils obéissent des deux côtés de la plaine.
+ */
+function batailleDuJoueur(s: GameState): BattleState | null {
+  if (s.battle) return s.battle
+  return s.expedition && !s.expedition.result ? s.expedition.battle : null
+}
+
+/** les ordres d'une bataille, posés à la neutralité au premier appel */
+function ordresDe(b: BattleState): OrdresBataille {
+  if (!b.ordres) b.ordres = { ...ORDRES_NEUTRES, secteurs: {} }
+  return b.ordres
+}
+
 function pushReport(s: GameState, emoji: string, titre: string, lignes: string[]): Report {
   const r: Report = { id: uid('r'), at: Date.now(), emoji, titre, lignes }
   s.reports.unshift(r)
@@ -906,6 +933,8 @@ type ActionsOnly = {
   sacrifier: unknown
   benir: unknown
   acquerirGrace: unknown
+  donnerOrdre: unknown
+  assignerSecteur: unknown
   recruterHeros: unknown
   capaciteHeros: unknown
   choisirArc: unknown
@@ -2538,6 +2567,52 @@ export const useGame = create<GameState>()(
           grace.desc,
           `Vous avez versé ${grace.cout} points de relation. Le don, lui, ne se reprend pas.`,
         ])
+      })
+    },
+
+    /*
+     * Un ordre à la troupe. Il ne se donne qu'en bataille — défense du village
+     * comme expédition, ce sont les mêmes hommes — et il se TIENT : cinq secondes
+     * avant d'en changer, faute de quoi on alternerait charge et mur de boucliers
+     * à chaque coup porté, ce qui n'est plus une décision mais un tapotement.
+     */
+    donnerOrdre: (quoi, valeur) => {
+      set((s) => {
+        const b = batailleDuJoueur(s)
+        if (!b || b.result) return
+        const o = ordresDe(b)
+        if (o[quoi] === valeur) return
+        const now = Date.now()
+        if (now < o.prochainAt) return
+        if (quoi === 'ligne') {
+          o.ligne = valeur as OrdreLigne
+          const e = EFFETS_LIGNE[o.ligne]
+          pushToast(s, e.emoji, `Ordre transmis : ${e.nom.toLowerCase()}.`)
+        } else {
+          o.tir = valeur as OrdreTir
+          const e = EFFETS_TIR[o.tir]
+          pushToast(s, e.emoji, `Ordre transmis aux tireurs : ${e.nom.toLowerCase()}.`)
+        }
+        o.prochainAt = now + DELAI_ORDRE_MS
+      })
+    },
+
+    /*
+     * Assigner un type d'unité à un pan de l'enceinte. Ces hommes-là tiennent CE
+     * secteur : ils s'y postent, n'y frappent que ce qui l'assaille, et ne courent
+     * plus au plus chaud. C'est la seule réponse possible à un assaut sur trois
+     * fronts quand on n'a pas trois garnisons.
+     */
+    assignerSecteur: (u, secteur) => {
+      set((s) => {
+        const b = batailleDuJoueur(s)
+        if (!b || b.result) return
+        const o = ordresDe(b)
+        if (secteur === null) delete o.secteurs[u]
+        else if (secteur >= 0 && secteur < b.secteurs.length) o.secteurs[u] = secteur
+        else return
+        const nom = secteur === null ? 'au plus pressé' : b.secteurs[secteur].nom
+        pushToast(s, UNITS[u].emoji, `${UNITS[u].nom}s : ${nom}.`)
       })
     },
 

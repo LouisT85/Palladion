@@ -1,7 +1,17 @@
-import { HEROS, HERO_IDS, NIVEAU_MAX, forceNiveau, peutMonter, xpRequise, type HeroId } from '../../game/heros'
+import {
+  HEROS,
+  HERO_IDS,
+  NIVEAU_MAX,
+  attenteNoeud,
+  forceNiveau,
+  peutMonter,
+  xpRequise,
+  type HeroId,
+} from '../../game/heros'
 import { conditionsHeros, entretienHeros, fmtDuree, herosDisponible, peutPayer, useGame } from '../../game/store'
 import type { Cost, ResourceId } from '../../game/types'
 import { Montant } from './Icones'
+import { Astuce, Infobulle } from './Infobulle'
 import { Modale } from './Modale'
 
 /*
@@ -46,13 +56,23 @@ function Entretien({ h }: { h: HeroId }) {
 /** cinq lauriers : pleins jusqu'au niveau atteint, barrés au-delà du plafond */
 function Niveaux({ niveau, plafond }: { niveau: number; plafond: number }) {
   return (
-    <span className="heros-niveaux" title={plafond < NIVEAU_MAX ? `Plafonné au niveau ${plafond}` : `Niveau ${niveau}/${NIVEAU_MAX}`}>
-      {Array.from({ length: NIVEAU_MAX }, (_, i) => (
-        <span key={i} className={i < niveau ? 'plein' : i < plafond ? 'vide' : 'barre'}>
-          {i < plafond ? '★' : '·'}
-        </span>
-      ))}
-    </span>
+    <Astuce
+      titre={`⭐ Niveau ${niveau} sur ${NIVEAU_MAX}`}
+      resume="Un héros monte en assistant aux assauts repoussés et en marchant en expédition. Chaque niveau renforce son passif, sa capacité et ce qu’il vaut au corps à corps."
+      note={
+        plafond < NIVEAU_MAX
+          ? `Son arc l’a brisé : il ne dépassera plus le niveau ${plafond}. Les lauriers barrés sont ceux qu’il ne portera jamais.`
+          : undefined
+      }
+    >
+      <span className="heros-niveaux">
+        {Array.from({ length: NIVEAU_MAX }, (_, i) => (
+          <span key={i} className={i < niveau ? 'plein' : i < plafond ? 'vide' : 'barre'}>
+            {i < plafond ? '★' : '·'}
+          </span>
+        ))}
+      </span>
+    </Astuce>
   )
 }
 
@@ -74,19 +94,25 @@ export function HerosRapides() {
         const cd = Math.max(0, e.cooldownUntil - now)
         const boude = e.boudeJusqua > now
         return (
-          <button
+          <Astuce
             key={h}
-            disabled={faveur < def.capacite.cout || cd > 0 || boude}
-            onClick={() => capacite(h)}
-            style={{ borderColor: `${def.couleur}88` }}
-            title={
-              boude
-                ? `${def.nom} boude sous sa tente.`
-                : `${def.capacite.nom} - ${def.capacite.desc} (niveau ${e.niveau}, puissance ×${forceNiveau(e.niveau).toFixed(1)})`
-            }
+            titre={`${def.emoji} ${def.capacite.nom}`}
+            resume={def.capacite.desc}
+            lignes={[
+              { label: 'Coût', valeur: `${def.capacite.cout} ✨`, fort: faveur >= def.capacite.cout },
+              { label: 'Niveau', valeur: `${e.niveau} · puissance ×${forceNiveau(e.niveau).toFixed(1)}` },
+              ...(cd > 0 ? [{ label: 'Prêt dans', valeur: `${Math.ceil(cd / 1000)} s` }] : []),
+            ]}
+            note={boude ? `${def.nom} boude sous sa tente : sa capacité est indisponible.` : undefined}
           >
-            {def.emoji} {boude ? '😤' : cd > 0 ? `${Math.ceil(cd / 1000)}s` : `${def.capacite.cout}✨`}
-          </button>
+            <button
+              disabled={faveur < def.capacite.cout || cd > 0 || boude}
+              onClick={() => capacite(h)}
+              style={{ borderColor: `${def.couleur}88` }}
+            >
+              {def.emoji} {boude ? '😤' : cd > 0 ? `${Math.ceil(cd / 1000)}s` : `${def.capacite.cout}✨`}
+            </button>
+          </Astuce>
         )
       })}
     </div>
@@ -112,6 +138,7 @@ export function PanneauHeros() {
     const seuil = xpRequise(def, e.niveau)
     const progresse = peutMonter(e)
     const etapes = def.arc.length
+    const attente = e.recrute && !e.mort ? attenteNoeud(e, now) : 0
 
     return (
       <div key={h} className={`heros-carte${e.mort ? ' mort' : ''}${!e.recrute && !dispo ? ' verrouille' : ''}`}>
@@ -143,9 +170,15 @@ export function PanneauHeros() {
                 <span className="heros-force"> (puissance ×{forceNiveau(e.niveau).toFixed(1)})</span>
               </div>
               {progresse ? (
-                <div className="heros-xp" title={`${Math.floor(e.xp)} / ${seuil} points d’expérience`}>
-                  <div style={{ width: `${Math.min(100, (e.xp / seuil) * 100)}%`, background: def.couleur }} />
-                </div>
+                <Astuce
+                  titre="⭐ Expérience"
+                  resume="Un héros apprend en servant : chaque assaut repoussé et chaque expédition le rapprochent du niveau suivant."
+                  lignes={[{ label: 'Vers le niveau ' + (e.niveau + 1), valeur: `${Math.floor(e.xp)} / ${seuil}`, fort: true }]}
+                >
+                  <div className="heros-xp">
+                    <div style={{ width: `${Math.min(100, (e.xp / seuil) * 100)}%`, background: def.couleur }} />
+                  </div>
+                </Astuce>
               ) : (
                 <div className="heros-ligne heros-plafond">
                   {e.plafond < NIVEAU_MAX
@@ -154,24 +187,56 @@ export function PanneauHeros() {
                 </div>
               )}
               <div className="heros-pied">
-                <span className="heros-entretien" title="Prélevé en continu sur vos réserves">
-                  🍖 <Entretien h={h} />
-                </span>
-                <span className="heros-arc">
-                  📜 arc {Math.min(e.arc, etapes)}/{etapes}
-                </span>
-                <button
-                  className="principal"
-                  disabled={s.faveur < def.capacite.cout || cd > 0 || boude || (def.capacite.batailleUniquement && !s.battle && !s.expedition)}
-                  onClick={() => s.capaciteHeros(h)}
-                  title={def.capacite.batailleUniquement ? 'Ne s’invoque qu’en bataille' : undefined}
+                <Astuce
+                  titre="🍖 Entretien"
+                  resume="Prélevé en continu sur vos réserves, chaque minute qu’il passe à votre table. Greniers vides et autels muets : trois rappels sans réponse et il reprend la route."
+                  note="La grâce « Entretien des braves » d’Arès en retranche les deux cinquièmes."
                 >
-                  {boude
-                    ? `😤 boude ${fmtDuree(e.boudeJusqua - now)}`
-                    : cd > 0
-                      ? `⏳ ${fmtDuree(cd)}`
-                      : `${def.capacite.emoji} Appeler (${def.capacite.cout} ✨)`}
-                </button>
+                  <span className="heros-entretien">
+                    🍖 <Entretien h={h} />
+                  </span>
+                </Astuce>
+                {/* on dit QUAND vient le prochain dilemme : son histoire ne doit
+                    plus se dérouler dans le dos du joueur */}
+                <Infobulle
+                  className="heros-arc"
+                  titre={`📜 L’arc de ${def.nom}`}
+                  resume={
+                    attente > 0
+                      ? `Son prochain dilemme s’ouvrira dans ${fmtDuree(attente)}. Un héros a le temps de servir avant que son histoire ne le rattrape.`
+                      : e.arc >= etapes
+                        ? 'Son histoire est écrite jusqu’au bout : plus rien ne l’attend.'
+                        : 'Son prochain dilemme peut s’ouvrir à tout moment - dès qu’il aura le niveau requis.'
+                  }
+                >
+                  📜 arc {Math.min(e.arc, etapes)}/{etapes}
+                  {attente > 0 && <span className="heros-attente"> · {fmtDuree(attente)}</span>}
+                </Infobulle>
+                <Astuce
+                  titre={`${def.capacite.emoji} ${def.capacite.nom}`}
+                  resume={def.capacite.desc}
+                  note={
+                    boude
+                      ? `${def.nom} boude : rien à en tirer avant ${fmtDuree(e.boudeJusqua - now)}.`
+                      : def.capacite.batailleUniquement && !s.battle && !s.expedition
+                        ? 'Ne s’invoque qu’en bataille.'
+                        : s.faveur < def.capacite.cout
+                          ? `Il vous manque ${Math.ceil(def.capacite.cout - s.faveur)} de faveur.`
+                          : undefined
+                  }
+                >
+                  <button
+                    className="principal"
+                    disabled={s.faveur < def.capacite.cout || cd > 0 || boude || (def.capacite.batailleUniquement && !s.battle && !s.expedition)}
+                    onClick={() => s.capaciteHeros(h)}
+                  >
+                    {boude
+                      ? `😤 boude ${fmtDuree(e.boudeJusqua - now)}`
+                      : cd > 0
+                        ? `⏳ ${fmtDuree(cd)}`
+                        : `${def.capacite.emoji} Appeler (${def.capacite.cout} ✨)`}
+                  </button>
+                </Astuce>
               </div>
             </>
           ) : (

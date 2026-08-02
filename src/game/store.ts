@@ -98,6 +98,8 @@ import {
   XP_ASSAUT_REPOUSSE,
   XP_EXPEDITION,
   XP_PAR_ETOILE,
+  DELAI_ENTRE_NOEUDS_MS,
+  DELAI_PREMIER_NOEUD_MS,
   cumulerPassifs,
   entretienTotal,
   etatHeroInitial,
@@ -1389,8 +1391,9 @@ function gagnerXp(s: GameState, n: number): void {
 /** ouvre le prochain nœud d'arc mûr, s'il n'y a rien d'autre à l'écran */
 function ouvrirArcMur(s: GameState): void {
   if (s.arcHeros || s.activeEvent || s.battle || s.expedition) return
+  const now = s.lastSeen
   for (const h of HERO_IDS) {
-    const n = noeudMur(HEROS[h], s.heros[h])
+    const n = noeudMur(HEROS[h], s.heros[h], now)
     if (n) {
       s.arcHeros = { heros: h, noeud: n.id }
       s.arcIssue = null
@@ -1535,8 +1538,16 @@ function appliquerActe(s: GameState, i: number, now: number): void {
   for (const g of GOD_IDS) s.gods[g] = { relation: d.relations[g] ?? 0, cooldownUntil: 0 }
   // murMax lit les passifs de héros : on pose donc les héros AVANT la structure
   for (const h of HERO_IDS) s.heros[h] = etatHeroInitial()
-  // les héros que le récit impose entrent sans condition ni rançon
-  for (const h of acte.herosScriptes) s.heros[h] = { ...etatHeroInitial(), recrute: true, niveau: 2 }
+  /*
+   * Les héros que le récit impose entrent sans condition ni rançon - mais leur
+   * histoire ne démarre pas au premier battement de l'acte. Ils arrivent au
+   * niveau 2, donc plusieurs nœuds de leur arc sont déjà mûrs : sans ce répit,
+   * on enchaînait leurs dilemmes d'affilée et Hector mourait avant d'avoir tenu
+   * un seul assaut.
+   */
+  for (const h of acte.herosScriptes) {
+    s.heros[h] = { ...etatHeroInitial(), recrute: true, niveau: 2, prochainNoeudAt: now + DELAI_PREMIER_NOEUD_MS }
+  }
   s.wallHp = Math.round(murMax(s) * d.murPart)
   s.brechesMur = d.murPart <= 0.55 && (d.batiments.remparts ?? 0) > 0 ? [0] : []
   s.threat = acte.menace.threat
@@ -3280,6 +3291,8 @@ export const useGame = create<GameState>()(
         e.recrute = true
         e.impayes = 0
         e.inactif = 0
+        // on le laisse d'abord servir : son premier dilemme attendra quelques minutes
+        e.prochainNoeudAt = Date.now() + DELAI_PREMIER_NOEUD_MS
         const ent = [
           def.entretien.grain ? `${def.entretien.grain} 🌾/min` : '',
           def.entretien.faveur ? `${def.entretien.faveur} ✨/min` : '',
@@ -3463,6 +3476,8 @@ export const useGame = create<GameState>()(
         }
 
         e.arc++
+        // le nœud suivant attendra : une histoire se raconte, elle ne se déverse pas
+        e.prochainNoeudAt = now + DELAI_ENTRE_NOEUDS_MS
         e.choix.push(`${noeud.id}:${opt.label}`)
         s.arcIssue = lignes
         pushReport(s, noeud.emoji, `${def.nom} - ${noeud.titre}`, lignes)

@@ -3,11 +3,14 @@ import { BUILDINGS, FAVEUR_MAX, GOD_IDS, POP_CAP, STOCKAGE, UNITS, multRelation 
 import { VILLAGES_CIBLES } from './expeditions'
 import {
   BONUS_NEUTRE,
+  DELAI_ENTRE_NOEUDS_MS,
+  DELAI_PREMIER_NOEUD_MS,
   HEROS,
   HERO_ATK_BASE,
   HERO_HP_BASE,
   HERO_IDS,
   NIVEAU_MAX,
+  attenteNoeud,
   cumulerPassifs,
   entretienTotal,
   etatHeroInitial,
@@ -412,6 +415,55 @@ describe('ouverture des nœuds d’arc', () => {
     // celui qui boude garde son récit : `noeudMur` ignore `boudeJusqua`, et c'est
     // ce qui permet de le réconcilier par un dilemme
     expect(noeudMur(def, { ...e, recrute: true, niveau: 2, boudeJusqua: Date.now() + 600_000 })).toBe(def.arc[0])
+  })
+
+  it('fait RESPIRER l’arc : deux nœuds ne peuvent pas tomber coup sur coup', () => {
+    /*
+     * Le défaut réel, observé en jouant l'acte III : Hector, imposé par le récit
+     * au niveau 2, voyait TOUS ses nœuds mûrs à la seconde de son entrée - le
+     * niveau requis était la seule condition. On enchaînait ses dilemmes en
+     * quelques battements et il mourait avant qu'on ait vu sa tête.
+     *
+     * Le contrat, désormais : un délai s'interpose, et le niveau ne suffit plus.
+     */
+    const def = HEROS.hector
+    const t = 1_000_000
+    const pret: HeroState = { ...etatHeroInitial(), recrute: true, niveau: NIVEAU_MAX }
+
+    // sans délai posé, rien ne change : les vieilles sauvegardes gardent leur arc
+    expect(noeudMur(def, pret, t)).toBe(def.arc[0])
+
+    // avec un délai en cours, le nœud attend - même au niveau maximum
+    const enAttente: HeroState = { ...pret, prochainNoeudAt: t + 60_000 }
+    expect(noeudMur(def, enAttente, t)).toBeNull()
+    expect(attenteNoeud(enAttente, t)).toBe(60_000)
+    // et il s'ouvre à la seconde où le délai expire
+    expect(noeudMur(def, enAttente, t + 60_000)).toBe(def.arc[0])
+    expect(attenteNoeud(enAttente, t + 60_000)).toBe(0)
+
+    // les deux délais sont d'un ordre de grandeur JOUABLE : quelques minutes,
+    // assez pour un assaut - pas quelques secondes, pas une demi-heure
+    for (const d of [DELAI_PREMIER_NOEUD_MS, DELAI_ENTRE_NOEUDS_MS]) {
+      expect(d).toBeGreaterThanOrEqual(5 * 60_000)
+      expect(d).toBeLessThanOrEqual(15 * 60_000)
+    }
+  })
+
+  it('impose ce répit aux héros que la campagne met à votre porte', () => {
+    /*
+     * C'est le cas qui a mordu : les héros scriptés entrent au niveau 2, donc
+     * plusieurs nœuds sont d'emblée à portée. Ils doivent arriver AVEC leur
+     * délai déjà posé - sinon le premier battement de l'acte ouvre le dilemme.
+     */
+    useGame.getState().reset()
+    useGame.getState().choisirMode('campagne')
+    const s = useGame.getState()
+    const scriptes = HERO_IDS.filter((h) => s.heros[h].recrute)
+    for (const h of scriptes) {
+      const e = s.heros[h]
+      expect(attenteNoeud(e, s.lastSeen), h).toBeGreaterThan(0)
+      expect(noeudMur(HEROS[h], e, s.lastSeen), h).toBeNull()
+    }
   })
 
   it('ne cache aucun cul-de-sac narratif : tout arc va jusqu’à sa dernière page', () => {

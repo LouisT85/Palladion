@@ -34,7 +34,21 @@ export interface HeroState {
   impayes: number
   /** assauts traversés sans qu'on l'ait lâché sur l'ennemi (Achille) */
   inactif: number
+  /**
+   * Instant avant lequel aucun nœud de son arc ne s'ouvrira. Sans cette borne,
+   * un héros qui arrivait déjà d'un niveau élevé - c'est le cas de ceux que la
+   * campagne IMPOSE - voyait toute son histoire se dérouler en quelques
+   * battements : les nœuds étant seulement gardés par un niveau requis, ils
+   * étaient tous mûrs à la seconde où il entrait, et l'on enterrait Hector avant
+   * de l'avoir vu combattre.
+   */
+  prochainNoeudAt?: number
 }
+
+/** un héros qu'on vient d'engager a droit à ce répit avant son premier dilemme */
+export const DELAI_PREMIER_NOEUD_MS = 6 * 60_000
+/** et à celui-là entre deux nœuds : une histoire a besoin de respirer */
+export const DELAI_ENTRE_NOEUDS_MS = 8 * 60_000
 
 /** état d'un héros au premier jour : connu de nom, à votre service en rien */
 export function etatHeroInitial(): HeroState {
@@ -882,12 +896,25 @@ export function statsCombatHeros(niveau: number): { hp: number; atk: number } {
   return { hp: Math.round(HERO_HP_BASE * f), atk: Math.round(HERO_ATK_BASE * f) }
 }
 
-/** prochain nœud d'arc à déclencher, s'il est mûr - sinon null */
-export function noeudMur(def: HeroDef, etat: HeroState): NoeudArc | null {
+/**
+ * Prochain nœud d'arc à déclencher, s'il est mûr - sinon null.
+ *
+ * Deux conditions, pas une. Le niveau dit que le héros a VÉCU assez pour en
+ * arriver là ; le délai dit que le joueur a eu le temps de le voir vivre. Sans
+ * la seconde, un héros imposé par la campagne au niveau 4 déroulait ses cinq
+ * nœuds en cinq battements et mourait avant qu'on ait lu son nom.
+ */
+export function noeudMur(def: HeroDef, etat: HeroState, now = Infinity): NoeudArc | null {
   if (etat.mort || !etat.recrute) return null
   const n = def.arc[etat.arc]
   if (!n) return null
-  return etat.niveau >= n.niveauRequis ? n : null
+  if (etat.niveau < n.niveauRequis) return null
+  return now >= (etat.prochainNoeudAt ?? 0) ? n : null
+}
+
+/** ce qu'il reste à patienter avant le prochain dilemme de ce héros (0 = il est mûr) */
+export function attenteNoeud(etat: HeroState, now: number): number {
+  return Math.max(0, (etat.prochainNoeudAt ?? 0) - now)
 }
 
 /** somme des passifs de tous les héros à votre service, appliquée en continu */

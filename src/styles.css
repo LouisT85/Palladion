@@ -104,7 +104,7 @@ header.hud {
   row-gap: 6px;
   padding: 6px 13px;
   /* le repli est le filet de sécurité : jamais de débord latéral, jamais un
-     bouton hors de portée — les paliers en bas de feuille l'évitent au maximum */
+     bouton hors de portée - les paliers en bas de feuille l'évitent au maximum */
   flex-wrap: wrap;
 }
 .hud-rang + .hud-rang {
@@ -196,8 +196,8 @@ header.hud {
   color: var(--danger);
 }
 /* pictogrammes peints : ils remplacent l'émoji dans tout le châssis.
-   `inline-block` et non `block` : posé nu dans une ligne de texte — sur le bouton
-   du comptoir, par exemple — un bloc coupait la ligne et le libellé s'éparpillait
+   `inline-block` et non `block` : posé nu dans une ligne de texte - sur le bouton
+   du comptoir, par exemple - un bloc coupait la ligne et le libellé s'éparpillait
    sur trois niveaux. Dans un conteneur flex, l'un et l'autre se valent. */
 .icone-res {
   display: inline-block;
@@ -216,7 +216,7 @@ header.hud {
   font-size: 12.5px;
 }
 
-/* boutons d'ouverture des grands panneaux — à gauche du rang du bas */
+/* boutons d'ouverture des grands panneaux - à gauche du rang du bas */
 .hud-actions {
   display: flex;
   gap: 7px;
@@ -486,7 +486,7 @@ svg.carte-exp {
 /* ── le champion achéen ────────────────────────────────────
    Un nom en tête de colonne n'est pas un détail du bandeau : il a sa ligne, sa
    jauge de vie et le décompte de sa manœuvre. C'est là-dessus que se décide
-   toute la bataille — le tuer d'abord, ou encaisser ce qu'il prépare. */
+   toute la bataille - le tuer d'abord, ou encaisser ce qu'il prépare. */
 .bandeau .champion-presage {
   margin-top: 5px;
   padding: 5px 8px;
@@ -672,7 +672,7 @@ svg.carte-exp {
   color: #f0a292;
 }
 
-/* l'appel au secours n'est pas une menace : il est doré, pas rouge sang — et il
+/* l'appel au secours n'est pas une menace : il est doré, pas rouge sang - et il
    porte ses deux réponses, pour qu'on ne puisse pas l'ignorer par distraction */
 .bandeau.secours {
   background: linear-gradient(180deg, #2f2610f0, #1c1708ea);
@@ -1092,7 +1092,7 @@ svg.carte-exp {
   margin-bottom: 4px;
 }
 /* jauge de ferveur : sept bandes, du rouge sang au vert franc. Le palier
-   courant est à pleine saturation, les autres en retrait — on lit la ferveur
+   courant est à pleine saturation, les autres en retrait - on lit la ferveur
    sans lire le mot. */
 .jauge-ferveur {
   position: relative;
@@ -1247,6 +1247,69 @@ svg.carte-exp {
   padding: 3px 9px;
   align-self: center;
   white-space: nowrap;
+}
+
+/* ── garde-fou : ce qu'on montre quand le rendu a échoué ───
+   Un rectangle noir n'apprend rien et ne laisse rien sauver. */
+.garde-fou {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #0a141d;
+  overflow: auto;
+}
+.gf-carte {
+  max-width: 640px;
+  background: #10202e;
+  border: 1px solid #8a4530;
+  border-radius: 12px;
+  padding: 20px 22px;
+  box-shadow: 0 10px 40px #000a;
+}
+.gf-carte h1 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: #f5c9a8;
+}
+.gf-carte p {
+  font-size: 13px;
+  color: #cfc4a8;
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+.gf-erreur {
+  background: #1b0d08;
+  border: 1px solid #6b3f2c;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #ffb9a5;
+}
+.gf-erreur pre {
+  margin: 6px 0 0;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: #a3806b;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow: auto;
+}
+.gf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gf-note {
+  font-size: 11.5px;
+  color: #7f939f;
+  font-style: italic;
+  margin: 12px 0 0;
 }
 
 /* ── diplomatie : ce que la Troade pense de vous ───────────
@@ -2417,7 +2480,7 @@ svg.carte-exp {
   position: relative;
 }
 
-/* pictogramme de météo accolé à la saison — plus petit, il ne vole pas la vedette */
+/* pictogramme de météo accolé à la saison - plus petit, il ne vole pas la vedette */
 .meteo-ico {
   font-size: 12px;
   opacity: 0.9;
@@ -3204,13 +3267,13 @@ svg.carte-exp {
 
 /* ──────────────────────────────────────────────────────────
  * Repli progressif : le HUD doit tenir sur UNE ligne le plus
- * longtemps possible — chaque pixel rendu au HUD est un pixel
+ * longtemps possible - chaque pixel rendu au HUD est un pixel
  * gagné par la carte. On sacrifie d'abord le décor (sous-titre,
  * libellés des boutons), jamais un chiffre de jeu.
  * ────────────────────────────────────────────────────────── */
 /* les seuils suivent la largeur réellement occupée par le HUD. On sacrifie
    d'abord le décor (sous-titre, mots redondants des pastilles), puis les
-   libellés des boutons — jamais l'ambiance du village, qui doit rester lisible
+   libellés des boutons - jamais l'ambiance du village, qui doit rester lisible
    en un mot quelle que soit la largeur. */
 /* Depuis le passage à deux rangs, chaque rang a environ deux fois plus de place :
    les paliers sont donc bien plus tardifs qu'avant, et l'on garde les mots plus
@@ -3238,7 +3301,7 @@ svg.carte-exp {
   .logo {
     display: none;
   }
-  /* les boutons deviennent des pictogrammes — le libellé reste dans l'infobulle */
+  /* les boutons deviennent des pictogrammes - le libellé reste dans l'infobulle */
   .hud-actions button .lbl {
     display: none;
   }
@@ -3287,7 +3350,7 @@ svg.carte-exp {
     max-height: calc(100% - 118px);
   }
   /* le bandeau d'alerte se centre sur la bande de carte laissée libre par les
-     deux panneaux flottants — sur écran étroit il ne les recouvre jamais */
+     deux panneaux flottants - sur écran étroit il ne les recouvre jamais */
   .bandeau {
     left: 226px;
     right: 316px;

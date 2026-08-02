@@ -222,12 +222,12 @@ export interface EtatCampagne {
   /**
    * Objectifs déjà FRANCHIS, par id. Ils sont verrouillés : un objectif accompli
    * ne doit pas être défait par la conséquence du suivant. Le premier acte le
-   * montrait cruellement — « levez trois soldats » repassait à 2/3 dès qu'un
+   * montrait cruellement - « levez trois soldats » repassait à 2/3 dès qu'un
    * lancier tombait pendant l'assaut que le même acte demande de repousser, et
    * l'acte ne s'achevait jamais.
    */
   objectifsFaits: string[]
-  /** tous les objectifs obligatoires sont franchis — l'épilogue attend */
+  /** tous les objectifs obligatoires sont franchis - l'épilogue attend */
   accompli: boolean
   /** condition de défaite atteinte : l'acte est à reprendre */
   perdu: boolean
@@ -249,7 +249,7 @@ export interface GameState {
   wallHp: number
   /** tours d'archers bâties sur l'enceinte */
   tours: number
-  /** angles des pans effondrés lors du dernier assaut — visibles jusqu'à réparation */
+  /** angles des pans effondrés lors du dernier assaut - visibles jusqu'à réparation */
   brechesMur: number[]
   army: Record<UnitId, number>
   recruitQueue: RecruitJob[]
@@ -274,11 +274,11 @@ export interface GameState {
   droughtUntil: number
   aresBoostUntil: number
   nextDesertAt: number
-  /** vitesse du jeu façon Sims (1/2/4/8) — forcée à ×1 pendant les batailles */
+  /** vitesse du jeu façon Sims (1/2/4/8) - forcée à ×1 pendant les batailles */
   vitesse: number
   /** missions dont la récompense a été réclamée */
   missionsReclamees: string[]
-  /** saison en cours — déduite du jour, mémorisée pour détecter le basculement */
+  /** saison en cours - déduite du jour, mémorisée pour détecter le basculement */
   saison: SaisonId
   meteo: MeteoId
   /** instant du prochain tirage de météo */
@@ -303,7 +303,7 @@ export interface GameState {
   arcHeros: { heros: HeroId; noeud: string } | null
   /** récit de l'issue, une fois le choix tranché */
   arcIssue: string[] | null
-  /** un village assiégé appelle à l'aide — la fenêtre se referme vite */
+  /** un village assiégé appelle à l'aide - la fenêtre se referme vite */
   appelSecours: { villageId: string; expireAt: number } | null
   /** instant du prochain appel possible */
   prochainAppelAt: number
@@ -315,11 +315,11 @@ export interface GameState {
    * pensait Lesbos, et une alliance nouée ne pouvait plus se défaire.
    */
   relations: Record<string, number>
-  /** hauts faits acquis — une fois gagnés, jamais repris */
+  /** hauts faits acquis - une fois gagnés, jamais repris */
   hautsFaits: string[]
   /**
    * Les annales : un relevé chiffré toutes les trente secondes. C'est la seule
-   * mémoire QUANTITATIVE du règne — le journal, lui, ne raconte que des faits.
+   * mémoire QUANTITATIVE du règne - le journal, lui, ne raconte que des faits.
    */
   annales: Releve[]
   /** instant du prochain relevé */
@@ -335,14 +335,14 @@ export interface GameState {
   exploits: Record<string, number>
   /** écran de fin de règne, ouvert par l'abdication */
   finDePartie: { score: number; titre: string; desc: string; lignes: string[] } | null
-  /** étape courante de la leçon de Zeus — null = pas de tutoriel en cours */
+  /** étape courante de la leçon de Zeus - null = pas de tutoriel en cours */
   tutoriel: number | null
   /**
    * Comment on joue. `null` = on ne le sait pas encore, l'écran de choix s'ouvre.
    * Une sauvegarde antérieure à la campagne est forcément un bac à sable.
    */
   mode: 'bac-a-sable' | 'campagne' | null
-  /** avancement dans « La Chute » — null hors campagne */
+  /** avancement dans « La Chute » - null hors campagne */
   campagne: EtatCampagne | null
   /**
    * Grâces achetées dans l'arbre de faveur, par id. Elles sont ACQUISES : le prix
@@ -474,7 +474,7 @@ export function postesPourvus(s: Pick<GameState, 'villageois'>, b: BuildingId): 
  * Rendement d'un bâtiment (0…1). Ce n'est plus un simple compte de têtes :
  * chaque villageois vaut 1 à SON métier, et RENDEMENT_HORS_METIER ailleurs.
  * Une carrière tenue par deux paysans tourne donc moins bien qu'une carrière
- * tenue par deux tailleurs de pierre — c'est tout l'intérêt d'affecter soi-même.
+ * tenue par deux tailleurs de pierre - c'est tout l'intérêt d'affecter soi-même.
  */
 export function rendement(
   s: Pick<GameState, 'buildings' | 'villageois'> & Partial<Pick<GameState, 'lastSeen' | 'createdAt'>>,
@@ -495,13 +495,13 @@ export function rendement(
   const force = s.villageois.filter((v) => v.poste === b).reduce((a, v) => a + efficaciteDe(v, jour), 0)
   return Math.min(1, force / total)
 }
-/** villageois de ce métier qui ne sont affectés nulle part — les meilleurs candidats */
+/** villageois de ce métier qui ne sont affectés nulle part - les meilleurs candidats */
 export function candidatsPour(s: Pick<GameState, 'villageois'>, b: BuildingId): Villageois[] {
   const libres = s.villageois.filter((v) => v.poste === null)
   // le bon métier d'abord, les bonnes volontés ensuite
   return [...libres].sort((x, y) => Number(y.metier === b) - Number(x.metier === b))
 }
-/** villageois sans emploi — ceux qu'on peut enrôler ou affecter */
+/** villageois sans emploi - ceux qu'on peut enrôler ou affecter */
 export function oisifs(s: Pick<GameState, 'villageois'>): Villageois[] {
   return s.villageois.filter((v) => v.poste === null)
 }
@@ -514,7 +514,7 @@ export function metierDe(v: Villageois): string {
 }
 
 /**
- * Ce que ce villageois rend à son poste : plein à son métier, moins ailleurs —
+ * Ce que ce villageois rend à son poste : plein à son métier, moins ailleurs -
  * et le tout pondéré par son ÂGE. Un enfant aide sans remplacer, un ancien a
  * tout appris mais n'a plus les bras. C'est ce qui fait de la pyramide des âges
  * une donnée du village, et non un ornement d'état civil.
@@ -536,7 +536,7 @@ function syncVillageois(s: GameState): void {
     const libres = NOMS_VILLAGEOIS.filter((n) => !utilises.has(n))
     const nom = libres.length > 0 ? libres[Math.floor(Math.random() * libres.length)] : `Habitant ${s.villageois.length + 1}`
     /*
-     * Chacun naît avec un métier — et la fournée de départ est écrite d'avance :
+     * Chacun naît avec un métier - et la fournée de départ est écrite d'avance :
      * un homme de chaque métier, plus un second paysan. Ensuite, chaque naissance
      * comble le plus grand manque. Le tirage purement aléatoire donnait des
      * villages à quatre paysans sans un seul prêtre : la faveur ne montait pas
@@ -546,8 +546,8 @@ function syncVillageois(s: GameState): void {
     const manquant = metierManquant(s.villageois.map((v) => v.metier))
     if (i < METIERS_DEPART.length) {
       /*
-       * Les fondateurs. Tous adultes — un village qui naîtrait avec quatre
-       * nourrissons serait injouable — et d'âges échelonnés, pour qu'ils ne
+       * Les fondateurs. Tous adultes - un village qui naîtrait avec quatre
+       * nourrissons serait injouable - et d'âges échelonnés, pour qu'ils ne
        * meurent pas tous le même jour trois heures plus tard.
        */
       s.villageois.push({
@@ -587,7 +587,7 @@ function syncVillageois(s: GameState): void {
         lignee: foyer.lignee,
         parents: [foyer.nom, conjoint.nom],
       })
-      pushToast(s, '👶', `${nom} naît chez les ${foyer.lignee} — ${foyer.nom} et ${conjoint.nom}.`)
+      pushToast(s, '👶', `${nom} naît chez les ${foyer.lignee} - ${foyer.nom} et ${conjoint.nom}.`)
     } else {
       s.villageois.push({
         id: uid('v'),
@@ -618,7 +618,7 @@ function syncVillageois(s: GameState): void {
   }
 }
 
-/** son conjoint le pleure et redevient libre — un veuf peut se remarier */
+/** son conjoint le pleure et redevient libre - un veuf peut se remarier */
 function veuvage(s: GameState, parti: Villageois): void {
   if (!parti.conjoint) return
   const reste = s.villageois.find((v) => v.id === parti.conjoint)
@@ -629,7 +629,7 @@ function veuvage(s: GameState, parti: Villageois): void {
  * Ce que le calendrier fait aux familles, une fois par journée de jeu : on marie
  * ceux qui peuvent l'être, et l'on enterre ceux que l'âge emporte.
  *
- * Le mariage n'est pas décoratif — sans foyer, un village ne fait pas d'enfants
+ * Le mariage n'est pas décoratif - sans foyer, un village ne fait pas d'enfants
  * et ne peut compter que sur des arrivants dont il ne choisit pas le métier.
  */
 function vieDesFamilles(s: GameState, jour: number): void {
@@ -667,13 +667,13 @@ function vieDesFamilles(s: GameState, jour: number): void {
     noter(s, 'anciensEnterres')
     pushReport(s, '⚱️', `${v.nom} des ${v.lignee ?? 'sans maison'} s’est éteint`, [
       `${v.nom} est mort à ${age} ans, ${v.poste ? `à son poste (${BUILDINGS[v.poste].nom})` : 'sans emploi'}.`,
-      `Son métier — ${METIERS[v.metier] ?? BUILDINGS[v.metier].nom} — ne se transmet plus que par ses enfants.`,
+      `Son métier - ${METIERS[v.metier] ?? BUILDINGS[v.metier].nom} - ne se transmet plus que par ses enfants.`,
     ])
   }
 }
 /**
  * L'hiver ferme la mer : plus une nef ne quitte le port. Sauf si l'Ébranleur du
- * sol a promis le contraire — « Mer ouverte » lève la saison morte du port.
+ * sol a promis le contraire - « Mer ouverte » lève la saison morte du port.
  */
 export function merFermee(s: Pick<GameState, 'saison'> & { graces?: string[] }): boolean {
   if (!SAISONS[s.saison].merFermee) return false
@@ -695,7 +695,7 @@ export function productionParMinute(s: GameState, now: number): Record<ResourceI
   const drought = now < s.droughtUntil ? 0.5 : 1
   const rd = (b: BuildingId) => rendement(s, b)
   const ciel = (r: ResourceId) => multProduction(s.saison, s.meteo, r)
-  // l'hiver ferme la mer : les navires marchands restent au mouillage — sauf si
+  // l'hiver ferme la mer : les navires marchands restent au mouillage - sauf si
   // Poséidon a rendu la mer navigable, et alors le port tourne à plein en janvier
   const port = PROD.port[s.buildings.port.level] * rd('port') * (merFermee(s) ? PORT_HIVER : 1)
   // Zeus Xenios veille sur les greniers : sa grâce grossit toutes les récoltes
@@ -722,7 +722,7 @@ export function bonusHeros(s: Pick<GameState, 'heros'>): BonusHeros {
   return s.heros ? cumulerPassifs(s.heros) : BONUS_NEUTRE
 }
 
-/** points de structure maximaux de l'enceinte — Hector l'épaissit, Poséidon aussi */
+/** points de structure maximaux de l'enceinte - Hector l'épaissit, Poséidon aussi */
 export function murMax(s: Pick<GameState, 'buildings' | 'heros' | 'graces'>): number {
   return Math.round(WALL_HP[s.buildings.remparts.level] * (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct))
 }
@@ -779,7 +779,7 @@ export function herosActifs(s: Pick<GameState, 'heros'>): HeroId[] {
   return HERO_IDS.filter((h) => s.heros?.[h]?.recrute && !s.heros[h].mort)
 }
 
-/** entretien dû chaque minute, pour l'affichage — Arès nourrit les braves à moindre frais */
+/** entretien dû chaque minute, pour l'affichage - Arès nourrit les braves à moindre frais */
 export function entretienHeros(s: Pick<GameState, 'heros' | 'graces'>): { grain: number; faveur: number } {
   if (!s.heros) return { grain: 0, faveur: 0 }
   const brut = entretienTotal(s.heros)
@@ -840,7 +840,7 @@ function calcMorale(s: GameState, now: number): number {
 function calcThreat(s: GameState, now: number): number {
   /*
    * EN CAMPAGNE, la menace est ÉCRITE, pas émergente. Chaque acte annonce la
-   * sienne, calculée par son auteur pour que ses objectifs soient tenables —
+   * sienne, calculée par son auteur pour que ses objectifs soient tenables -
    * l'acte I promet une bande qui « tâte le terrain », le V une colonne qui se
    * scinde en trois fronts. La formule du bac à sable, qui monte avec les
    * bâtiments et les minutes, écrasait cette valeur dès le premier battement : un
@@ -905,7 +905,7 @@ function pushToast(s: GameState, emoji: string, msg: string): void {
 
 /**
  * La bataille où le joueur a des hommes engagés : la défense du village, ou son
- * expédition tant qu'elle n'est pas résolue. Les ordres valent pour les deux —
+ * expédition tant qu'elle n'est pas résolue. Les ordres valent pour les deux -
  * ce sont les mêmes soldats, et ils obéissent des deux côtés de la plaine.
  */
 function batailleDuJoueur(s: GameState): BattleState | null {
@@ -954,7 +954,7 @@ function volerPct(s: GameState, p: number, quoi?: ResourceId[]): string {
 /**
  * Tire les fronts d'une vague : la porte de l'est est toujours visée
  * (c'est la voie royale), les autres secteurs s'ajoutent avec la menace.
- * Chaque assaut est ainsi différent — impossible de fortifier un seul côté.
+ * Chaque assaut est ainsi différent - impossible de fortifier un seul côté.
  */
 function choisirFronts(threat: number): typeof SECTEURS {
   const n = Math.min(nbFronts(threat), SECTEURS.length)
@@ -969,7 +969,7 @@ function choisirFronts(threat: number): typeof SECTEURS {
 
 /**
  * Les héros qui ne peuvent PAS venir vous assiéger : les vôtres, et les morts.
- * C'est la meilleure raison d'aller chercher Achille — tant qu'il mange à votre
+ * C'est la meilleure raison d'aller chercher Achille - tant qu'il mange à votre
  * table, il ne marche pas sur vos murs.
  */
 function herosHorsJeu(s: GameState): HeroId[] {
@@ -994,7 +994,7 @@ function armerAlerte(s: GameState): void {
       pushToast(s, fiche.emoji, `${c.titre} !`)
       pushReport(s, fiche.emoji, `${fiche.nom} marche sur le village`, [
         c.presage,
-        `Sa manœuvre : ${c.capacite.nom} — ${c.capacite.desc}`,
+        `Sa manœuvre : ${c.capacite.nom} - ${c.capacite.desc}`,
         'Abattez-le et elle meurt avec lui.',
       ])
     }
@@ -1018,7 +1018,7 @@ function frontsAnnonces(s: GameState): typeof SECTEURS {
 
 /**
  * Fronts d'un assaut nocturne. On préfère ceux que les éclaireurs avaient
- * annoncés ; à défaut — un assaut tombé pendant l'absence, sans alerte — on
+ * annoncés ; à défaut - un assaut tombé pendant l'absence, sans alerte - on
  * reprend la règle du jeu : c'est la menace qui décide du nombre de colonnes.
  */
 function frontsDeLaNuit(s: GameState): typeof SECTEURS {
@@ -1089,7 +1089,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     lastSeen: now,
     /*
      * La mise de départ, calculée sur la chaîne que le premier assaut exige :
-     * ferme, camp de bûcherons, palissade, caserne et deux lances — 310 de bois
+     * ferme, camp de bûcherons, palissade, caserne et deux lances - 310 de bois
      * et 90 de pierre. À 220 de bois il fallait attendre la cueillette pour la
      * caserne, et la première bande trouvait un village sans un seul soldat. La
      * troisième lance, elle, se paie sur les premières minutes de production :
@@ -1301,7 +1301,7 @@ function resumeRecoltes(saison: SaisonId): string {
 /**
  * Fait tourner le calendrier : la saison suit les journées écoulées, la météo
  * se retire toutes les DUREE_METEO_MS. Les deux pèsent sur la récolte comme sur
- * la bataille — et se voient sur la carte.
+ * la bataille - et se voient sur la carte.
  */
 function tournerCiel(s: GameState, now: number): void {
   const saison = saisonDe(Math.floor((now - s.createdAt) / DAY_MS))
@@ -1321,7 +1321,7 @@ function tournerCiel(s: GameState, now: number): void {
         pushToast(s, '👥', `${gagnes} réfugié${gagnes > 1 ? 's' : ''} suivent Énée jusqu’à vos portes.`)
       }
     }
-    pushToast(s, def.emoji, `${def.nom} — ${def.desc}`)
+    pushToast(s, def.emoji, `${def.nom} - ${def.desc}`)
     pushReport(s, def.emoji, `${def.nom} sur la Troade`, [
       def.desc,
       resumeRecoltes(saison),
@@ -1335,7 +1335,7 @@ function tournerCiel(s: GameState, now: number): void {
     const avant = s.meteo
     s.meteo = tirerMeteo(saison)
     s.meteoJusqua = now + DUREE_METEO_MS
-    if (s.meteo !== avant) pushToast(s, METEOS[s.meteo].emoji, `${METEOS[s.meteo].nom} — ${METEOS[s.meteo].desc}`)
+    if (s.meteo !== avant) pushToast(s, METEOS[s.meteo].emoji, `${METEOS[s.meteo].nom} - ${METEOS[s.meteo].desc}`)
   }
 }
 
@@ -1350,8 +1350,8 @@ function herosAuCombat(s: GameState, now: number): { id: HeroId; niveau: number 
 }
 
 /**
- * Après la bataille, on relève les héros tombés. Ils ne meurent pas ici — seul
- * leur arc peut les tuer — mais ils sortent blessés : capacité indisponible
+ * Après la bataille, on relève les héros tombés. Ils ne meurent pas ici - seul
+ * leur arc peut les tuer - mais ils sortent blessés : capacité indisponible
  * le temps de la convalescence, et le village le sait.
  */
 function relverHerosTombes(s: GameState, b: BattleState, now: number): void {
@@ -1360,11 +1360,11 @@ function relverHerosTombes(s: GameState, b: BattleState, now: number): void {
     const e = s.heros[f.heros]
     if (!e?.recrute || e.mort) continue
     e.boudeJusqua = Math.max(e.boudeJusqua, now + HERO_CONVALESCENCE_MS)
-    pushToast(s, '🩹', `${HEROS[f.heros].nom} est tombé au combat — on le relève, mais il ne se battra plus avant un moment.`)
+    pushToast(s, '🩹', `${HEROS[f.heros].nom} est tombé au combat - on le relève, mais il ne se battra plus avant un moment.`)
     pushReport(s, '🩹', `${HEROS[f.heros].nom} blessé`, [
       'On l’a sorti de la mêlée le bouclier fendu et le souffle court.',
       `Sa capacité reste indisponible ${Math.round(HERO_CONVALESCENCE_MS / 60_000)} minutes, le temps qu’il se relève.`,
-      'Un héros ne meurt que dans son propre récit — pas dans une échauffourée.',
+      'Un héros ne meurt que dans son propre récit - pas dans une échauffourée.',
     ])
   }
 }
@@ -1379,7 +1379,7 @@ function gagnerXp(s: GameState, n: number): void {
     while (e.xp >= seuil && peutMonter(e)) {
       e.xp -= seuil
       e.niveau++
-      pushToast(s, HEROS[h].emoji, `${HEROS[h].nom} passe au niveau ${e.niveau} — sa légende grandit.`)
+      pushToast(s, HEROS[h].emoji, `${HEROS[h].nom} passe au niveau ${e.niveau} - sa légende grandit.`)
       seuil = xpRequise(HEROS[h], e.niveau)
     }
     if (!peutMonter(e)) e.xp = 0
@@ -1400,7 +1400,7 @@ function ouvrirArcMur(s: GameState): void {
 }
 
 /**
- * Un héros mange, exige des honneurs — et s'en va si on l'ignore. Trois rappels
+ * Un héros mange, exige des honneurs - et s'en va si on l'ignore. Trois rappels
  * sans réponse et il reprend la route : c'est ce qui empêche d'en collectionner
  * huit sans y penser.
  */
@@ -1433,10 +1433,10 @@ function entretenirHeros(s: GameState, now: number, dtJeu: number): void {
     if (e.impayes < 3) continue
     e.recrute = false
     e.impayes = 0
-    pushToast(s, HEROS[h].emoji, `${HEROS[h].nom} plie bagage — on n’honore pas un héros de promesses.`)
+    pushToast(s, HEROS[h].emoji, `${HEROS[h].nom} plie bagage - on n’honore pas un héros de promesses.`)
     pushReport(s, HEROS[h].emoji, `${HEROS[h].nom} s’en va`, [
       'Trois fois il a réclamé son dû, trois fois la table est restée vide.',
-      'Il reprend la route sans un mot. Rien n’interdit de le rappeler — en payant, cette fois.',
+      'Il reprend la route sans un mot. Rien n’interdit de le rappeler - en payant, cette fois.',
     ])
   }
 }
@@ -1467,7 +1467,7 @@ export function snapHautFait(s: GameState): SnapHautFait {
 
 // ── Campagne : « La Chute » ──────────────────────────────────────────────────
 
-/** vue que lisent les objectifs d'acte — compteurs ramenés à l'acte en cours */
+/** vue que lisent les objectifs d'acte - compteurs ramenés à l'acte en cours */
 export function etatActe(s: GameState): EtatActe {
   const base = s.campagne?.base
   const depuis = (cle: string) => (s.exploits[cle] ?? 0) - (base?.exploits[cle] ?? 0)
@@ -1513,7 +1513,7 @@ function baseFaits(s: GameState) {
 /**
  * Pose l'état de départ d'un acte. Un acte de campagne ne recommence pas de
  * zéro : il HÉRITE d'une situation écrite, qui raconte à elle seule ce qui vient
- * de se passer — c'est ce qui permet à l'acte IV de s'ouvrir sur une brèche.
+ * de se passer - c'est ce qui permet à l'acte IV de s'ouvrir sur une brèche.
  */
 function appliquerActe(s: GameState, i: number, now: number): void {
   const acte = ACTES_CAMPAGNE[i]
@@ -1632,7 +1632,7 @@ function verifierHautsFaits(s: GameState): void {
     if (!hf.atteint(snap)) continue
     s.hautsFaits.push(hf.id)
     pushToast(s, hf.emoji, `Haut fait : ${hf.titre} (+${hf.points} prestige)`)
-    pushReport(s, '🏅', `Haut fait — ${hf.titre}`, [hf.desc, `+${hf.points} points de prestige.`])
+    pushReport(s, '🏅', `Haut fait - ${hf.titre}`, [hf.desc, `+${hf.points} points de prestige.`])
   }
 }
 
@@ -1645,7 +1645,7 @@ function noter(s: GameState, cle: string, n = 1): void {
 
 // ── Diplomatie : ce que la Troade pense de vous ──────────────────────────────
 
-/** relation avec un village — zéro pour celui qu'on n'a jamais approché */
+/** relation avec un village - zéro pour celui qu'on n'a jamais approché */
 export function relationVillage(s: Pick<GameState, 'relations'>, id: string): number {
   return s.relations?.[id] ?? RELATION_NEUTRE
 }
@@ -1689,9 +1689,9 @@ function verifierAlliances(s: GameState, now: number): void {
     delete s.alliances[id]
     const v = VILLAGES_PAR_ID[id]
     pushToast(s, '💔', `${v?.nom ?? id} reprend sa parole : l’alliance est rompue.`)
-    pushReport(s, '💔', `Alliance rompue — ${v?.nom ?? id}`, [
+    pushReport(s, '💔', `Alliance rompue - ${v?.nom ?? id}`, [
       'On ne tient pas parole à qui ne la tient pas. Plus de tribut, plus de renforts sur vos remparts.',
-      'Un présent ou deux suffiraient peut-être à renouer — un mariage, lui, aurait tenu.',
+      'Un présent ou deux suffiraient peut-être à renouer - un mariage, lui, aurait tenu.',
     ])
     noter(s, 'alliancesRompues')
   }
@@ -1700,7 +1700,7 @@ function verifierAlliances(s: GameState, now: number): void {
 
 /**
  * Un village de la Troade est assiégé et appelle à l'aide. La fenêtre est
- * courte, il n'y a rien à rafler au bout — mais un allié vaut mieux qu'un
+ * courte, il n'y a rien à rafler au bout - mais un allié vaut mieux qu'un
  * grenier plein quand la vague suivante arrive.
  */
 function tirerAppelSecours(s: GameState, now: number): void {
@@ -1715,7 +1715,7 @@ function tirerAppelSecours(s: GameState, now: number): void {
   /*
    * On n'appelle à l'aide que celui qui peut venir. Le tirage était uniforme sur
    * les huit places fortes : un chef à trois lanciers se voyait offrir la
-   * délivrance de la citadelle de Ténédos, dont les assiégeants pèsent 247 — une
+   * délivrance de la citadelle de Ténédos, dont les assiégeants pèsent 247 - une
    * fenêtre qu'il ne pouvait qu'ignorer, et Zeus comptait son absence.
    */
   const aPortee = appelsAPortee(pool, s.army)
@@ -1726,7 +1726,7 @@ function tirerAppelSecours(s: GameState, now: number): void {
   pushToast(s, '🤝', `${v.nom} est assiégé et implore votre aide !`)
   pushReport(s, '🤝', `${v.nom} appelle au secours`, [
     `Un coureur arrive, les pieds en sang : une bande armée cerne ${v.nom}.`,
-    'Aucun butin à espérer — mais Zeus veille sur qui répond aux suppliants, et un village sauvé n’oublie pas.',
+    'Aucun butin à espérer - mais Zeus veille sur qui répond aux suppliants, et un village sauvé n’oublie pas.',
     `La fenêtre se referme dans ${Math.round(SECOURS_FENETRE_MS / 60_000)} minutes.`,
   ])
 }
@@ -1744,7 +1744,7 @@ function expirerAppel(s: GameState, now: number): void {
     'Zeus Xenios protège les suppliants : votre relation avec lui en pâtit (−4).',
     'Une bande de plus rôde dans la région : la menace monte.',
   ])
-  pushToast(s, '🔥', `${v.nom} est tombé faute de secours — Zeus s’en souviendra.`)
+  pushToast(s, '🔥', `${v.nom} est tombé faute de secours - Zeus s’en souviendra.`)
 }
 
 /** les alliés paient tribut, régulièrement et sans qu'on le demande */
@@ -1816,7 +1816,7 @@ function appliquerEffetDiffere(s: GameState, eff: PendingEffect, now: number): v
       s.resources.grain = clampRes(s, 'grain', s.resources.grain + 60)
       pushReport(s, '🏰', 'La gratitude de Troie', [
         'Un char aux couleurs de Priam livre votre part du butin de la sortie d’Hector.',
-        '+120 🪙, +60 🌾. Vos soldats reviendront couverts de gloire — ceux qui reviendront.',
+        '+120 🪙, +60 🌾. Vos soldats reviendront couverts de gloire - ceux qui reviendront.',
       ])
       pushToast(s, '🏰', 'Troie partage le butin : +120 🪙, +60 🌾')
       break
@@ -1879,7 +1879,7 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
     s.moraleMods.push({ id: uid('m'), label: 'Victoire éclatante', delta: 10, expiresAt: now + 10 * 60_000 })
     const r = pushReport(s, '🏆', fuite ? 'L’ennemi est en déroute !' : 'Assaut repoussé !', [
       `La bande (${descVague(b.wave)}) a été ${fuite ? 'mise en fuite' : 'anéantie'} : ${morts} assaillants abattus${fuyards ? `, ${fuyards} en fuite` : ''}.`,
-      lignes.length ? `Vos pertes : ${lignes.join(', ')}.` : 'Aucune perte dans vos rangs — les aèdes chanteront ce jour.',
+      lignes.length ? `Vos pertes : ${lignes.join(', ')}.` : 'Aucune perte dans vos rangs - les aèdes chanteront ce jour.',
       `🎁 Récompense : +${bronze} 🪙, +${faveur} ✨${rec.bonus ? ' (bonus d’audace +25 %)' : ''}. Ambiance +10.`,
     ])
     s.battleReport = r
@@ -1903,7 +1903,7 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
     ])
     s.battleReport = r
   }
-  // les héros présents apprennent de chaque assaut — même perdu, mais moins
+  // les héros présents apprennent de chaque assaut - même perdu, mais moins
   gagnerXp(s, victoire ? XP_ASSAUT_REPOUSSE : Math.round(XP_ASSAUT_REPOUSSE * 0.4))
   // Achille ne supporte pas d'avoir regardé la bataille sans y entrer
   const ach = s.heros.achille
@@ -1921,7 +1921,7 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
   // ce qu'on paie la pierre pour les relever
   s.brechesMur = b.secteurs.filter((sec) => sec.breche).map((sec) => sec.angle)
   if (s.brechesMur.length > 0) {
-    pushToast(s, '🧱', `${s.brechesMur.length} pan${s.brechesMur.length > 1 ? 's' : ''} de mur à terre — réparez avant le prochain assaut.`)
+    pushToast(s, '🧱', `${s.brechesMur.length} pan${s.brechesMur.length > 1 ? 's' : ''} de mur à terre - réparez avant le prochain assaut.`)
   }
 
   s.battle = null
@@ -1942,7 +1942,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   // un héros mis à terre au loin rentre blessé, pas mort
   relverHerosTombes(s, b, now)
 
-  // survivants (les fuyards hp>0 rentrent au village) — et ceux qu'Énée arrache
+  // survivants (les fuyards hp>0 rentrent au village) - et ceux qu'Énée arrache
   // à la déroute : sa capacité ne joue qu'une fois, et seulement sur une défaite
   const partEnee = !victoire && s.sauverTroupes > 0 ? s.sauverTroupes : 0
   let envoyesTotal = 0
@@ -2000,13 +2000,13 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       lignes.push(
         `Le siège de ${v.nom} est levé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
         'Aucun butin : on ne pille pas ceux qu’on vient de sauver.',
-        pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Pas un homme perdu — les aèdes s’en empareront.',
+        pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Pas un homme perdu - les aèdes s’en empareront.',
         `🤝 ${v.nom} devient votre allié : tribut de ${trib} toutes les ${Math.round(TRIBUT_MS / 60_000)} min, et ${UNIT_IDS.filter((u) => renf[u] > 0).map((u) => `${renf[u]} ${UNITS[u].nom.toLowerCase()}${renf[u] > 1 ? 's' : ''}`).join(', ')} en renfort à chaque assaut.`,
         'Zeus +12, Athéna +7, ambiance +9.',
       )
       exp.result = { victoire: true, etoiles, lignes }
       s.victoire = { at: now, type: 'expedition', etoiles, detail: `${v.nom} délivré` }
-      pushReport(s, '🤝', `Secours porté — ${v.nom}`, lignes)
+      pushReport(s, '🤝', `Secours porté - ${v.nom}`, lignes)
     } else {
       s.moraleMods.push({ id: uid('m'), label: 'Secours manqué', delta: -8, expiresAt: now + 10 * 60_000 })
       s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 3)
@@ -2018,7 +2018,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
         'Mourir pour rien reste mourir : ambiance −8, Zeus −3.',
       )
       exp.result = { victoire: false, etoiles: 0, lignes }
-      pushReport(s, '🤝', `Secours manqué — ${v.nom}`, lignes)
+      pushReport(s, '🤝', `Secours manqué - ${v.nom}`, lignes)
     }
     if (s.appelSecours?.villageId === v.id) s.appelSecours = null
     return
@@ -2042,7 +2042,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     s.moraleMods.push({ id: uid('m'), label: 'Raid victorieux', delta: 6, expiresAt: now + 8 * 60_000 })
     s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now, pillages: pillages + 1 }
     /*
-     * Piller un allié rompt l'alliance sur-le-champ — et cela se retient. Un
+     * Piller un allié rompt l'alliance sur-le-champ - et cela se retient. Un
      * mariage ne protège pas de cela : on peut trahir sa propre parenté, cela
      * coûte simplement bien plus cher auprès de toute la côte.
      */
@@ -2059,14 +2059,14 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     lignes.push(
       `${v.nom} est tombé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
       `Butin : ${butinTxt.join(', ')}${deja > 0 ? ' (village déjà pillé : butin réduit)' : ''}.`,
-      pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Aucune perte — un triomphe digne d’Achille.',
-      `Arès +4, ambiance +6 — mais Zeus Xenios −5, et la région retient votre nom (menace +4).`,
+      pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Aucune perte - un triomphe digne d’Achille.',
+      `Arès +4, ambiance +6 - mais Zeus Xenios −5, et la région retient votre nom (menace +4).`,
       `Ils s’en souviendront : à votre prochaine visite, la garnison sera plus fournie (${pillages + 1} pillage${pillages > 0 ? 's' : ''} encaissé${pillages > 0 ? 's' : ''}).`,
       ...(trahison ? ['🗡️ L’alliance est rompue : on ne pille pas impunément ceux qu’on a sauvés.'] : []),
     )
     exp.result = { victoire: true, etoiles, lignes }
     s.victoire = { at: now, type: 'expedition', etoiles, detail: `${v.nom} est tombé` }
-    pushReport(s, '🏴‍☠️', `Raid victorieux — ${v.nom}`, lignes)
+    pushReport(s, '🏴‍☠️', `Raid victorieux - ${v.nom}`, lignes)
   } else {
     s.expeditions[v.id] = { etoiles: deja, dernierRaid: now, pillages }
     s.moraleMods.push({ id: uid('m'), label: 'Raid repoussé', delta: -6, expiresAt: now + 8 * 60_000 })
@@ -2080,7 +2080,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       'Les survivants rentrent la tête basse. Ambiance −6.',
     )
     exp.result = { victoire: false, etoiles: 0, lignes }
-    pushReport(s, '🏳️', `Raid repoussé — ${v.nom}`, lignes)
+    pushReport(s, '🏳️', `Raid repoussé - ${v.nom}`, lignes)
   }
 }
 
@@ -2146,7 +2146,7 @@ function simulerHorsLigne(s: GameState, now: number): void {
     /*
      * Le champion annoncé mène la colonne, onglet fermé comme onglet ouvert.
      * Sans cela, apprendre qu'Achille marche sur le village serait devenu une
-     * bonne raison de quitter la page — la nuit l'aurait effacé.
+     * bonne raison de quitter la page - la nuit l'aurait effacé.
      */
     const champNuit = n === 1 ? s.incomingChampion : null
     const res = resoudreHorsLigne(
@@ -2166,13 +2166,13 @@ function simulerHorsLigne(s: GameState, now: number): void {
       s.army[u] = Math.max(0, s.army[u] - p)
     }
     s.wallHp = Math.max(0, s.wallHp - res.degatsRemparts)
-    // au réveil, on doit voir par où ils sont passés — et sur QUELS pans
+    // au réveil, on doit voir par où ils sont passés - et sur QUELS pans
     if (res.anglesOuverts.length > 0) {
       s.brechesMur = [...new Set([...s.brechesMur, ...res.anglesOuverts])]
     }
     if (res.victoire) {
       s.stats.repousses++
-      const nomsPans = res.anglesOuverts.length > 0 ? ` — ${motPans(res.anglesOuverts)} à relever` : ''
+      const nomsPans = res.anglesOuverts.length > 0 ? ` - ${motPans(res.anglesOuverts)} à relever` : ''
       lignes.push(`⚔️ Assaut nocturne (${descVague(wave)}) repoussé par la garnison !${nomsPans}`)
     } else {
       s.stats.perdus++
@@ -2201,7 +2201,7 @@ function simulerHorsLigne(s: GameState, now: number): void {
   s.pendingEffects = s.pendingEffects.filter((e) => e.at > now)
   for (const e of echus) appliquerEffetDiffere(s, e, now)
 
-  if (lignes.length === 1) lignes.push('Rien à signaler — le village a dormi en paix.')
+  if (lignes.length === 1) lignes.push('Rien à signaler - le village a dormi en paix.')
   s.offlineSummary = lignes
 }
 
@@ -2241,11 +2241,83 @@ export const useGame = create<GameState>()(
             s.hautsFaits = s.hautsFaits ?? []
             s.exploits = s.exploits ?? {}
             s.alliances = s.alliances ?? {}
+            /*
+             * ⚠️ L'ARMÉE, D'ABORD. `Object.assign` REMPLACE la table des effectifs
+             * par celle du fichier : une sauvegarde écrite avant le frondeur, le
+             * peltaste et le bélier arrive donc avec trois clés manquantes. Tout ce
+             * qui somme les six unités - `armeeTotale`, la consommation de grain, la
+             * puissance d'une garnison - rendait alors NaN, et le NaN se propageait
+             * aux ressources dès le premier battement. C'était le bogue : une partie
+             * d'avant la mise à jour affichait « NaN grain » puis se figeait.
+             *
+             * Même raisonnement pour tout ce qui a été ajouté depuis : on complète
+             * sans jamais écraser ce qui a été joué.
+             */
+            s.army = troupes(s.army ?? {})
+            /*
+             * Même piège pour les TABLES : bâtiments, dieux, ressources. Chacune
+             * est remplacée en bloc par celle du fichier, et il suffit d'une clé
+             * manquante - un bâtiment ajouté depuis, un fichier écrit à la main -
+             * pour que le premier rendu lise `undefined.level` et vide la page.
+             * On recompose donc chaque table sur la liste de référence, en gardant
+             * ce que le fichier dit et en comblant le reste.
+             */
+            // le `Partial` n'est pas cosmétique : le type PROMET les clés, le
+            // fichier ne les tient pas - c'est tout le sujet de cette migration
+            s.buildings = Object.fromEntries(
+              BUILDING_IDS.map((b) => [b, { level: 0, ...((s.buildings?.[b] ?? {}) as Partial<BuildingState>) }]),
+            ) as Record<BuildingId, BuildingState>
+            s.gods = Object.fromEntries(
+              GOD_IDS.map((g) => [
+                g,
+                { relation: 0, cooldownUntil: 0, ...((s.gods?.[g] ?? {}) as Partial<GodState>) },
+              ]),
+            ) as Record<GodId, GodState>
+            /*
+             * Et l'on désinfecte les nombres. Un NaN écrit une fois dans le fichier
+             * y reste pour toujours et contamine tout ce qu'il touche - c'est
+             * exactement ce qui arrivait aux ressources d'une partie reprise après
+             * l'ajout des trois unités.
+             */
+            const nombre = (x: unknown, defaut: number): number =>
+              typeof x === 'number' && Number.isFinite(x) ? x : defaut
+            for (const r of Object.keys(RES) as ResourceId[]) {
+              s.resources[r] = Math.max(0, nombre(s.resources?.[r], 0))
+            }
+            s.faveur = Math.max(0, Math.min(FAVEUR_MAX, nombre(s.faveur, 0)))
+            s.pop = Math.max(0, Math.round(nombre(s.pop, 0)))
+            s.wallHp = Math.max(0, nombre(s.wallHp, 0))
+            s.morale = Math.max(0, Math.min(100, nombre(s.morale, 50)))
+            s.relations = s.relations ?? {}
+            s.graces = Array.isArray(s.graces) ? s.graces : []
+            s.annales = Array.isArray(s.annales) ? s.annales : []
+            if (typeof s.prochainReleveAt !== 'number') s.prochainReleveAt = now + PAS_RELEVE_MS
+            s.incomingChampion = s.incomingChampion ?? null
             // avant les métiers, les habitants n'en avaient pas : on leur en donne
             // un cohérent avec le poste qu'ils tiennent déjà, pour ne pas les punir
             for (const v of s.villageois) {
               if (!v.metier) v.metier = v.poste ?? tirerMetier()
             }
+            /*
+             * Avant les lignées, un habitant n'avait ni âge ni maison. Sans date de
+             * naissance il serait lu comme un adulte de trente ans - passable - mais
+             * sans MAISON, `trouverParti` refuserait de le marier à quiconque (deux
+             * `undefined` se valent), et un vieux village n'aurait plus jamais un
+             * seul foyer. On donne donc à chacun un âge d'adulte échelonné et une
+             * maison, et le village reprend sa vie là où il en était.
+             */
+            const jourRepris = jourDe({ lastSeen: s.lastSeen, createdAt: s.createdAt })
+            s.villageois.forEach((v, i) => {
+              if (v.neLe === undefined) v.neLe = jourRepris - (9 + (i % 13))
+              if (!v.lignee) {
+                v.lignee = ligneeLibre(
+                  s.villageois.map((x) => x.lignee ?? ''),
+                  ((i * 37) % 100) / 100,
+                )
+              }
+            })
+            // on ne rejoue pas d'un coup les noces et les deuils des journées passées
+            s.dernierJourVecu = jourRepris
             // une sauvegarde antérieure à la campagne est un bac à sable : on ne
             // rouvre pas l'écran de choix à un joueur qui a déjà une cité
             if (s.mode == null) s.mode = 'bac-a-sable'
@@ -2272,7 +2344,7 @@ export const useGame = create<GameState>()(
       }
       /*
        * Première partie : on demande d'abord COMMENT on veut jouer (bac à sable ou
-       * campagne). C'est `choisirMode` qui lance la leçon de Zeus ou l'acte I —
+       * campagne). C'est `choisirMode` qui lance la leçon de Zeus ou l'acte I -
        * démarrer le tutoriel ici le ferait passer par-dessus l'écran de choix.
        */
       set((s) => {
@@ -2350,7 +2422,7 @@ export const useGame = create<GameState>()(
 
         /*
          * Campagne : on relit les objectifs de l'acte à chaque battement. On ne
-         * juge ni pendant une bataille ni pendant une expédition — un acte ne
+         * juge ni pendant une bataille ni pendant une expédition - un acte ne
          * doit pas s'achever au milieu d'une mêlée, l'épilogue passerait
          * par-dessus la scène.
          */
@@ -2361,7 +2433,7 @@ export const useGame = create<GameState>()(
             /*
              * On VERROUILLE chaque objectif au moment où sa jauge se remplit. Sans
              * cela, tenir tous les objectifs EN MÊME TEMPS devenait le vrai
-             * objectif — et l'acte I était infinissable, puisque l'assaut qu'il
+             * objectif - et l'acte I était infinissable, puisque l'assaut qu'il
              * demande de repousser tue les lances qu'il demande de lever.
              */
             for (const o of acte.objectifs) {
@@ -2377,7 +2449,7 @@ export const useGame = create<GameState>()(
               pushToast(s, '💀', `${acte.titre} : le village n’a pas tenu.`)
             } else if (acteAccompli(acte, s.campagne.objectifsFaits)) {
               s.campagne.accompli = true
-              pushToast(s, acte.emoji, `${acte.titre} — accompli !`)
+              pushToast(s, acte.emoji, `${acte.titre} - accompli !`)
             }
           }
         }
@@ -2389,7 +2461,7 @@ export const useGame = create<GameState>()(
           s.faveur = FAVEUR_MAX
           if (s.pop < popCap(s)) s.pop = popCap(s)
         } else {
-          // production — chaque atelier ne rend qu'au prorata de ses postes tenus
+          // production - chaque atelier ne rend qu'au prorata de ses postes tenus
           const parMin = productionParMinute(s, now)
           for (const r of Object.keys(parMin) as ResourceId[]) {
             s.resources[r] = clampRes(s, r, s.resources[r] + (parMin[r] / 60) * dtJeu)
@@ -2411,7 +2483,7 @@ export const useGame = create<GameState>()(
           else if (now >= s.nextDesertAt) {
             retirerSoldats(s, 1)
             s.nextDesertAt = now + 60_000
-            pushToast(s, '🏃', 'Un soldat déserte — le moral est au plus bas !')
+            pushToast(s, '🏃', 'Un soldat déserte - le moral est au plus bas !')
           }
         } else {
           s.nextDesertAt = 0
@@ -2420,7 +2492,7 @@ export const useGame = create<GameState>()(
         /*
          * Population. Le grenier vide ne coûtait jusqu'ici qu'un malus de moral :
          * on pouvait laisser le grain à zéro indéfiniment sans qu'un habitant ne
-         * bouge. Désormais on part — par petits groupes, la nuit, comme le
+         * bouge. Désormais on part - par petits groupes, la nuit, comme le
          * racontent les rapports. Jamais sous deux âmes cependant : un village
          * peut se réduire à un hameau, il ne s'éteint pas de faim.
          */
@@ -2447,7 +2519,7 @@ export const useGame = create<GameState>()(
             delete b.targetLevel
             delete b.busyUntil
             /*
-             * Le chantier ouvre des postes — mais PERSONNE ne s'y met tout seul.
+             * Le chantier ouvre des postes - mais PERSONNE ne s'y met tout seul.
              * C'est au joueur de choisir qui va où, et de préférence quelqu'un
              * dont c'est le métier. On se contente de le lui signaler.
              */
@@ -2457,7 +2529,7 @@ export const useGame = create<GameState>()(
               pushToast(
                 s,
                 '👷',
-                `${BUILDINGS[bId].nom} : ${aPourvoir} poste${aPourvoir > 1 ? 's' : ''} de ${nomMetier.toLowerCase()} à pourvoir — sans personne, l’atelier ne rend rien.`,
+                `${BUILDINGS[bId].nom} : ${aPourvoir} poste${aPourvoir > 1 ? 's' : ''} de ${nomMetier.toLowerCase()} à pourvoir - sans personne, l’atelier ne rend rien.`,
               )
             }
           }
@@ -2593,7 +2665,7 @@ export const useGame = create<GameState>()(
             pushToast(s, '💀', `${champ.nom} est tombé sous vos murs !`)
             pushReport(s, champ.emoji, `${champ.nom} est tombé`, [
               `On a dépouillé le corps d’un héros devant votre porte. Les aèdes s’en empareront.`,
-              `Sa manœuvre — ${def.capacite.nom} — s’est éteinte avec lui.`,
+              `Sa manœuvre - ${def.capacite.nom} - s’est éteinte avec lui.`,
               `Butin : +${def.butin.bronze} 🪙, +${def.butin.faveur} ✨. Arès, qui aime le sang versé, vous en sait gré (+10).`,
             ])
           }
@@ -2672,7 +2744,7 @@ export const useGame = create<GameState>()(
           const p = m.progres(s)
           if (p.cur >= p.max && m.id !== 'nouveau-depart') {
             s.missionsNotifiees.push(m.id)
-            pushToast(s, '🏅', `Mission accomplie : ${m.titre} — réclamez votre récompense !`)
+            pushToast(s, '🏅', `Mission accomplie : ${m.titre} - réclamez votre récompense !`)
           }
         }
 
@@ -2719,7 +2791,7 @@ export const useGame = create<GameState>()(
         /*
          * On n'enrôle que des bras disponibles : un artisan reste à son poste, et
          * l'on ne met pas une lance dans les mains d'un enfant. Un village peuplé
-         * de nourrissons ne lève donc pas d'armée — c'est le prix d'une natalité
+         * de nourrissons ne lève donc pas d'armée - c'est le prix d'une natalité
          * qu'on n'a pas préparée.
          */
         const jourCourant = jourDe(s)
@@ -2731,8 +2803,8 @@ export const useGame = create<GameState>()(
             '👥',
             dispo.length === 0
               ? enfants > 0
-                ? `Aucun adulte disponible — ${enfants} enfant${enfants > 1 ? 's' : ''} attend${enfants > 1 ? 'ent' : ''} de grandir.`
-                : 'Aucun villageois disponible — libérez un artisan de son poste.'
+                ? `Aucun adulte disponible - ${enfants} enfant${enfants > 1 ? 's' : ''} attend${enfants > 1 ? 'ent' : ''} de grandir.`
+                : 'Aucun villageois disponible - libérez un artisan de son poste.'
               : `Seulement ${dispo.length} adulte(s) sans emploi.`,
           )
           return
@@ -2787,7 +2859,7 @@ export const useGame = create<GameState>()(
           return
         }
         if (s.tours >= max) {
-          pushToast(s, '🏹', 'L’enceinte ne peut porter davantage de tours — rehaussez les remparts.')
+          pushToast(s, '🏹', 'L’enceinte ne peut porter davantage de tours - rehaussez les remparts.')
           return
         }
         if (!payer(s, TOUR_COUTS[s.tours])) {
@@ -2868,7 +2940,7 @@ export const useGame = create<GameState>()(
           return
         }
         if (g === 'poseidon' && murMax(s) <= 0) {
-          pushToast(s, '🔱', 'Aucun rempart à consolider — bâtissez d’abord une enceinte.')
+          pushToast(s, '🔱', 'Aucun rempart à consolider - bâtissez d’abord une enceinte.')
           return
         }
         const cout = coutBenediction(s, g)
@@ -2881,12 +2953,12 @@ export const useGame = create<GameState>()(
         s.gods[g].relation = Math.min(100, s.gods[g].relation + 2)
         noter(s, 'benedictions')
         /*
-         * Ferveur : plus le dieu vous chérit, plus son bras est lourd — et plus sa
+         * Ferveur : plus le dieu vous chérit, plus son bras est lourd - et plus sa
          * manifestation est spectaculaire (le palier pilote la mise en scène).
          *
          * On lit la relation EFFECTIVE, pas la brute : l'orgueil d'Agamemnon
          * (−10 sur tous les Olympiens) était jusqu'ici purement cosmétique sur les
-         * bénédictions. Le panthéon annonçait ×1,24, le joueur recevait ×1,30 — et
+         * bénédictions. Le panthéon annonçait ×1,24, le joueur recevait ×1,30 - et
          * le seul héros dont le passif soit un DÉFAUT ne coûtait rien.
          */
         const rel = relationEffective(s, g)
@@ -2904,7 +2976,7 @@ export const useGame = create<GameState>()(
               pushToast(
                 s,
                 '⚡',
-                `La foudre de Zeus frappe ${touches} ennemis (${pct(force * orage)} % de puissance)${orage > 1 ? ' — l’orage la porte !' : ''}`,
+                `La foudre de Zeus frappe ${touches} ennemis (${pct(force * orage)} % de puissance)${orage > 1 ? ' - l’orage la porte !' : ''}`,
               )
             }
             break
@@ -2987,7 +3059,7 @@ export const useGame = create<GameState>()(
         }
         // on paie en relation EFFECTIVE : l'orgueil du roi rend les dons plus chers
         if (relationEffective(s, g) < grace.cout) {
-          pushToast(s, '❌', `Il faut ${grace.cout} de relation avec ${GODS[g].nom} — la vôtre n’y suffit pas.`)
+          pushToast(s, '❌', `Il faut ${grace.cout} de relation avec ${GODS[g].nom} - la vôtre n’y suffit pas.`)
           return
         }
         s.gods[g].relation = Math.max(-100, s.gods[g].relation - grace.cout)
@@ -2996,7 +3068,7 @@ export const useGame = create<GameState>()(
         pushToast(
           s,
           grace.emoji,
-          `${GODS[g].nom} vous accorde « ${grace.nom} » — pour toujours. (−${grace.cout} de relation)`,
+          `${GODS[g].nom} vous accorde « ${grace.nom} » - pour toujours. (−${grace.cout} de relation)`,
         )
         pushReport(s, grace.emoji, `Grâce de ${GODS[g].nom} : ${grace.nom}`, [
           grace.desc,
@@ -3006,8 +3078,8 @@ export const useGame = create<GameState>()(
     },
 
     /*
-     * Un ordre à la troupe. Il ne se donne qu'en bataille — défense du village
-     * comme expédition, ce sont les mêmes hommes — et il se TIENT : cinq secondes
+     * Un ordre à la troupe. Il ne se donne qu'en bataille - défense du village
+     * comme expédition, ce sont les mêmes hommes - et il se TIENT : cinq secondes
      * avant d'en changer, faute de quoi on alternerait charge et mur de boucliers
      * à chaque coup porté, ce qui n'est plus une décision mais un tapotement.
      */
@@ -3059,7 +3131,7 @@ export const useGame = create<GameState>()(
      * bien vu ne pouvait pas transformer cette estime en quoi que ce soit.
      */
 
-    /** un présent rachète une rancune — et coûte cher, car réparer coûte plus que casser */
+    /** un présent rachète une rancune - et coûte cher, car réparer coûte plus que casser */
     offrirPresent: (villageId: string) => {
       set((s) => {
         const v = VILLAGES_PAR_ID[villageId]
@@ -3081,7 +3153,7 @@ export const useGame = create<GameState>()(
 
     /**
      * Un pacte : l'alliance achetée plutôt que méritée. Elle donne exactement ce
-     * que donne un secours — tribut et renforts — mais elle se dénoue comme lui
+     * que donne un secours - tribut et renforts - mais elle se dénoue comme lui
      * si la relation retombe. C'est le chemin des riches, pas celui des braves.
      */
     proposerPacte: (villageId: string) => {
@@ -3105,7 +3177,7 @@ export const useGame = create<GameState>()(
         s.alliances[villageId] = { depuis: now, tributAt: now + TRIBUT_MS }
         noter(s, 'pactes')
         pushToast(s, '🤝', `Pacte scellé avec ${v.nom}.`)
-        pushReport(s, '🤝', `Pacte — ${v.nom}`, [
+        pushReport(s, '🤝', `Pacte - ${v.nom}`, [
           `${v.nom} entre dans votre alliance sans qu’un coup ait été porté.`,
           `Tribut toutes les ${Math.round(TRIBUT_MS / 60_000)} min et renforts sur vos remparts à chaque assaut.`,
           'Un pacte se dénoue comme il s’est noué : laissez la relation retomber et l’on reprendra sa parole.',
@@ -3114,7 +3186,7 @@ export const useGame = create<GameState>()(
     },
 
     /**
-     * Un mariage. On donne un habitant — un adulte, avec son métier et sa maison —
+     * Un mariage. On donne un habitant - un adulte, avec son métier et sa maison -
      * et l'on reçoit une alliance que rien ne dénoue, au tribut doublé. C'est le
      * seul engagement irréversible du jeu, et le seul qui coûte un bras au village.
      */
@@ -3160,9 +3232,9 @@ export const useGame = create<GameState>()(
         s.moraleMods.push({ id: uid('m'), label: 'Une noce au loin', delta: 6, expiresAt: now + 10 * 60_000 })
         noter(s, 'mariagesDiplomatiques')
         pushToast(s, '💍', `${promis.nom} part pour ${v.nom} : vos maisons ne font plus qu’une.`)
-        pushReport(s, '💍', `Parenté scellée — ${v.nom}`, [
+        pushReport(s, '💍', `Parenté scellée - ${v.nom}`, [
           `${promis.nom}${promis.lignee ? ` des ${promis.lignee}` : ''} quitte le village pour ${v.nom}.`,
-          'Le village perd un bras et un métier — mais gagne une alliance que rien ne dénoue.',
+          'Le village perd un bras et un métier - mais gagne une alliance que rien ne dénoue.',
           `Tribut doublé, renforts à chaque assaut, et Zeus Xenios approuve (+8).`,
         ])
       })
@@ -3194,7 +3266,7 @@ export const useGame = create<GameState>()(
         pushReport(s, def.emoji, `${def.nom} rejoint la cité`, [
           def.desc,
           `Passif : ${def.passif.desc}`,
-          `${def.capacite.emoji} ${def.capacite.nom} — ${def.capacite.desc}`,
+          `${def.capacite.emoji} ${def.capacite.nom} - ${def.capacite.desc}`,
           `Entretien : ${ent || 'aucun'}. Un héros qu’on n’honore pas s’en va.`,
         ])
       })
@@ -3243,7 +3315,7 @@ export const useGame = create<GameState>()(
           case 'boucher-breche': {
             if (!bataille) return
             const nom = boucherBreche(bataille, now, eff.duree * force, h)
-            message = `${def.nom} comble ${nom ?? 'la brèche'} de son seul corps — infranchissable ${Math.round((eff.duree * force) / 1000)} s.`
+            message = `${def.nom} comble ${nom ?? 'la brèche'} de son seul corps - infranchissable ${Math.round((eff.duree * force) / 1000)} s.`
             break
           }
           case 'tuer-chef': {
@@ -3258,7 +3330,7 @@ export const useGame = create<GameState>()(
           }
           case 'siege-gratuit': {
             if (s.siegeGratuit) {
-              pushToast(s, def.emoji, 'La ruse est déjà prête — reste à s’en servir.')
+              pushToast(s, def.emoji, 'La ruse est déjà prête - reste à s’en servir.')
               return
             }
             s.siegeGratuit = true
@@ -3335,7 +3407,7 @@ export const useGame = create<GameState>()(
             delta: f.morale.delta,
             expiresAt: f.morale.durMs ? now + f.morale.durMs : null,
           })
-          lignes.push(`🎭 Ambiance ${f.morale.delta > 0 ? '+' : ''}${f.morale.delta} — ${f.morale.label}.`)
+          lignes.push(`🎭 Ambiance ${f.morale.delta > 0 ? '+' : ''}${f.morale.delta} - ${f.morale.label}.`)
         }
         for (const r of f.relation ?? []) {
           s.gods[r.dieu].relation = Math.max(-100, Math.min(100, s.gods[r.dieu].relation + r.delta))
@@ -3369,7 +3441,7 @@ export const useGame = create<GameState>()(
         e.arc++
         e.choix.push(`${noeud.id}:${opt.label}`)
         s.arcIssue = lignes
-        pushReport(s, noeud.emoji, `${def.nom} — ${noeud.titre}`, lignes)
+        pushReport(s, noeud.emoji, `${def.nom} - ${noeud.titre}`, lignes)
       })
       get().save()
     },
@@ -3427,7 +3499,7 @@ export const useGame = create<GameState>()(
         }
         const secours = intention === 'secours'
         if (secours && s.appelSecours?.villageId !== villageId) {
-          pushToast(s, '🤝', `${v.nom} n’a rien demandé — on ne secourt pas les gens de force.`)
+          pushToast(s, '🤝', `${v.nom} n’a rien demandé - on ne secourt pas les gens de force.`)
           return
         }
         const dernier = s.expeditions[villageId]?.dernierRaid ?? 0
@@ -3491,7 +3563,7 @@ export const useGame = create<GameState>()(
         const v = VILLAGES_PAR_ID[s.appelSecours.villageId]
         s.appelSecours = null
         s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 4)
-        pushToast(s, '🚪', `Vous fermez la porte au coureur de ${v?.nom ?? 'ce village'} — Zeus a vu.`)
+        pushToast(s, '🚪', `Vous fermez la porte au coureur de ${v?.nom ?? 'ce village'} - Zeus a vu.`)
       })
       get().save()
     },
@@ -3542,7 +3614,7 @@ export const useGame = create<GameState>()(
               s.resources[r] = clampRes(s, r, s.resources[r] + n)
             }
           }
-          pushToast(s, '👑', 'La Chute est achevée — votre village a survécu à la guerre de Troie.')
+          pushToast(s, '👑', 'La Chute est achevée - votre village a survécu à la guerre de Troie.')
           return
         }
         appliquerActe(s, prochain, Date.now())
@@ -3570,7 +3642,7 @@ export const useGame = create<GameState>()(
      * Changer d'emplacement, c'est ranger sa partie et en ouvrir une autre. On
      * SAUVEGARDE d'abord, toujours : basculer ne doit jamais coûter les cinq
      * dernières minutes de jeu. Puis `init()` relit la clé du nouvel emplacement,
-     * comme au premier chargement — un emplacement vide rouvre donc l'écran de
+     * comme au premier chargement - un emplacement vide rouvre donc l'écran de
      * choix du mode, ce qui est exactement ce qu'on attend d'une case libre.
      */
     changerEmplacement: (i) => {
@@ -3582,7 +3654,7 @@ export const useGame = create<GameState>()(
     /**
      * Abdiquer, c'est choisir la fin de son règne : le score se fige, les aèdes
      * donnent un titre, puis la cité repart de zéro. Rien d'autre ne termine
-     * une partie — un village peut être pillé cent fois et se relever.
+     * une partie - un village peut être pillé cent fois et se relever.
      */
     abdiquer: () => {
       set((s) => {
@@ -3597,7 +3669,7 @@ export const useGame = create<GameState>()(
           desc: t.desc,
           lignes: detail.filter((d) => d.points !== 0).map((d) => `${d.label} : ${d.points}`),
         }
-        pushReport(s, '👑', `Fin du règne — ${t.titre}`, [
+        pushReport(s, '👑', `Fin du règne - ${t.titre}`, [
           `${score} points de prestige, ${s.hautsFaits.length}/${HAUTS_FAITS.length} hauts faits.`,
           t.desc,
         ])
@@ -3609,7 +3681,7 @@ export const useGame = create<GameState>()(
     },
 
     /*
-     * La leçon de Zeus. Elle se déroule dans le jeu réel — aucune simulation à
+     * La leçon de Zeus. Elle se déroule dans le jeu réel - aucune simulation à
      * part : ce que le joueur bâtit pendant le tutoriel, il le garde. On se
      * contente de repousser le premier assaut le temps de la leçon, pour ne pas
      * mêler la théorie et la panique.
@@ -3636,7 +3708,7 @@ export const useGame = create<GameState>()(
         /*
          * On referme TOUT ce qui pourrait couvrir la cible suivante : modale,
          * panneau de bâtiment, recensement. C'était le défaut le plus pénible
-         * de la première version — le recensement restait en travers de l'étape
+         * de la première version - le recensement restait en travers de l'étape
          * des remparts, et la leçon devenait injouable.
          */
         s.panel = null
@@ -3651,7 +3723,7 @@ export const useGame = create<GameState>()(
       set((s) => {
         s.tutoriel = null
         s.tutorialDone = true
-        pushToast(s, '❔', 'Leçon écourtée — tout est rappelé dans l’aide, en haut à droite.')
+        pushToast(s, '❔', 'Leçon écourtée - tout est rappelé dans l’aide, en haut à droite.')
       })
       get().save()
     },
@@ -3717,7 +3789,7 @@ export const useGame = create<GameState>()(
         }
         if (rec.faveur) gains.push(`+${rec.faveur} ✨`)
         if (rec.pop) gains.push(`+${rec.pop} habitant${rec.pop > 1 ? 's' : ''}`)
-        pushReport(s, def.emoji, `Mission ${rangMission(id)} — ${def.titre}`, [
+        pushReport(s, def.emoji, `Mission ${rangMission(id)} - ${def.titre}`, [
           def.desc,
           `Récompense : ${gains.join(' · ')}`,
         ])
@@ -3748,7 +3820,7 @@ export const useGame = create<GameState>()(
     /*
      * Ouvrir un panneau n'a plus d'effet de bord sur `tutorialDone` : ce drapeau
      * appartient désormais à la leçon de Zeus. Le lever ici rallumait les
-     * dilemmes EN PLEINE leçon — et une modale d'événement se plantait en
+     * dilemmes EN PLEINE leçon - et une modale d'événement se plantait en
      * travers de l'étape suivante.
      */
     openPanel: (p) => set((s) => void (s.panel = p)),
@@ -3773,7 +3845,7 @@ export const useGame = create<GameState>()(
       set((s) => {
         Object.assign(s, etatInitial(Date.now()))
         s.tutoriel = 0
-        pushToast(s, '🏛️', 'Une nouvelle cité s’élève — tout est à rebâtir.')
+        pushToast(s, '🏛️', 'Une nouvelle cité s’élève - tout est à rebâtir.')
       })
       try {
         localStorage.removeItem(cleEmplacement(emplacementActif()))

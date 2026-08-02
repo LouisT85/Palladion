@@ -3867,8 +3867,16 @@ export const useGame = create<GameState>()(
       // l'état mémoire est remis à neuf : ni l'autosave ni le `beforeunload`
       // ne peuvent ressusciter l'ancienne partie après ce point
       set((s) => {
+        /*
+         * On ne démarre PAS la leçon de Zeus ici. Une partie neuve commence par
+         * l'écran de choix du mode (`mode` revient à null avec l'état initial),
+         * et c'est `choisirMode` qui lance ensuite la leçon ou l'acte I. Poser
+         * `tutoriel = 0` faisait s'afficher les deux à la fois : Zeus donnait sa
+         * deuxième leçon par-dessus l'écran qui demandait encore comment jouer.
+         * Ce code datait d'avant la campagne, quand « partie neuve » ne pouvait
+         * vouloir dire qu'une seule chose.
+         */
         Object.assign(s, etatInitial(Date.now()))
-        s.tutoriel = 0
         pushToast(s, '🏛️', 'Une nouvelle cité s’élève - tout est à rebâtir.')
       })
       try {

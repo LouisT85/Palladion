@@ -147,6 +147,12 @@ function placerCarte(
 
 export function Tutoriel() {
   const etapeIdx = useGame((s) => s.tutoriel)
+  /*
+   * Tant qu'on n'a pas dit COMMENT on joue, Zeus se tait. L'écran de choix du
+   * mode passe avant tout : sans cette garde, une partie neuve montrait la leçon
+   * par-dessus la question, et l'on répondait à l'une en lisant l'autre.
+   */
+  const modeChoisi = useGame((s) => s.mode !== null)
   const suivant = useGame((s) => s.etapeTutoSuivante)
   const arreter = useGame((s) => s.arreterTutoriel)
   const [cadres, setCadres] = useState<Cadre[]>([])
@@ -154,7 +160,8 @@ export function Tutoriel() {
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
   const [ecran, setEcran] = useState({ w: 0, h: 0 })
 
-  const etape: EtapeTuto | null = etapeIdx === null ? null : (ETAPES[etapeIdx] ?? null)
+  const etape: EtapeTuto | null =
+    etapeIdx === null || !modeChoisi ? null : (ETAPES[etapeIdx] ?? null)
   const cibles = etape?.cibles ?? []
 
   // les cibles apparaissent, bougent, disparaissent : on les resuit en continu

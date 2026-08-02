@@ -186,6 +186,45 @@ describe('une campagne d’avant le verrouillage des objectifs', () => {
   })
 })
 
+describe('recommencer une partie', () => {
+  /*
+   * Une partie neuve pose UNE question avant tout : comment veut-on jouer ?
+   * Tant qu'on n'y a pas répondu, Zeus se tait. `reset()` lançait la leçon tout
+   * en remettant le mode à zéro : les deux écrans se superposaient, et l'on
+   * répondait à l'un en lisant l'autre.
+   */
+  it('ne lance pas la leçon avant que le mode soit choisi', () => {
+    useGame.getState().reset()
+    const s = useGame.getState()
+    expect(s.mode).toBeNull()
+    expect(s.tutoriel).toBeNull()
+  })
+
+  it('confie le démarrage de la leçon au choix du mode', () => {
+    useGame.getState().reset()
+    useGame.getState().choisirMode('bac-a-sable')
+    expect(useGame.getState().mode).toBe('bac-a-sable')
+    expect(useGame.getState().tutoriel).toBe(0)
+
+    // et la campagne, elle, enseigne en jouant : pas de leçon du tout
+    useGame.getState().reset()
+    useGame.getState().choisirMode('campagne')
+    expect(useGame.getState().tutoriel).toBeNull()
+    expect(useGame.getState().tutorialDone).toBe(true)
+    expect(useGame.getState().campagne).not.toBeNull()
+  })
+
+  it('démarre bien une partie neuve : ni sauvegarde, ni campagne, ni leçon en cours', () => {
+    reprendre(ancienneSauvegarde())
+    useGame.getState().reset()
+    const s = useGame.getState()
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+    expect(s.campagne).toBeNull()
+    expect(s.tutoriel).toBeNull()
+    expect(s.pop).toBeGreaterThan(0)
+  })
+})
+
 describe('la partie reprise tourne', () => {
   it('encaisse vingt battements sans rien casser', () => {
     reprendre(ancienneSauvegarde({ mode: 'campagne', campagne: { acte: 0, prologueVu: true } }))

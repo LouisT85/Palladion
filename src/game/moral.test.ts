@@ -125,7 +125,18 @@ describe('une ligne casse au lieu de fondre', () => {
     const b = bataille({ defenseurs: ARMEE(6, 0, 0), attaquants: [{ enemy: 'pillard', count: 1 }] })
     const lanciers = b.fighters.filter((f) => f.type === 'lancier')
     for (let i = 0; i < 4; i++) lanciers[i].etat = 'mort'
-    // des deux survivants, l'un est à bout de forces
+    /*
+     * Des deux survivants, l'un est à bout de forces. Personne ne frappe et
+     * personne ne meurt pendant l'épreuve : sans cela, le pillard entamait
+     * l'intact autant que le blessé, les deux rapports de PV se rejoignaient et
+     * le test désignait un jour l'un, un jour l'autre. On fige donc les forces
+     * et l'on ne garde que l'écart qu'on veut lire.
+     */
+    for (const f of b.fighters) {
+      f.maxHp = 1e6
+      f.hp = 1e6
+      f.atk = 0
+    }
     const blesse = lanciers[4]
     const intact = lanciers[5]
     blesse.hp = blesse.maxHp * 0.1

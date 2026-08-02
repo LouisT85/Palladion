@@ -297,6 +297,8 @@ export interface OptionsBataille {
   /** passifs de héros : multiplicateur d'attaque et de dégâts subis, camp du joueur */
   bonusAtkJoueur?: number
   reducJoueur?: number
+  /** allonge du tir des tours (1 = portée normale) — grâce de Poséidon */
+  porteeTours?: number
   /** les murs sont déjà ouverts avant le premier coup (ruse d'Ulysse) */
   sansSiege?: boolean
   /** héros descendus sur le terrain, avec leur niveau */
@@ -507,6 +509,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     atkBuffUntil: 0,
     bonusAtkJoueur: opts.bonusAtkJoueur,
     reducJoueur: opts.reducJoueur,
+    porteeTours: opts.porteeTours,
     result: null,
     engages,
   }
@@ -849,7 +852,9 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     for (const t of b.toursDef) {
       if (now < t.nextHit) continue
       if (secteurProche(b, t).breche) continue
-      const aPortee = atkVivants.filter((a) => a.etat !== 'mort' && dist(t, a) <= TOUR_PORTEE * ciel.portee)
+      // la grâce de Poséidon allonge le tir : la plaine se couvre de flèches
+      const porteeTour = TOUR_PORTEE * ciel.portee * (b.porteeTours ?? 1)
+      const aPortee = atkVivants.filter((a) => a.etat !== 'mort' && dist(t, a) <= porteeTour)
       const cible = plusProche(t, aPortee)
       if (!cible) continue
       t.nextHit = now + TOUR_CADENCE_MS

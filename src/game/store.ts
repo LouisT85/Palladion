@@ -105,6 +105,7 @@ import {
   type HeroId,
   type HeroState,
 } from './heros'
+import { GRACE_PAR_ID, cumulerFaveurs, dieuDe, graceSuivante, type BonusFaveurs } from './faveurs'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives, rangMission } from './missions'
 import { ACTES_CAMPAGNE, NB_ACTES, acteAccompli, type EtatActe } from './campagne'
@@ -277,6 +278,11 @@ export interface GameState {
   mode: 'bac-a-sable' | 'campagne' | null
   /** avancement dans « La Chute » — null hors campagne */
   campagne: EtatCampagne | null
+  /**
+   * Grâces achetées dans l'arbre de faveur, par id. Elles sont ACQUISES : le prix
+   * a été versé en points de relation, la relation peut retomber, le don reste.
+   */
+  graces: string[]
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -311,6 +317,8 @@ export interface GameState {
   echanger: (donner: ResourceId, recevoir: ResourceId) => void
   sacrifier: (g: GodId) => void
   benir: (g: GodId) => void
+  /** verser des points de relation contre une grâce permanente */
+  acquerirGrace: (id: string) => void
   recruterHeros: (h: HeroId) => void
   capaciteHeros: (h: HeroId) => void
   choisirArc: (i: number) => void
@@ -447,9 +455,13 @@ function syncVillageois(s: GameState): void {
     }
   }
 }
-/** l'hiver ferme la mer : plus une nef ne quitte le port */
-export function merFermee(s: Pick<GameState, 'saison'>): boolean {
-  return !!SAISONS[s.saison].merFermee
+/**
+ * L'hiver ferme la mer : plus une nef ne quitte le port. Sauf si l'Ébranleur du
+ * sol a promis le contraire — « Mer ouverte » lève la saison morte du port.
+ */
+export function merFermee(s: Pick<GameState, 'saison'> & { graces?: string[] }): boolean {
+  if (!SAISONS[s.saison].merFermee) return false
+  return !bonusFaveurs(s).merOuverte
 }
 
 /** jour de jeu en cours (1 = jour de la fondation) */
@@ -467,14 +479,16 @@ export function productionParMinute(s: GameState, now: number): Record<ResourceI
   const drought = now < s.droughtUntil ? 0.5 : 1
   const rd = (b: BuildingId) => rendement(s, b)
   const ciel = (r: ResourceId) => multProduction(s.saison, s.meteo, r)
-  // l'hiver ferme la mer : les navires marchands restent au mouillage
-  const port =
-    PROD.port[s.buildings.port.level] * rd('port') * (SAISONS[s.saison].merFermee ? PORT_HIVER : 1)
+  // l'hiver ferme la mer : les navires marchands restent au mouillage — sauf si
+  // Poséidon a rendu la mer navigable, et alors le port tourne à plein en janvier
+  const port = PROD.port[s.buildings.port.level] * rd('port') * (merFermee(s) ? PORT_HIVER : 1)
+  // Zeus Xenios veille sur les greniers : sa grâce grossit toutes les récoltes
+  const zx = 1 + bonusFaveurs(s).recoltePct
   return {
-    bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level] * rd('scierie')) * m * ciel('bois'),
-    pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level] * rd('carriere')) * m * ciel('pierre'),
-    grain: (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * rd('ferme') * drought) * m * ciel('grain'),
-    bronze: (BASE_PROD.bronze + PROD.forge[s.buildings.forge.level] * rd('forge') + port) * m * ciel('bronze'),
+    bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level] * rd('scierie')) * m * ciel('bois') * zx,
+    pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level] * rd('carriere')) * m * ciel('pierre') * zx,
+    grain: (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * rd('ferme') * drought) * m * ciel('grain') * zx,
+    bronze: (BASE_PROD.bronze + PROD.forge[s.buildings.forge.level] * rd('forge') + port) * m * ciel('bronze') * zx,
   }
 }
 
@@ -492,9 +506,9 @@ export function bonusHeros(s: Pick<GameState, 'heros'>): BonusHeros {
   return s.heros ? cumulerPassifs(s.heros) : BONUS_NEUTRE
 }
 
-/** points de structure maximaux de l'enceinte — Hector l'épaissit de 15 % */
-export function murMax(s: Pick<GameState, 'buildings' | 'heros'>): number {
-  return Math.round(WALL_HP[s.buildings.remparts.level] * (1 + bonusHeros(s).wallHpPct))
+/** points de structure maximaux de l'enceinte — Hector l'épaissit, Poséidon aussi */
+export function murMax(s: Pick<GameState, 'buildings' | 'heros' | 'graces'>): number {
+  return Math.round(WALL_HP[s.buildings.remparts.level] * (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct))
 }
 
 /**
@@ -549,14 +563,39 @@ export function herosActifs(s: Pick<GameState, 'heros'>): HeroId[] {
   return HERO_IDS.filter((h) => s.heros?.[h]?.recrute && !s.heros[h].mort)
 }
 
-/** entretien dû chaque minute, pour l'affichage */
-export function entretienHeros(s: Pick<GameState, 'heros'>): { grain: number; faveur: number } {
-  return s.heros ? entretienTotal(s.heros) : { grain: 0, faveur: 0 }
+/** entretien dû chaque minute, pour l'affichage — Arès nourrit les braves à moindre frais */
+export function entretienHeros(s: Pick<GameState, 'heros' | 'graces'>): { grain: number; faveur: number } {
+  if (!s.heros) return { grain: 0, faveur: 0 }
+  const brut = entretienTotal(s.heros)
+  const remise = 1 - bonusFaveurs(s).entretienPct
+  return { grain: brut.grain * remise, faveur: brut.faveur * remise }
 }
 
-export function coutBenediction(s: Pick<GameState, 'buildings'>, g: GodId): number {
+/**
+ * Grâces cumulées de l'arbre de faveur. Appelée dans des chemins chauds (le tick,
+ * le HUD) : on garde le dernier tableau lu en cache, car les grâces changent une
+ * douzaine de fois dans un règne et jamais entre deux images.
+ */
+const SANS_GRACE: string[] = []
+let cacheGraces: { cle: string[]; val: BonusFaveurs } | null = null
+export function bonusFaveurs(s: { graces?: string[] }): BonusFaveurs {
+  const g = s.graces ?? SANS_GRACE
+  if (cacheGraces && cacheGraces.cle === g) return cacheGraces.val
+  const val = cumulerFaveurs(g)
+  cacheGraces = { cle: g, val }
+  return val
+}
+
+/** grâce déjà versée ? */
+export function aGrace(s: Pick<GameState, 'graces'>, id: string): boolean {
+  return (s.graces ?? []).includes(id)
+}
+
+export function coutBenediction(s: Pick<GameState, 'buildings' | 'graces'>, g: GodId): number {
   const base = GODS[g].benediction.cout
-  return s.buildings.temple.level >= 4 ? Math.round(base * 0.75) : base
+  const brut = s.buildings.temple.level >= 4 ? base * 0.75 : base
+  // « Le bras du roi » : Zeus fait baisser le prix de TOUTES les bénédictions
+  return Math.max(5, Math.round(brut * (1 - bonusFaveurs(s).remisePct)))
 }
 /**
  * Ferveur : puissance des bénédictions du dieu, de ×0.4 (maudit) à ×1.6 (élu).
@@ -841,6 +880,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     tutoriel: null,
     mode: null,
     campagne: null,
+    graces: [],
     missionsNotifiees: [],
     battle: null,
     renfortsEngages: null,
@@ -865,6 +905,7 @@ type ActionsOnly = {
   echanger: unknown
   sacrifier: unknown
   benir: unknown
+  acquerirGrace: unknown
   recruterHeros: unknown
   capaciteHeros: unknown
   choisirArc: unknown
@@ -953,6 +994,7 @@ const CHAMPS_SAUVES = [
   'tutoriel',
   'mode',
   'campagne',
+  'graces',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -1076,7 +1118,8 @@ function ouvrirArcMur(s: GameState): void {
  * huit sans y penser.
  */
 function entretenirHeros(s: GameState, now: number, dtJeu: number): void {
-  const ent = entretienTotal(s.heros)
+  // même barème que l'affichage : la grâce d'Arès allège la table des héros
+  const ent = entretienHeros(s)
   if (ent.grain <= 0 && ent.faveur <= 0) {
     s.rappelHerosAt = 0
     return
@@ -1419,14 +1462,23 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
   // les renforts alliés meurent en premier : c'est tout l'intérêt d'un allié
   const renf = s.renfortsEngages
   let alliesTombes = 0
+  // « Prudence » : une part des tombés n'est que blessée, et rentre au village
+  const epargne = bonusFaveurs(s).epargnePct
+  let releves = 0
   for (const [u, n] of Object.entries(pertes) as [UnitId, number][]) {
     const parAllies = Math.min(n, renf?.[u] ?? 0)
     alliesTombes += parAllies
-    const miens = n - parAllies
+    const brut = n - parAllies
+    const rendus = epargne > 0 ? Math.round(brut * epargne) : 0
+    releves += rendus
+    const miens = brut - rendus
     if (miens > 0) {
       s.army[u] = Math.max(0, s.army[u] - miens)
       lignes.push(`${miens} ${UNITS[u].nom.toLowerCase()}${miens > 1 ? 's' : ''} tombé(s)`)
     }
+  }
+  if (releves > 0) {
+    lignes.push(`🦉 ${releves} blessé${releves > 1 ? 's' : ''} relevé${releves > 1 ? 's' : ''} par la prudence d’Athéna.`)
   }
   if (alliesTombes > 0) {
     lignes.push(`🤝 ${alliesTombes} allié${alliesTombes > 1 ? 's' : ''} sont tombés pour vos murs.`)
@@ -1523,20 +1575,30 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   let mortsTotal = 0
   let sauvesParEnee = 0
   const pertesTxt: string[] = []
+  // « Prudence » : on relève les blessés au lieu de les laisser sur le champ
+  const epargne = bonusFaveurs(s).epargnePct
+  let relevesTotal = 0
   for (const u of UNIT_IDS) {
     const envoyes = exp.envoyes[u] ?? 0
     if (envoyes === 0) continue
     envoyesTotal += envoyes
     const morts = b.fighters.filter((f) => f.camp === 'attaque' && f.type === u && f.etat === 'mort' && f.hp <= 0).length
     const debout = Math.max(0, envoyes - morts)
-    const rentrent = Math.max(debout, partEnee > 0 ? Math.round(envoyes * partEnee) : 0)
-    sauvesParEnee += rentrent - debout
+    const releves = epargne > 0 ? Math.round(morts * epargne) : 0
+    relevesTotal += releves
+    const rentrent = Math.max(debout + releves, partEnee > 0 ? Math.round(envoyes * partEnee) : 0)
+    // ce qu'Énée arrache en plus de ce que la déesse a déjà sauvé
+    sauvesParEnee += Math.max(0, rentrent - debout - releves)
     const perdus = envoyes - rentrent
     mortsTotal += perdus
     s.army[u] += rentrent
     if (perdus > 0) pertesTxt.push(`${perdus} ${UNITS[u].nom.toLowerCase()}${perdus > 1 ? 's' : ''}`)
   }
   if (partEnee > 0) s.sauverTroupes = 0
+  const noteEpargne =
+    relevesTotal > 0
+      ? ` 🦉 La prudence d’Athéna en a fait relever ${relevesTotal} au lieu de les laisser au sol.`
+      : ''
 
   const etat = s.expeditions[v.id]
   const deja = etat?.etoiles ?? 0
@@ -1561,7 +1623,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       lignes.push(
         `Le siège de ${v.nom} est levé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
         'Aucun butin : on ne pille pas ceux qu’on vient de sauver.',
-        pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.` : 'Pas un homme perdu — les aèdes s’en empareront.',
+        pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Pas un homme perdu — les aèdes s’en empareront.',
         `🤝 ${v.nom} devient votre allié : tribut de ${trib} toutes les ${Math.round(TRIBUT_MS / 60_000)} min, et ${UNIT_IDS.filter((u) => renf[u] > 0).map((u) => `${renf[u]} ${UNITS[u].nom.toLowerCase()}${renf[u] > 1 ? 's' : ''}`).join(', ')} en renfort à chaque assaut.`,
         'Zeus +12, Athéna +7, ambiance +9.',
       )
@@ -1574,7 +1636,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       gagnerXp(s, Math.round(XP_EXPEDITION * 0.4))
       lignes.push(
         `Vos hommes n’ont pas percé les lignes qui étranglent ${v.nom}.`,
-        pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.` : 'Vos troupes ont dû refluer.',
+        pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Vos troupes ont dû refluer.',
         ...(sauvesParEnee > 0 ? [`🔥 Énée couvre la retraite : ${sauvesParEnee} homme(s) rentrent quand même.`] : []),
         'Mourir pour rien reste mourir : ambiance −8, Zeus −3.',
       )
@@ -1587,7 +1649,8 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
 
   if (victoire) {
     const etoiles = etoilesPour(mortsTotal, envoyesTotal)
-    const mult = (deja > 0 ? BUTIN_REPETE : 1) * (1 + bonusHeros(s).butinPct)
+    // « Soif de bronze » : ce qu'on prend par la lance, Arès veut qu'on le prenne entier
+    const mult = (deja > 0 ? BUTIN_REPETE : 1) * (1 + bonusHeros(s).butinPct + bonusFaveurs(s).butinPct)
     const butinTxt: string[] = []
     for (const [r, n] of Object.entries(v.butin) as [ResourceId, number][]) {
       const gain = Math.round(n * mult)
@@ -1608,7 +1671,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     lignes.push(
       `${v.nom} est tombé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
       `Butin : ${butinTxt.join(', ')}${deja > 0 ? ' (village déjà pillé : butin réduit)' : ''}.`,
-      pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.` : 'Aucune perte — un triomphe digne d’Achille.',
+      pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Aucune perte — un triomphe digne d’Achille.',
       `Arès +4, ambiance +6 — mais Zeus Xenios −5, et la région retient votre nom (menace +4).`,
       `Ils s’en souviendront : à votre prochaine visite, la garnison sera plus fournie (${pillages + 1} pillage${pillages > 0 ? 's' : ''} encaissé${pillages > 0 ? 's' : ''}).`,
       ...(trahison ? ['🗡️ L’alliance est rompue : on ne pille pas impunément ceux qu’on a sauvés.'] : []),
@@ -1622,7 +1685,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     gagnerXp(s, Math.round(XP_EXPEDITION * 0.4))
     lignes.push(
       `L’assaut sur ${v.nom} a échoué.`,
-      pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.` : 'Vos troupes ont battu en retraite à temps.',
+      pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Vos troupes ont battu en retraite à temps.',
       ...(sauvesParEnee > 0
         ? [`🔥 Énée couvre la retraite : ${sauvesParEnee} homme${sauvesParEnee > 1 ? 's' : ''} qu’on croyait perdu${sauvesParEnee > 1 ? 's' : ''} rentre${sauvesParEnee > 1 ? 'nt' : ''} au village.`]
         : []),
@@ -1648,7 +1711,10 @@ function simulerHorsLigne(s: GameState, now: number): void {
     const delta = Math.round(s.resources[r] - avant)
     if (delta !== 0) lignes.push(`${delta > 0 ? '+' : ''}${delta} ${RES[r].emoji} ${RES[r].nom.toLowerCase()}`)
   }
-  s.faveur = Math.min(FAVEUR_MAX, s.faveur + PROD.temple[s.buildings.temple.level] * minutes)
+  s.faveur = Math.min(
+    FAVEUR_MAX,
+    s.faveur + PROD.temple[s.buildings.temple.level] * minutes * (1 + bonusFaveurs(s).faveurPct),
+  )
 
   // constructions terminées
   for (const bId of BUILDING_IDS) {
@@ -1926,7 +1992,9 @@ export const useGame = create<GameState>()(
           // sans prêtre au temple, les dieux n'entendent rien
           s.faveur = Math.min(
             FAVEUR_MAX,
-            s.faveur + ((PROD.temple[s.buildings.temple.level] * rendement(s, 'temple')) / 60) * dtJeu,
+            s.faveur +
+              ((PROD.temple[s.buildings.temple.level] * rendement(s, 'temple') * (1 + bonusFaveurs(s).faveurPct)) / 60) *
+                dtJeu,
           )
         }
 
@@ -2070,10 +2138,13 @@ export const useGame = create<GameState>()(
                 // les alliés ferment la ligne, à leurs couleurs : on doit voir
                 // qui est venu mourir pour vos murs
                 renforts: totalRenf > 0 ? renf : undefined,
-                bonusAtkJoueur: 1 + bh.degatsMeleePct,
+                // la fureur d'Arès s'ajoute aux passifs des héros
+                bonusAtkJoueur: 1 + bh.degatsMeleePct + bonusFaveurs(s).degatsPct,
                 // `gardeDuCorpsPct` porte désormais la valeur ANNONCÉE au joueur :
                 // plus de division cachée par deux entre la fiche et l'usage
                 reducJoueur: 1 - bh.gardeDuCorpsPct,
+                // l'Ébranleur du sol allonge le tir des tours
+                porteeTours: 1 + bonusFaveurs(s).porteePct,
                 // les héros ne regardent pas depuis les murs : ils descendent
                 herosPresents: herosAuCombat(s, now),
               })
@@ -2216,7 +2287,10 @@ export const useGame = create<GameState>()(
         const now = Date.now()
         const vitesse = MODE_TEST
           ? 0.03
-          : (s.buildings.caserne.level >= 4 ? 0.75 : 1) * (now < s.aresBoostUntil ? 0.5 : 1)
+          : (s.buildings.caserne.level >= 4 ? 0.75 : 1) *
+            (now < s.aresBoostUntil ? 0.5 : 1) *
+            // « Métier » : Athéna presse les casernes, pour toujours
+            (1 - bonusFaveurs(s).recruesPct)
         const dernier = s.recruitQueue[s.recruitQueue.length - 1]
         const debut = dernier ? dernier.finishAt + (dernier.restant - 1) * UNITS[dernier.unit].time * 1000 * vitesse : now
         s.recruitQueue.push({ unit: u, restant: n, finishAt: debut + def.time * 1000 * vitesse })
@@ -2423,6 +2497,47 @@ export const useGame = create<GameState>()(
             break
           }
         }
+      })
+    },
+
+    /*
+     * Acheter une grâce. C'est le seul endroit du jeu où la relation à un dieu
+     * DESCEND par la volonté du joueur : on troque la force des bénédictions à
+     * venir contre un don qui ne s'éteint jamais. L'arbitrage est tout l'intérêt.
+     */
+    acquerirGrace: (id: string) => {
+      set((s) => {
+        const grace = GRACE_PAR_ID[id]
+        if (!grace) return
+        if (s.graces.includes(id)) return
+        const g = dieuDe(id)
+        if (!g) return
+        if (s.buildings.temple.level < GODS[g].temple) {
+          pushToast(s, '🏛️', `Il faut un temple de niveau ${GODS[g].temple} pour approcher ${GODS[g].nom}.`)
+          return
+        }
+        // les grâces d'un dieu se prennent dans l'ordre : pas de saut de rang
+        if (graceSuivante(g, s.graces)?.id !== id) {
+          pushToast(s, GODS[g].emoji, `${GODS[g].nom} n’accorde ses dons que l’un après l’autre.`)
+          return
+        }
+        // on paie en relation EFFECTIVE : l'orgueil du roi rend les dons plus chers
+        if (relationEffective(s, g) < grace.cout) {
+          pushToast(s, '❌', `Il faut ${grace.cout} de relation avec ${GODS[g].nom} — la vôtre n’y suffit pas.`)
+          return
+        }
+        s.gods[g].relation = Math.max(-100, s.gods[g].relation - grace.cout)
+        s.graces.push(id)
+        noter(s, 'graces')
+        pushToast(
+          s,
+          grace.emoji,
+          `${GODS[g].nom} vous accorde « ${grace.nom} » — pour toujours. (−${grace.cout} de relation)`,
+        )
+        pushReport(s, grace.emoji, `Grâce de ${GODS[g].nom} : ${grace.nom}`, [
+          grace.desc,
+          `Vous avez versé ${grace.cout} points de relation. Le don, lui, ne se reprend pas.`,
+        ])
       })
     },
 
@@ -2720,7 +2835,7 @@ export const useGame = create<GameState>()(
             geo: GEO_EXPEDITION,
             campJoueur: 'attaque',
             sansSiege: ruse,
-            bonusAtkJoueur: 1 + bh.degatsMeleePct + bh.degatsExpeditionPct,
+            bonusAtkJoueur: 1 + bh.degatsMeleePct + bh.degatsExpeditionPct + bonusFaveurs(s).degatsPct,
             // la garde d'Ajax vaut aussi loin de chez soi : sa fiche la promet sans
             // réserve, et le store l'oubliait en expédition
             reducJoueur: 1 - bh.gardeDuCorpsPct,

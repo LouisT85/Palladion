@@ -314,6 +314,15 @@ export const HAUTS_FAITS: HautFaitDef[] = [
     atteint: (s) => (s.exploits.benedictions ?? 0) >= 20,
   },
   {
+    id: 'douze-graces',
+    emoji: '✨',
+    titre: 'Les douze grâces',
+    desc: 'Obtenir les trois grâces des quatre Olympiens. Il aura fallu leur plaire, puis tout dépenser.',
+    cat: 'divin',
+    points: 45,
+    atteint: (s) => (s.exploits.graces ?? 0) >= 12,
+  },
+  {
     id: 'breche-recollee',
     emoji: '🔱',
     titre: 'Les pierres se ressoudent',

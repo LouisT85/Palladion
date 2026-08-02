@@ -5,6 +5,7 @@ import {
   BATIMENTS_A_POSTES,
   VITESSES,
   armeeTotale,
+  bonusFaveurs,
   bonusHeros,
   coutBenediction,
   postesPourvus,
@@ -419,6 +420,8 @@ export function DieuxRapides() {
   const gods = useGame((s) => s.gods)
   const templeLevel = useGame((s) => s.buildings.temple.level)
   const buildings = useGame((s) => s.buildings)
+  // le prix affiché ici doit être celui qu'on paiera : les grâces le font baisser
+  const graces = useGame((s) => s.graces)
   const benir = useGame((s) => s.benir)
   const now = useGame((s) => s.lastSeen)
 
@@ -428,7 +431,7 @@ export function DieuxRapides() {
         {GOD_IDS.map((g) => {
           const dieu = GODS[g]
           if (templeLevel < dieu.temple) return null
-          const cout = coutBenediction({ buildings }, g)
+          const cout = coutBenediction({ buildings, graces }, g)
           const cd = Math.max(0, gods[g].cooldownUntil - now)
           return (
             <button
@@ -504,9 +507,11 @@ export function BandeauAlerte() {
   // un sélecteur doit rendre une référence STABLE : on lit le tableau du store
   // tel quel et on le met en forme au rendu, jamais dans le sélecteur
   const revele = useGame((s) => bonusHeros(s).revelerVague)
+  // « L'œil du ciel » : Zeus dit la même chose qu'Ulysse, sans Ulysse
+  const oeilDuCiel = useGame((s) => bonusFaveurs(s).revelerFronts)
   const frontsIds = useGame((s) => s.incomingFronts)
   const fronts =
-    revele && frontsIds ? frontsIds.map((id) => SECTEURS.find((x) => x.id === id)?.nom ?? id) : null
+    (revele || oeilDuCiel) && frontsIds ? frontsIds.map((id) => SECTEURS.find((x) => x.id === id)?.nom ?? id) : null
 
   if (battle) {
     const restants = battle.fighters.filter((f) => f.camp === 'attaque' && f.etat !== 'mort').length
@@ -557,10 +562,12 @@ export function BandeauAlerte() {
         <div className="detail">
           {tailleVague(incomingWave)} assaillants par la route de l’est : {descVague(incomingWave)}.
         </div>
-        {/* Ulysse lit dans la poussière quels pans seront visés */}
+        {/* Ulysse lit dans la poussière quels pans seront visés — ou Zeus les dit */}
         {fronts && (
           <div className="detail" style={{ color: '#cbd8e2' }}>
-            🐎 Ulysse a fait parler un éclaireur : ils frapperont {fronts.join(' et ')}.
+            {revele
+              ? `🐎 Ulysse a fait parler un éclaireur : ils frapperont ${fronts.join(' et ')}.`
+              : `👁️ Rien ne monte de la plaine sans que Zeus le voie : ils frapperont ${fronts.join(' et ')}.`}
           </div>
         )}
         {defRecompense && (

@@ -1,4 +1,5 @@
 import { GODS, GOD_IDS, multRelation, nomFerveur, palierFerveur } from '../../game/data'
+import { GRACES } from '../../game/faveurs'
 import { coutBenediction, murMax, relationEffective, useGame } from '../../game/store'
 import type { GodId } from '../../game/types'
 import { ApercuDivin } from '../map/EffetsDivins'
@@ -100,6 +101,62 @@ function JaugeRelation({ relation }: { relation: number }) {
   )
 }
 
+/**
+ * Les trois grâces d'un dieu, dans l'ordre où il les accorde. Une seule est
+ * jamais achetable : celle qui suit la dernière prise. Les suivantes restent
+ * visibles mais en retrait — on doit pouvoir viser la troisième dès la première.
+ */
+function ArbreDuDieu({ dieu, relation }: { dieu: GodId; relation: number }) {
+  const acquises = useGame((s) => s.graces)
+  const acheter = useGame((s) => s.acquerirGrace)
+  const liste = GRACES[dieu]
+  const prochaine = liste.find((g) => !acquises.includes(g.id))
+  return (
+    <div className="graces">
+      <div className="graces-titre">
+        Arbre de faveur — {liste.filter((g) => acquises.includes(g.id)).length}/{liste.length} accordées
+      </div>
+      {liste.map((g) => {
+        const prise = acquises.includes(g.id)
+        const offerte = !prise && prochaine?.id === g.id
+        const assez = relation >= g.cout
+        return (
+          <div
+            key={g.id}
+            className={`grace${prise ? ' acquise' : offerte ? ' offerte' : ' lointaine'}`}
+            title={prise ? 'Acquise — définitivement' : `Coûte ${g.cout} points de relation`}
+          >
+            <span className="cran" />
+            <span className="grace-emoji">{g.emoji}</span>
+            <div className="grace-corps">
+              <div className="grace-nom">
+                {g.nom}
+                {prise && <span style={{ color: '#12c97c', fontWeight: 400 }}> — accordée</span>}
+              </div>
+              <div className="grace-desc">{g.desc}</div>
+            </div>
+            {prise ? (
+              <span className="grace-prix" style={{ color: '#12c97c' }}>
+                ✓
+              </span>
+            ) : offerte ? (
+              <button
+                disabled={!assez}
+                onClick={() => acheter(g.id)}
+                title={assez ? `Verser ${g.cout} points de relation` : `Relation ${Math.round(relation)}/${g.cout}`}
+              >
+                {assez ? `Obtenir (−${g.cout})` : `${Math.round(relation)}/${g.cout}`}
+              </button>
+            ) : (
+              <span className="grace-prix">−{g.cout}</span>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function Pantheon() {
   const s = useGame()
   const templeLevel = s.buildings.temple.level
@@ -123,6 +180,11 @@ export function Pantheon() {
           Chaque dieu frappe à la mesure de votre ferveur : de <b style={{ color: '#b93a2c' }}>×0.4</b> pour un dieu
           maudit à <b style={{ color: '#e8c04a' }}>×1.6</b> pour son élu — la puissance <i>et</i> la durée. Un sacrifice
           vaut +8 de relation ; un dieu bafoué (≤ −40) frappe mou, puis finit par se venger.
+          <div style={{ marginTop: 5 }}>
+            La relation se <b style={{ color: '#e8dcc0' }}>dépense</b> aussi : chaque Olympien accorde trois{' '}
+            <b style={{ color: '#12c97c' }}>grâces permanentes</b>, payées en points de relation et jamais reprises.
+            Monter sa ferveur ou l’échanger contre un don définitif — c’est à vous.
+          </div>
         </div>
         {GOD_IDS.map((g) => {
           const dieu = GODS[g]
@@ -213,6 +275,7 @@ export function Pantheon() {
                         </span>
                       )}
                     </div>
+                    <ArbreDuDieu dieu={g} relation={rel} />
                   </>
                 )}
               </div>

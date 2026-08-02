@@ -302,6 +302,8 @@ export interface BattleState {
   /** passifs de héros appliqués au camp du joueur, pour toute la bataille */
   bonusAtkJoueur?: number
   reducJoueur?: number
+  /** allonge du tir des tours (1 = portée normale) — grâce de Poséidon */
+  porteeTours?: number
   /**
    * Moral de chaque camp : la part de ses effectifs encore debout. Sous un seuil,
    * les hommes rompent un par un — et un héros vivant abaisse ce seuil. C'est ce

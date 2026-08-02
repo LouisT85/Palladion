@@ -1,9 +1,11 @@
+import { CHAMPION_PAR_ID, ficheChampion, type ChampionDef } from './champions'
 import { ENEMIES, MAP, TOUR_ANGLES, TOUR_CADENCE_MS, TOUR_DMG, TOUR_PORTEE, UNITS, WALL_HP } from './data'
 import { statsCombatHeros } from './heros'
 import type {
   BattleGeo,
   BattleState,
   EnemyId,
+  EtatChampion,
   Fighter,
   GodId,
   HeroId,
@@ -221,6 +223,9 @@ export interface ResultatHorsLigne {
  * entre les pans assaillis — comme le fait `creerBataille` — et l'on rend la
  * liste de ceux qui ont réellement cédé.
  */
+/** ce qu'un champion ajoute à la force d'une colonne, résolue sans spectacle */
+export const FORCE_CHAMPION_NUIT = 1.4
+
 export function resoudreHorsLigne(
   wave: WaveUnit[],
   army: Record<UnitId, number>,
@@ -228,8 +233,14 @@ export function resoudreHorsLigne(
   wallHp: number,
   tours = 0,
   fronts: { angle: number }[] = [],
+  /**
+   * Un champion menait-il la colonne ? Un nom en tête d'assaut pèse la nuit
+   * comme le jour : sans cela, il aurait suffi de fermer l'onglet en apprenant
+   * qu'Achille marchait sur le village pour ne rien avoir à craindre de lui.
+   */
+  champion = false,
 ): ResultatHorsLigne {
-  const atk = puissanceVague(wave)
+  const atk = puissanceVague(wave) * (champion ? FORCE_CHAMPION_NUIT : 1)
   const def = puissanceDefense(army, wallLevel, wallHp, tours)
   const ratio = def / Math.max(1, atk)
   const victoire = ratio >= 1
@@ -432,6 +443,8 @@ export interface OptionsBataille {
   sansSiege?: boolean
   /** héros descendus sur le terrain, avec leur niveau */
   herosPresents?: { id: HeroId; niveau: number }[]
+  /** un champion achéen mène la colonne : il porte un nom et une capacité */
+  champion?: ChampionDef
   /**
    * Part des défenseurs dépêchée par les alliés. Ils sont comptés dans
    * `defenseurs` (ils se battent), mais marqués `allie` pour se distinguer à
@@ -616,6 +629,53 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     }
   }
 
+  /*
+   * Le champion achéen. Il marche en tête de la première colonne, à découvert :
+   * on doit le VOIR arriver, et pouvoir décider de lui tirer dessus plutôt que
+   * sur les pillards. C'est un mercenaire multiplié — rien d'inatteignable, mais
+   * il faut y mettre les moyens, et pendant ce temps la muraille encaisse.
+   */
+  let champion: EtatChampion | undefined
+  if (opts.champion) {
+    const merc = ENEMIES.mercenaire
+    const fiche = ficheChampion(opts.champion.id)
+    const f0 = fronts[0]
+    const id = uid('champ')
+    fighters.push({
+      id,
+      camp: 'attaque',
+      type: 'mercenaire',
+      heros: opts.champion.id,
+      hp: merc.hp * opts.champion.vigueur,
+      maxHp: merc.hp * opts.champion.vigueur,
+      atk: merc.atk * opts.champion.frappe,
+      x: f0.spawn.x,
+      y: f0.spawn.y,
+      tx: posteSiege(geo, 0, f0.angle).x,
+      ty: posteSiege(geo, 0, f0.angle).y,
+      speed: 34,
+      etat: 'marche',
+      secteur: 0,
+      nextHit: 0,
+      seed: Math.random(),
+    })
+    champion = {
+      id: opts.champion.id,
+      nom: fiche.nom,
+      emoji: fiche.emoji,
+      capaciteA: now + opts.champion.capacite.delai,
+      lancee: false,
+      abattu: false,
+      fighterId: id,
+      atkUntil: 0,
+      atkBonus: 0,
+      reducUntil: 0,
+      reduc: 0,
+      terreurUntil: 0,
+      terreurSeuil: 1,
+    }
+  }
+
   // Tours d'archers — postées sur l'enceinte, elles tirent tant que le mur tient
   const toursDef = TOUR_ANGLES.slice(0, wallLevel > 0 ? (opts.tours ?? 0) : 0).map((a) => {
     const p = geoPoint(geo, a)
@@ -639,6 +699,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     bonusAtkJoueur: opts.bonusAtkJoueur,
     reducJoueur: opts.reducJoueur,
     porteeTours: opts.porteeTours,
+    champion,
     result: null,
     engages,
   }
@@ -734,6 +795,10 @@ export interface TickBatailleOut {
   pillage: boolean
   /** identifiants des combattants qui ont rompu ce battement — pour le son */
   rompus: string[]
+  /** le champion achéen vient de lancer sa manœuvre (son nom), sinon null */
+  championAgit: string | null
+  /** il vient de tomber sous vos murs */
+  championAbattu: boolean
 }
 
 /*
@@ -776,14 +841,30 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
   const tir = EFFETS_TIR[ordres.tir] ?? EFFETS_TIR.tendu
   /** cet homme obéit-il à la posture de la ligne ? (mêlée du joueur, hors héros) */
   const enLigne = (f: Fighter): boolean => f.camp === b.campJoueur && !f.heros && !estTireur(f.type)
+  /*
+   * Le champion achéen retourne SA capacité contre le village. Les deux
+   * multiplicateurs ci-dessous relisent son état à chaque coup porté : sa fureur
+   * s'éteint d'elle-même à l'heure dite, et surtout elle s'éteint À L'INSTANT où
+   * on l'abat — c'est tout l'intérêt de préférer sa gorge à celle d'un pillard.
+   */
+  const champAtk = (f: Fighter): number => {
+    const c = b.champion
+    return c && !c.abattu && f.camp === 'attaque' && now < c.atkUntil ? 1 + c.atkBonus : 1
+  }
+  const champReduc = (f: Fighter): number => {
+    const c = b.champion
+    return c && !c.abattu && f.camp === 'attaque' && now < c.reducUntil ? 1 - c.reduc : 1
+  }
   const multDegats = (attaquant: Fighter): number =>
     (attaquant.camp === enrage ? forceAtk : 1) *
     (attaquant.camp === b.campJoueur ? bonusHeros : 1) *
-    (enLigne(attaquant) ? ligne.degats : 1)
+    (enLigne(attaquant) ? ligne.degats : 1) *
+    champAtk(attaquant)
   const multRecus = (cible: Fighter): number =>
     (cible.camp === protege ? forceDef : 1) *
     (cible.camp === b.campJoueur ? reducHeros : 1) *
-    (enLigne(cible) ? ligne.recus : 1)
+    (enLigne(cible) ? ligne.recus : 1) *
+    champReduc(cible)
   /** pas de déplacement de cet homme, posture comprise */
   const pas = (f: Fighter): number => dt * (enLigne(f) ? ligne.vitesse : 1)
   /** le secteur que le joueur a assigné à ce type d'unité, s'il en a assigné un */
@@ -799,6 +880,84 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
   // un héros planté dans la brèche vaut un pan de mur : le secteur redevient infranchissable
   const murTient = (s: (typeof b.secteurs)[number] | undefined): boolean =>
     !!s && (now < (s.boucheeJusqua ?? 0) || (ctx.wallLevel > 0 && s.hp > 0 && !s.breche))
+
+  /*
+   * ── LE CHAMPION ACHÉEN ───────────────────────────────────────────────────
+   *
+   * Il marche en tête, à découvert, et lance sa manœuvre une fois — à l'heure
+   * dite, pas avant. Deux choses en découlent, et ce sont les seules qui
+   * comptent : on la voit venir, et on peut l'empêcher en le tuant d'abord.
+   */
+  let championAgit: string | null = null
+  let championAbattu = false
+  const champ = b.champion
+  if (champ && !champ.abattu) {
+    const porteur = b.fighters.find((f) => f.id === champ.fighterId)
+    if (!porteur || porteur.etat === 'mort') {
+      // abattu : sa fureur retombe, son bouclier tombe, la peur se dissipe
+      champ.abattu = true
+      champ.atkUntil = 0
+      champ.reducUntil = 0
+      champ.terreurUntil = 0
+      championAbattu = true
+    } else if (!champ.lancee && now >= champ.capaciteA && b.phase !== 'fini') {
+      champ.lancee = true
+      const def = CHAMPION_PAR_ID[champ.id]
+      const e = def?.capacite.effet
+      if (e) {
+        switch (e.type) {
+          case 'fureur':
+            champ.atkUntil = now + e.duree
+            champ.atkBonus = e.degats
+            break
+          case 'protection':
+            champ.reducUntil = now + e.duree
+            champ.reduc = e.reduction
+            break
+          case 'terreur':
+            champ.terreurUntil = now + e.duree
+            champ.terreurSeuil = e.seuil
+            break
+          case 'sape': {
+            // le pan le plus entamé encore debout : celui qui va lâcher
+            const cible = b.secteurs.filter((s) => !s.breche && s.hp > 0).sort((x, y) => x.hp - y.hp)[0]
+            if (cible) {
+              cible.hp = Math.max(0, cible.hp * (1 - e.part))
+              b.effects.push({ id: uid('fx'), type: 'poussiere', x: cible.x, y: cible.y - 10, until: now + 1400 })
+            }
+            break
+          }
+          case 'renforts': {
+            // la réserve débouche derrière la première colonne, en pleine bataille
+            const st = statsDe(e.enemy)
+            const f0 = b.secteurs[0]
+            for (let k = 0; k < e.count; k++) {
+              const slot = posteSiege(geo, 40 + k, f0.angle)
+              b.fighters.push({
+                id: uid('atk'),
+                camp: 'attaque',
+                type: e.enemy,
+                hp: st.hp,
+                maxHp: st.hp,
+                atk: st.atk,
+                x: geo.spawn.x + (Math.random() - 0.5) * 40,
+                y: geo.spawn.y + (k - (e.count - 1) / 2) * 26,
+                tx: slot.x,
+                ty: slot.y,
+                speed: st.speed,
+                etat: 'marche',
+                secteur: 0,
+                nextHit: 0,
+                seed: Math.random(),
+              })
+            }
+            break
+          }
+        }
+        championAgit = def.capacite.nom
+      }
+    }
+  }
 
   /**
    * Déroute — uniquement pour les troupes du JOUEUR en expédition :
@@ -845,9 +1004,12 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     for (const camp of ['attaque', 'defense'] as const) {
       // les assaillants d'un village n'ont pas de ligne à tenir : ils pillent
       if (camp === 'attaque' && b.campJoueur === 'defense') continue
-      // le mur de boucliers ne rompt presque jamais ; la charge casse vite
+      // le mur de boucliers ne rompt presque jamais ; la charge casse vite ; et
+      // la prophétie de Cassandre fait rompre bien avant l'heure
+      const peur = champ && !champ.abattu && now < champ.terreurUntil ? champ.terreurSeuil : 1
       const seuil =
-        (heroDebout(camp) ? SEUIL_PANIQUE_HEROS : SEUIL_PANIQUE) * (camp === b.campJoueur ? ligne.seuil : 1)
+        (heroDebout(camp) ? SEUIL_PANIQUE_HEROS : SEUIL_PANIQUE) *
+        (camp === b.campJoueur ? ligne.seuil * peur : 1)
       const m = b.moral[camp]
       if (m >= seuil) continue
       // plus on est bas sous le seuil, plus la rupture est probable
@@ -1108,7 +1270,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
 
   // total des points de structure restants, tous secteurs confondus
   const wallHp = b.secteurs.reduce((a, s) => a + Math.max(0, s.hp), 0)
-  return { wallHp, brecheOuverte, finie, victoireDefense, fuite, pillage, rompus }
+  return { wallHp, brecheOuverte, finie, victoireDefense, fuite, pillage, rompus, championAgit, championAbattu }
 }
 
 /** Pertes défenseurs : effectifs engagés − survivants (par proportion de PV visibles). */

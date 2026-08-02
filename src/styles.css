@@ -483,6 +483,62 @@ svg.carte-exp {
   opacity: 0.85;
 }
 
+/* ── le champion achéen ────────────────────────────────────
+   Un nom en tête de colonne n'est pas un détail du bandeau : il a sa ligne, sa
+   jauge de vie et le décompte de sa manœuvre. C'est là-dessus que se décide
+   toute la bataille — le tuer d'abord, ou encaisser ce qu'il prépare. */
+.bandeau .champion-presage {
+  margin-top: 5px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: #2a0f0acc;
+  border: 1px solid #a8503a;
+  line-height: 1.38;
+  text-align: left;
+}
+.champion-ligne {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: #2a0f0acc;
+  border: 1px solid #a8503a;
+  font-size: 12px;
+}
+.champion-ligne.abattu {
+  border-color: #4c6b4a;
+  background: #10240f99;
+}
+.champion-nom {
+  font-weight: 700;
+  color: #ffb9a5;
+  white-space: nowrap;
+}
+.champion-vie {
+  flex: 1 1 70px;
+  height: 7px;
+  border-radius: 4px;
+  background: #2a1a12;
+  border: 1px solid #6b3f2c;
+  overflow: hidden;
+}
+.champion-vie > i {
+  display: block;
+  height: 100%;
+  background: #e0715a;
+  transition: width 0.4s;
+}
+.champion-manoeuvre {
+  color: #e8c04a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.champion-mort {
+  color: #8fae5f;
+}
+
 /* ── ordres à la troupe ────────────────────────────────────
    Encart sombre DANS le bandeau d'assaut : ce sont des boutons, pas du texte,
    et ils doivent se distinguer du récit de la bataille qui les entoure. */

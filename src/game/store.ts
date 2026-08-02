@@ -109,6 +109,7 @@ import {
   type HeroId,
   type HeroState,
 } from './heros'
+import { CHAMPION_PAR_ID, chanceChampion, ficheChampion, tirerChampion } from './champions'
 import { GRACE_PAR_ID, cumulerFaveurs, dieuDe, graceSuivante, type BonusFaveurs } from './faveurs'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives, rangMission } from './missions'
@@ -256,6 +257,12 @@ export interface GameState {
   rappelHerosAt: number
   /** secteurs que la vague qui vient va assaillir (révélés par Ulysse) */
   incomingFronts: string[] | null
+  /**
+   * Le champion achéen qui mènera la vague annoncée, s'il y en a un. Tiré dès
+   * l'alerte : les éclaireurs reconnaissent un nom de loin, et le joueur doit
+   * pouvoir s'y préparer plutôt que le découvrir à la première épée.
+   */
+  incomingChampion: HeroId | null
   /** ruse d'Ulysse armée : la prochaine expédition entre sans donner un coup de bélier */
   siegeGratuit: boolean
   /** part des troupes qu'Énée ramènera d'une défaite (0 = capacité non armée) */
@@ -751,14 +758,43 @@ function choisirFronts(threat: number): typeof SECTEURS {
   return [SECTEURS[0], ...autres.slice(0, n - 1)]
 }
 
-/** prépare l'alerte : vague, fronts visés et récompense de défense */
+/**
+ * Les héros qui ne peuvent PAS venir vous assiéger : les vôtres, et les morts.
+ * C'est la meilleure raison d'aller chercher Achille — tant qu'il mange à votre
+ * table, il ne marche pas sur vos murs.
+ */
+function herosHorsJeu(s: GameState): HeroId[] {
+  return HERO_IDS.filter((h) => s.heros?.[h]?.recrute || s.heros?.[h]?.mort)
+}
+
+/** prépare l'alerte : vague, fronts visés, champion éventuel et récompense */
 function armerAlerte(s: GameState): void {
   if (!s.incomingWave) s.incomingWave = genererVague(s.threat)
   // les fronts sont tirés dès l'alerte : c'est ce qu'Ulysse est capable de lire
   if (!s.incomingFronts) s.incomingFronts = choisirFronts(s.threat).map((f) => f.id)
+  /*
+   * Le champion se tire une fois pour toutes, à l'alerte. Les éclaireurs
+   * reconnaissent un nom de loin : le joueur a le temps de lever des hommes, de
+   * bâtir une tour ou de vider son temple avant qu'Achille ne soit à la porte.
+   */
+  if (s.incomingChampion === null) {
+    const c = tirerChampion(s.threat, herosHorsJeu(s), chanceChampion(s.threat), Math.random(), Math.random())
+    if (c) {
+      s.incomingChampion = c.id
+      const fiche = ficheChampion(c.id)
+      pushToast(s, fiche.emoji, `${c.titre} !`)
+      pushReport(s, fiche.emoji, `${fiche.nom} marche sur le village`, [
+        c.presage,
+        `Sa manœuvre : ${c.capacite.nom} — ${c.capacite.desc}`,
+        'Abattez-le et elle meurt avec lui.',
+      ])
+    }
+  }
   if (!s.defRecompense) {
     const puissance = budgetVague(s.incomingWave)
-    s.defRecompense = { bronze: Math.round(12 + puissance * 0.4), faveur: 8, bonus: false }
+    // un nom en tête de colonne, c'est un butin qui en vaut la peine
+    const prime = s.incomingChampion ? 1.6 : 1
+    s.defRecompense = { bronze: Math.round((12 + puissance * 0.4) * prime), faveur: 8, bonus: false }
   }
   s.warned = true
 }
@@ -894,6 +930,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     heros: Object.fromEntries(HERO_IDS.map((h) => [h, etatHeroInitial()])) as Record<HeroId, HeroState>,
     rappelHerosAt: 0,
     incomingFronts: null,
+    incomingChampion: null,
     siegeGratuit: false,
     sauverTroupes: 0,
     arcHeros: null,
@@ -1013,6 +1050,7 @@ const CHAMPS_SAUVES = [
   'heros',
   'rappelHerosAt',
   'incomingFronts',
+  'incomingChampion',
   'siegeGratuit',
   'sauverTroupes',
   'appelSecours',
@@ -1287,6 +1325,7 @@ function appliquerActe(s: GameState, i: number, now: number): void {
   s.warned = false
   s.incomingWave = null
   s.incomingFronts = null
+  s.incomingChampion = null
   s.defRecompense = null
   // le calendrier repart au premier matin de l'acte, dans la bonne saison
   s.createdAt = now - DAY_MS * (SAISON_IDS.indexOf(d.saison) * JOURS_PAR_SAISON + 0.15)
@@ -1584,6 +1623,7 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
   s.warned = false
   s.incomingWave = null
   s.incomingFronts = null
+  s.incomingChampion = null
   s.defRecompense = null
   s.nextAttackAt = now + ASSAUT_MIN_MS + Math.random() * (ASSAUT_MAX_MS - ASSAUT_MIN_MS)
 }
@@ -1784,7 +1824,25 @@ function simulerHorsLigne(s: GameState, now: number): void {
     const wave = s.incomingWave ?? genererVague(calcThreat(s, s.nextAttackAt))
     // les fronts annoncés la veille, ou ceux que la menace commandait cette nuit-là
     const fronts = frontsDeLaNuit(s)
-    const res = resoudreHorsLigne(wave, s.army, s.buildings.remparts.level, s.wallHp, s.tours, fronts)
+    /*
+     * Le champion annoncé mène la colonne, onglet fermé comme onglet ouvert.
+     * Sans cela, apprendre qu'Achille marche sur le village serait devenu une
+     * bonne raison de quitter la page — la nuit l'aurait effacé.
+     */
+    const champNuit = n === 1 ? s.incomingChampion : null
+    const res = resoudreHorsLigne(
+      wave,
+      s.army,
+      s.buildings.remparts.level,
+      s.wallHp,
+      s.tours,
+      fronts,
+      champNuit !== null,
+    )
+    if (champNuit) {
+      const fiche = ficheChampion(champNuit)
+      lignes.push(`${fiche.emoji} ${fiche.nom} menait la colonne cette nuit-là.`)
+    }
     for (const [u, p] of Object.entries(res.pertes) as [UnitId, number][]) {
       s.army[u] = Math.max(0, s.army[u] - p)
     }
@@ -1813,6 +1871,7 @@ function simulerHorsLigne(s: GameState, now: number): void {
     }
     s.incomingWave = null
     s.incomingFronts = null
+    s.incomingChampion = null
     s.warned = false
     s.defRecompense = null
     s.nextAttackAt += ASSAUT_MIN_MS + Math.random() * (ASSAUT_MAX_MS - ASSAUT_MIN_MS)
@@ -2174,6 +2233,8 @@ export const useGame = create<GameState>()(
                 reducJoueur: 1 - bh.gardeDuCorpsPct,
                 // l'Ébranleur du sol allonge le tir des tours
                 porteeTours: 1 + bonusFaveurs(s).porteePct,
+                // le nom annoncé par les éclaireurs marche bien en tête de colonne
+                champion: s.incomingChampion ? CHAMPION_PAR_ID[s.incomingChampion] : undefined,
                 // les héros ne regardent pas depuis les murs : ils descendent
                 herosPresents: herosAuCombat(s, now),
               })
@@ -2194,6 +2255,29 @@ export const useGame = create<GameState>()(
           })
           s.wallHp = out.wallHp
           if (out.brecheOuverte) pushToast(s, '💥', 'BRÈCHE ! Les remparts ont cédé !')
+          /*
+           * Le champion lance sa manœuvre, ou tombe. Les deux se disent : l'une
+           * pour qu'on sache ce qui vient de changer sous nos yeux, l'autre parce
+           * qu'abattre un nom pareil est le fait d'armes d'un règne.
+           */
+          const champ = s.battle?.champion
+          if (out.championAgit && champ) {
+            const def = CHAMPION_PAR_ID[champ.id]
+            pushToast(s, def.capacite.emoji, `${champ.nom} : ${def.capacite.nom} !`)
+          }
+          if (out.championAbattu && champ) {
+            const def = CHAMPION_PAR_ID[champ.id]
+            s.resources.bronze = clampRes(s, 'bronze', s.resources.bronze + def.butin.bronze)
+            s.faveur = Math.min(FAVEUR_MAX, s.faveur + def.butin.faveur)
+            s.gods.ares.relation = Math.min(100, s.gods.ares.relation + 10)
+            noter(s, 'championsAbattus')
+            pushToast(s, '💀', `${champ.nom} est tombé sous vos murs !`)
+            pushReport(s, champ.emoji, `${champ.nom} est tombé`, [
+              `On a dépouillé le corps d’un héros devant votre porte. Les aèdes s’en empareront.`,
+              `Sa manœuvre — ${def.capacite.nom} — s’est éteinte avec lui.`,
+              `Butin : +${def.butin.bronze} 🪙, +${def.butin.faveur} ✨. Arès, qui aime le sang versé, vous en sait gré (+10).`,
+            ])
+          }
           if (out.finie) finirBataille(s, out.victoireDefense, out.fuite, now)
         }
 
@@ -2732,6 +2816,7 @@ export const useGame = create<GameState>()(
             }
             s.incomingWave = null
             s.incomingFronts = null
+            s.incomingChampion = null
             s.defRecompense = null
             s.warned = false
             s.nextAttackAt = now + ASSAUT_MIN_MS + Math.random() * (ASSAUT_MAX_MS - ASSAUT_MIN_MS)

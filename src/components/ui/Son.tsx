@@ -12,6 +12,7 @@ import {
   setVolumeMusique,
   type Ambiance,
 } from '../../game/audio'
+import { CHAMPION_PAR_ID, ficheChampion } from '../../game/champions'
 import { BUILDING_IDS } from '../../game/data'
 import { descVague, tailleVague } from '../../game/combat'
 import { avertir, basculerNotifs, etatNotifs, type EtatNotifs } from '../../game/notifications'
@@ -61,10 +62,17 @@ export function useSons(): void {
          * sache qu'une vague vient d'être ANNONCÉE — le tick, lui, ne connaît que
          * des états, pas des transitions.
          */
+        const champ = s.incomingChampion ? CHAMPION_PAR_ID[s.incomingChampion] : null
         avertir(
           'assaut',
-          '⚔️ Assaut annoncé sur votre village',
-          s.incomingWave ? `${tailleVague(s.incomingWave)} assaillants — ${descVague(s.incomingWave)}.` : 'Vos éclaireurs ont vu la poussière se lever.',
+          // un nom en tête de colonne mérite d'être dit dans le titre : c'est ce
+          // qui décide si l'on revient tout de suite ou si l'on finit son café
+          champ ? `⚔️ ${ficheChampion(champ.id).nom} marche sur votre village` : '⚔️ Assaut annoncé sur votre village',
+          champ
+            ? champ.presage
+            : s.incomingWave
+              ? `${tailleVague(s.incomingWave)} assaillants — ${descVague(s.incomingWave)}.`
+              : 'Vos éclaireurs ont vu la poussière se lever.',
         )
       }
       // ── un village implore votre aide : la fenêtre est courte ──

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BUILDING_IDS, DAY_MS, GODS, GOD_IDS, MODE_TEST, RES, SECTEURS, nbFronts } from '../../game/data'
+import { CHAMPION_PAR_ID, ficheChampion } from '../../game/champions'
 import { SEUIL_PANIQUE, SEUIL_PANIQUE_HEROS, descVague, tailleVague } from '../../game/combat'
 import {
   BATIMENTS_A_POSTES,
@@ -511,11 +512,23 @@ export function BandeauAlerte() {
   // « L'œil du ciel » : Zeus dit la même chose qu'Ulysse, sans Ulysse
   const oeilDuCiel = useGame((s) => bonusFaveurs(s).revelerFronts)
   const frontsIds = useGame((s) => s.incomingFronts)
+  const championId = useGame((s) => s.incomingChampion)
+  const champAnnonce = championId ? CHAMPION_PAR_ID[championId] : null
   const fronts =
     (revele || oeilDuCiel) && frontsIds ? frontsIds.map((id) => SECTEURS.find((x) => x.id === id)?.nom ?? id) : null
 
   if (battle) {
     const restants = battle.fighters.filter((f) => f.camp === 'attaque' && f.etat !== 'mort').length
+    /*
+     * Le champion achéen. Tant qu'il est debout, on affiche son nom, sa vie et
+     * la manœuvre qu'il prépare avec le décompte : c'est ce qui permet de choisir
+     * entre le tuer d'abord et laisser tomber sa capacité.
+     */
+    const champ = battle.champion
+    const def = champ ? CHAMPION_PAR_ID[champ.id] : null
+    const porteur = champ ? battle.fighters.find((f) => f.id === champ.fighterId) : undefined
+    const vieChamp = porteur && porteur.maxHp > 0 ? Math.max(0, porteur.hp / porteur.maxHp) : 0
+    const avantManoeuvre = champ && !champ.lancee ? Math.max(0, champ.capaciteA - now) : 0
     /*
      * Le moral de la garnison. Sans ce chiffre, la panique se voyait sans se
      * comprendre : des hommes rompaient et le joueur n'avait aucun moyen de
@@ -545,6 +558,27 @@ export function BandeauAlerte() {
             </span>
           )}
         </div>
+        {champ && def && (
+          <div className={`champion-ligne${champ.abattu ? ' abattu' : ''}`}>
+            <span className="champion-nom">
+              {champ.emoji} {champ.nom}
+            </span>
+            {champ.abattu ? (
+              <span className="champion-mort">💀 abattu — sa manœuvre est morte avec lui</span>
+            ) : (
+              <>
+                <span className="champion-vie" title={`${Math.round(vieChamp * 100)} % de ses forces`}>
+                  <i style={{ width: `${Math.round(vieChamp * 100)}%` }} />
+                </span>
+                <span className="champion-manoeuvre" title={def.capacite.desc}>
+                  {champ.lancee
+                    ? `${def.capacite.emoji} ${def.capacite.nom} — en cours`
+                    : `${def.capacite.emoji} ${def.capacite.nom} dans ${Math.ceil(avantManoeuvre / 1000)} s`}
+                </span>
+              </>
+            )}
+          </div>
+        )}
         {/* ce que le joueur peut FAIRE de la bataille, et pas seulement regarder */}
         <BarreOrdres />
         <DieuxRapides />
@@ -571,6 +605,20 @@ export function BandeauAlerte() {
             {revele
               ? `🐎 Ulysse a fait parler un éclaireur : ils frapperont ${fronts.join(' et ')}.`
               : `👁️ Rien ne monte de la plaine sans que Zeus le voie : ils frapperont ${fronts.join(' et ')}.`}
+          </div>
+        )}
+        {/* un nom en tête de colonne : on doit pouvoir s'y préparer, pas le
+            découvrir à la première épée */}
+        {champAnnonce && (
+          <div className="detail champion-presage">
+            <b style={{ color: '#ffb9a5' }}>
+              {ficheChampion(champAnnonce.id).emoji} {champAnnonce.titre}
+            </b>
+            <div>{champAnnonce.presage}</div>
+            <div style={{ color: '#e8c04a' }}>
+              {champAnnonce.capacite.emoji} {champAnnonce.capacite.nom} — {champAnnonce.capacite.desc} Abattez-le et
+              elle meurt avec lui.
+            </div>
           </div>
         )}
         {defRecompense && (

@@ -127,6 +127,8 @@ function regneTotal(modif: Partial<SnapHautFait> = {}): SnapHautFait {
       benedictions: 100,
       // les douze grâces de l'arbre de faveur, prises jusqu'à la dernière
       graces: 12,
+      // trois champions achéens abattus sous les murs
+      championsAbattus: 3,
     },
     ...modif,
   })
@@ -167,7 +169,7 @@ describe('le tableau des hauts faits', () => {
     expect(new Set(ids).size).toBe(ids.length)
     // deux hauts faits de même titre seraient indiscernables dans le panneau
     expect(new Set(HAUTS_FAITS.map((h) => h.titre)).size).toBe(HAUTS_FAITS.length)
-    expect(HAUTS_FAITS).toHaveLength(46)
+    expect(HAUTS_FAITS).toHaveLength(48)
     for (const h of HAUTS_FAITS) {
       // l'index sert à retrouver les points d'un id sauvegardé : il doit viser LA bonne fiche
       expect(HF_PAR_ID[h.id], h.id).toBe(h)
@@ -188,7 +190,7 @@ describe('le tableau des hauts faits', () => {
       expect(Number.isInteger(h.points), h.id).toBe(true)
       expect(h.points, h.id).toBeGreaterThan(0)
     }
-    expect(POINTS_TOTAUX).toBe(1285)
+    expect(POINTS_TOTAUX).toBe(1395)
     /*
      * Le panneau affiche « gagnés / POINTS_TOTAUX ». La jauge ne doit pas pouvoir
      * dépasser 100 % : un palmarès complet vaut exactement le total annoncé, ce

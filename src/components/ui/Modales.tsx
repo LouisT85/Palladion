@@ -170,6 +170,14 @@ export function ModaleAide() {
             <b>tours d’archers</b> sur l’enceinte : elles tirent d’elles-mêmes sur tout ennemi à portée — mais leur
             silhouette attire des assauts plus fournis. Le jeu continue même onglet fermé.
           </p>
+          <p>
+            Passé une certaine menace, un <b>nom</b> prend la tête de la colonne : Achille, Hector, Ajax, Agamemnon…
+            l’un des huit héros que vous auriez pu recruter — et c’est précisément parce qu’il n’est <i>pas</i> à votre
+            table qu’il marche sur vos murs. Vos éclaireurs l’annoncent avec sa <b>manœuvre</b>, et le bandeau d’assaut
+            en donne le décompte : sa fureur, son bouclier, sa sape ou sa réserve tombent à l’heure dite. Vous avez
+            jusque-là pour <b>l’abattre</b> — sa manœuvre meurt avec lui, et son cadavre vaut du bronze, de la faveur et
+            la reconnaissance d’Arès.
+          </p>
         </div>
         <div className="aide-section">
           <h3>🗺️ Piller ou secourir</h3>
@@ -217,7 +225,7 @@ export function ModaleAide() {
         <div className="aide-section">
           <h3>🏅 Hauts faits et prestige</h3>
           <p>
-            Quarante-six hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
+            Quarante-huit hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
             « élu des quatre Olympiens », « trois étoiles sur les huit places fortes ». Ils alimentent votre{' '}
             <b>prestige</b>, la seule note finale. Quand vous jugez le règne accompli, <b>abdiquez</b> : le score se
             fige, les aèdes vous donnent un titre — de « Roi de pacotille » à « Égal des dieux ».

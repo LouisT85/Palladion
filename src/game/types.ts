@@ -301,6 +301,30 @@ export interface OrdresBataille {
   prochainAt: number
 }
 
+/** le champion ennemi en cours de bataille, et où en est sa manœuvre */
+export interface EtatChampion {
+  id: HeroId
+  nom: string
+  emoji: string
+  /** instant où il lancera sa capacité (0 = déjà lancée) */
+  capaciteA: number
+  /** elle est tombée : on ne la relance pas */
+  lancee: boolean
+  /** il est mort sous vos murs — sa capacité meurt avec lui */
+  abattu: boolean
+  /** identifiant du combattant qui le porte, pour le retrouver */
+  fighterId: string
+  /** sa colonne frappe plus fort jusqu'à cet instant */
+  atkUntil: number
+  atkBonus: number
+  /** sa colonne encaisse moins jusqu'à cet instant */
+  reducUntil: number
+  reduc: number
+  /** vos hommes rompent plus tôt jusqu'à cet instant */
+  terreurUntil: number
+  terreurSeuil: number
+}
+
 export interface BattleState {
   wave: WaveUnit[]
   fighters: Fighter[]
@@ -334,6 +358,12 @@ export interface BattleState {
   moral?: { attaque: number; defense: number }
   /** ordres donnés par le joueur — absent = posture neutre, tir tendu */
   ordres?: OrdresBataille
+  /**
+   * Le champion achéen qui mène la colonne, s'il y en a un. Il porte un NOM
+   * connu — l'un des huit héros de la matière troyenne, précisément ceux qu'on
+   * peut recruter — et retourne sa capacité contre le village.
+   */
+  champion?: EtatChampion
   result: BattleResult | null
   /** effectifs défenseurs engagés au départ (pour calculer les pertes) */
   engages: Partial<Record<UnitId, number>>

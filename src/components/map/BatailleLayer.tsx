@@ -565,23 +565,40 @@ function FigurineCombattant({
   return (
     <g style={{ transform: `translate(${f.x}px,${f.y}px)`, transition: 'transform 0.3s linear' }}>
       {/* un héros se distingue avant même qu'on lise son nom : cercle à ses
-          couleurs sous ses pieds, et son nom gravé au-dessus de la mêlée */}
+          couleurs sous ses pieds, et son nom gravé au-dessus de la mêlée.
+          Un héros ENNEMI porte les mêmes couleurs de maison — c'est le même
+          homme — mais son cercle bat en rouge sang et son nom est souligné d'une
+          barre : on ne doit pas confondre une seconde Achille chez soi et
+          Achille à sa porte. */}
       {f.heros && (
         <g pointerEvents="none">
           <ellipse cx={0} cy={1} rx={13} ry={4.6} fill={HEROS[f.heros].couleur} opacity={0.28} />
-          <ellipse cx={0} cy={1} rx={13} ry={4.6} fill="none" stroke={HEROS[f.heros].couleur} strokeWidth={1.2} opacity={0.75} />
+          <ellipse
+            cx={0}
+            cy={1}
+            rx={13}
+            ry={4.6}
+            fill="none"
+            stroke={estJoueur ? HEROS[f.heros].couleur : '#e0715a'}
+            strokeWidth={estJoueur ? 1.2 : 1.8}
+            opacity={0.85}
+          >
+            {!estJoueur && (
+              <animate attributeName="opacity" values="0.45;1;0.45" dur="1.8s" repeatCount="indefinite" />
+            )}
+          </ellipse>
           <text
             x={0}
             y={-33}
             textAnchor="middle"
             fontSize={10}
             fontWeight={700}
-            fill="#f4ecd8"
+            fill={estJoueur ? '#f4ecd8' : '#ffd9cf'}
             stroke="#0d1722"
             strokeWidth={2.4}
             style={{ paintOrder: 'stroke' }}
           >
-            {HEROS[f.heros].nom}
+            {estJoueur ? HEROS[f.heros].nom : `⚔ ${HEROS[f.heros].nom}`}
           </text>
         </g>
       )}

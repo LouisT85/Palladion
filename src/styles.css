@@ -540,63 +540,40 @@ svg.carte-exp {
 }
 
 /* ── ordres à la troupe ────────────────────────────────────
-   Encart sombre DANS le bandeau d'assaut : ce sont des boutons, pas du texte,
-   et ils doivent se distinguer du récit de la bataille qui les entoure. */
+   Deux rangées de jetons courts, et rien de plus. La première version étalait
+   trois rangées larges, une phrase d'explication permanente et une ligne par
+   type d'unité : trois cents pixels de bandeau au-dessus de la plaine, au moment
+   précis où l'on a besoin de la voir. Ce que coûte chaque ordre vit désormais
+   dans son astuce, au survol. */
 .ordres {
-  margin-top: 7px;
-  padding: 6px 8px 7px;
+  margin-top: 6px;
+  padding: 5px 7px;
   border-radius: 8px;
   background: #1b0d08b0;
   border: 1px solid #7a3f2c;
   text-align: left;
 }
-.ordres-tete {
+.ordres-rangee {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 10.5px;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.ordres-rangee + .ordres-rangee {
+  margin-top: 4px;
+}
+/* l'étiquette dit de QUI l'on parle : la ligne de mêlée ou les tireurs */
+.ordres-etiquette {
+  font-size: 10px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #c99b7d;
-  margin-bottom: 4px;
-}
-.ordres-pret {
-  color: #8fae5f;
-  text-transform: none;
-  letter-spacing: 0;
-  font-size: 11px;
-}
-/* le délai se REMPLIT : l'ordre en cours prend, on voit quand on pourra changer */
-.ordres-delai {
-  position: relative;
-  padding: 1px 8px;
-  border-radius: 5px;
-  border: 1px solid #6b3f2c;
-  background: #2a1a12;
-  color: #e6c39f;
-  font-variant-numeric: tabular-nums;
-  text-transform: none;
-  letter-spacing: 0;
-  overflow: hidden;
-}
-.ordres-delai > i {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: #8a4530;
-  opacity: 0.55;
-  transition: width 0.25s linear;
-}
-.ordres-rangee {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  margin-top: 3px;
+  width: 44px;
+  flex: 0 0 44px;
 }
 .ordres button.ordre {
-  flex: 1 1 auto;
   font-size: 11.5px;
-  padding: 4px 8px;
+  padding: 3px 9px;
   background: #2a1a12;
   border: 1px solid #6b3f2c;
   color: #e0c3ab;
@@ -614,49 +591,84 @@ svg.carte-exp {
 .ordres button.ordre:disabled {
   opacity: 0.42;
 }
-.ordres-desc {
-  font-size: 11px;
-  color: #c0a08d;
-  line-height: 1.32;
-  margin-top: 3px;
+/* un ordre de tir sans tireur en ligne : il reste cliquable, mais on le dit */
+.ordres button.ordre.muet {
+  opacity: 0.62;
   font-style: italic;
 }
-.ordres-note {
-  font-size: 11px;
-  color: #a3806b;
-  align-self: center;
-}
-.ordres-secteurs {
-  margin-top: 6px;
-  border-top: 1px dashed #6b3f2c;
-  padding-top: 5px;
-}
-.ordres-titre {
+/* le délai se REMPLIT : on voit l'ordre prendre, puis la main revenir */
+.ordres-delai {
+  position: relative;
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 5px;
+  border: 1px solid #6b3f2c;
+  background: #2a1a12;
+  color: #e6c39f;
   font-size: 10.5px;
-  color: #c99b7d;
-  margin-bottom: 3px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  z-index: 0;
 }
-/* six types d'unité en colonne feraient un bandeau qui mange la carte : on les
-   range en deux colonnes dès que la place le permet */
+.ordres-delai::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--part, 0%);
+  background: #8a4530;
+  opacity: 0.5;
+  z-index: -1;
+  transition: width 0.25s linear;
+}
+
+/* l'assignation par pan se replie : cinq lignes de boutons ne s'imposent qu'à
+   celui qui a trois fronts et veut vraiment répartir sa garnison */
+.ordres-pans {
+  display: inline-block;
+  margin-left: auto;
+}
+.ordres-pans > summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid #6b3f2c;
+  background: #2a1a12;
+  color: #e0c3ab;
+  white-space: nowrap;
+  user-select: none;
+}
+.ordres-pans > summary::-webkit-details-marker {
+  display: none;
+}
+.ordres-pans[open] > summary {
+  background: #7a3f2c;
+  border-color: #d79a6c;
+  color: #ffeeda;
+}
 .ordres-grille {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 2px 12px;
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px dashed #6b3f2c;
 }
 .ordres-ligne-unite {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 3px;
+  gap: 3px;
 }
 .ordres-unite {
   font-size: 15px;
   width: 20px;
   text-align: center;
+  cursor: help;
 }
 .ordres button.pan {
   font-size: 10.5px;
-  padding: 2px 7px;
+  padding: 2px 6px;
   background: #2a1a12;
   border: 1px solid #5c3626;
   color: #cdb09c;
@@ -1247,6 +1259,54 @@ svg.carte-exp {
   padding: 3px 9px;
   align-self: center;
   white-space: nowrap;
+}
+
+/* ── la porte d'entrée de la campagne ──────────────────────
+   Elle vivait au bas de huit sections d'aide : personne ne la trouvait. Elle
+   ouvre désormais le panneau des actes, et se voit. */
+.campagne-entree {
+  background: linear-gradient(180deg, #2a2210f0, #17130aea);
+  border: 1px solid var(--gold-sombre);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.ce-texte {
+  font-size: 12.5px;
+  color: #d8cba8;
+  line-height: 1.5;
+  margin-bottom: 9px;
+}
+.ce-avertissement {
+  font-size: 12.5px;
+  color: #f0c9a0;
+  line-height: 1.5;
+  margin-bottom: 9px;
+}
+.ce-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+/* en bac à sable, le cheval respire doucement : c'est une invitation, pas une
+   alerte - une pulsation lente qu'on remarque sans en être dérangé */
+.hud-actions button.campagne-decouverte {
+  border-color: var(--gold-sombre);
+  animation: cheval-respire 4.5s ease-in-out infinite;
+}
+@keyframes cheval-respire {
+  0%,
+  100% {
+    box-shadow: 0 0 0 #e8c04a00;
+  }
+  50% {
+    box-shadow: 0 0 11px #e8c04a44;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hud-actions button.campagne-decouverte {
+    animation: none;
+  }
 }
 
 /* ── garde-fou : ce qu'on montre quand le rendu a échoué ───
@@ -2391,7 +2451,9 @@ svg.carte-exp {
    ici on a la place d'expliquer, d'aligner des chiffres et de colorer */
 .infobulle {
   position: fixed;
-  z-index: 70;
+  /* au-dessus de TOUT, leçon de Zeus comprise (80) : une infobulle qu'on ne voit
+     pas ne sert à rien, et elle n'intercepte de toute façon aucun clic */
+  z-index: 90;
   width: 288px;
   pointer-events: none;
   background: linear-gradient(180deg, #16283afa, #0e1a26fc);

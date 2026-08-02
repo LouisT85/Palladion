@@ -2,17 +2,28 @@ import { DELAI_ORDRE_MS, EFFETS_LIGNE, EFFETS_TIR, ORDRES_NEUTRES, estTireur } f
 import { UNITS } from '../../game/data'
 import { useGame } from '../../game/store'
 import type { BattleState, OrdreLigne, OrdreTir, UnitId } from '../../game/types'
+import { Astuce } from './Infobulle'
 
 /*
  * ═══════════════════ LA BARRE D'ORDRES ═══════════════════
  *
  * On regardait la bataille. Les bénédictions mises à part, rien de ce que
- * faisait le joueur pendant l'assaut ne changeait ce que faisaient ses hommes -
- * l'issue était décidée au moment où la vague se formait.
+ * faisait le joueur pendant l'assaut ne changeait ce que faisaient ses hommes.
  *
- * Trois postures, deux façons de tirer, et un pan de mur assignable par type
- * d'unité. La barre montre en toutes lettres ce que chaque ordre coûte : un
- * bouton qui ne dirait que « Charger » ne serait qu'un bouton de plus.
+ * Trois postures, deux façons de tirer, un pan de mur assignable par unité. La
+ * difficulté n'est pas de les offrir : c'est de les offrir SANS manger l'écran.
+ * Première version : trois rangées de boutons larges, une phrase d'explication
+ * en permanence, une ligne par type d'unité. Le bandeau faisait trois cents
+ * pixels de haut et couvrait la moitié de la plaine, au moment précis où l'on a
+ * besoin de la voir.
+ *
+ * Ici tout tient en deux rangées :
+ *
+ *  · les ordres sont des JETONS courts (emoji + un mot), sur une seule ligne ;
+ *  · ce que chacun coûte et rapporte vit dans son astuce, au survol - pas en
+ *    permanence sous les yeux ;
+ *  · l'assignation des pans se REPLIE : on ne l'ouvre que le jour où l'on a
+ *    trois fronts et qu'on veut vraiment répartir sa garnison.
  */
 
 /** raccourci d'un nom de secteur : « Mur du nord » → « Nord » */
@@ -42,100 +53,123 @@ export function BarreOrdres() {
   const o = b.ordres ?? ORDRES_NEUTRES
   const attente = Math.max(0, o.prochainAt - now)
   const gele = attente > 0
-  // la barre du délai : on voit l'ordre « prendre » avant de pouvoir en changer
-  const part = gele ? 1 - attente / DELAI_ORDRE_MS : 1
-
   const types = typesEngages(b)
-  const parPan = b.secteurs.length > 1
+  const tireurs = types.some((u) => estTireur(u))
+  const parPan = b.secteurs.length > 1 && types.length > 0
+  // un pan assigné se voit sans déplier : le compteur le dit
+  const assignes = types.filter((u) => o.secteurs[u] !== undefined).length
 
   return (
     <div className="ordres" data-tuto="ordres">
-      <div className="ordres-tete">
-        <span>⚑ Ordres à la troupe</span>
-        {gele ? (
-          <span className="ordres-delai" title="Un ordre se tient : la troupe ne change pas d’avis à chaque coup porté">
-            <i style={{ width: `${Math.round(part * 100)}%` }} />
-            {Math.ceil(attente / 1000)} s
-          </span>
-        ) : (
-          <span className="ordres-pret">à vos ordres</span>
-        )}
-      </div>
-
       <div className="ordres-rangee">
+        <span className="ordres-etiquette">⚑ Ligne</span>
         {(Object.keys(EFFETS_LIGNE) as OrdreLigne[]).map((id) => {
           const e = EFFETS_LIGNE[id]
           const actif = o.ligne === id
           return (
-            <button
+            <Astuce
               key={id}
-              className={`ordre${actif ? ' actif' : ''}`}
-              disabled={gele && !actif}
-              onClick={() => donnerOrdre('ligne', id)}
-              title={e.desc}
+              titre={`${e.emoji} ${e.nom}`}
+              resume={e.desc}
+              note={
+                gele && !actif
+                  ? `Un ordre se tient : ${Math.ceil(attente / 1000)} s avant d’en changer.`
+                  : actif
+                    ? 'Posture en cours.'
+                    : undefined
+              }
             >
-              <b>{e.emoji}</b> {e.nom}
-            </button>
+              <button
+                className={`ordre${actif ? ' actif' : ''}`}
+                disabled={gele && !actif}
+                onClick={() => donnerOrdre('ligne', id)}
+              >
+                {e.emoji} {e.nom.split(' ')[0]}
+              </button>
+            </Astuce>
           )
         })}
+        {gele && (
+          <span className="ordres-delai" style={{ ['--part' as string]: `${100 - (attente / DELAI_ORDRE_MS) * 100}%` }}>
+            {Math.ceil(attente / 1000)} s
+          </span>
+        )}
       </div>
-      <div className="ordres-desc">{EFFETS_LIGNE[o.ligne].desc}</div>
 
       <div className="ordres-rangee">
+        <span className="ordres-etiquette">🏹 Tir</span>
         {(Object.keys(EFFETS_TIR) as OrdreTir[]).map((id) => {
           const e = EFFETS_TIR[id]
           const actif = o.tir === id
           return (
-            <button
+            <Astuce
               key={id}
-              className={`ordre${actif ? ' actif' : ''}`}
-              disabled={gele && !actif}
-              onClick={() => donnerOrdre('tir', id)}
-              title={e.desc}
+              titre={`${e.emoji} ${e.nom}`}
+              resume={e.desc}
+              note={tireurs ? undefined : 'Aucun tireur en ligne : cet ordre ne commande personne pour l’instant.'}
             >
-              <b>{e.emoji}</b> {e.nom}
-            </button>
+              <button
+                className={`ordre${actif ? ' actif' : ''}${tireurs ? '' : ' muet'}`}
+                disabled={gele && !actif}
+                onClick={() => donnerOrdre('tir', id)}
+              >
+                {e.emoji} {id === 'tendu' ? 'Tendu' : 'Cloche'}
+              </button>
+            </Astuce>
           )
         })}
-        {/* sans un homme sur le rempart, l'ordre de tir ne commande personne */}
-        {!types.some((u) => estTireur(u)) && <span className="ordres-note">aucun tireur en ligne</span>}
-      </div>
 
-      {/*
-       * Assignation par pan. Elle n'a de sens qu'à partir de deux fronts : sur un
-       * assaut simple, tout le monde est déjà au même endroit.
-       */}
-      {parPan && types.length > 0 && (
-        <div className="ordres-secteurs">
-          <div className="ordres-titre">Tenir un pan - ces hommes n’en bougeront plus</div>
-          <div className="ordres-grille">
-            {types.map((u) => (
-              <div key={u} className="ordres-ligne-unite">
-                <span className="ordres-unite" title={UNITS[u].nom}>
-                  {UNITS[u].emoji}
-                </span>
-                <button
-                  className={`pan${o.secteurs[u] === undefined ? ' actif' : ''}`}
-                  onClick={() => assigner(u, null)}
-                  title="Au plus pressé : ils courent là où ça cède"
-                >
-                  Auto
-                </button>
-                {b.secteurs.map((sec, i) => (
-                  <button
-                    key={sec.nom}
-                    className={`pan${o.secteurs[u] === i ? ' actif' : ''}${sec.breche ? ' perce' : ''}`}
-                    onClick={() => assigner(u, i)}
-                    title={`${sec.nom}${sec.breche ? ' - percé' : ` - ${Math.round((sec.hp / Math.max(1, sec.max)) * 100)} %`}`}
-                  >
-                    {court(sec.nom)}
-                  </button>
+        {/*
+          L'assignation par pan n'a de sens qu'à partir de deux fronts, et elle
+          n'intéresse qu'un joueur qui veut vraiment répartir sa garnison. Elle
+          se replie donc derrière un jeton, au lieu d'occuper cinq lignes.
+        */}
+        {parPan && (
+          <Astuce
+            titre="⚔ Tenir un pan"
+            resume="Assignez un type d’unité à un secteur : ces hommes-là s’y postent et n’y frappent que ce qui l’assaille. C’est la seule réponse à un assaut sur trois fronts quand on n’a qu’une garnison."
+          >
+            <details className="ordres-pans">
+              <summary>
+                ⚔ Pans{assignes > 0 ? ` · ${assignes}` : ''}
+              </summary>
+              <div className="ordres-grille">
+                {types.map((u) => (
+                  <div key={u} className="ordres-ligne-unite">
+                    <Astuce titre={`${UNITS[u].emoji} ${UNITS[u].nom}`} resume={UNITS[u].desc}>
+                      <span className="ordres-unite">{UNITS[u].emoji}</span>
+                    </Astuce>
+                    <button
+                      className={`pan${o.secteurs[u] === undefined ? ' actif' : ''}`}
+                      onClick={() => assigner(u, null)}
+                    >
+                      Auto
+                    </button>
+                    {b.secteurs.map((sec, i) => (
+                      <Astuce
+                        key={sec.nom}
+                        titre={sec.nom}
+                        resume={
+                          sec.breche
+                            ? 'Ce pan est percé : l’ennemi entre par là.'
+                            : `Structure : ${Math.round((sec.hp / Math.max(1, sec.max)) * 100)} %.`
+                        }
+                      >
+                        <button
+                          className={`pan${o.secteurs[u] === i ? ' actif' : ''}${sec.breche ? ' perce' : ''}`}
+                          onClick={() => assigner(u, i)}
+                        >
+                          {court(sec.nom)}
+                        </button>
+                      </Astuce>
+                    ))}
+                  </div>
                 ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </details>
+          </Astuce>
+        )}
+      </div>
     </div>
   )
 }

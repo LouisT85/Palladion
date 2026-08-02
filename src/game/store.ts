@@ -2290,6 +2290,30 @@ export const useGame = create<GameState>()(
             s.morale = Math.max(0, Math.min(100, nombre(s.morale, 50)))
             s.relations = s.relations ?? {}
             s.graces = Array.isArray(s.graces) ? s.graces : []
+            /*
+             * La campagne, ensuite. Une partie commencée avant le VERROUILLAGE des
+             * objectifs n'a pas de liste `objectifsFaits` : le suivi d'acte lisait
+             * alors `undefined.includes(...)` et vidait la page au premier rendu.
+             * On recompose l'avancement au complet, en gardant ce qui a été joué.
+             */
+            if (s.campagne) {
+              const c = s.campagne as Partial<EtatCampagne>
+              s.campagne = {
+                acte: Math.max(0, Math.min(NB_ACTES - 1, Math.round(nombre(c.acte, 0)))),
+                debutActe: nombre(c.debutActe, now),
+                base: {
+                  repousses: nombre(c.base?.repousses, 0),
+                  perdus: nombre(c.base?.perdus, 0),
+                  evenements: nombre(c.base?.evenements, 0),
+                  exploits: c.base?.exploits ?? {},
+                },
+                prologueVu: c.prologueVu ?? true,
+                objectifsFaits: Array.isArray(c.objectifsFaits) ? c.objectifsFaits : [],
+                accompli: !!c.accompli,
+                perdu: !!c.perdu,
+                fini: !!c.fini,
+              }
+            }
             s.annales = Array.isArray(s.annales) ? s.annales : []
             if (typeof s.prochainReleveAt !== 'number') s.prochainReleveAt = now + PAS_RELEVE_MS
             s.incomingChampion = s.incomingChampion ?? null

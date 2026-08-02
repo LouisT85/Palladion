@@ -207,8 +207,14 @@ export function SuiviActe() {
   const acte = ACTES_CAMPAGNE[s.campagne.acte]
   if (!acte) return null
   const vue = etatActe(s)
-  // un objectif verrouillé reste coché, même si l'assaut a défait ce qu'il comptait
-  const verrouilles = s.campagne.objectifsFaits
+  /*
+   * Un objectif verrouillé reste coché, même si l'assaut a défait ce qu'il
+   * comptait. Le `?? []` n'est pas superflu malgré ce que dit le type : une
+   * campagne commencée avant le verrouillage n'a pas la liste, et c'est
+   * exactement ici que la page se vidait. La reprise la recompose désormais,
+   * mais on ne fait plus dépendre l'affichage d'une migration.
+   */
+  const verrouilles = s.campagne.objectifsFaits ?? []
   const obligatoires = acte.objectifs.filter((o) => !o.facultatif)
   const faits = obligatoires.filter((o) => verrouilles.includes(o.id)).length
   const total = obligatoires.length

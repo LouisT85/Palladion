@@ -14,6 +14,7 @@ import {
   type Intention,
 } from '../../game/expeditions'
 import {
+  GAIN_PRESENT,
   SEUIL_MARIAGE,
   SEUIL_PACTE,
   STATUTS,
@@ -21,8 +22,9 @@ import {
   coutPacte,
   coutPresent,
   motRelation,
+  type StatutVillage,
 } from '../../game/diplomatie'
-import { estAdulte } from '../../game/lignees'
+import { ageDe, estAdulte } from '../../game/lignees'
 import { fmtDuree, jourDe, merFermee, relationVillage, statutDe, totalEtoiles, useGame } from '../../game/store'
 import type { Cost, ResourceId, UnitId } from '../../game/types'
 import type { VillageCible } from '../../game/expeditions'
@@ -36,6 +38,7 @@ import { Meteo, VoileSaison } from '../map/Ciel'
 import { Murailles } from '../map/Murailles'
 import { CoeurVillage, DecorExpedition } from '../map/VillageEnnemi'
 import { DieuxRapides } from './Hud'
+import { Astuce } from './Infobulle'
 import { BarreOrdres } from './Ordres'
 
 function puissance(troupes: Record<UnitId, number>): number {
@@ -47,23 +50,36 @@ function puissance(troupes: Record<UnitId, number>): number {
  * dire où l'on en est ; les deux repères marquent les seuils qui ouvrent le
  * mariage puis le pacte, pour qu'on sache ce qu'il reste à gagner.
  */
-function JaugeRelation({ valeur, couleur }: { valeur: number; couleur: string }) {
+function JaugeRelation({ valeur, couleur, statut }: { valeur: number; couleur: string; statut: StatutVillage }) {
   const pos = ((Math.max(-100, Math.min(100, valeur)) + 100) / 200) * 100
   return (
-    <div className="jauge-diplo" title={`Relation : ${motRelation(valeur)}`}>
-      {/* la piste porte ses propres coordonnées : les repères se placent en % de
-          ELLE, jamais de la ligne entière - sinon le curseur déborde sur le chiffre */}
-      <span className="jd-piste">
-        <span className="jd-rail" />
-        <span className="jd-zero" />
-        <span className="jd-seuil" style={{ left: `${((SEUIL_MARIAGE + 100) / 200) * 100}%` }} title="Seuil du mariage" />
-        <span className="jd-seuil" style={{ left: `${((SEUIL_PACTE + 100) / 200) * 100}%` }} title="Seuil du pacte" />
-        <span className="jd-curseur" style={{ left: `${pos}%`, background: couleur, boxShadow: `0 0 7px ${couleur}` }} />
-      </span>
-      <span className="jd-valeur" style={{ color: couleur }}>
-        {motRelation(valeur)}
-      </span>
-    </div>
+    <Astuce
+      titre={`${STATUTS[statut].emoji} Relation : ${motRelation(valeur)}`}
+      resume={STATUTS[statut].desc}
+      lignes={[
+        { label: 'Mariage possible à partir de', valeur: motRelation(SEUIL_MARIAGE), fort: valeur >= SEUIL_MARIAGE },
+        { label: 'Pacte possible à partir de', valeur: motRelation(SEUIL_PACTE), fort: valeur >= SEUIL_PACTE },
+      ]}
+      note="Ce que vous faites à l’un, les sept autres l’apprennent. Les rancunes s’émoussent avec les journées."
+    >
+      <div className="jauge-diplo">
+        {/* la piste porte ses propres coordonnées : les repères se placent en % de
+            ELLE, jamais de la ligne entière - sinon le curseur déborde sur le chiffre */}
+        <span className="jd-piste">
+          <span className="jd-rail" />
+          <span className="jd-zero" />
+          <span className="jd-seuil" style={{ left: `${((SEUIL_MARIAGE + 100) / 200) * 100}%` }} />
+          <span className="jd-seuil" style={{ left: `${((SEUIL_PACTE + 100) / 200) * 100}%` }} />
+          <span
+            className="jd-curseur"
+            style={{ left: `${pos}%`, background: couleur, boxShadow: `0 0 7px ${couleur}` }}
+          />
+        </span>
+        <span className="jd-valeur" style={{ color: couleur }}>
+          {motRelation(valeur)}
+        </span>
+      </div>
+    </Astuce>
   )
 }
 
@@ -105,51 +121,68 @@ function DiplomatieVillage({
 
   return (
     <div className="diplo">
-      <button onClick={() => s.offrirPresent(v.id)} disabled={relation >= 100} title={STATUTS.ami.desc}>
-        🎁 Présent (<Prix cout={present} />)
-      </button>
+      <Astuce
+        titre="🎁 Porter un présent"
+        resume={`+${GAIN_PRESENT} de relation avec ${v.nom}, et rien pour les autres. Réparer coûte plus cher que casser : il faut plus de deux présents pour effacer un seul pillage.`}
+        note={relation >= 100 ? `${v.nom} ne peut pas mieux vous vouloir.` : undefined}
+      >
+        <button onClick={() => s.offrirPresent(v.id)} disabled={relation >= 100}>
+          🎁 Présent (<Prix cout={present} />)
+        </button>
+      </Astuce>
       {!allie && (
-        <button
-          onClick={() => s.proposerPacte(v.id)}
-          disabled={relation < SEUIL_PACTE}
-          title={
+        <Astuce
+          titre="🤝 Négocier un pacte"
+          resume="L’alliance achetée plutôt que méritée : tribut régulier et renforts sur vos remparts, sans qu’un coup soit porté."
+          note={
             relation < SEUIL_PACTE
-              ? `Il faut ${SEUIL_PACTE} de relation - vous en êtes à ${motRelation(relation)}`
-              : 'Tribut et renforts, sans qu’un coup soit porté'
+              ? `Il faut ${motRelation(SEUIL_PACTE)} de relation - vous en êtes à ${motRelation(relation)}.`
+              : 'Elle se dénoue comme elle se noue : laissez la relation retomber et l’on reprendra sa parole.'
           }
         >
-          🤝 Pacte (<Prix cout={pacte} />)
-        </button>
+          <button onClick={() => s.proposerPacte(v.id)} disabled={relation < SEUIL_PACTE}>
+            🤝 Pacte (<Prix cout={pacte} />)
+          </button>
+        </Astuce>
       )}
       {!marie && (
-        <button
-          onClick={() => setChoisirPromis((x) => !x)}
-          disabled={relation < SEUIL_MARIAGE || promis.length === 0}
-          title={
+        <Astuce
+          titre="💍 Sceller une parenté"
+          resume="Vous donnez un habitant - définitivement - et recevez une alliance que rien ne dénoue, au tribut doublé. Le seul engagement irréversible du jeu."
+          note={
             relation < SEUIL_MARIAGE
-              ? `Il faut ${SEUIL_MARIAGE} de relation - vous en êtes à ${motRelation(relation)}`
+              ? `Il faut ${motRelation(SEUIL_MARIAGE)} de relation - vous en êtes à ${motRelation(relation)}.`
               : promis.length === 0
-                ? 'Il faut un adulte sans emploi et sans foyer à donner'
-                : 'Une alliance que rien ne dénoue, au tribut doublé - mais le village perd un bras'
+                ? 'Il faut un adulte sans emploi et sans foyer à donner.'
+                : `${promis.length} habitant(s) pourraient partir.`
           }
         >
-          💍 Mariage (<Prix cout={dot} /> + 1 habitant)
-        </button>
+          <button
+            onClick={() => setChoisirPromis((x) => !x)}
+            disabled={relation < SEUIL_MARIAGE || promis.length === 0}
+          >
+            💍 Mariage (<Prix cout={dot} /> + 1 habitant)
+          </button>
+        </Astuce>
       )}
       {choisirPromis && !marie && (
         <div className="diplo-promis">
           <span>Qui part pour {v.nom} ?</span>
           {promis.slice(0, 8).map((x) => (
-            <button
+            <Astuce
               key={x.id}
-              onClick={() => {
-                s.scellerMariage(v.id, x.id)
-                setChoisirPromis(false)
-              }}
-              title={`${x.nom}${x.lignee ? ` des ${x.lignee}` : ''} - ${BUILDINGS[x.metier].nom}`}
+              titre={`${BUILDINGS[x.metier].emoji} ${x.nom}${x.lignee ? ` des ${x.lignee}` : ''}`}
+              resume={`${BUILDINGS[x.metier].nom} de son métier, ${ageDe(x, jour)} ans. Il quittera le village pour toujours : c’est un bras et un métier de moins.`}
             >
-              {BUILDINGS[x.metier].emoji} {x.nom}
-            </button>
+              <button
+                onClick={() => {
+                  s.scellerMariage(v.id, x.id)
+                  setChoisirPromis(false)
+                }}
+              >
+                {BUILDINGS[x.metier].emoji} {x.nom}
+              </button>
+            </Astuce>
           ))}
         </div>
       )}
@@ -316,9 +349,15 @@ export function PanneauExpeditions() {
               >
                 🤝 Porter secours
               </button>
-              <button className="danger" onClick={() => s.ignorerSecours()} title="Zeus Xenios protège les suppliants">
-                🚪 Fermer la porte (Zeus −4)
-              </button>
+              <Astuce
+                titre="🚪 Fermer la porte"
+                resume="Zeus Xenios protège les suppliants : refuser son aide se paie auprès de lui, et le village tombera sans vous."
+                note="Une bande de plus rôdera dans la région : la menace monte."
+              >
+                <button className="danger" onClick={() => s.ignorerSecours()}>
+                  🚪 Fermer la porte (Zeus −4)
+                </button>
+              </Astuce>
             </div>
           </div>
         )}
@@ -338,17 +377,22 @@ export function PanneauExpeditions() {
                 <div className="ligne-titre">
                   <h3>{v.nom}</h3>
                   <Etoiles n={etat?.etoiles ?? 0} />
-                  <span
-                    className="badge-statut"
-                    style={{ color: fiche.couleur, borderColor: `${fiche.couleur}66` }}
-                    title={`${fiche.desc}${allie ? ` - allié depuis ${fmtDuree(now - allie.depuis)}` : ''}`}
+                  <Astuce
+                    titre={`${fiche.emoji} ${fiche.nom}`}
+                    resume={fiche.desc}
+                    note={allie ? `Allié depuis ${fmtDuree(now - allie.depuis)}.` : undefined}
                   >
-                    {fiche.emoji} {fiche.nom}
-                  </span>
-                  {allie?.mariage && (
-                    <span className="badge-allie" title={`${allie.mariage.villageois} y vit désormais`}>
-                      💍 {allie.mariage.villageois}
+                    <span className="badge-statut" style={{ color: fiche.couleur, borderColor: `${fiche.couleur}66` }}>
+                      {fiche.emoji} {fiche.nom}
                     </span>
+                  </Astuce>
+                  {allie?.mariage && (
+                    <Astuce
+                      titre={`💍 ${allie.mariage.villageois}`}
+                      resume={`${allie.mariage.villageois}${allie.mariage.lignee ? ` des ${allie.mariage.lignee}` : ''} y vit désormais. Cette parenté ne se dénoue pas, et le tribut en est doublé.`}
+                    >
+                      <span className="badge-allie">💍 {allie.mariage.villageois}</span>
+                    </Astuce>
                   )}
                 </div>
                 <div className="desc-exp">{v.desc}</div>
@@ -357,7 +401,7 @@ export function PanneauExpeditions() {
                   jamais savoir ce que la côte en pensait, et une alliance nouée ne
                   pouvait plus bouger.
                 */}
-                <JaugeRelation valeur={relation} couleur={fiche.couleur} />
+                <JaugeRelation valeur={relation} couleur={fiche.couleur} statut={statut} />
                 <DiplomatieVillage v={v} relation={relation} allie={!!allie} marie={!!allie?.mariage} />
                 <div className="ligne-exp">
                   🛡️ Puissance ≈ <b>{puissanceEffective(v, pillages)}</b> · 🧱 niv. {v.mur} ·{' '}
@@ -374,20 +418,38 @@ export function PanneauExpeditions() {
               </div>
               <div className="action-exp">
                 {v.maritime && merFermee(s) ? (
-                  <span className="cd" title="L’hiver ferme la mer : les places d’outre-mer sont hors d’atteinte.">
-                    ❄️ mer prise
-                  </span>
-                ) : resteCd > 0 ? (
-                  <span className="cd">⏳ {fmtDuree(resteCd)}</span>
-                ) : (
-                  <button
-                    className="principal"
-                    disabled={s.battle !== null || s.expedition !== null}
-                    onClick={() => ouvrir(v.id, 'pillage')}
-                    title={allie ? 'Piller un allié rompt l’alliance sur-le-champ' : undefined}
+                  <Astuce
+                    titre="❄️ La mer est prise"
+                    resume="L’hiver ferme la mer : les places d’outre-mer sont hors d’atteinte jusqu’au printemps."
+                    note="La grâce « Mer ouverte » de Poséidon lève cette saison morte."
                   >
-                    {allie ? 'Trahir' : 'Piller'}
-                  </button>
+                    <span className="cd">❄️ mer prise</span>
+                  </Astuce>
+                ) : resteCd > 0 ? (
+                  <Astuce
+                    titre="⏳ Trop tôt"
+                    resume={`Vos hommes rentrent à peine. On ne remarche pas sur ${v.nom} avant ${fmtDuree(resteCd)}.`}
+                  >
+                    <span className="cd">⏳ {fmtDuree(resteCd)}</span>
+                  </Astuce>
+                ) : (
+                  <Astuce
+                    titre={allie ? '🗡️ Trahir un allié' : `⚔️ Piller ${v.nom}`}
+                    resume={
+                      allie
+                        ? 'L’alliance est rompue sur-le-champ, la relation tombe au plus bas, et TOUTE la côte l’apprend. Le butin est là, le prix aussi.'
+                        : 'Le butin est immédiat - mais Zeus Xenios n’aime pas cela, la menace monte, la côte s’en souvient et la garnison sera plus fournie à votre prochaine visite.'
+                    }
+                    note={`Puissance de la place : ≈ ${puissanceEffective(v, pillages)}.`}
+                  >
+                    <button
+                      className="principal"
+                      disabled={s.battle !== null || s.expedition !== null}
+                      onClick={() => ouvrir(v.id, 'pillage')}
+                    >
+                      {allie ? 'Trahir' : 'Piller'}
+                    </button>
+                  </Astuce>
                 )}
               </div>
             </div>

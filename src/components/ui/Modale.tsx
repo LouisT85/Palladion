@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { Astuce } from './Infobulle'
 
 /*
  * LE CHÂSSIS COMMUN DES MENUS.
@@ -68,9 +69,11 @@ export function Modale({
         <div className="modale-tete">
           <h2>{titre}</h2>
           {sous && <div className="modale-sous">{sous}</div>}
-          <button className="modale-croix" onClick={onFermer} aria-label="Fermer" title="Fermer (Échap)">
-            ✕
-          </button>
+          <Astuce titre="✕ Fermer" resume="La touche Échap et un clic hors du panneau font la même chose.">
+            <button className="modale-croix" onClick={onFermer} aria-label="Fermer">
+              ✕
+            </button>
+          </Astuce>
         </div>
         <div className="modale-corps">
           {children}

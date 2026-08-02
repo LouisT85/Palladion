@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ETAPES, NB_ETAPES, type EtapeTuto, type PlaceCarte } from '../../game/tutoriel'
 import { snapTuto, useGame } from '../../game/store'
+import { Astuce } from './Infobulle'
 import { PortraitZeus } from './Zeus'
 
 /*
@@ -287,9 +288,14 @@ export function Tutoriel() {
                 {etapeIdx === NB_ETAPES - 1 ? 'Prendre la tête du village' : 'Poursuis'}
               </button>
             )}
-            <button className="tuto-passer" onClick={arreter} title="Vous pourrez tout relire dans l’aide (❔)">
-              Passer la leçon
-            </button>
+            <Astuce
+              titre="Passer la leçon"
+              resume="Zeus remonte à l’Olympe et vous laisse la main. Rien n’est perdu : vous pourrez tout relire dans l’aide (❔), et même refaire la leçon depuis le début."
+            >
+              <button className="tuto-passer" onClick={arreter}>
+                Passer la leçon
+              </button>
+            </Astuce>
           </div>
         </div>
       </div>

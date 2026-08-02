@@ -1,5 +1,5 @@
 import { BUILDINGS, METIERS, RENDEMENT_HORS_METIER } from '../../game/data'
-import { AGE_ADULTE, ageDe, motAge, pyramide, saisonDeVie } from '../../game/lignees'
+import { AGE_ADULTE, ageDe, motAge, pyramide, rendementAge, saisonDeVie } from '../../game/lignees'
 import {
   BATIMENTS_A_POSTES,
   candidatsPour,
@@ -14,6 +14,7 @@ import {
   useGame,
 } from '../../game/store'
 import type { BuildingId, Villageois } from '../../game/types'
+import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
 /**
@@ -44,7 +45,14 @@ function LigneRecap({ b }: { b: BuildingId }) {
     <div className="ligne">
       <span style={{ minWidth: 138, fontSize: 13 }}>
         {BUILDINGS[b].emoji} {BUILDINGS[b].nom}
-        {pourvus === 0 && total > 0 && <span title="Aucun ouvrier : cet atelier ne rend rien"> ⚠️</span>}
+        {pourvus === 0 && total > 0 && (
+          <Astuce
+            titre="⚠️ Atelier désert"
+            resume="Aucun ouvrier à ce poste : le bâtiment ne rend rien de plus que la cueillette de base. Un atelier vide est de la pierre posée pour rien."
+          >
+            <span> ⚠️</span>
+          </Astuce>
+        )}
       </span>
       <div className="barre">
         <div style={{ width: `${r * 100}%`, background: couleurRendement(r) }} />
@@ -62,13 +70,17 @@ function LigneRecap({ b }: { b: BuildingId }) {
         {pourvus}/{total} · {Math.round(r * 100)} %
         {malPlaces > 0 && <span style={{ color: '#d98a4e' }}> · {malPlaces} hors métier</span>}
         {candidat && pourvus < total && (
-          <button
-            style={{ padding: '2px 7px', fontSize: 11.5, marginLeft: 6 }}
-            onClick={() => s.affecter(candidat.id, b)}
-            title={`${candidat.nom} est ${libellePoste(b).toLowerCase()} de son métier`}
+          <Astuce
+            titre={`${BUILDINGS[candidat.metier].emoji} ${candidat.nom}`}
+            resume={`${candidat.nom} est ${libellePoste(b).toLowerCase()} de son métier : à ce poste, il rendra pleinement. Un clic et il y va.`}
           >
-            + {candidat.nom}
-          </button>
+            <button
+              style={{ padding: '2px 7px', fontSize: 11.5, marginLeft: 6 }}
+              onClick={() => s.affecter(candidat.id, b)}
+            >
+              + {candidat.nom}
+            </button>
+          </Astuce>
         )}
       </span>
     </div>
@@ -91,9 +103,19 @@ function LigneVillageois({ v, jour, conjoint }: { v: Villageois; jour: number; c
           {v.nom} <span className="hab-metier">{metierDe(v)}</span>
           {/* la maison et l'âge : ce qui fait d'un jeton un habitant */}
           {v.lignee && <span className="hab-lignee">des {v.lignee}</span>}
-          <span className={`hab-age ${vie}`} title={motAge(age)}>
-            {age} ans
-          </span>
+          <Astuce
+            titre={`${vie === 'enfant' ? '👶' : vie === 'ancien' ? '🧓' : '🧑‍🌾'} ${motAge(age)}`}
+            resume={
+              vie === 'enfant'
+                ? `Un enfant aide sans remplacer (${Math.round(rendementAge(age) * 100)} % de ce que rend un adulte) et ne porte pas les armes. Il sera adulte dans ${Math.ceil((AGE_ADULTE - age) / 2)} journée(s).`
+                : vie === 'ancien'
+                  ? `Il a tout appris, mais n’a plus les bras : ${Math.round(rendementAge(age) * 100)} % du rendement d’un adulte. L’âge finira par l’emporter, et son métier s’éteindra avec lui.`
+                  : 'Dans la force de l’âge : rendement plein à son métier, et enrôlable à la caserne.'
+            }
+            note="Une journée de jeu vaut deux ans de vie."
+          >
+            <span className={`hab-age ${vie}`}>{age} ans</span>
+          </Astuce>
         </div>
         <div className="hab-etat">
           {sansEmploi ? (
@@ -115,13 +137,21 @@ function LigneVillageois({ v, jour, conjoint }: { v: Villageois; jour: number; c
         </div>
         <div className="hab-famille">
           {conjoint ? (
-            <span title="Un foyer : c’est de là que viennent les enfants, et le métier qu’ils apprennent">
-              💍 marié(e) à {conjoint.nom}
-            </span>
+            <Astuce
+              titre="💍 Un foyer"
+              resume={`${v.nom} et ${conjoint.nom} font maison commune. C’est de là que viennent les enfants — et le métier qu’ils apprendront : celui de l’un des deux.`}
+              note={`Métiers du foyer : ${metierDe(v)} et ${metierDe(conjoint)}.`}
+            >
+              <span>💍 marié(e) à {conjoint.nom}</span>
+            </Astuce>
           ) : vie === 'adulte' ? (
-            <span className="hab-celib" title="Sans foyer, pas de naissance - le village dépend alors des arrivants">
-              célibataire
-            </span>
+            <Astuce
+              titre="Sans foyer"
+              resume="Sans foyer, pas de naissance. Le village ne grandit alors que par les arrivants de la côte, dont on ne choisit pas le métier."
+              note="Les noces se font d’elles-mêmes, une journée sur l’autre, entre adultes de maisons différentes."
+            >
+              <span className="hab-celib">célibataire</span>
+            </Astuce>
           ) : null}
           {v.parents && <span> · enfant de {v.parents.join(' et ')}</span>}
         </div>
@@ -145,13 +175,14 @@ function LigneVillageois({ v, jour, conjoint }: { v: Villageois; jour: number; c
         })}
       </select>
       {!sansEmploi && (
-        <button
-          onClick={() => s.affecter(v.id, null)}
-          title={`Retirer ${v.nom} de son poste`}
-          style={{ padding: '3px 8px', fontSize: 12 }}
+        <Astuce
+          titre={`Retirer ${v.nom}`}
+          resume="Il quitte son poste et redevient disponible : on peut alors le placer ailleurs, ou l’enrôler à la caserne s’il est adulte."
         >
-          ✕
-        </button>
+          <button onClick={() => s.affecter(v.id, null)} style={{ padding: '3px 8px', fontSize: 12 }}>
+            ✕
+          </button>
+        </Astuce>
       )}
     </div>
   )
@@ -232,21 +263,47 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
             d'anciens dont le métier va s'éteindre.
           */}
           <div className="pyramide">
-            <span className="p-enfant" title="Moins de 16 ans : ils aident sans remplacer, et ne portent pas les armes">
-              👶 {ages.enfant} enfant{ages.enfant > 1 ? 's' : ''}
-            </span>
-            <span className="p-adulte" title="De 16 à 55 ans : rendement plein, et les seuls qu’on enrôle">
-              🧑‍🌾 {ages.adulte} adulte{ages.adulte > 1 ? 's' : ''}
-            </span>
-            <span className="p-ancien" title="Au-delà de 56 ans : ils rendent moins, et l’âge finit par les emporter">
-              🧓 {ages.ancien} ancien{ages.ancien > 1 ? 's' : ''}
-            </span>
-            <span className="p-foyers" title="Sans foyer, pas de naissance : le village ne grandit alors que par les arrivants">
-              💍 {foyers} foyer{foyers > 1 ? 's' : ''}
-            </span>
-            <span className="p-maisons" title="Les lignées du village - un enfant hérite de la maison de son père">
-              🏛️ {maisons} maison{maisons > 1 ? 's' : ''}
-            </span>
+            <Astuce
+              titre="👶 Les enfants"
+              resume="Moins de 16 ans. Ils mangent, aident à moitié, et ne portent pas les armes — mais ils ont appris le métier d’un de leurs parents, et c’est ainsi qu’un métier se transmet."
+            >
+              <span className="p-enfant">
+                👶 {ages.enfant} enfant{ages.enfant > 1 ? 's' : ''}
+              </span>
+            </Astuce>
+            <Astuce
+              titre="🧑‍🌾 Les adultes"
+              resume="De 16 à 55 ans : rendement plein à leur métier, et les seuls que la caserne accepte. C’est la vraie mesure de ce que le village peut faire."
+            >
+              <span className="p-adulte">
+                🧑‍🌾 {ages.adulte} adulte{ages.adulte > 1 ? 's' : ''}
+              </span>
+            </Astuce>
+            <Astuce
+              titre="🧓 Les anciens"
+              resume="Au-delà de 56 ans. Ils rendent les trois quarts d’un adulte, et l’âge finit par les emporter — leur métier part avec eux s’ils n’ont pas eu d’enfants."
+            >
+              <span className="p-ancien">
+                🧓 {ages.ancien} ancien{ages.ancien > 1 ? 's' : ''}
+              </span>
+            </Astuce>
+            <Astuce
+              titre="💍 Les foyers"
+              resume="Sans foyer, pas de naissance : le village ne grandit alors que par les arrivants de la côte, dont on ne choisit pas le métier."
+              note="Deux noces au plus par journée, entre adultes de maisons différentes."
+            >
+              <span className="p-foyers">
+                💍 {foyers} foyer{foyers > 1 ? 's' : ''}
+              </span>
+            </Astuce>
+            <Astuce
+              titre="🏛️ Les maisons"
+              resume="Les lignées du village. Un enfant hérite de la maison de son père, et l’on ne marie jamais deux personnes d’une même maison — c’est ce qui fait circuler les métiers."
+            >
+              <span className="p-maisons">
+                🏛️ {maisons} maison{maisons > 1 ? 's' : ''}
+              </span>
+            </Astuce>
           </div>
           {habitants.length === 0 && (
             <div style={{ fontSize: 12.5, color: '#93a7b4' }}>Le village est désert. Les maisons attendent.</div>

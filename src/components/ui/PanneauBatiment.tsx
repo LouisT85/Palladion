@@ -3,20 +3,30 @@ import { BUILDINGS, BUILDING_IDS, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEM
 import { candidatsPour, fmtDuree, metierDe, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
 import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
+import { Astuce } from './Infobulle'
 import { couleurRendement } from './Population'
 
 function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, number>>; resources: Record<ResourceId, number> }) {
   return (
     <div className="cout">
-      {(Object.entries(cout) as [ResourceId, number][]).map(([r, n]) => (
-        <span
-          key={r}
-          className={`montant ${resources[r] >= n ? 'okk' : 'ko'}`}
-          title={`${n} ${RES[r].nom.toLowerCase()} - vous en avez ${Math.floor(resources[r])}`}
-        >
-          <Icone id={r} taille={15} /> {n}
-        </span>
-      ))}
+      {(Object.entries(cout) as [ResourceId, number][]).map(([r, n]) => {
+        const manque = n - Math.floor(resources[r])
+        return (
+          <Astuce
+            key={r}
+            titre={`${RES[r].emoji} ${RES[r].nom}`}
+            lignes={[
+              { label: 'Demandé', valeur: n, fort: true },
+              { label: 'En réserve', valeur: Math.floor(resources[r]), couleur: manque > 0 ? '#e0715a' : '#8fbf5a' },
+            ]}
+            note={manque > 0 ? `Il en manque ${manque}.` : undefined}
+          >
+            <span className={`montant ${resources[r] >= n ? 'okk' : 'ko'}`}>
+              <Icone id={r} taille={15} /> {n}
+            </span>
+          </Astuce>
+        )
+      })}
     </div>
   )
 }
@@ -110,13 +120,14 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
               </span>
             )}
           </span>
-          <button
-            onClick={() => s.affecter(v.id, null)}
-            title={`Retirer ${v.nom} de son poste`}
-            style={{ padding: '2px 8px', fontSize: 12 }}
+          <Astuce
+            titre={`Retirer ${v.nom}`}
+            resume="Il quitte ce poste et redevient disponible : à placer ailleurs, ou à enrôler à la caserne."
           >
-            ✕
-          </button>
+            <button onClick={() => s.affecter(v.id, null)} style={{ padding: '2px 8px', fontSize: 12 }}>
+              ✕
+            </button>
+          </Astuce>
         </div>
       ))}
       {pourvus === 0 && (
@@ -218,25 +229,36 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
               </div>
               {debloque ? (
                 <div className="actions">
-                  <button
-                    onClick={() => s.recruter(u, 1)}
-                    disabled={!peutPayer(s.resources, def.cost) || dispo < 1}
-                    title={dispo < 1 ? 'Aucun villageois sans emploi' : undefined}
+                  <Astuce
+                    titre={`${def.emoji} Lever un ${def.nom.toLowerCase()}`}
+                    resume="Un habitant sans emploi prend les armes : le village perd un bras, la garnison gagne un homme."
+                    note={dispo < 1 ? 'Aucun villageois sans emploi à enrôler.' : `${dispo} habitant(s) disponible(s).`}
                   >
-                    +1
-                  </button>
-                  <button
-                    onClick={() => s.recruter(u, 5)}
-                    disabled={
-                      !peutPayer(
-                        s.resources,
-                        Object.fromEntries(Object.entries(def.cost).map(([r, n]) => [r, (n as number) * 5])),
-                      ) || dispo < 5
+                    <button onClick={() => s.recruter(u, 1)} disabled={!peutPayer(s.resources, def.cost) || dispo < 1}>
+                      +1
+                    </button>
+                  </Astuce>
+                  <Astuce
+                    titre={`${def.emoji} En lever cinq d’un coup`}
+                    resume="Cinq recrues à la file : elles se forment l’une après l’autre, dans l’ordre de la file."
+                    note={
+                      dispo < 5
+                        ? `Il faut 5 villageois sans emploi (${dispo} disponible${dispo > 1 ? 's' : ''}).`
+                        : undefined
                     }
-                    title={dispo < 5 ? `Il faut 5 villageois sans emploi (${dispo} disponible${dispo > 1 ? 's' : ''})` : undefined}
                   >
-                    +5
-                  </button>
+                    <button
+                      onClick={() => s.recruter(u, 5)}
+                      disabled={
+                        !peutPayer(
+                          s.resources,
+                          Object.fromEntries(Object.entries(def.cost).map(([r, n]) => [r, (n as number) * 5])),
+                        ) || dispo < 5
+                      }
+                    >
+                      +5
+                    </button>
+                  </Astuce>
                 </div>
               ) : (
                 <span style={{ fontSize: 11, color: '#93a7b4' }}>Caserne niv. {def.caserne}</span>
@@ -309,16 +331,21 @@ function BlocPort() {
   ) => (
     <span className="troc-choix">
       {(Object.keys(RES) as ResourceId[]).map((r) => (
-        <button
+        <Astuce
           key={r}
-          className={`troc-jeton${actuel === r ? ' actif' : ''}`}
-          disabled={r === interdit}
-          onClick={() => poser(r)}
-          title={r === interdit ? 'Déjà de l’autre côté du troc' : RES[r].nom}
-          aria-label={RES[r].nom}
+          titre={`${RES[r].emoji} ${RES[r].nom}`}
+          resume={r === interdit ? 'Déjà de l’autre côté du troc : on n’échange pas une denrée contre elle-même.' : undefined}
+          lignes={[{ label: 'En réserve', valeur: Math.floor(s.resources[r]) }]}
         >
-          <Icone id={r} taille={17} />
-        </button>
+          <button
+            className={`troc-jeton${actuel === r ? ' actif' : ''}`}
+            disabled={r === interdit}
+            onClick={() => poser(r)}
+            aria-label={RES[r].nom}
+          >
+            <Icone id={r} taille={17} />
+          </button>
+        </Astuce>
       ))}
     </span>
   )

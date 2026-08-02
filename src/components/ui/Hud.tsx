@@ -21,7 +21,7 @@ import { VILLAGES_PAR_ID } from '../../game/expeditions'
 import { nomPhase, phaseJour } from '../map/Terrain'
 import { HerosRapides } from './Heros'
 import { Icone, Montant } from './Icones'
-import { Infobulle } from './Infobulle'
+import { Astuce, Infobulle } from './Infobulle'
 import { BarreOrdres } from './Ordres'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
@@ -115,14 +115,22 @@ export function BoutonPleinEcran() {
   }
 
   return (
-    <button
-      className={`bouton-icone${plein ? ' actif' : ''}`}
-      onClick={basculer}
-      title={plein ? 'Quitter le plein écran' : 'Jouer en plein écran'}
-      aria-label={plein ? 'Quitter le plein écran' : 'Jouer en plein écran'}
+    <Astuce
+      titre={plein ? '⛶ Quitter le plein écran' : '⛶ Plein écran'}
+      resume={
+        plein
+          ? 'Revenir à la fenêtre du navigateur.'
+          : 'La plaine mérite tout l’écran : la carte gagne en lisibilité et le bandeau cesse de se serrer.'
+      }
     >
-      <IconePleinEcran sortir={plein} />
-    </button>
+      <button
+        className={`bouton-icone${plein ? ' actif' : ''}`}
+        onClick={basculer}
+        aria-label={plein ? 'Quitter le plein écran' : 'Jouer en plein écran'}
+      >
+        <IconePleinEcran sortir={plein} />
+      </button>
+    </Astuce>
   )
 }
 
@@ -253,14 +261,16 @@ export function BarreRessources() {
       </div>
       <div className="hud-groupe">
         {MODE_TEST && (
-          <span className="pastille test" title="Mode test : ressources illimitées, chantiers instantanés">
-            🧪 TEST
-          </span>
+          <Astuce titre="🧪 Mode test" resume="Ressources illimitées, chantiers instantanés. N’existe pas en production.">
+            <span className="pastille test">🧪 TEST</span>
+          </Astuce>
         )}
         {MODE_TEST && (
-          <button onClick={() => s.attaqueTest()} title="Déclencher un assaut dans 3 secondes" style={{ padding: '3px 9px', fontSize: 12.5 }}>
-            🧪 Attaque
-          </button>
+          <Astuce titre="🧪 Attaque forcée" resume="Déclenche un assaut dans trois secondes, sans attendre le calendrier.">
+            <button onClick={() => s.attaqueTest()} style={{ padding: '3px 9px', fontSize: 12.5 }}>
+              🧪 Attaque
+            </button>
+          </Astuce>
         )}
         <Infobulle
           dataTuto="habitants"
@@ -436,15 +446,27 @@ export function DieuxRapides() {
           const cout = coutBenediction({ buildings, graces }, g)
           const cd = Math.max(0, gods[g].cooldownUntil - now)
           return (
-            <button
+            <Astuce
               key={g}
-              disabled={faveur < cout || cd > 0}
-              onClick={() => benir(g)}
-              title={`${dieu.benediction.nom} - ${dieu.benediction.desc}`}
+              titre={`${dieu.emoji} ${dieu.benediction.nom}`}
+              resume={dieu.benediction.desc}
+              lignes={[
+                { label: 'Coût', valeur: <Montant n={cout} id="faveur" taille={12} />, fort: faveur >= cout },
+                ...(cd > 0 ? [{ label: 'Prêt dans', valeur: `${Math.ceil(cd / 1000)} s` }] : []),
+              ]}
+              note={
+                faveur < cout
+                  ? `Il vous manque ${Math.ceil(cout - faveur)} de faveur.`
+                  : dieu.benediction.batailleUniquement
+                    ? 'Ne s’invoque qu’en bataille.'
+                    : undefined
+              }
             >
-              {dieu.emoji}{' '}
-              {cd > 0 ? `${Math.ceil(cd / 1000)}s` : <Montant n={cout} id="faveur" taille={13} />}
-            </button>
+              <button disabled={faveur < cout || cd > 0} onClick={() => benir(g)}>
+                {dieu.emoji}{' '}
+                {cd > 0 ? `${Math.ceil(cd / 1000)}s` : <Montant n={cout} id="faveur" taille={13} />}
+              </button>
+            </Astuce>
           )
         })}
         {templeLevel < 1 && <span className="detail">Bâtissez un temple pour invoquer les dieux…</span>}
@@ -489,9 +511,15 @@ function BandeauSecours() {
         <button className="principal" disabled={enCours} onClick={() => openPanel('expeditions')}>
           🤝 Voir et porter secours
         </button>
-        <button className="danger" onClick={() => ignorer()} title="Zeus Xenios protège les suppliants">
-          🚪 Fermer la porte (Zeus −4)
-        </button>
+        <Astuce
+          titre="🚪 Fermer la porte"
+          resume="Zeus Xenios protège les suppliants : refuser se paie auprès de lui, et le village tombera sans vous."
+          note="Une bande de plus rôdera dans la région."
+        >
+          <button className="danger" onClick={() => ignorer()}>
+            🚪 Fermer la porte (Zeus −4)
+          </button>
+        </Astuce>
       </div>
     </div>
   )
@@ -567,14 +595,29 @@ export function BandeauAlerte() {
               <span className="champion-mort">💀 abattu - sa manœuvre est morte avec lui</span>
             ) : (
               <>
-                <span className="champion-vie" title={`${Math.round(vieChamp * 100)} % de ses forces`}>
-                  <i style={{ width: `${Math.round(vieChamp * 100)}%` }} />
-                </span>
-                <span className="champion-manoeuvre" title={def.capacite.desc}>
-                  {champ.lancee
-                    ? `${def.capacite.emoji} ${def.capacite.nom} - en cours`
-                    : `${def.capacite.emoji} ${def.capacite.nom} dans ${Math.ceil(avantManoeuvre / 1000)} s`}
-                </span>
+                <Astuce
+                  titre={`${champ.emoji} ${champ.nom}`}
+                  resume={`${Math.round(vieChamp * 100)} % de ses forces. Abattez-le et sa manœuvre meurt avec lui - c’est la seule façon de l’éteindre.`}
+                >
+                  <span className="champion-vie">
+                    <i style={{ width: `${Math.round(vieChamp * 100)}%` }} />
+                  </span>
+                </Astuce>
+                <Astuce
+                  titre={`${def.capacite.emoji} ${def.capacite.nom}`}
+                  resume={def.capacite.desc}
+                  note={
+                    champ.lancee
+                      ? 'Elle est en cours : il est trop tard pour l’empêcher.'
+                      : `Elle tombe dans ${Math.ceil(avantManoeuvre / 1000)} s. Le décompte est annoncé exprès : vous avez le temps de vous y préparer.`
+                  }
+                >
+                  <span className="champion-manoeuvre">
+                    {champ.lancee
+                      ? `${def.capacite.emoji} ${def.capacite.nom} - en cours`
+                      : `${def.capacite.emoji} ${def.capacite.nom} dans ${Math.ceil(avantManoeuvre / 1000)} s`}
+                  </span>
+                </Astuce>
               </>
             )}
           </div>

@@ -8,6 +8,7 @@ import {
   type CategorieHF,
 } from '../../game/hautsfaits'
 import { snapHautFait, useGame } from '../../game/store'
+import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
 /*
@@ -74,14 +75,22 @@ export function PanneauHautsFaits() {
                 {liste.map((h) => {
                   const ok = acquis.includes(h.id)
                   return (
-                    <div key={h.id} className={`hf${ok ? ' obtenu' : ''}`} title={h.desc}>
-                      <span className="hf-emoji">{ok ? h.emoji : '🔒'}</span>
-                      <span className="hf-corps">
-                        <b>{h.titre}</b>
-                        <span className="hf-desc">{h.desc}</span>
-                      </span>
-                      <span className="hf-points">+{h.points}</span>
-                    </div>
+                    <Astuce
+                      key={h.id}
+                      titre={`${ok ? h.emoji : '🔒'} ${h.titre}`}
+                      resume={h.desc}
+                      lignes={[{ label: 'Prestige', valeur: `+${h.points}`, fort: ok, couleur: ok ? '#12c97c' : undefined }]}
+                      note={ok ? 'Acquis - un haut fait ne se reprend jamais.' : 'Pas encore accompli.'}
+                    >
+                      <div className={`hf${ok ? ' obtenu' : ''}`}>
+                        <span className="hf-emoji">{ok ? h.emoji : '🔒'}</span>
+                        <span className="hf-corps">
+                          <b>{h.titre}</b>
+                          <span className="hf-desc">{h.desc}</span>
+                        </span>
+                        <span className="hf-points">+{h.points}</span>
+                      </div>
+                    </Astuce>
                   )
                 })}
               </div>
@@ -107,9 +116,15 @@ export function PanneauHautsFaits() {
               <button onClick={() => setConfirme(false)}>Régner encore</button>
             </>
           ) : (
-            <button disabled={enBataille} onClick={() => setConfirme(true)} title="Clore la partie et découvrir son titre">
-              👑 Abdiquer et voir le bilan du règne
-            </button>
+            <Astuce
+              titre="👑 Abdiquer"
+              resume="Choisir la fin de son règne : le score se fige, les aèdes donnent un titre, puis la cité repart de zéro. Rien d’autre ne termine une partie - un village peut être pillé cent fois et se relever."
+              note={enBataille ? 'On n’abdique pas au milieu d’un assaut.' : 'Geste sans retour.'}
+            >
+              <button disabled={enBataille} onClick={() => setConfirme(true)}>
+                👑 Abdiquer et voir le bilan du règne
+              </button>
+            </Astuce>
           )}
         </div>
       </>

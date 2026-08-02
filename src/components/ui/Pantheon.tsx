@@ -4,6 +4,7 @@ import { coutBenediction, murMax, relationEffective, useGame } from '../../game/
 import type { GodId } from '../../game/types'
 import { ApercuDivin } from '../map/EffetsDivins'
 import { Montant } from './Icones'
+import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
 /** ×1.60 → « 1.6 », ×1.00 → « 1 » : on ne montre que les décimales qui portent du sens */
@@ -72,7 +73,15 @@ function JaugeRelation({ relation }: { relation: number }) {
   const pos = ((borne + 100) / 200) * 100
   const couleur = couleurFerveur(borne)
   return (
-    <div style={{ margin: '9px 0 3px' }} title={`Relation : ${Math.round(relation)}`}>
+    <Astuce
+      titre={`${nomFerveur(borne)} · ${Math.round(relation) > 0 ? '+' : ''}${Math.round(relation)}`}
+      resume="La relation ne paie rien : elle multiplie. De ×0.4 pour un dieu maudit à ×1.6 pour son élu - la puissance de la bénédiction ET sa durée."
+      lignes={[
+        { label: 'Puissance des bénédictions', valeur: `×${fmtMult(multRelation(borne))}`, fort: true },
+      ]}
+      note="Un sacrifice vaut +8. Les grâces, elles, se paient en points de relation : monter sa ferveur ou l’échanger, c’est là tout l’arbitrage."
+    >
+    <div style={{ margin: '9px 0 3px' }}>
       <div className="jauge-ferveur">
         {/* rail à sept bandes : chaque palier occupe exactement sa plage */}
         {TEINTES_FERVEUR.map((c, i) => {
@@ -98,6 +107,7 @@ function JaugeRelation({ relation }: { relation: number }) {
         <span style={{ color: TEINTES_FERVEUR[6] }}>+100 élu</span>
       </div>
     </div>
+    </Astuce>
   )
 }
 
@@ -121,36 +131,49 @@ function ArbreDuDieu({ dieu, relation }: { dieu: GodId; relation: number }) {
         const offerte = !prise && prochaine?.id === g.id
         const assez = relation >= g.cout
         return (
-          <div
+          <Astuce
             key={g.id}
-            className={`grace${prise ? ' acquise' : offerte ? ' offerte' : ' lointaine'}`}
-            title={prise ? 'Acquise - définitivement' : `Coûte ${g.cout} points de relation`}
+            titre={`${g.emoji} ${g.nom}`}
+            resume={g.desc}
+            lignes={
+              prise
+                ? [{ label: 'Accordée', valeur: 'définitivement', fort: true, couleur: '#12c97c' }]
+                : [
+                    { label: 'Prix', valeur: `${g.cout} points de relation`, fort: assez },
+                    { label: 'Votre relation', valeur: Math.round(relation), couleur: assez ? '#12c97c' : '#d98a4e' },
+                  ]
+            }
+            note={
+              prise
+                ? 'Le prix a été versé : le don reste, même si le dieu se refroidit ensuite.'
+                : offerte
+                  ? 'Verser ces points les retire de votre relation - et donc de la puissance de ses bénédictions.'
+                  : 'Ses grâces se prennent dans l’ordre : celle-ci attend que la précédente soit accordée.'
+            }
           >
-            <span className="cran" />
-            <span className="grace-emoji">{g.emoji}</span>
-            <div className="grace-corps">
-              <div className="grace-nom">
-                {g.nom}
-                {prise && <span style={{ color: '#12c97c', fontWeight: 400 }}> - accordée</span>}
+            <div className={`grace${prise ? ' acquise' : offerte ? ' offerte' : ' lointaine'}`}>
+              <span className="cran" />
+              <span className="grace-emoji">{g.emoji}</span>
+              <div className="grace-corps">
+                <div className="grace-nom">
+                  {g.nom}
+                  {prise && <span style={{ color: '#12c97c', fontWeight: 400 }}> - accordée</span>}
+                </div>
+                <div className="grace-desc">{g.desc}</div>
               </div>
-              <div className="grace-desc">{g.desc}</div>
+              {prise ? (
+                <span className="grace-prix" style={{ color: '#12c97c' }}>
+                  ✓
+                </span>
+              ) : offerte ? (
+                <button disabled={!assez} onClick={() => acheter(g.id)}>
+                  {assez ? `Obtenir (−${g.cout})` : `${Math.round(relation)}/${g.cout}`}
+                </button>
+              ) : (
+                <span className="grace-prix">−{g.cout}</span>
+              )}
             </div>
-            {prise ? (
-              <span className="grace-prix" style={{ color: '#12c97c' }}>
-                ✓
-              </span>
-            ) : offerte ? (
-              <button
-                disabled={!assez}
-                onClick={() => acheter(g.id)}
-                title={assez ? `Verser ${g.cout} points de relation` : `Relation ${Math.round(relation)}/${g.cout}`}
-              >
-                {assez ? `Obtenir (−${g.cout})` : `${Math.round(relation)}/${g.cout}`}
-              </button>
-            ) : (
-              <span className="grace-prix">−{g.cout}</span>
-            )}
-          </div>
+          </Astuce>
         )
       })}
     </div>
@@ -203,9 +226,14 @@ export function Pantheon() {
                 {/* aperçu de la manifestation à la ferveur courante : le joueur
                     voit à quoi ressemble le bras du dieu avant de le payer */}
                 {!verrouille && (
-                  <div className="apercu-divin" title={`Manifestation de ${dieu.nom} à votre ferveur actuelle`}>
-                    <ApercuDivin dieu={g} palier={palierFerveur(etat.relation)} taille={74} />
-                  </div>
+                  <Astuce
+                    titre={`${dieu.emoji} Le bras de ${dieu.nom}`}
+                    resume={`Voici à quoi ressemble sa manifestation à votre ferveur actuelle (${nomFerveur(relationEffective(s, g))}). Elle enfle ou pâlit avec la relation - on voit ce qu’on paie avant de le payer.`}
+                  >
+                    <div className="apercu-divin">
+                      <ApercuDivin dieu={g} palier={palierFerveur(etat.relation)} taille={74} />
+                    </div>
+                  </Astuce>
                 )}
               </div>
               <div className="corps">
@@ -261,9 +289,15 @@ export function Pantheon() {
                       >
                         {cd > 0 ? `⏳ ${Math.ceil(cd / 1000)}s` : `Invoquer (${cout} ✨)`}
                       </button>
-                      <button disabled={s.resources.grain < 50} onClick={() => s.sacrifier(g)} title="+8 relation, +5 faveur">
-                        Sacrifice (<Montant n={-50} id="grain" taille={13} />)
-                      </button>
+                      <Astuce
+                        titre={`🔥 Sacrifice à ${dieu.nom}`}
+                        resume="Cinquante mesures de grain sur l’autel : +8 de relation et +5 de faveur. C’est le seul levier direct sur ce qu’un dieu pense de vous."
+                        note="La relation gagnée sert deux fois : elle renforce ses bénédictions, et elle paie ses grâces."
+                      >
+                        <button disabled={s.resources.grain < 50} onClick={() => s.sacrifier(g)}>
+                          Sacrifice (<Montant n={-50} id="grain" taille={13} />)
+                        </button>
+                      </Astuce>
                       {etat.relation < 0 && (
                         <span style={{ fontSize: 11.5, color: '#d98a4e', alignSelf: 'center' }}>
                           Son bras est mou tant qu’il vous garde rancune.

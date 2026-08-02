@@ -4,6 +4,7 @@ import { HERO_IDS } from '../../game/heros'
 import { ACTES_CAMPAGNE } from '../../game/campagne'
 import { murMax, postesPourvus, postesTotal, useGame } from '../../game/store'
 import type { BuildingId } from '../../game/types'
+import { Astuce } from '../ui/Infobulle'
 import { DefsArt } from './art'
 import { DecorActe } from './CadreActe'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
@@ -453,29 +454,48 @@ export function VillageMap() {
       {/* commandes de vue - la molette et le glisser font la même chose,
           ces boutons ne sont là que pour ceux qui n'ont ni l'un ni l'autre */}
       <div className="zoom-controles">
-        <button
-          onClick={() => camera.zoomer(1 / 1.35)}
-          disabled={camera.manuel && camera.zoom <= ZOOM_MIN + 0.01}
-          title="Reculer (molette vers le bas)"
-          aria-label="Dézoomer"
-        >
-          −
-        </button>
-        <span className="zoom-valeur" title="Molette : zoom · glisser : déplacer · double-clic : recentrer">
-          ×{camera.manuel ? camera.zoom.toFixed(1) : '1'}
-        </span>
-        <button
-          onClick={() => camera.zoomer(1.35)}
-          disabled={camera.manuel && camera.zoom >= ZOOM_MAX - 0.01}
-          title="Approcher (molette vers le haut)"
-          aria-label="Zoomer"
-        >
-          +
-        </button>
-        {camera.manuel && (
-          <button className="zoom-recentrer" onClick={camera.recentrer} title="Rendre la main à la caméra">
-            ⤢ recentrer
+        <Astuce titre="− Reculer" resume="Prendre du champ sur la plaine. La molette vers le bas fait la même chose.">
+          <button
+            onClick={() => camera.zoomer(1 / 1.35)}
+            disabled={camera.manuel && camera.zoom <= ZOOM_MIN + 0.01}
+            aria-label="Dézoomer"
+          >
+            −
           </button>
+        </Astuce>
+        <Astuce
+          titre="🔍 La caméra"
+          resume={
+            camera.manuel
+              ? 'Vous tenez la vue. Elle ne bougera plus d’elle-même tant que vous ne l’aurez pas recentrée.'
+              : 'La caméra suit l’action d’elle-même : elle se penche sur l’assaut, puis revient au village.'
+          }
+          lignes={[
+            { label: 'Molette', valeur: 'zoom' },
+            { label: 'Glisser', valeur: 'déplacer' },
+            { label: 'Double-clic', valeur: 'recentrer' },
+          ]}
+        >
+          <span className="zoom-valeur">×{camera.manuel ? camera.zoom.toFixed(1) : '1'}</span>
+        </Astuce>
+        <Astuce titre="+ Approcher" resume="Entrer dans le détail des bâtiments. La molette vers le haut fait la même chose.">
+          <button
+            onClick={() => camera.zoomer(1.35)}
+            disabled={camera.manuel && camera.zoom >= ZOOM_MAX - 0.01}
+            aria-label="Zoomer"
+          >
+            +
+          </button>
+        </Astuce>
+        {camera.manuel && (
+          <Astuce
+            titre="⤢ Rendre la main à la caméra"
+            resume="Elle reprend son travail : cadrer le village, et se pencher d’elle-même sur les assauts."
+          >
+            <button className="zoom-recentrer" onClick={camera.recentrer}>
+              ⤢ recentrer
+            </button>
+          </Astuce>
         )}
       </div>
     </>

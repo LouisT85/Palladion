@@ -1,6 +1,7 @@
 import { GRAPHES, bornes, motPente, pente, type GrapheDef, type Releve } from '../../game/annales'
 import { VILLAGES_CIBLES } from '../../game/expeditions'
 import { prestigeCourant, totalEtoiles, useGame } from '../../game/store'
+import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
 /*
@@ -113,10 +114,12 @@ function Graphe({ def, annales }: { def: GrapheDef; annales: Releve[] }) {
 /** un chiffre du règne, avec ce qu'il veut dire */
 function Chiffre({ v, quoi, aide }: { v: string | number; quoi: string; aide?: string }) {
   return (
-    <div className="chiffre" title={aide}>
-      <b>{v}</b>
-      <span>{quoi}</span>
-    </div>
+    <Astuce titre={`${v} ${quoi}`} resume={aide} actif={!!aide}>
+      <div className="chiffre">
+        <b>{v}</b>
+        <span>{quoi}</span>
+      </div>
+    </Astuce>
   )
 }
 

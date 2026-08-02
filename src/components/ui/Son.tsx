@@ -17,6 +17,7 @@ import { BUILDING_IDS } from '../../game/data'
 import { descVague, tailleVague } from '../../game/combat'
 import { avertir, basculerNotifs, etatNotifs, type EtatNotifs } from '../../game/notifications'
 import { useGame } from '../../game/store'
+import { Astuce } from './Infobulle'
 
 /*
  * Le pont entre l'état du jeu et le son. Aucune ligne de bruit dans le store :
@@ -151,23 +152,31 @@ export function ControleSon() {
 
   return (
     <span className="son">
-      <button
-        className={`bouton-icone${reglages.muet ? '' : ' actif'}`}
-        onClick={() => {
-          debloquerAudio()
-          setOuvert((o) => !o)
-        }}
-        title="Sons et musique"
-        aria-label="Réglages du son"
+      <Astuce
+        titre="🎵 Son et musique"
+        resume={
+          reglages.muet
+            ? 'Tout est coupé. Ouvrez pour régler le volume, l’ambiance du village et les alertes.'
+            : 'Volume, ambiance du village, bruits de bataille et notifications du navigateur.'
+        }
       >
-        {icone}
-      </button>
+        <button
+          className={`bouton-icone${reglages.muet ? '' : ' actif'}`}
+          onClick={() => {
+            debloquerAudio()
+            setOuvert((o) => !o)
+          }}
+          aria-label="Réglages du son"
+        >
+          {icone}
+        </button>
+      </Astuce>
       {ouvert && (
         <div className="son-panneau">
           {/* même sortie que les grands panneaux : une croix, pas un clic dans le vide */}
           <div className="son-tete">
             <span>🎵 Son et musique</span>
-            <button className="son-croix" onClick={() => setOuvert(false)} aria-label="Fermer" title="Fermer">
+            <button className="son-croix" onClick={() => setOuvert(false)} aria-label="Fermer">
               ✕
             </button>
           </div>

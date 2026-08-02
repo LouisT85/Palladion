@@ -13,6 +13,7 @@ import { useGame } from '../../game/store'
 import { BUILDINGS } from '../../game/data'
 import type { ResourceId } from '../../game/types'
 import { Montant } from './Icones'
+import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
 /*
@@ -62,13 +63,14 @@ function BoutonYAller({ m, classe }: { m: MissionDef; classe?: string }) {
   const aller = useGame((s) => s.allerAMission)
   if (!m.cible) return null
   return (
-    <button
-      className={classe}
-      onClick={() => aller(m.id)}
-      title={`Ouvrir ${libelleCible(m.cible)}`}
+    <Astuce
+      titre={`→ ${libelleCible(m.cible)}`}
+      resume="Vous y conduit directement : le panneau s’ouvre, le bâtiment se sélectionne. On ne cherche pas où se joue une mission."
     >
-      {libelleCible(m.cible)} →
-    </button>
+      <button className={classe} onClick={() => aller(m.id)}>
+        {libelleCible(m.cible)} →
+      </button>
+    </Astuce>
   )
 }
 
@@ -91,12 +93,7 @@ export function MissionsTracker() {
   return (
     <div className={`missions${replie ? ' replie' : ''}`} data-tuto="missions">
       <div className="missions-tete">
-        <button
-          className="missions-titre"
-          onClick={() => setReplie(!replie)}
-          title={replie ? 'Dérouler le suivi des missions' : 'Replier le suivi des missions'}
-          aria-expanded={!replie}
-        >
+        <button className="missions-titre" onClick={() => setReplie(!replie)} aria-expanded={!replie}>
           🏅 Missions{' '}
           {/* l'acte en cours est le repère de récit : il s'affiche sans qu'on clique */}
           <span className="compte-missions">
@@ -108,9 +105,14 @@ export function MissionsTracker() {
           <span className="chevron">{replie ? '▸' : '▾'}</span>
         </button>
         {!replie && (
-          <button className="missions-tout" onClick={() => s.openPanel('missions')} title="Tout le fil rouge, acte par acte">
-            ⤢
-          </button>
+          <Astuce
+            titre="⤢ Tout le fil rouge"
+            resume={`Les ${MISSIONS.length} missions du règne, acte par acte, avec ce que chacune rapporte - y compris celles qui ne sont pas encore ouvertes.`}
+          >
+            <button className="missions-tout" onClick={() => s.openPanel('missions')}>
+              ⤢
+            </button>
+          </Astuce>
         )}
       </div>
       {!replie && (

@@ -483,6 +483,17 @@ const D_PLAGE = 'M0,584 C120,594 200,642 244,720 C264,760 272,800 272,800 L0,800
 const D_MER = 'M0,596 C112,606 188,650 228,724 C247,762 254,800 254,800 L0,800 Z'
 const D_RIVE = 'M0,598 C110,608 185,651 225,725 C243,762 251,800 251,800'
 
+/*
+ * La terre ferme, exportée pour les actes de la campagne. Le sol du bac à sable
+ * est une plaine de Troade générique ; « La Chute » a besoin d'y poser sa grève
+ * de sable, sa boue de camp, sa poussière de siège, ses crues et ses cendres —
+ * et tout cela doit s'arrêter net au bord de la mer.
+ *
+ * On repart des mêmes bornes que la plaine (horizon en haut, rivage au sud-ouest)
+ * pour que les deux couches ne puissent pas diverger d'un pixel.
+ */
+export const D_TERRE = `M0,${HORIZON} L1200,${HORIZON} L1200,800 L272,800 C272,760 264,720 244,720 C200,642 120,594 0,584 Z`
+
 export function Terrain({
   phase,
   paisible = true,

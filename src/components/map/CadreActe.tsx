@@ -1,4 +1,5 @@
 import type { CadreActe } from '../../game/campagne'
+import { D_TERRE } from './Terrain'
 
 /*
  * ═══════════════════ LE DÉCOR DES CINQ ACTES ═══════════════════
@@ -341,12 +342,303 @@ function ChevalDeBois() {
   )
 }
 
+/*
+ * ═══════════════════ LE SOL DES CINQ ACTES ═══════════════════
+ *
+ * Les repères ne suffisaient pas. On plantait des nefs et des murailles sur la
+ * MÊME prairie de bac à sable : la grève de Sigée avait la couleur d'un pré au
+ * printemps, et la ville en cendres poussait sur du gazon. Le décor disait
+ * « nous sommes en Troade », jamais « nous sommes au dixième jour du siège ».
+ *
+ * Cette couche repeint la terre elle-même, clippée sur la même silhouette que la
+ * plaine (`D_TERRE`) pour que rien ne déborde sur la mer :
+ *
+ *   · grève      — le sable remonte dans l'herbe, les dunes gagnent ;
+ *   · plaine     — dix ans de camp : boue, ornières de chars, feux éteints ;
+ *   · murailles  — la poussière du siège, la terre battue, plus une fleur ;
+ *   · fleuve     — la crue a tout détrempé : flaques, limon, roseaux ;
+ *   · ruines     — la cendre est tombée sur tout, et quelques braises tiennent.
+ *
+ * Deux règles tenues : aucun tirage au rendu (les semis sont dérivés d'un indice)
+ * et aucune opacité assez forte pour effacer le relief du terrain — on TEINTE,
+ * on ne recouvre pas.
+ */
+
+/** semis reproductible : n points répartis sur la terre ferme */
+function semis(n: number, graine: number, hautMin = 300): { x: number; y: number; r: number }[] {
+  const out: { x: number; y: number; r: number }[] = []
+  let g = graine
+  const suivant = () => {
+    g = (g * 1103515245 + 12345) % 2147483648
+    return g / 2147483648
+  }
+  for (let i = 0; i < n * 3 && out.length < n; i++) {
+    const x = 30 + suivant() * 1150
+    const y = hautMin + suivant() * (795 - hautMin)
+    // on reste à l'est du rivage : la mer occupe le coin sud-ouest
+    const bordMer = y > 584 ? 40 + ((y - 584) / 216) * 250 : 0
+    if (x < bordMer) continue
+    out.push({ x, y, r: 0.4 + suivant() })
+  }
+  return out
+}
+
+function SolGreve() {
+  return (
+    <g clipPath="url(#sol-terre)" pointerEvents="none">
+      {/* le sable a gagné toute la plaine, et franchement près de l'eau */}
+      <rect x={0} y={300} width={1200} height={500} fill="#dfcb97" opacity={0.3} />
+      <ellipse cx={330} cy={700} rx={560} ry={300} fill="#e9d8a6" opacity={0.42} />
+      <ellipse cx={620} cy={790} rx={700} ry={220} fill="#dcc793" opacity={0.32} />
+      {/* dunes : longues crêtes pâles côté NW, creux d'ombre côté SE */}
+      {[
+        'M60,646 C210,624 356,650 470,706',
+        'M120,714 C266,690 420,714 546,764',
+        'M244,586 C352,570 466,586 548,620',
+      ].map((d, i) => (
+        <g key={i}>
+          <path d={d} stroke="#f1e2b6" strokeWidth={7} fill="none" opacity={0.5} strokeLinecap="round" />
+          <path d={d} stroke="#b9a171" strokeWidth={3} fill="none" opacity={0.35} transform="translate(2,4)" />
+        </g>
+      ))}
+      {/* oyats : l'herbe rase et sèche qui tient le sable */}
+      {semis(46, 7, 560).map((p, i) => (
+        <path
+          key={i}
+          d={`M${p.x},${p.y} q${p.r > 0.9 ? 3 : -3},-7 ${p.r > 0.9 ? 1 : -1},-12`}
+          stroke={i % 3 === 0 ? '#b3ae7c' : '#9aa06a'}
+          strokeWidth={1}
+          fill="none"
+          opacity={0.72}
+        />
+      ))}
+      {/* galets roulés, plus nombreux près de l'eau */}
+      {semis(26, 19, 600).map((p, i) => (
+        <ellipse key={i} cx={p.x} cy={p.y} rx={2.2 + p.r * 2} ry={1.4 + p.r} fill="#cfc4a6" opacity={0.7}>
+          {i % 4 === 0 ? <animate attributeName="opacity" values="0.7;0.7" dur="9s" /> : null}
+        </ellipse>
+      ))}
+    </g>
+  )
+}
+
+function SolCamp() {
+  return (
+    <g clipPath="url(#sol-terre)" pointerEvents="none">
+      {/* dix ans de piétinement : la prairie a viré à la terre battue */}
+      <rect x={0} y={300} width={1200} height={500} fill="#9b8a5e" opacity={0.3} />
+      <ellipse cx={700} cy={560} rx={520} ry={230} fill="#8d7c53" opacity={0.28} />
+      {/* ornières de chars : deux sillons parallèles, creux à l'ombre */}
+      {[
+        'M1190,392 C980,404 800,452 660,520 C520,588 420,660 372,760',
+        'M1190,432 C990,446 820,494 686,560 C556,624 462,692 418,786',
+        'M300,352 C468,360 640,392 800,452',
+      ].map((d, i) => (
+        <g key={i} opacity={0.55}>
+          <path d={d} stroke="#6f6140" strokeWidth={5} fill="none" strokeLinecap="round" />
+          <path d={d} stroke="#b8a674" strokeWidth={1.8} fill="none" transform="translate(-1,-2)" />
+        </g>
+      ))}
+      {/* feux éteints : ronds de cendre cernés de pierres noircies */}
+      {semis(14, 23, 340).map((p, i) => (
+        <g key={i} opacity={0.72}>
+          <circle cx={p.x} cy={p.y} r={7 + p.r * 3} fill="#5e5646" />
+          <circle cx={p.x} cy={p.y} r={4 + p.r * 2} fill="#3f3a30" />
+          {[0, 1.6, 3.1, 4.7].map((a) => (
+            <circle
+              key={a}
+              cx={p.x + Math.cos(a) * (9 + p.r * 3)}
+              cy={p.y + Math.sin(a) * (5 + p.r * 2)}
+              r={1.8}
+              fill="#8b8270"
+            />
+          ))}
+        </g>
+      ))}
+      {/* touffes rescapées entre les tentes : l'herbe ne revient que par plaques */}
+      {semis(30, 41, 330).map((p, i) => (
+        <path
+          key={i}
+          d={`M${p.x},${p.y} l${p.r > 0.8 ? 2 : -2},-6`}
+          stroke="#7e8a4e"
+          strokeWidth={1.1}
+          opacity={0.5}
+          fill="none"
+        />
+      ))}
+    </g>
+  )
+}
+
+function SolSiege() {
+  return (
+    <g clipPath="url(#sol-terre)" pointerEvents="none">
+      {/* la poussière du siège : tout est gris-jaune, rien ne pousse */}
+      <rect x={0} y={280} width={1200} height={520} fill="#a89871" opacity={0.34} />
+      <ellipse cx={860} cy={430} rx={460} ry={200} fill="#bfae82" opacity={0.26} />
+      {/* nappes de poussière soulevée, qui respirent très lentement */}
+      {[
+        [520, 470, 300, 90, 17],
+        [880, 540, 260, 74, 23],
+        [300, 620, 220, 64, 29],
+      ].map(([cx, cy, rx, ry, d], i) => (
+        <ellipse key={i} cx={cx} cy={cy} rx={rx} ry={ry} fill="#d6c69a" opacity={0.16}>
+          <animate attributeName="opacity" values="0.1;0.24;0.1" dur={`${d}s`} repeatCount="indefinite" />
+        </ellipse>
+      ))}
+      {/* pierres de jet et éclats : ce que dix ans de siège laissent au sol */}
+      {semis(40, 53, 320).map((p, i) => (
+        <g key={i}>
+          <ellipse cx={p.x} cy={p.y} rx={2.6 + p.r * 3} ry={1.8 + p.r * 2} fill="#8d8570" opacity={0.8} />
+          <ellipse cx={p.x - 0.8} cy={p.y - 0.8} rx={1.6 + p.r * 2} ry={1 + p.r} fill="#bab19a" opacity={0.75} />
+        </g>
+      ))}
+      {/* trous de fondrière laissés par les béliers qu'on traîne */}
+      {semis(12, 67, 380).map((p, i) => (
+        <ellipse key={i} cx={p.x} cy={p.y} rx={13 + p.r * 8} ry={5 + p.r * 3} fill="#6f6449" opacity={0.3} />
+      ))}
+    </g>
+  )
+}
+
+function SolCrue() {
+  return (
+    <g clipPath="url(#sol-terre)" pointerEvents="none">
+      {/* la crue a tout détrempé : la terre est sombre et lourde */}
+      <rect x={0} y={300} width={1200} height={500} fill="#5d6a52" opacity={0.26} />
+      {/* limon déposé le long de ce que le fleuve a débordé */}
+      <path
+        d="M1200,300 C1020,318 900,352 782,300 C700,264 596,258 500,300 C392,348 300,432 236,556 C196,632 176,712 168,800"
+        stroke="#8c8560"
+        strokeWidth={150}
+        fill="none"
+        opacity={0.22}
+        strokeLinecap="round"
+      />
+      {/* flaques : miroirs de ciel restés dans les creux */}
+      {semis(22, 11, 330).map((p, i) => (
+        <g key={i}>
+          <ellipse cx={p.x} cy={p.y} rx={12 + p.r * 16} ry={4 + p.r * 5} fill="#6f8b8c" opacity={0.55} />
+          <ellipse cx={p.x - 2} cy={p.y - 1.2} rx={7 + p.r * 9} ry={2 + p.r * 2.4} fill="#a8c2bd" opacity={0.4}>
+            <animate
+              attributeName="opacity"
+              values="0.28;0.46;0.28"
+              dur={`${7 + (i % 5)}s`}
+              repeatCount="indefinite"
+            />
+          </ellipse>
+        </g>
+      ))}
+      {/* roseaux gagnés sur la prairie : le fleuve a apporté ses plantes */}
+      {semis(28, 29, 340).map((p, i) => (
+        <g key={i} opacity={0.7}>
+          {[0, 3.4, 6.8].map((d) => (
+            <path
+              key={d}
+              d={`M${p.x + d},${p.y} q${d === 3.4 ? 2 : -2},-9 ${d === 3.4 ? 0.6 : -0.6},-16`}
+              stroke={i % 2 === 0 ? '#6f7f48' : '#7f8a52'}
+              strokeWidth={1.1}
+              fill="none"
+            />
+          ))}
+        </g>
+      ))}
+    </g>
+  )
+}
+
+function SolCendres() {
+  return (
+    <g clipPath="url(#sol-terre)" pointerEvents="none">
+      {/* la cendre est tombée sur tout : la plaine a perdu sa couleur */}
+      <rect x={0} y={260} width={1200} height={540} fill="#4a4640" opacity={0.36} />
+      <ellipse cx={880} cy={400} rx={480} ry={210} fill="#3a3630" opacity={0.3} />
+      {/* coulées de suie descendues d'Ilion, vers le sud-ouest */}
+      {[
+        'M1060,300 C960,372 840,452 700,520',
+        'M980,318 C880,400 760,486 618,566',
+        'M1120,336 C1030,412 930,486 806,556',
+      ].map((d, i) => (
+        <path key={i} d={d} stroke="#2f2c28" strokeWidth={40} fill="none" opacity={0.14} strokeLinecap="round" />
+      ))}
+      {/* plaques calcinées, cernées d'un liseré encore chaud */}
+      {semis(26, 71, 300).map((p, i) => (
+        <g key={i}>
+          <ellipse cx={p.x} cy={p.y} rx={14 + p.r * 14} ry={6 + p.r * 6} fill="#2b2825" opacity={0.55} />
+          <ellipse
+            cx={p.x}
+            cy={p.y}
+            rx={14 + p.r * 14}
+            ry={6 + p.r * 6}
+            fill="none"
+            stroke="#8a4a24"
+            strokeWidth={1}
+            opacity={0.3}
+          />
+        </g>
+      ))}
+      {/* braises : quelques points qui respirent encore dans la cendre */}
+      {semis(18, 83, 320).map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r={1.6 + p.r} fill="#e07a3a" opacity={0.7}>
+          <animate
+            attributeName="opacity"
+            values="0.25;0.85;0.25"
+            dur={`${2.4 + (i % 7) * 0.6}s`}
+            repeatCount="indefinite"
+          />
+        </circle>
+      ))}
+      {/* souches noircies : ce qui reste des oliviers de la plaine */}
+      {semis(10, 97, 340).map((p, i) => (
+        <g key={i} opacity={0.8}>
+          <path d={`M${p.x},${p.y} l0,-13`} stroke="#332f2a" strokeWidth={3.4} strokeLinecap="round" />
+          <path d={`M${p.x},${p.y - 9} l${p.r > 0.8 ? 7 : -7},-6`} stroke="#332f2a" strokeWidth={2} strokeLinecap="round" />
+          <ellipse cx={p.x + 2} cy={p.y + 1} rx={7} ry={2.4} fill="#20201d" opacity={0.4} />
+        </g>
+      ))}
+    </g>
+  )
+}
+
+/** la terre ferme d'un acte, avant qu'on y plante quoi que ce soit */
+function SolActe({ cadre }: { cadre: CadreActe }) {
+  switch (cadre) {
+    case 'greve':
+      return <SolGreve />
+    case 'plaine':
+      return <SolCamp />
+    case 'murailles':
+      return <SolSiege />
+    case 'fleuve':
+      return <SolCrue />
+    case 'ruines':
+      return <SolCendres />
+  }
+}
+
 /**
- * Le décor d'un acte, posé entre le terrain et le village. `null` en bac à sable :
- * la plaine de la Troade s'y suffit.
+ * Le décor d'un acte, posé entre le terrain et le village : d'abord la TERRE
+ * repeinte, ensuite les repères qu'on y plante. `null` en bac à sable — la
+ * plaine de la Troade s'y suffit.
  */
 export function DecorActe({ cadre }: { cadre: CadreActe | null }) {
   if (!cadre) return null
+  return (
+    <>
+      <defs>
+        {/* tout le sol d'acte est clippé sur la terre ferme : rien sur la mer */}
+        <clipPath id="sol-terre">
+          <path d={D_TERRE} />
+        </clipPath>
+      </defs>
+      <SolActe cadre={cadre} />
+      <Reperes cadre={cadre} />
+    </>
+  )
+}
+
+/** les repères plantés dans le paysage — nefs, camp, murailles, fleuve, cheval */
+function Reperes({ cadre }: { cadre: CadreActe }) {
   switch (cadre) {
     case 'greve':
       return <Greve />

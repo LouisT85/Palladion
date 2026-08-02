@@ -142,7 +142,6 @@ export function ModaleRapportBataille() {
 export function ModaleAide() {
   const s = useGame()
   const [confirmeReset, setConfirmeReset] = useState(false)
-  const [confirmeCampagne, setConfirmeCampagne] = useState(false)
   return (
     <Modale
       titre="🏛️ PALLADION - survivre à l’ombre de Troie"
@@ -356,43 +355,14 @@ export function ModaleAide() {
         <button style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('sauvegardes')}>
           💾 Vos parties - trois emplacements, export et import
         </button>
-        {s.campagne && !s.campagne.fini ? (
-          <button style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('campagne')}>
-            🐴 Relire les cinq actes de « La Chute »
-          </button>
-        ) : (
-          /*
-           * L'entrée dans la campagne depuis une partie EN COURS. L'écran de choix
-           * ne s'ouvre qu'au tout premier lancement : sans ce bouton, un joueur qui
-           * a déjà une cité n'avait aucun moyen d'atteindre « La Chute » - sinon
-           * effacer sa partie, ce qui n'est pas une porte d'entrée.
-           */
-          <div className="aide-campagne">
-            {confirmeCampagne ? (
-              <>
-                <span>
-                  La campagne repart de son premier acte et impose son propre village : votre cité actuelle sera
-                  remplacée.
-                </span>
-                <button
-                  className="principal"
-                  onClick={() => {
-                    setConfirmeCampagne(false)
-                    s.openPanel(null)
-                    s.choisirMode('campagne')
-                  }}
-                >
-                  🐴 Commencer l’acte I
-                </button>
-                <button onClick={() => setConfirmeCampagne(false)}>Garder ma cité</button>
-              </>
-            ) : (
-              <button style={{ width: '100%' }} onClick={() => setConfirmeCampagne(true)}>
-                🐴 Jouer la campagne « La Chute » - cinq actes de l’Iliade
-              </button>
-            )}
-          </div>
-        )}
+        {/*
+          Un seul chemin vers la campagne, et il est ailleurs : le bouton 🐴 du
+          bandeau du haut, présent dans les deux modes. Cette porte-ci vivait au
+          bas de huit sections d'aide - personne ne la trouvait.
+        */}
+        <button style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('campagne')}>
+          🐴 {s.campagne && !s.campagne.fini ? 'Relire les cinq actes de' : 'Jouer la campagne'} « La Chute »
+        </button>
         <div className="aide-reset">
           {confirmeReset ? (
             <>

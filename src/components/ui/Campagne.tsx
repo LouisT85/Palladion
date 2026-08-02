@@ -268,6 +268,8 @@ export function SuiviActe() {
 /** le récit complet de la campagne, relisible à tout moment depuis l'aide */
 export function PanneauCampagne() {
   const s = useGame()
+  const [confirme, setConfirme] = useState(false)
+  const enCampagne = !!s.campagne && !s.campagne.fini
   const iActe = s.campagne?.acte ?? -1
   return (
     <Modale
@@ -277,6 +279,51 @@ export function PanneauCampagne() {
       sous="Cinq actes qui suivent l’Iliade. Chacun impose une situation de départ, des objectifs et parfois un héros - et chacun peut se perdre."
     >
       <>
+        {/*
+          LA PORTE D'ENTRÉE. Elle vivait tout en bas de l'aide, après huit
+          sections : autant dire nulle part. Un joueur de bac à sable n'avait
+          aucune chance de découvrir qu'une campagne existe. Elle est désormais
+          la première chose de ce panneau, lui-même accessible depuis le bandeau
+          du haut dans les DEUX modes.
+        */}
+        {!enCampagne && (
+          <div className="campagne-entree">
+            {confirme ? (
+              <>
+                <div className="ce-avertissement">
+                  ⚠️ La campagne repart de son <b>premier acte</b> et impose son propre village : votre cité actuelle
+                  sera remplacée. Rangez-la d’abord dans un autre emplacement si vous y tenez.
+                </div>
+                <div className="ce-actions">
+                  <button className="principal" onClick={() => s.openPanel('sauvegardes')}>
+                    💾 Mettre ma cité à l’abri
+                  </button>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      setConfirme(false)
+                      s.openPanel(null)
+                      s.choisirMode('campagne')
+                    }}
+                  >
+                    🐴 Commencer l’acte I
+                  </button>
+                  <button onClick={() => setConfirme(false)}>Garder ma cité</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="ce-texte">
+                  <b>Vous jouez en bac à sable.</b> « La Chute » est l’autre façon de régner : cinq chapitres écrits,
+                  des objectifs imposés, une situation héritée d’un acte à l’autre - et l’on peut y perdre.
+                </div>
+                <button className="principal" onClick={() => setConfirme(true)}>
+                  🐴 Jouer la campagne
+                </button>
+              </>
+            )}
+          </div>
+        )}
         {ACTES_CAMPAGNE.map((a, i) => {
           const etat = i < iActe ? 'acheve' : i === iActe ? 'courant' : 'scelle'
           return (

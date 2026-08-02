@@ -30,6 +30,7 @@ import {
   ModaleJournal,
   ModaleRapportBataille,
 } from './components/ui/Modales'
+import { PanneauAnnales } from './components/ui/Annales'
 
 export default function App() {
   const init = useGame((s) => s.init)
@@ -141,6 +142,12 @@ export default function App() {
           <button onClick={() => openPanel('journal')} title="Rapports et chroniques">
             📜<span className="lbl"> Journal</span>
           </button>
+          <button
+            onClick={() => openPanel('annales')}
+            title="Les courbes du règne : greniers, menace, garnison, ambiance, prestige"
+          >
+            📈<span className="lbl"> Annales</span>
+          </button>
           <button onClick={() => openPanel('aide')} title="Comment jouer">
             ❔
           </button>
@@ -168,6 +175,7 @@ export default function App() {
       {panel === 'missions' && <PanneauMissions />}
       {panel === 'hauts-faits' && <PanneauHautsFaits />}
       {panel === 'journal' && <ModaleJournal />}
+      {panel === 'annales' && <PanneauAnnales />}
       {panel === 'expeditions' && !expedition && <PanneauExpeditions />}
       {expedition && <ExpeditionScene />}
       <ModaleHorsLigne />

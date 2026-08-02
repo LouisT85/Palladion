@@ -1249,6 +1249,107 @@ svg.carte-exp {
   white-space: nowrap;
 }
 
+/* ── annales : les courbes du règne ────────────────────────
+   Le jeu est dessiné en SVG de bout en bout ; ses graphiques aussi. Rien
+   d'importé, pas une bibliothèque : des chemins et quatre lignes d'horizon. */
+.chiffres-regne {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.chiffre {
+  background: #10202e;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  padding: 6px 8px;
+  text-align: center;
+}
+.chiffre b {
+  display: block;
+  font-size: 19px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.chiffre span {
+  font-size: 10.5px;
+  color: #93a7b4;
+}
+.graphe {
+  margin-top: 12px;
+  padding: 9px 10px 10px;
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  background: #10202e;
+}
+.graphe-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.graphe-tete h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #e8dcc0;
+}
+.graphe-periode {
+  font-size: 10.5px;
+  color: #6f8494;
+  font-variant-numeric: tabular-nums;
+}
+.graphe-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 4px;
+  background: #0a141d;
+  border-radius: 7px;
+}
+.graphe-legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: #b6c4ce;
+}
+.legende-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.legende-item i {
+  width: 11px;
+  height: 3px;
+  border-radius: 2px;
+}
+.legende-item b {
+  color: #e8dcc0;
+  font-variant-numeric: tabular-nums;
+}
+/* la pente est la vraie information : elle répond à « est-ce que ça monte ? » */
+.legende-item em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: #6f8494;
+  font-variant-numeric: tabular-nums;
+}
+.legende-item em.monte {
+  color: #7fb069;
+}
+.legende-item em.descend {
+  color: #d98a4e;
+}
+.graphe-lecture {
+  font-size: 11.5px;
+  color: #7f939f;
+  font-style: italic;
+  line-height: 1.38;
+  margin-top: 4px;
+}
+
 /* ── recensement : un habitant, un métier, un poste ────── */
 .hab {
   display: flex;

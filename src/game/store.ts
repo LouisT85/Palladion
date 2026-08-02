@@ -109,6 +109,7 @@ import {
   type HeroId,
   type HeroState,
 } from './heros'
+import { MAX_RELEVES, PAS_RELEVE_MS, type Releve } from './annales'
 import { CHAMPION_PAR_ID, chanceChampion, ficheChampion, tirerChampion } from './champions'
 import { GRACE_PAR_ID, cumulerFaveurs, dieuDe, graceSuivante, type BonusFaveurs } from './faveurs'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
@@ -279,6 +280,13 @@ export interface GameState {
   alliances: Record<string, Alliance>
   /** hauts faits acquis — une fois gagnés, jamais repris */
   hautsFaits: string[]
+  /**
+   * Les annales : un relevé chiffré toutes les trente secondes. C'est la seule
+   * mémoire QUANTITATIVE du règne — le journal, lui, ne raconte que des faits.
+   */
+  annales: Releve[]
+  /** instant du prochain relevé */
+  prochainReleveAt: number
   /** compteurs de faits ponctuels que l'état seul ne raconte pas */
   exploits: Record<string, number>
   /** écran de fin de règne, ouvert par l'abdication */
@@ -311,7 +319,18 @@ export interface GameState {
   offlineSummary: string[] | null
   toasts: Toast[]
   selected: BuildingId | null
-  panel: 'pantheon' | 'journal' | 'aide' | 'expeditions' | 'heros' | 'hauts-faits' | 'missions' | 'campagne' | 'sauvegardes' | null
+  panel:
+    | 'pantheon'
+    | 'journal'
+    | 'aide'
+    | 'expeditions'
+    | 'heros'
+    | 'hauts-faits'
+    | 'missions'
+    | 'campagne'
+    | 'sauvegardes'
+    | 'annales'
+    | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
    * dans le store et non dans le HUD : le tutoriel doit pouvoir le refermer
@@ -939,6 +958,8 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     prochainAppelAt: now + 9 * 60_000,
     alliances: {},
     hautsFaits: [],
+    annales: [],
+    prochainReleveAt: now + PAS_RELEVE_MS,
     exploits: {},
     finDePartie: null,
     tutoriel: null,
@@ -1057,6 +1078,8 @@ const CHAMPS_SAUVES = [
   'prochainAppelAt',
   'alliances',
   'hautsFaits',
+  'annales',
+  'prochainReleveAt',
   'exploits',
   'tutoriel',
   'mode',
@@ -1377,6 +1400,31 @@ export function snapTuto(s: GameState): SnapTuto {
 /** score de prestige de la partie en cours */
 export function prestigeCourant(s: GameState): number {
   return prestige(snapHautFait(s), s.hautsFaits ?? [])
+}
+
+/**
+ * Un relevé des annales. Tout y est ARRONDI : une sauvegarde n'a pas à porter
+ * quinze décimales de grain, et une courbe ne se lit pas au dixième près.
+ */
+function releverAnnales(s: GameState, now: number): void {
+  const max = murMax(s)
+  s.annales.push({
+    t: now,
+    jour: jourDe(s),
+    bois: Math.round(s.resources.bois),
+    pierre: Math.round(s.resources.pierre),
+    grain: Math.round(s.resources.grain),
+    bronze: Math.round(s.resources.bronze),
+    faveur: Math.round(s.faveur),
+    pop: s.pop,
+    armee: armeeTotale(s.army),
+    menace: Math.round(s.threat),
+    ambiance: Math.round(s.morale),
+    mur: max > 0 ? Math.round((s.wallHp / max) * 100) : 0,
+    prestige: prestigeCourant(s),
+  })
+  // le tableau est borné : on oublie les plus vieux relevés, jamais les récents
+  if (s.annales.length > MAX_RELEVES) s.annales.splice(0, s.annales.length - MAX_RELEVES)
 }
 
 /** contrôle les hauts faits non encore acquis, et sacre ceux qui viennent de tomber */
@@ -2319,6 +2367,16 @@ export const useGame = create<GameState>()(
 
         // ── hauts faits : on regarde si le règne vient d'entrer dans la légende ──
         verifierHautsFaits(s)
+
+        /*
+         * ── les annales : un relevé chiffré toutes les trente secondes ──
+         * On rattrape au plus un pas : rentrer après huit heures d'absence ne
+         * doit pas remplir le tableau de mille points identiques.
+         */
+        if (now >= s.prochainReleveAt) {
+          releverAnnales(s, now)
+          s.prochainReleveAt = now + PAS_RELEVE_MS
+        }
 
         /*
          * Missions prêtes à réclamer (toast unique). En campagne, le fil rouge du

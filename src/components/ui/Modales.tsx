@@ -244,6 +244,15 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
+          <h3>📈 Les annales</h3>
+          <p>
+            Des scribes relèvent le village <b>toutes les trente secondes</b> : greniers, garnison, menace, ambiance,
+            faveur, remparts, prestige. Le panneau <b>Annales</b> en trace les courbes et donne la <b>pente par
+            minute</b> de chaque série — c’est elle qui répond à la seule question qui compte : est-ce que ça monte ?
+            Une menace qui s’écarte durablement de la courbe de garnison annonce l’assaut de trop.
+          </p>
+        </div>
+        <div className="aide-section">
           <h3>🎭 L’ambiance</h3>
           <p>
             Fêtes, victoires et greniers pleins exaltent le village (production accrue). Famine, défaites et choix

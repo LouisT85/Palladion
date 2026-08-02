@@ -24,7 +24,7 @@ export interface SnapHautFait {
   expeditions: Record<string, { etoiles: number; pillages?: number }>
   alliances: Record<string, unknown>
   heros: Record<string, { recrute: boolean; niveau: number; mort: boolean; arc: number }>
-  villageois: { poste: BuildingId | null }[]
+  villageois: { poste: BuildingId | null; lignee?: string }[]
   saison: SaisonId
   /** journées écoulées depuis la fondation (1 = premier jour) */
   jour: number
@@ -312,6 +312,31 @@ export const HAUTS_FAITS: HautFaitDef[] = [
     cat: 'divin',
     points: 25,
     atteint: (s) => (s.exploits.benedictions ?? 0) >= 20,
+  },
+  {
+    id: 'grande-maison',
+    emoji: '🏛️',
+    titre: 'Une grande maison',
+    desc: 'Voir cinq vivants porter la même lignée. Une famille qui tient, c’est un métier qui se transmet.',
+    cat: 'peuple',
+    points: 30,
+    atteint: (s) => {
+      const compte = new Map<string, number>()
+      for (const v of s.villageois) {
+        if (!v.lignee) continue
+        compte.set(v.lignee, (compte.get(v.lignee) ?? 0) + 1)
+      }
+      return [...compte.values()].some((n) => n >= 5)
+    },
+  },
+  {
+    id: 'trois-generations',
+    emoji: '👶',
+    titre: 'Trois générations',
+    desc: 'Célébrer dix mariages dans le village. Les foyers font les enfants, les enfants font les métiers.',
+    cat: 'peuple',
+    points: 25,
+    atteint: (s) => (s.exploits.mariages ?? 0) >= 10,
   },
   {
     id: 'sang-de-heros',

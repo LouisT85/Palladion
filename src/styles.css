@@ -1350,6 +1350,72 @@ svg.carte-exp {
   margin-top: 4px;
 }
 
+/* ── recensement : un habitant, un métier, un âge, une maison ────── */
+.pyramide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  margin: 4px 0 8px;
+  font-size: 11.5px;
+}
+.pyramide > span {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #28405a;
+  background: #0d1a26;
+  color: #b6c4ce;
+}
+.pyramide .p-enfant {
+  border-color: #4e6b46;
+  color: #a8c98f;
+}
+.pyramide .p-adulte {
+  border-color: #3d5c7a;
+  color: #a8c4dd;
+}
+.pyramide .p-ancien {
+  border-color: #6b5a3c;
+  color: #d3bb8d;
+}
+.pyramide .p-foyers,
+.pyramide .p-maisons {
+  border-color: #4a3a5c;
+  color: #c3b0d6;
+}
+.hab-lignee {
+  font-size: 11px;
+  color: #9b8fb5;
+  margin-left: 6px;
+  font-style: italic;
+}
+/* l'âge se lit à la couleur : vert tendre l'enfance, ocre la vieillesse */
+.hab-age {
+  font-size: 10.5px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid #28405a;
+  color: #93a7b4;
+  font-variant-numeric: tabular-nums;
+}
+.hab-age.enfant {
+  border-color: #4e6b46;
+  color: #a8c98f;
+}
+.hab-age.ancien {
+  border-color: #6b5a3c;
+  color: #d3bb8d;
+}
+.hab-famille {
+  font-size: 11px;
+  color: #8ea0ad;
+  margin-top: 1px;
+}
+.hab-celib {
+  color: #7f8f9b;
+  font-style: italic;
+}
+
 /* ── recensement : un habitant, un métier, un poste ────── */
 .hab {
   display: flex;

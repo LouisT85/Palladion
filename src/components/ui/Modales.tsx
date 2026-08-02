@@ -225,7 +225,7 @@ export function ModaleAide() {
         <div className="aide-section">
           <h3>🏅 Hauts faits et prestige</h3>
           <p>
-            Quarante-huit hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
+            Cinquante hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
             « élu des quatre Olympiens », « trois étoiles sur les huit places fortes ». Ils alimentent votre{' '}
             <b>prestige</b>, la seule note finale. Quand vous jugez le règne accompli, <b>abdiquez</b> : le score se
             fige, les aèdes vous donnent un titre — de « Roi de pacotille » à « Égal des dieux ».
@@ -241,6 +241,18 @@ export function ModaleAide() {
             <b>grâces permanentes</b> — récoltes de Zeus Xenios, murs et mer de Poséidon, métier et prudence d’Athéna,
             butin et fureur d’Arès — payées en points de relation, prises dans l’ordre, et jamais reprises. Monter sa
             ferveur ou l’échanger contre un don définitif est l’un des vrais arbitrages du règne.
+          </p>
+        </div>
+        <div className="aide-section">
+          <h3>👪 Familles et lignées</h3>
+          <p>
+            Une journée de jeu vaut <b>deux ans de vie</b>. Un <b>enfant</b> (moins de 16 ans) aide sans remplacer et ne
+            porte pas les armes ; un <b>ancien</b> (plus de 56 ans) rend moins, et l’âge finit par l’emporter — son
+            métier s’éteint alors avec lui. Chaque habitant appartient à une <b>maison</b>, et deux adultes libres de
+            maisons différentes <b>font foyer</b>. Un enfant né dans un foyer <b>apprend le métier d’un de ses
+            parents</b> : marier son forgeron, c’est se donner des forgerons. Sans foyer, le village ne grandit que par
+            les arrivants de la côte, dont on ne choisit pas le métier. Le recensement montre la pyramide des âges, les
+            foyers et les maisons.
           </p>
         </div>
         <div className="aide-section">

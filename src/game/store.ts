@@ -112,6 +112,16 @@ import {
 import { MAX_RELEVES, PAS_RELEVE_MS, type Releve } from './annales'
 import { CHAMPION_PAR_ID, chanceChampion, ficheChampion, tirerChampion } from './champions'
 import { GRACE_PAR_ID, cumulerFaveurs, dieuDe, graceSuivante, type BonusFaveurs } from './faveurs'
+import {
+  ageDe,
+  estAdulte,
+  foyersFeconds,
+  ligneeLibre,
+  metierTransmis,
+  rendementAge,
+  risqueDeMort,
+  trouverParti,
+} from './lignees'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives, rangMission } from './missions'
 import { ACTES_CAMPAGNE, NB_ACTES, acteAccompli, type EtatActe } from './campagne'
@@ -287,6 +297,13 @@ export interface GameState {
   annales: Releve[]
   /** instant du prochain relevé */
   prochainReleveAt: number
+  /**
+   * Dernière journée de jeu dont les familles ont vu passer les noces et les
+   * enterrements. Le calendrier n'avait aucun crochet « le jour a tourné » :
+   * celui-ci en tient lieu, et il se sauvegarde pour qu'une absence de six heures
+   * ne déclenche pas six heures de mariages au réveil.
+   */
+  dernierJourVecu: number
   /** compteurs de faits ponctuels que l'état seul ne raconte pas */
   exploits: Record<string, number>
   /** écran de fin de règne, ouvert par l'abdication */
@@ -426,12 +443,23 @@ export function postesPourvus(s: Pick<GameState, 'villageois'>, b: BuildingId): 
  * Une carrière tenue par deux paysans tourne donc moins bien qu'une carrière
  * tenue par deux tailleurs de pierre — c'est tout l'intérêt d'affecter soi-même.
  */
-export function rendement(s: Pick<GameState, 'buildings' | 'villageois'>, b: BuildingId): number {
+export function rendement(
+  s: Pick<GameState, 'buildings' | 'villageois'> & Partial<Pick<GameState, 'lastSeen' | 'createdAt'>>,
+  b: BuildingId,
+): number {
   const total = postesTotal(s, b)
   if (total <= 0) return 0
-  const force = s.villageois
-    .filter((v) => v.poste === b)
-    .reduce((a, v) => a + (v.metier === b ? 1 : RENDEMENT_HORS_METIER), 0)
+  /*
+   * L'âge compte désormais autant que le métier : un enfant aide sans remplacer,
+   * un ancien a tout appris mais n'a plus les bras. Sans calendrier sous la main
+   * (un test, un instantané), on lit tout le monde comme adulte plutôt que de
+   * renvoyer un rendement faux.
+   */
+  const jour =
+    s.lastSeen !== undefined && s.createdAt !== undefined
+      ? jourDe({ lastSeen: s.lastSeen, createdAt: s.createdAt })
+      : 9999
+  const force = s.villageois.filter((v) => v.poste === b).reduce((a, v) => a + efficaciteDe(v, jour), 0)
   return Math.min(1, force / total)
 }
 /** villageois de ce métier qui ne sont affectés nulle part — les meilleurs candidats */
@@ -452,10 +480,15 @@ export function metierDe(v: Villageois): string {
   return METIERS[v.metier] ?? BUILDINGS[v.metier].nom
 }
 
-/** ce que ce villageois rend à son poste actuel : 1 à son métier, moins ailleurs */
-export function efficaciteDe(v: Villageois): number {
+/**
+ * Ce que ce villageois rend à son poste : plein à son métier, moins ailleurs —
+ * et le tout pondéré par son ÂGE. Un enfant aide sans remplacer, un ancien a
+ * tout appris mais n'a plus les bras. C'est ce qui fait de la pyramide des âges
+ * une donnée du village, et non un ornement d'état civil.
+ */
+export function efficaciteDe(v: Villageois, jour = 9999): number {
   if (v.poste === null) return 0
-  return v.poste === v.metier ? 1 : RENDEMENT_HORS_METIER
+  return (v.poste === v.metier ? 1 : RENDEMENT_HORS_METIER) * rendementAge(ageDe(v, jour))
 }
 
 /**
@@ -464,6 +497,7 @@ export function efficaciteDe(v: Villageois): number {
  * Idempotent : appelé à chaque tick, il ne fait rien si tout concorde.
  */
 function syncVillageois(s: GameState): void {
+  const jour = jourDe(s)
   while (s.villageois.length < s.pop) {
     const utilises = new Set(s.villageois.map((v) => v.nom))
     const libres = NOMS_VILLAGEOIS.filter((n) => !utilises.has(n))
@@ -476,13 +510,71 @@ function syncVillageois(s: GameState): void {
      * et le joueur n'y pouvait rien.
      */
     const i = s.villageois.length
-    const metier = i < METIERS_DEPART.length ? METIERS_DEPART[i] : metierManquant(s.villageois.map((v) => v.metier))
-    s.villageois.push({ id: uid('v'), nom, poste: null, metier })
+    const manquant = metierManquant(s.villageois.map((v) => v.metier))
+    if (i < METIERS_DEPART.length) {
+      /*
+       * Les fondateurs. Tous adultes — un village qui naîtrait avec quatre
+       * nourrissons serait injouable — et d'âges échelonnés, pour qu'ils ne
+       * meurent pas tous le même jour trois heures plus tard.
+       */
+      s.villageois.push({
+        id: uid('v'),
+        nom,
+        poste: null,
+        metier: METIERS_DEPART[i],
+        neLe: jour - (10 + i * 2.5),
+        lignee: ligneeLibre(
+          s.villageois.map((v) => v.lignee ?? ''),
+          Math.random(),
+        ),
+      })
+      continue
+    }
+    /*
+     * Ensuite, deux façons de gagner un habitant, et elles ne se valent pas :
+     *
+     *  · un FOYER a un enfant. L'enfant porte la maison de son parent, apprend le
+     *    métier de son père ou de sa mère, et met huit journées à devenir utile ;
+     *  · à défaut de foyer, quelqu'un ARRIVE de la côte, adulte et avec le métier
+     *    qui manque. C'est plus commode, mais on ne le choisit pas.
+     *
+     * Marier son forgeron, c'est donc se donner des forgerons. Le laisser mourir
+     * célibataire, c'est perdre la forge avec lui.
+     */
+    const foyers = foyersFeconds(s.villageois, jour)
+    const foyer = foyers.length > 0 ? foyers[Math.floor(Math.random() * foyers.length)] : null
+    const conjoint = foyer ? s.villageois.find((v) => v.id === foyer.conjoint) : undefined
+    if (foyer && conjoint) {
+      s.villageois.push({
+        id: uid('v'),
+        nom,
+        poste: null,
+        metier: metierTransmis(foyer.metier, conjoint.metier, manquant, Math.random()),
+        neLe: jour,
+        lignee: foyer.lignee,
+        parents: [foyer.nom, conjoint.nom],
+      })
+      pushToast(s, '👶', `${nom} naît chez les ${foyer.lignee} — ${foyer.nom} et ${conjoint.nom}.`)
+    } else {
+      s.villageois.push({
+        id: uid('v'),
+        nom,
+        poste: null,
+        metier: manquant,
+        // un nouveau venu a déjà vécu : il arrive adulte, avec son métier appris
+        neLe: jour - (9 + Math.random() * 8),
+        lignee: ligneeLibre(
+          s.villageois.map((v) => v.lignee ?? ''),
+          Math.random(),
+        ),
+      })
+    }
   }
   while (s.villageois.length > s.pop) {
     // on retire d'abord les oisifs : un artisan ne disparaît qu'en dernier
     const i = s.villageois.findIndex((v) => v.poste === null)
-    s.villageois.splice(i >= 0 ? i : s.villageois.length - 1, 1)
+    const [parti] = s.villageois.splice(i >= 0 ? i : s.villageois.length - 1, 1)
+    if (parti) veuvage(s, parti)
   }
   // un poste supprimé par une rétrogradation libère son occupant
   for (const v of s.villageois) {
@@ -490,6 +582,49 @@ function syncVillageois(s: GameState): void {
       const trop = postesPourvus(s, v.poste) - postesTotal(s, v.poste)
       if (trop > 0) v.poste = null
     }
+  }
+}
+
+/** son conjoint le pleure et redevient libre — un veuf peut se remarier */
+function veuvage(s: GameState, parti: Villageois): void {
+  if (!parti.conjoint) return
+  const reste = s.villageois.find((v) => v.id === parti.conjoint)
+  if (reste) delete reste.conjoint
+}
+
+/**
+ * Ce que le calendrier fait aux familles, une fois par journée de jeu : on marie
+ * ceux qui peuvent l'être, et l'on enterre ceux que l'âge emporte.
+ *
+ * Le mariage n'est pas décoratif — sans foyer, un village ne fait pas d'enfants
+ * et ne peut compter que sur des arrivants dont il ne choisit pas le métier.
+ */
+function vieDesFamilles(s: GameState, jour: number): void {
+  // ── on marie, deux foyers par journée au plus : une noce reste un événement ──
+  for (let n = 0; n < 2; n++) {
+    const parti = trouverParti(s.villageois, jour)
+    if (!parti) break
+    const [a, b] = parti
+    a.conjoint = b.id
+    b.conjoint = a.id
+    // la femme entre dans la maison de l'époux : une seule lignée par foyer
+    b.lignee = a.lignee
+    pushToast(s, '💍', `${a.nom} et ${b.nom} font foyer chez les ${a.lignee}.`)
+    noter(s, 'mariages')
+  }
+
+  // ── puis l'âge emporte les siens ──
+  for (const v of [...s.villageois]) {
+    const age = ageDe(v, jour)
+    if (Math.random() >= risqueDeMort(age)) continue
+    s.villageois = s.villageois.filter((x) => x.id !== v.id)
+    s.pop = Math.max(0, s.pop - 1)
+    veuvage(s, v)
+    noter(s, 'anciensEnterres')
+    pushReport(s, '⚱️', `${v.nom} des ${v.lignee ?? 'sans maison'} s’est éteint`, [
+      `${v.nom} est mort à ${age} ans, ${v.poste ? `à son poste (${BUILDINGS[v.poste].nom})` : 'sans emploi'}.`,
+      `Son métier — ${METIERS[v.metier] ?? BUILDINGS[v.metier].nom} — ne se transmet plus que par ses enfants.`,
+    ])
   }
 }
 /**
@@ -960,6 +1095,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     hautsFaits: [],
     annales: [],
     prochainReleveAt: now + PAS_RELEVE_MS,
+    dernierJourVecu: 1,
     exploits: {},
     finDePartie: null,
     tutoriel: null,
@@ -1080,6 +1216,7 @@ const CHAMPS_SAUVES = [
   'hautsFaits',
   'annales',
   'prochainReleveAt',
+  'dernierJourVecu',
   'exploits',
   'tutoriel',
   'mode',
@@ -2369,6 +2506,19 @@ export const useGame = create<GameState>()(
         verifierHautsFaits(s)
 
         /*
+         * ── les familles : noces et enterrements, une fois par journée ──
+         * On ne rattrape jamais plus d'UNE journée : rentrer après six heures
+         * d'absence ne doit pas marier la moitié du village d'un coup.
+         */
+        {
+          const jour = jourDe(s)
+          if (jour !== s.dernierJourVecu) {
+            s.dernierJourVecu = jour
+            vieDesFamilles(s, jour)
+          }
+        }
+
+        /*
          * ── les annales : un relevé chiffré toutes les trente secondes ──
          * On rattrape au plus un pas : rentrer après huit heures d'absence ne
          * doit pas remplir le tableau de mille points identiques.
@@ -2432,15 +2582,24 @@ export const useGame = create<GameState>()(
         if (s.buildings.caserne.level < def.caserne) return
         const cout: Partial<Record<ResourceId, number>> = {}
         for (const [r, c] of Object.entries(def.cost) as [ResourceId, number][]) cout[r] = c * n
-        // on n'enrôle que des bras disponibles : un artisan reste à son poste
-        const dispo = s.villageois.filter((v) => v.poste === null)
+        /*
+         * On n'enrôle que des bras disponibles : un artisan reste à son poste, et
+         * l'on ne met pas une lance dans les mains d'un enfant. Un village peuplé
+         * de nourrissons ne lève donc pas d'armée — c'est le prix d'une natalité
+         * qu'on n'a pas préparée.
+         */
+        const jourCourant = jourDe(s)
+        const dispo = s.villageois.filter((v) => v.poste === null && estAdulte(v, jourCourant))
         if (dispo.length < n) {
+          const enfants = s.villageois.filter((v) => v.poste === null && !estAdulte(v, jourCourant)).length
           pushToast(
             s,
             '👥',
             dispo.length === 0
-              ? 'Aucun villageois disponible — libérez un artisan de son poste.'
-              : `Seulement ${dispo.length} villageois sans emploi.`,
+              ? enfants > 0
+                ? `Aucun adulte disponible — ${enfants} enfant${enfants > 1 ? 's' : ''} attend${enfants > 1 ? 'ent' : ''} de grandir.`
+                : 'Aucun villageois disponible — libérez un artisan de son poste.'
+              : `Seulement ${dispo.length} adulte(s) sans emploi.`,
           )
           return
         }

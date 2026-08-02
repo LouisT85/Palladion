@@ -113,6 +113,18 @@ export interface Villageois {
    * rend l'affectation intéressante à décider soi-même.
    */
   metier: BuildingId
+  /**
+   * Jour de jeu de sa naissance. Une journée vaut deux ans de vie : l'âge se
+   * déduit donc du calendrier, sans compteur à faire tourner. Absent sur les
+   * sauvegardes antérieures aux lignées — on les lit alors comme des adultes.
+   */
+  neLe?: number
+  /** sa maison. Elle se transmet de père en enfant et interdit les mariages entre soi. */
+  lignee?: string
+  /** l'id de son conjoint — un foyer, donc des naissances possibles */
+  conjoint?: string
+  /** prénoms de ses parents, pour le recensement : « fils de Damon et Théano » */
+  parents?: [string, string]
 }
 
 export interface RecruitJob {

@@ -1,8 +1,10 @@
 import { BUILDINGS, METIERS, RENDEMENT_HORS_METIER } from '../../game/data'
+import { AGE_ADULTE, ageDe, motAge, pyramide, saisonDeVie } from '../../game/lignees'
 import {
   BATIMENTS_A_POSTES,
   candidatsPour,
   efficaciteDe,
+  jourDe,
   metierDe,
   oisifs,
   popCap,
@@ -73,29 +75,55 @@ function LigneRecap({ b }: { b: BuildingId }) {
   )
 }
 
-function LigneVillageois({ v }: { v: Villageois }) {
+function LigneVillageois({ v, jour, conjoint }: { v: Villageois; jour: number; conjoint?: Villageois }) {
   const s = useGame()
   const poste = v.poste
   const sansEmploi = poste === null
   const aSonMetier = poste === v.metier
-  const eff = efficaciteDe(v)
+  const age = ageDe(v, jour)
+  const vie = saisonDeVie(age)
+  const eff = efficaciteDe(v, jour)
   return (
     <div className={`hab${sansEmploi ? ' oisif' : aSonMetier ? ' juste' : ' mal-place'}`}>
       <span className="hab-ico">{BUILDINGS[v.metier].emoji}</span>
       <div className="hab-corps">
         <div className="hab-nom">
           {v.nom} <span className="hab-metier">{metierDe(v)}</span>
+          {/* la maison et l'âge : ce qui fait d'un jeton un habitant */}
+          {v.lignee && <span className="hab-lignee">des {v.lignee}</span>}
+          <span className={`hab-age ${vie}`} title={motAge(age)}>
+            {age} ans
+          </span>
         </div>
         <div className="hab-etat">
           {sansEmploi ? (
-            <span className="hab-oisif">Sans emploi — enrôlable à la caserne</span>
+            <span className="hab-oisif">
+              {vie === 'enfant'
+                ? `Encore un enfant — adulte dans ${Math.ceil((AGE_ADULTE - age) / 2)} journée(s)`
+                : 'Sans emploi — enrôlable à la caserne'}
+            </span>
           ) : aSonMetier ? (
-            <span className="hab-juste">✔ à son métier, à {BUILDINGS[poste].nom} — rendement plein</span>
+            <span className="hab-juste">
+              ✔ à son métier, à {BUILDINGS[poste].nom} — {Math.round(eff * 100)} %
+              {vie !== 'adulte' && (vie === 'enfant' ? ' (un enfant aide, il ne remplace pas)' : ' (l’âge pèse)')}
+            </span>
           ) : (
             <span className="hab-mal">
               ⚠ {BUILDINGS[poste].nom}, ce n’est pas son métier — il ne rend que {Math.round(eff * 100)} %
             </span>
           )}
+        </div>
+        <div className="hab-famille">
+          {conjoint ? (
+            <span title="Un foyer : c’est de là que viennent les enfants, et le métier qu’ils apprennent">
+              💍 marié(e) à {conjoint.nom}
+            </span>
+          ) : vie === 'adulte' ? (
+            <span className="hab-celib" title="Sans foyer, pas de naissance — le village dépend alors des arrivants">
+              célibataire
+            </span>
+          ) : null}
+          {v.parents && <span> · enfant de {v.parents.join(' et ')}</span>}
         </div>
       </div>
       <select
@@ -138,6 +166,11 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
   // les bras disponibles en tête : c'est là que le joueur a quelque chose à décider
   const rang = (v: Villageois) => (v.poste === null ? -1 : BATIMENTS_A_POSTES.indexOf(v.poste))
   const habitants = [...s.villageois].sort((a, b) => rang(a) - rang(b) || a.nom.localeCompare(b.nom, 'fr'))
+  const jour = jourDe(s)
+  const ages = pyramide(s.villageois, jour)
+  const parId = new Map(s.villageois.map((v) => [v.id, v]))
+  const foyers = s.villageois.filter((v) => v.conjoint && v.id < v.conjoint).length
+  const maisons = [...new Set(s.villageois.map((v) => v.lignee).filter(Boolean))].length
 
   return (
     <Modale
@@ -158,7 +191,13 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
           plus que la cueillette. <b style={{ color: '#e8dcc0' }}>Chaque habitant a un métier de naissance</b> : à son
           métier il rend pleinement, ailleurs seulement {Math.round(RENDEMENT_HORS_METIER * 100)} %. Personne ne prend son
           poste tout seul — c’est à vous de placer chacun. Les villageois{' '}
-          <b style={{ color: '#d98a4e' }}>sans emploi</b> sont aussi les seuls que la caserne peut enrôler.
+          <b style={{ color: '#d98a4e' }}>adultes sans emploi</b> sont aussi les seuls que la caserne peut enrôler.
+          <div style={{ marginTop: 5 }}>
+            Une journée de jeu vaut deux ans de vie. Les adultes libres <b style={{ color: '#e8dcc0' }}>font foyer</b>, et
+            un enfant né dans un foyer <b style={{ color: '#e8dcc0' }}>apprend le métier d’un de ses parents</b> — marier
+            son forgeron, c’est se donner des forgerons. Sans foyer, le village ne grandit que par les arrivants de la
+            côte, dont on ne choisit pas le métier.
+          </div>
         </div>
 
         <div className="bloc">
@@ -183,12 +222,37 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
         </div>
 
         <div className="bloc">
-          <h3>Recensement — {habitants.length} habitant{habitants.length > 1 ? 's' : ''}</h3>
+          <h3>
+            Recensement — {habitants.length} habitant{habitants.length > 1 ? 's' : ''}
+          </h3>
+          {/*
+            La pyramide des âges, en trois cases. Elle dit d'un coup d'œil ce
+            qu'aucun compteur de population ne disait : combien de bras vraiment
+            disponibles, combien d'enfants à nourrir en attendant, et combien
+            d'anciens dont le métier va s'éteindre.
+          */}
+          <div className="pyramide">
+            <span className="p-enfant" title="Moins de 16 ans : ils aident sans remplacer, et ne portent pas les armes">
+              👶 {ages.enfant} enfant{ages.enfant > 1 ? 's' : ''}
+            </span>
+            <span className="p-adulte" title="De 16 à 55 ans : rendement plein, et les seuls qu’on enrôle">
+              🧑‍🌾 {ages.adulte} adulte{ages.adulte > 1 ? 's' : ''}
+            </span>
+            <span className="p-ancien" title="Au-delà de 56 ans : ils rendent moins, et l’âge finit par les emporter">
+              🧓 {ages.ancien} ancien{ages.ancien > 1 ? 's' : ''}
+            </span>
+            <span className="p-foyers" title="Sans foyer, pas de naissance : le village ne grandit alors que par les arrivants">
+              💍 {foyers} foyer{foyers > 1 ? 's' : ''}
+            </span>
+            <span className="p-maisons" title="Les lignées du village — un enfant hérite de la maison de son père">
+              🏛️ {maisons} maison{maisons > 1 ? 's' : ''}
+            </span>
+          </div>
           {habitants.length === 0 && (
             <div style={{ fontSize: 12.5, color: '#93a7b4' }}>Le village est désert. Les maisons attendent.</div>
           )}
           {habitants.map((v) => (
-            <LigneVillageois key={v.id} v={v} />
+            <LigneVillageois key={v.id} v={v} jour={jour} conjoint={v.conjoint ? parId.get(v.conjoint) : undefined} />
           ))}
         </div>
       </>

@@ -34,7 +34,7 @@ const VAGUE = (n: number) => [{ enemy: 'pillard' as const, count: n }]
 /**
  * Les dix bâtiments, niveau par défaut. `init()` fusionne la sauvegarde par
  * `Object.assign` : un `buildings` PARTIEL remplacerait la table entière et
- * laisserait l'agora indéfinie — la sauvegarde serait alors jugée corrompue.
+ * laisserait l'agora indéfinie - la sauvegarde serait alors jugée corrompue.
  */
 function batiments(niveaux: Partial<Record<BuildingId, number>>): Record<BuildingId, { level: number }> {
   return Object.fromEntries(BUILDING_IDS.map((b) => [b, { level: niveaux[b] ?? 0 }])) as Record<
@@ -80,7 +80,7 @@ describe('résolution hors-ligne : les fronts comptent aussi la nuit', () => {
     /*
      * La porte est le pan le plus épais et les deux premières tours la flanquent
      * (TOUR_ANGLES) : elle doit donc être la DERNIÈRE à céder. On ne fige pas une
-     * taille de vague — l'équilibrage bougera — mais l'ordre d'effondrement, qui
+     * taille de vague - l'équilibrage bougera - mais l'ordre d'effondrement, qui
      * est la promesse faite au joueur : bâtir une tour protège son arc, et rien
      * d'autre. Sans cela, le réveil racontait la même brèche à chaque fois.
      */
@@ -247,7 +247,7 @@ describe('un sac coûte des habitants, et pas seulement des réserves', () => {
    *
    * On l'éprouve par la résolution HORS-LIGNE, seule voie observable sous Vitest :
    * MODE_TEST y est vrai, et le tick remplit alors coffres et population à chaque
-   * battement — les départs de famine, eux, n'y sont donc pas mesurables.
+   * battement - les départs de famine, eux, n'y sont donc pas mesurables.
    */
   it('emporte des habitants quand l’assaut nocturne est perdu', () => {
     const t0 = 5_000_000
@@ -337,7 +337,7 @@ describe('la menace d’un acte est écrite, pas émergente', () => {
    * Le défaut : `calcThreat` recalculait la menace à chaque battement depuis les
    * bâtiments et les minutes écoulées, écrasant la valeur annoncée par l'acte. Le
    * premier assaut du premier acte arrivait donc à dix pillards contre les trois
-   * lanciers que l'acte exige — un acte qui perd son propre assaut.
+   * lanciers que l'acte exige - un acte qui perd son propre assaut.
    */
   it('tient la menace annoncée par l’acte, quoi que le joueur bâtisse', () => {
     const t0 = 7_000_000
@@ -355,7 +355,7 @@ describe('la menace d’un acte est écrite, pas émergente', () => {
     useGame.getState().tick()
     expect(useGame.getState().threat).toBe(acte.menace.threat)
     /*
-     * En bac à sable, la même cité fait bel et bien flamber la convoitise — mais
+     * En bac à sable, la même cité fait bel et bien flamber la convoitise - mais
      * seulement passé la grâce des deux premiers assauts, qui plafonne la menace
      * le temps qu'un village neuf se dote d'un mur.
      */
@@ -384,11 +384,11 @@ describe('la menace d’un acte est écrite, pas émergente', () => {
 
   it('promet une vague que la garnison exigée peut repousser, au premier acte', () => {
     /*
-     * Trois lanciers — ce que l'acte I demande — pèsent 126 pv et 24 d'attaque.
+     * Trois lanciers - ce que l'acte I demande - pèsent 126 pv et 24 d'attaque.
      * Le budget d'une vague vaut `menace × 5,5`, un pillard en coûte 10 : à la
      * menace annoncée, la vague la plus lourde possible doit rester sous ce que
      * trois lances battent, palissade tombée. Au-delà de quatre pillards, elles y
-     * restent — c'est la borne que ce test garde.
+     * restent - c'est la borne que ce test garde.
      */
     const budgetMax = ACTES_CAMPAGNE[0].menace.threat * 5.5 * 1.15
     expect(Math.floor(budgetMax / ENEMIES.pillard.budget)).toBeLessThanOrEqual(4)
@@ -426,7 +426,7 @@ describe('le début de partie laisse le temps de se défendre', () => {
     /*
      * Ce que le premier assaut réclame vraiment : de quoi manger (la ferme), de
      * quoi produire (le camp de bûcherons), un mur, une caserne et deux lances.
-     * Tout cela doit être payable AVEC LA MISE DE DÉPART — sinon le joueur passe
+     * Tout cela doit être payable AVEC LA MISE DE DÉPART - sinon le joueur passe
      * ses onze minutes à attendre la cueillette et reçoit la bande sans un soldat.
      * La troisième lance, elle, se gagne sur les premières minutes de production.
      */

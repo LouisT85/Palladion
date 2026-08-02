@@ -21,7 +21,7 @@ import { useGame } from '../../game/store'
 /*
  * Le pont entre l'état du jeu et le son. Aucune ligne de bruit dans le store :
  * on s'abonne aux transitions et on joue ce qu'elles racontent. Le contexte
- * audio n'est créé qu'au premier geste réel de l'utilisateur — politique des
+ * audio n'est créé qu'au premier geste réel de l'utilisateur - politique des
  * navigateurs, et simple politesse.
  */
 
@@ -59,7 +59,7 @@ export function useSons(): void {
         jouer('cor')
         /*
          * Et l'on prévient hors de l'onglet. C'est le seul endroit du code qui
-         * sache qu'une vague vient d'être ANNONCÉE — le tick, lui, ne connaît que
+         * sache qu'une vague vient d'être ANNONCÉE - le tick, lui, ne connaît que
          * des états, pas des transitions.
          */
         const champ = s.incomingChampion ? CHAMPION_PAR_ID[s.incomingChampion] : null
@@ -71,7 +71,7 @@ export function useSons(): void {
           champ
             ? champ.presage
             : s.incomingWave
-              ? `${tailleVague(s.incomingWave)} assaillants — ${descVague(s.incomingWave)}.`
+              ? `${tailleVague(s.incomingWave)} assaillants - ${descVague(s.incomingWave)}.`
               : 'Vos éclaireurs ont vu la poussière se lever.',
         )
       }
@@ -80,7 +80,7 @@ export function useSons(): void {
         avertir(
           'secours',
           '🙏 Un village implore votre aide',
-          'Aucun butin à espérer — mais une alliance, et Zeus qui compte qui vient.',
+          'Aucun butin à espérer - mais une alliance, et Zeus qui compte qui vient.',
         )
       }
       // ── l'assaut commence ──
@@ -175,7 +175,7 @@ export function ControleSon() {
             className="son-muet"
             onClick={() => maj(() => setMuet(!reglages.muet))}
           >
-            {reglages.muet ? '🔇 Son coupé — rétablir' : '🔊 Couper le son'}
+            {reglages.muet ? '🔇 Son coupé - rétablir' : '🔊 Couper le son'}
           </button>
           <label>
             <span>Général</span>
@@ -201,7 +201,7 @@ export function ControleSon() {
               quand l'onglet n'est pas regardé, et le jeu continue sans nous */}
           <button className="son-muet" onClick={() => void basculerNotifs().then(setNotifs)} disabled={notifs === 'indisponible' || notifs === 'refuse'}>
             {notifs === 'allume'
-              ? '🔔 Avertir hors de l’onglet — activé'
+              ? '🔔 Avertir hors de l’onglet - activé'
               : notifs === 'refuse'
                 ? '🔕 Avertissements bloqués par le navigateur'
                 : notifs === 'indisponible'

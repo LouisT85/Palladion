@@ -1,8 +1,8 @@
-# Bible visuelle PALLADION — peint réaliste (Age of Empires / Zeus)
+# Bible visuelle PALLADION - peint réaliste (Age of Empires / Zeus)
 
 Objectif : du **relief, du volume, de la matière**. Le joueur doit sentir la
 lumière méditerranéenne sur les murs. Référence de qualité : le Temple
-(`src/components/map/batiments/Temple.tsx`) — s'aligner sur son niveau de
+(`src/components/map/batiments/Temple.tsx`) - s'aligner sur son niveau de
 finition, ses valeurs et sa densité de détail.
 
 ## Règles absolues
@@ -12,7 +12,7 @@ finition, ses valeurs et sa densité de détail.
    - Faces est + pans **droits** : dans l'ombre.
    - Façades sud (face au joueur) : demi-teinte.
 2. **Ombres portées vers le SUD-EST** : `+x`, `+y×0.4`, floues, couleur
-   `#241a08`, opacité 0.14–0.20. Utiliser `OmbreVolume` de `art.tsx`.
+   `#241a08`, opacité 0.14-0.20. Utiliser `OmbreVolume` de `art.tsx`.
 3. **Occlusion ambiante** à la base de tout volume (`AOBase`).
 4. **Zéro contour noir.** Le modelé vient des valeurs. Liseré fin autorisé
    uniquement dans la teinte sombre du matériau (jamais `#000`, jamais
@@ -37,7 +37,7 @@ finition, ses valeurs et sa densité de détail.
 - **Niveaux 1→4 = progression spectaculaire** : 1 rustique (bois/torchis),
   2 consolidé, 3 pierre prospère, 4 monumental. Chaque niveau doit se
   reconnaître d'un coup d'œil.
-- **Animations SMIL existantes conservées** (feux, fumées, figurines) —
+- **Animations SMIL existantes conservées** (feux, fumées, figurines) -
   on améliore le dessin, pas le comportement.
 
 ## Recettes de matière (comment faire « peint »)

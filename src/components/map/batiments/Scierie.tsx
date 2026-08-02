@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from 'react'
 import { AOBase, Batisse3D, MurPierre, OmbreVolume, PAL, alea } from '../art'
 
 /*
- * SCIERIE — peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres
+ * SCIERIE - peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres
  * portées SE, zéro contour noir, modelé par les valeurs.
  *  1. clairière du bûcheron : souche, rondins, fagots
  *  2. deux appentis, scie de long, charrette
@@ -28,7 +28,7 @@ const VERT_L = '#6d8a4f'
 const VERT_XL = '#95ae6c'
 const EAU_L = '#9fb4a2'
 
-/** défs locales — préfixe sc- */
+/** défs locales - préfixe sc- */
 function DefsScierie() {
   return (
     <defs>
@@ -80,7 +80,7 @@ function DefsScierie() {
   )
 }
 
-/** cernes en spirale claire (déterministe) — sy < 1 pour une coupe en ellipse */
+/** cernes en spirale claire (déterministe) - sy < 1 pour une coupe en ellipse */
 function spirale(cx: number, cy: number, r: number, sy = 1, tours = 3.1): string {
   let d = `M${cx.toFixed(1)},${cy.toFixed(1)}`
   const n = 20
@@ -154,7 +154,7 @@ function Rondin({
       <rect x={r * 0.8} y={-r + 0.3} width={Math.max(2, l - r * 2)} height={r * 0.38} rx={r * 0.19} fill={ECORCE_L} opacity={0.45} />
       {/* stries d'écorce */}
       <path d={stries.trim()} stroke={ECORCE_O} strokeWidth={0.5} fill="none" opacity={0.4} />
-      {/* bout gauche dans la pénombre — seulement sur les grosses pièces */}
+      {/* bout gauche dans la pénombre - seulement sur les grosses pièces */}
       {r >= 2 && <ellipse cx={r * 0.55} cy={0} rx={r * 0.5} ry={r * 0.9} fill="#3a2b1a" opacity={0.45} />}
       {bout && <Coupe cx={l - r * 0.72} cy={0} r={r * 0.9} sy={1.05} seed={seed} />}
     </g>
@@ -985,7 +985,7 @@ function Sol({ n }: { n: number }) {
           <path d={`M${-rx * 0.9},${9.4} C${-rx * 0.5},${7.1} ${-rx * 0.2},${5.5} ${rx * 0.1},${4.9}`} stroke="#d1c391" strokeWidth={0.8} fill="none" opacity={0.45} />
         </g>
       )}
-      {/* tapis d'aiguilles vers la lisière nord-ouest — aplat deux tons */}
+      {/* tapis d'aiguilles vers la lisière nord-ouest - aplat deux tons */}
       <ellipse cx={-rx * 0.46} cy={-7} rx={rx * 0.4} ry={6} fill="#77764a" opacity={0.4} />
       <ellipse cx={-rx * 0.38} cy={-8.6} rx={rx * 0.25} ry={3.4} fill="#8a8855" opacity={0.4} />
       {/* traînée de sciure de la zone de coupe est */}

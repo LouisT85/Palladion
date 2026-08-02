@@ -58,7 +58,7 @@ const METIER_COURT: Partial<Record<BuildingId, string>> = {
  * Il disait « VIDE » et « −1 ». Deux énigmes : « vide » se lisait « désaffecté »
  * plutôt que « sans ouvrier », et « −1 » ne disait ni de quoi il manquait un, ni
  * qu'il fallait y faire quelque chose. L'écriteau nomme maintenant le MÉTIER
- * attendu — c'est-à-dire l'action à faire — et compte les postes en français.
+ * attendu - c'est-à-dire l'action à faire - et compte les postes en français.
  */
 function ManqueOuvriers({ id, manque, vide }: { id: BuildingId; manque: number; vide: boolean }) {
   const c = vide ? '#e0715a' : '#e8a45e'
@@ -114,10 +114,10 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
   const fracH = STADES_H[stade]
 
   const label = enChantier
-    ? `${def.emoji} ${def.nom} — niv. ${b.targetLevel} en chantier (${Math.round(progress * 100)} %)`
+    ? `${def.emoji} ${def.nom} - niv. ${b.targetLevel} en chantier (${Math.round(progress * 100)} %)`
     : b.level === 0
-      ? `${def.emoji} ${def.nom} — à construire`
-      : `${def.emoji} ${def.nom} — niveau ${b.level}/4`
+      ? `${def.emoji} ${def.nom} - à construire`
+      : `${def.emoji} ${def.nom} - niveau ${b.level}/4`
 
   return (
     <g
@@ -170,7 +170,7 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
                 </g>
               )}
               <Chantier />
-              {/* les ouvriers à l'œuvre — un second renfort dès que les murs sortent de terre */}
+              {/* les ouvriers à l'œuvre - un second renfort dès que les murs sortent de terre */}
               <Batisseur x={-22} y={9} />
               {stade >= 1 && <Batisseur x={20} y={5} flip begin="0.7s" />}
               <g transform="translate(0,-42)">
@@ -192,7 +192,7 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
 
 /** cadrage de la carte du village : on serre jusqu'à ×2.1 sur la mêlée */
 const VUE_VILLAGE: VueScene = { w: MAP.w, h: MAP.h, zMin: 1.7, zMax: 2.1 }
-/** lu à chaque image par la caméra — hors du rendu React, donc jamais périmé */
+/** lu à chaque image par la caméra - hors du rendu React, donc jamais périmé */
 const lireBatailleVillage = () => useGame.getState().battle
 
 export function VillageMap() {
@@ -210,11 +210,11 @@ export function VillageMap() {
   const lastSeen = useGame((s) => s.lastSeen)
   const saison = useGame((s) => s.saison)
   const meteo = useGame((s) => s.meteo)
-  // le cadre de l'acte en cours — null en bac à sable
+  // le cadre de l'acte en cours - null en bac à sable
   const cadreActe = useGame((s) =>
     s.campagne && !s.campagne.fini ? (ACTES_CAMPAGNE[s.campagne.acte]?.cadre ?? null) : null,
   )
-  // structure maximale de l'enceinte — Hector l'épaissit tant qu'il est là
+  // structure maximale de l'enceinte - Hector l'épaissit tant qu'il est là
   const wallMax = useGame(murMax)
   // liste stable : on ne recrée pas de tableau dans le sélecteur (React 18)
   const heros = useGame((s) => s.heros)
@@ -260,10 +260,10 @@ export function VillageMap() {
   const portePercee = brechesAngles.some((a) => Math.cos(a) > 0 && Math.abs(Math.sin(a)) < 0.35)
 
   const labelMur = rempartsChantier
-    ? `🧱 Remparts — niv. ${remparts.targetLevel} en chantier (${Math.round(progMur * 100)} %)`
+    ? `🧱 Remparts - niv. ${remparts.targetLevel} en chantier (${Math.round(progMur * 100)} %)`
     : wallLevel === 0
-      ? '🧱 Remparts — à construire'
-      : `🧱 Remparts — niveau ${wallLevel}/4${tours > 0 ? ` · ${tours} tour${tours > 1 ? 's' : ''} 🏹` : ''}`
+      ? '🧱 Remparts - à construire'
+      : `🧱 Remparts - niveau ${wallLevel}/4${tours > 0 ? ` · ${tours} tour${tours > 1 ? 's' : ''} 🏹` : ''}`
 
   // ordre du peintre : nord (hors les murs) → mur arrière → intérieur → mur avant → sud
   const dedans = BUILDING_IDS.filter((b) => b !== 'remparts' && BUILDINGS[b].interieur).sort(
@@ -393,7 +393,7 @@ export function VillageMap() {
 
           {/* Portée des tours, quand les remparts sont sélectionnés. Un disque
               jaune plein noyait la carte : on ne garde qu'un halo de bord et un
-              liseré fin — on lit la limite, pas une tache. */}
+              liseré fin - on lit la limite, pas une tache. */}
           {selected === 'remparts' &&
             tours > 0 &&
             TOUR_ANGLES.slice(0, tours).map((a) => {
@@ -422,11 +422,11 @@ export function VillageMap() {
         </g>
 
         {/* le ciel du jour : teinte de la saison, puis ce qui en tombe. Posé hors
-            du groupe caméra — la pluie tombe sur l'écran, pas sur la carte. */}
+            du groupe caméra - la pluie tombe sur l'écran, pas sur la carte. */}
         <VoileSaison saison={saison} w={MAP.w} h={MAP.h} />
         <Meteo meteo={meteo} w={MAP.w} h={MAP.h} />
 
-        {/* voile et vignette restent solidaires de l'écran — et s'effacent à demi
+        {/* voile et vignette restent solidaires de l'écran - et s'effacent à demi
             pendant un assaut, pour que la mêlée reste lisible même de nuit */}
         <g opacity={battle ? 0.45 : 1}>
           <Vignette />
@@ -450,7 +450,7 @@ export function VillageMap() {
       ))}
     </svg>
 
-      {/* commandes de vue — la molette et le glisser font la même chose,
+      {/* commandes de vue - la molette et le glisser font la même chose,
           ces boutons ne sont là que pour ceux qui n'ont ni l'un ni l'autre */}
       <div className="zoom-controles">
         <button

@@ -21,7 +21,7 @@ import { useGame } from './store'
  * C'est la seule partie du jeu dont une erreur EFFACE quelque chose. On y teste
  * donc moins les cas nominaux que les cas laids : le fichier qui n'en est pas
  * un, la sauvegarde d'une version future, l'emplacement illisible, et surtout la
- * promesse qui compte — basculer ne perd jamais la partie qu'on quitte.
+ * promesse qui compte - basculer ne perd jamais la partie qu'on quitte.
  */
 
 /** une partie plausible, réduite aux champs que le résumé sait lire */
@@ -160,7 +160,7 @@ describe('la bascule ne perd jamais la partie qu’on quitte', () => {
     expect(useGame.getState().pop).not.toBe(27)
     expect(emplacementActif()).toBe(1)
 
-    // et en revenant, tout est là — c'est toute la promesse
+    // et en revenant, tout est là - c'est toute la promesse
     useGame.getState().changerEmplacement(0)
     expect(useGame.getState().pop).toBe(27)
     expect(useGame.getState().faveur).toBe(61)

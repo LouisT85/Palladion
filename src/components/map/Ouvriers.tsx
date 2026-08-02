@@ -1,7 +1,7 @@
 import type { BuildingId } from '../../game/types'
 
 /*
- * Les villageois au travail — la vie du village, façon Age of Empires / Clash of Clans.
+ * Les villageois au travail - la vie du village, façon Age of Empires / Clash of Clans.
  * Chaque bâtiment productif a son artisan : geste en boucle (SMIL, aucun coût JS),
  * particules synchronisées (copeaux, éclats, étincelles) au moment de l'impact.
  * Coordonnées : l'espace de dessin du bâtiment (le même que BatimentArt).
@@ -10,7 +10,7 @@ import type { BuildingId } from '../../game/types'
 const PEAU = '#d9a97c'
 const PEAU_OMBRE = '#bd8a5c'
 
-/** mélange déterministe de deux hex — modelé des étoffes autour de leur teinte */
+/** mélange déterministe de deux hex - modelé des étoffes autour de leur teinte */
 function mix(a: string, b: string, t: number): string {
   const pa = parseInt(a.slice(1), 16)
   const pb = parseInt(b.slice(1), 16)

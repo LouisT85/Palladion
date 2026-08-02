@@ -18,7 +18,7 @@ import { Modale } from './Modale'
 /*
  * LE FIL ROUGE.
  *
- * Le suivi flottant ne montre que les trois missions en cours — c'est un
+ * Le suivi flottant ne montre que les trois missions en cours - c'est un
  * rappel, pas un sommaire. Ce qui manquait, c'est le lien avec le jeu : on
  * lisait « affectez un villageois au temple » sans savoir où cliquer, et le
  * reste du fil (cinquante missions, cinq actes) restait invisible.
@@ -57,7 +57,7 @@ function libelleCible(c: CibleMission): string {
   return '🛡️ Héros'
 }
 
-/** bouton d'accès direct — absent quand la mission ne s'accomplit sur aucun écran */
+/** bouton d'accès direct - absent quand la mission ne s'accomplit sur aucun écran */
 function BoutonYAller({ m, classe }: { m: MissionDef; classe?: string }) {
   const aller = useGame((s) => s.allerAMission)
   if (!m.cible) return null
@@ -100,7 +100,7 @@ export function MissionsTracker() {
           🏅 Missions{' '}
           {/* l'acte en cours est le repère de récit : il s'affiche sans qu'on clique */}
           <span className="compte-missions">
-            {ACTES[acteCourant(s.missionsReclamees)].nom.split(' — ')[0]} ·{' '}
+            {ACTES[acteCourant(s.missionsReclamees)].nom.split(' - ')[0]} ·{' '}
             {s.missionsReclamees.length}/{MISSIONS.length}
           </span>
           {/* replié, le tracker signale quand une récompense attend */}
@@ -160,7 +160,7 @@ export function MissionsTracker() {
 }
 
 /**
- * L'en-tête d'un acte, toujours visible — c'est lui qui dit où l'on en est du
+ * L'en-tête d'un acte, toujours visible - c'est lui qui dit où l'on en est du
  * récit. L'acte en cours porte sa marque et son avancement ; les suivants sont
  * scellés, puisqu'un acte doit être achevé avant que le suivant ne s'ouvre.
  */
@@ -210,7 +210,7 @@ export function PanneauMissions() {
           <b style={{ color: '#e8c04a' }}>
             {faites}/{MISSIONS.length}
           </b>{' '}
-          missions accomplies — <b style={{ color: '#e8dcc0' }}>{ACTES[iActe].nom}</b>. Trois missions sont ouvertes à la
+          missions accomplies - <b style={{ color: '#e8dcc0' }}>{ACTES[iActe].nom}</b>. Trois missions sont ouvertes à la
           fois, jamais au-delà de l’acte en cours : <b>il faut achever un acte pour que le suivant se descelle</b>.
           Chacune mène à l’écran où elle se joue.
         </>

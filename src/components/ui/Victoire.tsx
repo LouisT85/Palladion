@@ -10,7 +10,7 @@ import { useGame } from '../../game/store'
 
 const DUREE_MS = 3000
 
-/** paillettes d'or, tirées une fois pour toutes — déterministe, donc stable */
+/** paillettes d'or, tirées une fois pour toutes - déterministe, donc stable */
 const PAILLETTES = (() => {
   const rnd = alea(1789)
   return Array.from({ length: 26 }, () => ({

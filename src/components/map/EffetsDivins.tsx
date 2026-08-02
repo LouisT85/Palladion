@@ -7,11 +7,11 @@ import { alea } from './art'
  * ═══════════════ LA MAIN DES DIEUX, À LA MESURE DE LA FERVEUR ═══════════════
  *
  * Une bénédiction ne se lit pas seulement dans les chiffres : elle se voit.
- * Le palier de ferveur (0 maudit → 6 élu) pilote ici la mise en scène entière —
+ * Le palier de ferveur (0 maudit → 6 élu) pilote ici la mise en scène entière -
  * couleur, ampleur, nombre de ramifications, éclat du ciel.
  *
  * Règle non négociable : un dieu OFFENSÉ (palier ≤ 1) produit un visuel PÂLE et
- * AVORTÉ — l'éclair n'atteint pas le sol, l'onde meurt à trois pas, le halo
+ * AVORTÉ - l'éclair n'atteint pas le sol, l'onde meurt à trois pas, le halo
  * s'éteint aussitôt. La punition doit se voir avant même de se compter.
  */
 
@@ -35,7 +35,7 @@ function progres(e: BattleEffect, now: number): number {
 
 // ── ZEUS : l'éclair ──────────────────────────────────────────────────────────
 
-/** zigzag descendant depuis le ciel — dévié par le seed pour que deux coups diffèrent */
+/** zigzag descendant depuis le ciel - dévié par le seed pour que deux coups diffèrent */
 function traitFoudre(x: number, y: number, haut: number, ampl: number, seed: number): string {
   const rnd = alea(seed)
   const n = 6
@@ -81,7 +81,7 @@ function Zeus({ e, now, reg }: { e: BattleEffect; now: number; reg: Registre }) 
           </g>
         )
       })}
-      {/* impact au sol — inexistant quand le dieu se détourne */}
+      {/* impact au sol - inexistant quand le dieu se détourne */}
       {reg !== 'avorte' && (
         <>
           <circle cx={e.x} cy={e.y} r={9 + 16 * t} fill="none" stroke={T.halo} strokeWidth={2} opacity={1 - t} />
@@ -191,7 +191,7 @@ const TONS_ATHENA: Record<Registre, { halo: string; trait: string; rayon: number
 function Athena({ e, now, reg }: { e: BattleEffect; now: number; reg: Registre }) {
   const t = progres(e, now)
   const T = TONS_ATHENA[reg]
-  // le halo s'installe, tient, puis se retire — sauf offense : il meurt aussitôt
+  // le halo s'installe, tient, puis se retire - sauf offense : il meurt aussitôt
   const vie = reg === 'avorte' ? Math.max(0, 1 - t * 2.4) : t < 0.2 ? t / 0.2 : Math.max(0, 1 - (t - 0.2) / 0.8)
   const r = T.rayon * (reg === 'avorte' ? 0.6 : 0.75 + 0.25 * Math.min(1, t * 3))
   const rot = t * (reg === 'elu' ? 300 : reg === 'cheri' ? 160 : 60)
@@ -280,7 +280,7 @@ function Ares({ e, now, reg }: { e: BattleEffect; now: number; reg: Registre }) 
         fill={T.brume}
         opacity={0.24}
       />
-      {/* braises qui montent — le feu de la guerre prend vraiment à haute ferveur */}
+      {/* braises qui montent - le feu de la guerre prend vraiment à haute ferveur */}
       {Array.from({ length: braises }, (_, i) => {
         const dx = (rnd() - 0.5) * T.rayon * 1.5
         const h = 20 + rnd() * T.rayon

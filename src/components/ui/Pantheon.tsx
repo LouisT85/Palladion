@@ -20,13 +20,13 @@ function fmtMult(f: number): string {
  * la ferveur à la couleur seule, sans lire le mot ni le chiffre.
  */
 const TEINTES_FERVEUR = [
-  '#8e1410', // maudit — rouge presque noir
+  '#8e1410', // maudit - rouge presque noir
   '#c0392b', // offensé
   '#e07b39', // contrarié
-  '#9aa3a8', // indifférent — gris terne, sans intention
+  '#9aa3a8', // indifférent - gris terne, sans intention
   '#8fbf5a', // en grâce
   '#3fae6d', // chéri
-  '#12c97c', // élu — vert éclatant
+  '#12c97c', // élu - vert éclatant
 ] as const
 
 function couleurFerveur(relation: number): string {
@@ -55,11 +55,11 @@ function effetChiffre(g: GodId, force: number, murMax: number): string {
       return `−${s((1 - reduction) * 100)} % de dégâts subis pendant ${s(25 * force)} s`
     }
     case 'ares':
-      return `+${s(60 * force)} % d’attaque pendant ${s(25 * force)} s — hors bataille : recrues pressées pendant ${s(60 * force)} s`
+      return `+${s(60 * force)} % d’attaque pendant ${s(25 * force)} s - hors bataille : recrues pressées pendant ${s(60 * force)} s`
   }
 }
 
-/** bornes des sept paliers, en points de relation — sert à découper le rail */
+/** bornes des sept paliers, en points de relation - sert à découper le rail */
 const BORNES = [-100, -70, -40, -15, 15, 40, 70, 100]
 
 /**
@@ -104,7 +104,7 @@ function JaugeRelation({ relation }: { relation: number }) {
 /**
  * Les trois grâces d'un dieu, dans l'ordre où il les accorde. Une seule est
  * jamais achetable : celle qui suit la dernière prise. Les suivantes restent
- * visibles mais en retrait — on doit pouvoir viser la troisième dès la première.
+ * visibles mais en retrait - on doit pouvoir viser la troisième dès la première.
  */
 function ArbreDuDieu({ dieu, relation }: { dieu: GodId; relation: number }) {
   const acquises = useGame((s) => s.graces)
@@ -114,7 +114,7 @@ function ArbreDuDieu({ dieu, relation }: { dieu: GodId; relation: number }) {
   return (
     <div className="graces">
       <div className="graces-titre">
-        Arbre de faveur — {liste.filter((g) => acquises.includes(g.id)).length}/{liste.length} accordées
+        Arbre de faveur - {liste.filter((g) => acquises.includes(g.id)).length}/{liste.length} accordées
       </div>
       {liste.map((g) => {
         const prise = acquises.includes(g.id)
@@ -124,14 +124,14 @@ function ArbreDuDieu({ dieu, relation }: { dieu: GodId; relation: number }) {
           <div
             key={g.id}
             className={`grace${prise ? ' acquise' : offerte ? ' offerte' : ' lointaine'}`}
-            title={prise ? 'Acquise — définitivement' : `Coûte ${g.cout} points de relation`}
+            title={prise ? 'Acquise - définitivement' : `Coûte ${g.cout} points de relation`}
           >
             <span className="cran" />
             <span className="grace-emoji">{g.emoji}</span>
             <div className="grace-corps">
               <div className="grace-nom">
                 {g.nom}
-                {prise && <span style={{ color: '#12c97c', fontWeight: 400 }}> — accordée</span>}
+                {prise && <span style={{ color: '#12c97c', fontWeight: 400 }}> - accordée</span>}
               </div>
               <div className="grace-desc">{g.desc}</div>
             </div>
@@ -170,7 +170,7 @@ export function Pantheon() {
       onFermer={() => s.openPanel(null)}
       sous={
         <>
-          Faveur : <b style={{ color: '#e8c04a' }}>{Math.floor(s.faveur)}</b>/100 — la faveur paie les bénédictions, la{' '}
+          Faveur : <b style={{ color: '#e8c04a' }}>{Math.floor(s.faveur)}</b>/100 - la faveur paie les bénédictions, la{' '}
           <b style={{ color: '#e8dcc0' }}>relation</b> en fixe la force.
         </>
       }
@@ -178,12 +178,12 @@ export function Pantheon() {
       <>
         <div style={{ fontSize: 12.5, color: '#cfc4a8', marginTop: 7, lineHeight: 1.45 }}>
           Chaque dieu frappe à la mesure de votre ferveur : de <b style={{ color: '#b93a2c' }}>×0.4</b> pour un dieu
-          maudit à <b style={{ color: '#e8c04a' }}>×1.6</b> pour son élu — la puissance <i>et</i> la durée. Un sacrifice
+          maudit à <b style={{ color: '#e8c04a' }}>×1.6</b> pour son élu - la puissance <i>et</i> la durée. Un sacrifice
           vaut +8 de relation ; un dieu bafoué (≤ −40) frappe mou, puis finit par se venger.
           <div style={{ marginTop: 5 }}>
             La relation se <b style={{ color: '#e8dcc0' }}>dépense</b> aussi : chaque Olympien accorde trois{' '}
             <b style={{ color: '#12c97c' }}>grâces permanentes</b>, payées en points de relation et jamais reprises.
-            Monter sa ferveur ou l’échanger contre un don définitif — c’est à vous.
+            Monter sa ferveur ou l’échanger contre un don définitif - c’est à vous.
           </div>
         </div>
         {GOD_IDS.map((g) => {

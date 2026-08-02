@@ -8,7 +8,7 @@ import { useGame } from './store'
  *
  * Le jeu ne gardait aucune mémoire chiffrée de lui-même : le journal racontait
  * des faits, jamais des tendances. Ce qu'on vérifie ici n'est pas la beauté des
- * courbes — c'est qu'elles existent, qu'elles ne mentent pas sur le sens de la
+ * courbes - c'est qu'elles existent, qu'elles ne mentent pas sur le sens de la
  * pente, et surtout que le tableau reste BORNÉ : une sauvegarde n'a pas à
  * grossir sans fin parce qu'on laisse l'onglet ouvert une nuit.
  */

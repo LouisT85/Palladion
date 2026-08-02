@@ -31,7 +31,7 @@ function statsDe(type: EnemyId | UnitId): { atk: number; hp: number; speed: numb
   return { atk: u.atk, hp: u.hp, speed: type === 'peltaste' ? 58 : 38, wallDps: u.wallDps }
 }
 
-/** ce qui tire de loin, dans les deux camps — la proie du peltaste */
+/** ce qui tire de loin, dans les deux camps - la proie du peltaste */
 export function estTireur(type: EnemyId | UnitId): boolean {
   return type === 'archer' || type === 'frondeur'
 }
@@ -83,7 +83,7 @@ function posteSiege(geo: BattleGeo, i: number, angleSecteur = 0): { x: number; y
 
 /**
  * Place du i-ème défenseur de mêlée. Ils convergeaient tous vers le MÊME point,
- * ce qui donnait une pile de figurines superposées — illisible, et impossible
+ * ce qui donnait une pile de figurines superposées - illisible, et impossible
  * d'y distinguer un héros. Ils tiennent maintenant trois rangs face à la porte.
  */
 function posteRalliement(geo: BattleGeo, i: number): { x: number; y: number } {
@@ -209,7 +209,7 @@ export interface ResultatHorsLigne {
   pertes: Partial<Record<UnitId, number>>
   degatsRemparts: number
   volePct: number
-  /** angles des pans qui se sont effondrés — vides si l'enceinte a tenu partout */
+  /** angles des pans qui se sont effondrés - vides si l'enceinte a tenu partout */
   anglesOuverts: number[]
 }
 
@@ -220,7 +220,7 @@ export interface ResultatHorsLigne {
  * forfaitairement la porte comme enfoncée dès que `wallHp` tombait à zéro : au
  * réveil, le joueur voyait toujours la même brèche au même endroit, quel que
  * soit le nombre de colonnes annoncées la veille. On répartit donc la structure
- * entre les pans assaillis — comme le fait `creerBataille` — et l'on rend la
+ * entre les pans assaillis - comme le fait `creerBataille` - et l'on rend la
  * liste de ceux qui ont réellement cédé.
  */
 /** ce qu'un champion ajoute à la force d'une colonne, résolue sans spectacle */
@@ -252,13 +252,13 @@ export function resoudreHorsLigne(
   }
   /*
    * Les coups portés, puis ce que la structure peut en encaisser. La distinction
-   * compte : c'est la force BRUTE qui décide si un pan s'ouvre — un mur réduit à
+   * compte : c'est la force BRUTE qui décide si un pan s'ouvre - un mur réduit à
    * vingt points ne « limite » pas le bélier, il cède.
    */
   const degatsBruts = Math.round(atk * (victoire ? 0.8 : 1.6))
   const degatsRemparts = Math.min(wallHp, degatsBruts)
   /*
-   * Chaque pan assailli reçoit sa part de la structure ET sa part des coups — mais
+   * Chaque pan assailli reçoit sa part de la structure ET sa part des coups - mais
    * les pans ne se valent pas. La porte est le plus épais (corps de garde,
    * vantaux doublés) et les tours ne couvrent que leur arc, dans l'ordre où on
    * les bâtit : les deux premières flanquent la porte, la troisième le mur du sud,
@@ -279,7 +279,7 @@ export function resoudreHorsLigne(
 }
 
 // ── Bataille animée ───────────────────────────────────────────────────────────
-// Rythme volontairement posé : la bataille se lit comme une scène — colonne en
+// Rythme volontairement posé : la bataille se lit comme une scène - colonne en
 // approche, salves espacées, mêlée qui dure. Les dégâts par coup ne bougent pas,
 // seule la cadence s'étire : l'issue reste la même, le spectacle respire.
 const PORTEE_ARC_MUR = 300
@@ -289,7 +289,7 @@ export const PORTEE_FRONDE = 0.66
 export const CADENCE_ARC = 2600
 export const CADENCE_MELEE = 2100
 export const CADENCE_MUR = 1700
-/** vitesse d'une flèche (px/s) — assez lente pour suivre sa course des yeux */
+/** vitesse d'une flèche (px/s) - assez lente pour suivre sa course des yeux */
 const VITESSE_FLECHE = 250
 
 /*
@@ -301,17 +301,17 @@ const VITESSE_FLECHE = 250
  * coup par les effectifs.
  *
  * Trois postures pour la ligne, deux façons de tirer, et un secteur assignable
- * par type d'unité. Aucun de ces choix n'est bon partout — c'est la condition
+ * par type d'unité. Aucun de ces choix n'est bon partout - c'est la condition
  * pour qu'ils soient des choix :
  *
- *  · MUR DE BOUCLIERS — on encaisse deux fois mieux, on frappe mou, on ne
+ *  · MUR DE BOUCLIERS - on encaisse deux fois mieux, on frappe mou, on ne
  *    poursuit personne. La ligne tient là où elle est, et rien ne la fait rompre.
- *  · TENIR — la posture de toujours : on va au plus proche, à pleine force.
- *  · CHARGER — on frappe fort et vite, on sort même hors des murs pour aller
+ *  · TENIR - la posture de toujours : on va au plus proche, à pleine force.
+ *  · CHARGER - on frappe fort et vite, on sort même hors des murs pour aller
  *    crever les béliers… et l'on encaisse tout ce qui vient, sans bouclier levé.
  *
- *  · TIR TENDU — l'homme le plus proche, à pleine force.
- *  · TIR EN CLOCHE — on porte bien plus loin et l'on arrose le plus gros TAS,
+ *  · TIR TENDU - l'homme le plus proche, à pleine force.
+ *  · TIR EN CLOCHE - on porte bien plus loin et l'on arrose le plus gros TAS,
  *    même hors de vue derrière le mur, mais la flèche arrive amortie.
  */
 export interface EffetLigne {
@@ -358,7 +358,7 @@ export const EFFETS_LIGNE: Record<OrdreLigne, EffetLigne> = {
   charge: {
     nom: 'Charger',
     emoji: '⚔️',
-    desc: '+40 % de dégâts, +35 % de vitesse — et l’on sort crever les béliers sous le mur. Mais on encaisse tout, et la ligne casse vite.',
+    desc: '+40 % de dégâts, +35 % de vitesse - et l’on sort crever les béliers sous le mur. Mais on encaisse tout, et la ligne casse vite.',
     degats: 1.4,
     recus: 1.35,
     vitesse: 1.35,
@@ -390,7 +390,7 @@ export const EFFETS_TIR: Record<OrdreTir, EffetTir> = {
   cloche: {
     nom: 'Tir en cloche',
     emoji: '🌙',
-    desc: '+45 % de portée et l’on arrose le plus gros rassemblement — mais la flèche arrive amortie (−30 %).',
+    desc: '+45 % de portée et l’on arrose le plus gros rassemblement - mais la flèche arrive amortie (−30 %).',
     portee: 1.45,
     degats: 0.7,
     masse: true,
@@ -437,7 +437,7 @@ export interface OptionsBataille {
   /** passifs de héros : multiplicateur d'attaque et de dégâts subis, camp du joueur */
   bonusAtkJoueur?: number
   reducJoueur?: number
-  /** allonge du tir des tours (1 = portée normale) — grâce de Poséidon */
+  /** allonge du tir des tours (1 = portée normale) - grâce de Poséidon */
   porteeTours?: number
   /** les murs sont déjà ouverts avant le premier coup (ruse d'Ulysse) */
   sansSiege?: boolean
@@ -479,7 +479,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     }
   })
 
-  // Assaillants — répartis entre les fronts, en colonne de marche par secteur
+  // Assaillants - répartis entre les fronts, en colonne de marche par secteur
   const parSecteur = fronts.map(() => 0)
   let i = 0
   for (const w of attaquants) {
@@ -518,7 +518,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     }
   }
 
-  // Défenseurs de mêlée — au point de ralliement
+  // Défenseurs de mêlée - au point de ralliement
   const engages: Partial<Record<UnitId, number>> = {}
   // un compteur commun à toute l'infanterie : la ligne de mêlée est unique
   let placeDef = 0
@@ -559,8 +559,8 @@ export function creerBataille(opts: OptionsBataille): BattleState {
   }
 
   /*
-   * Les héros. Ils se battent au premier rang du camp du joueur — devant la
-   * ligne quand on défend, en tête de colonne quand on attaque — et ne sont
+   * Les héros. Ils se battent au premier rang du camp du joueur - devant la
+   * ligne quand on défend, en tête de colonne quand on attaque - et ne sont
    * jamais comptés dans `engages` : leurs blessures ne coûtent pas de soldats.
    */
   const listeHeros = opts.herosPresents ?? []
@@ -592,9 +592,9 @@ export function creerBataille(opts: OptionsBataille): BattleState {
   })
 
   /*
-   * Tireurs défenseurs — postés sur les remparts. Archers ET frondeurs : tout ce
+   * Tireurs défenseurs - postés sur les remparts. Archers ET frondeurs : tout ce
    * qui tire monte sur le mur, et n'en descend que si SON pan tombe. Les deux se
-   * partagent les créneaux, les frondeurs derrière — moins de portée, moins de
+   * partagent les créneaux, les frondeurs derrière - moins de portée, moins de
    * valeur, on ne leur donne pas les meilleures places.
    */
   let creneau = 0
@@ -632,7 +632,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
   /*
    * Le champion achéen. Il marche en tête de la première colonne, à découvert :
    * on doit le VOIR arriver, et pouvoir décider de lui tirer dessus plutôt que
-   * sur les pillards. C'est un mercenaire multiplié — rien d'inatteignable, mais
+   * sur les pillards. C'est un mercenaire multiplié - rien d'inatteignable, mais
    * il faut y mettre les moyens, et pendant ce temps la muraille encaisse.
    */
   let champion: EtatChampion | undefined
@@ -676,7 +676,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     }
   }
 
-  // Tours d'archers — postées sur l'enceinte, elles tirent tant que le mur tient
+  // Tours d'archers - postées sur l'enceinte, elles tirent tant que le mur tient
   const toursDef = TOUR_ANGLES.slice(0, wallLevel > 0 ? (opts.tours ?? 0) : 0).map((a) => {
     const p = geoPoint(geo, a)
     return { x: p.x, y: p.y - 32, nextHit: now + 600 + Math.random() * 900 }
@@ -793,7 +793,7 @@ export interface TickBatailleOut {
   fuite: boolean
   /** les assaillants atteignent le cœur du village */
   pillage: boolean
-  /** identifiants des combattants qui ont rompu ce battement — pour le son */
+  /** identifiants des combattants qui ont rompu ce battement - pour le son */
   rompus: string[]
   /** le champion achéen vient de lancer sa manœuvre (son nom), sinon null */
   championAgit: string | null
@@ -845,7 +845,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
    * Le champion achéen retourne SA capacité contre le village. Les deux
    * multiplicateurs ci-dessous relisent son état à chaque coup porté : sa fureur
    * s'éteint d'elle-même à l'heure dite, et surtout elle s'éteint À L'INSTANT où
-   * on l'abat — c'est tout l'intérêt de préférer sa gorge à celle d'un pillard.
+   * on l'abat - c'est tout l'intérêt de préférer sa gorge à celle d'un pillard.
    */
   const champAtk = (f: Fighter): number => {
     const c = b.champion
@@ -884,7 +884,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
   /*
    * ── LE CHAMPION ACHÉEN ───────────────────────────────────────────────────
    *
-   * Il marche en tête, à découvert, et lance sa manœuvre une fois — à l'heure
+   * Il marche en tête, à découvert, et lance sa manœuvre une fois - à l'heure
    * dite, pas avant. Deux choses en découlent, et ce sont les seules qui
    * comptent : on la voit venir, et on peut l'empêcher en le tuant d'abord.
    */
@@ -960,7 +960,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
   }
 
   /**
-   * Déroute — uniquement pour les troupes du JOUEUR en expédition :
+   * Déroute - uniquement pour les troupes du JOUEUR en expédition :
    * les assaillants d'un village se battent jusqu'au dernier homme.
    */
   const initial = tailleVague(b.wave)
@@ -982,14 +982,14 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
    *
    * Une bataille ne se décide pas au dernier homme : elle se décide quand une
    * ligne casse. Jusqu'ici, chaque figurine se battait jusqu'à la mort, ce qui
-   * rendait toutes les mêlées identiques — on additionnait des points de vie.
+   * rendait toutes les mêlées identiques - on additionnait des points de vie.
    *
    * Le moral d'un camp, c'est la part de ses effectifs encore debout. Sous un
    * seuil, chaque combattant peut ROMPRE, un par un, en commençant par les plus
    * entamés : c'est ce qui fait qu'une ligne s'effrite au lieu de fondre.
    *
    * Et un héros RALLIE. Tant qu'il tient debout, le seuil de rupture de son camp
-   * s'abaisse fortement — sa seule présence vaut mieux que dix hommes de plus,
+   * s'abaisse fortement - sa seule présence vaut mieux que dix hommes de plus,
    * ce qui est exactement ce que promettent les fiches de héros.
    */
   const moralDe = (camp: 'attaque' | 'defense'): number => {
@@ -1016,7 +1016,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       const risque = ((seuil - m) / seuil) * TAUX_PANIQUE * dt
       const debout = vivants(b, camp)
       // un seul homme peut rompre par battement : une ligne s'effrite, elle
-      // ne s'évapore pas — et l'on part par les plus mal en point
+      // ne s'évapore pas - et l'on part par les plus mal en point
       const candidat = debout.filter((f) => !f.heros).sort((x, y) => x.hp / x.maxHp - y.hp / y.maxHp)[0]
       if (candidat && Math.random() < risque) {
         candidat.etat = 'fuite'
@@ -1093,7 +1093,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
 
     // ── Défenseurs ──
     // tout ce qui tire depuis le rempart : archers et frondeurs. La fronde porte
-    // moins loin, ce qui est la contrepartie de son prix — aucun bronze
+    // moins loin, ce qui est la contrepartie de son prix - aucun bronze
     if (f.type === 'archer' || f.type === 'frondeur') {
       const surMur = f.etat === 'siege'
       const portePlusCourt = f.type === 'frondeur' ? PORTEE_FRONDE : 1
@@ -1146,12 +1146,12 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
 
     // mêlée (lanciers, hoplites, peltastes) : ils courent au secteur enfoncé.
     // Tant que tout tient, ils patientent au ralliement ; dès qu'un pan cède,
-    // ils s'y portent — c'est au joueur de compter sur eux pour boucher un trou.
+    // ils s'y portent - c'est au joueur de compter sur eux pour boucher un trou.
     const dedans = atkVivants.filter((a) => a.etat === 'melee' && estDedans(geo, a))
     /*
      * « Charger » change la donne : la ligne ne reste plus à l'abri à attendre
      * que le mur cède. Elle sort par la porte et va crever les béliers là où ils
-     * cognent. C'est le seul moyen de sauver un pan qui va tomber — et le plus
+     * cognent. C'est le seul moyen de sauver un pan qui va tomber - et le plus
      * cher, car dehors, il n'y a plus de mur pour couvrir personne.
      */
     const gibier = dedans.length > 0 ? dedans : ligne.sortie ? atkVivants : b.secteurs.some((s) => !s.breche) ? [] : atkVivants
@@ -1159,7 +1159,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
      * Un secteur assigné, c'est une garnison : ces hommes-là tiennent CE pan et
      * ne courent pas ailleurs, même si l'on s'égorge à l'autre bout de l'enceinte.
      * Sans cela, un assaut sur trois fronts se répondait toujours en masse au
-     * plus chaud — et les deux autres pans tombaient tout seuls.
+     * plus chaud - et les deux autres pans tombaient tout seuls.
      */
     const secteur = secteurAssigne(f)
     const iSecteur = secteur ? b.secteurs.indexOf(secteur) : -1
@@ -1175,7 +1175,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     const aPortee = ligne.laisse > 0 ? menace.filter((a) => dist(a, ancre) <= ligne.laisse) : menace
     /*
      * Le peltaste, lui, choisit sa proie : il va d'abord aux TIREURS. C'est toute
-     * sa raison d'être — un javelot rattrape un archer, une lance de milice ne
+     * sa raison d'être - un javelot rattrape un archer, une lance de milice ne
      * rattrape rien. Sans ce tri, il n'était qu'un lancier un peu plus cher.
      */
     const tireurs = f.type === 'peltaste' ? aPortee.filter((a) => estTireur(a.type)) : []
@@ -1307,7 +1307,7 @@ export function pertesAttaque(b: BattleState): number {
 
 /**
  * Foudre de Zeus : ~120 dégâts (× la ferveur du dieu) répartis sur les 6 ennemis
- * les plus proches du point le plus chaud — la brèche s'il y en a une, sinon la porte.
+ * les plus proches du point le plus chaud - la brèche s'il y en a une, sinon la porte.
  */
 export function foudreDeZeus(b: BattleState, now: number, force = 1, palier = 2): number {
   const campEnnemi = b.campJoueur === 'defense' ? 'attaque' : 'defense'

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Jeu de gestion de village à l'époque de la guerre de Troie — SVG évolutif, dieux grecs, vagues d'assaut",
+  "description": "Jeu de gestion de village à l'époque de la guerre de Troie - SVG évolutif, dieux grecs, vagues d'assaut",
   "scripts": {
     "dev": "vite",
     "dev:test": "vite --mode test",

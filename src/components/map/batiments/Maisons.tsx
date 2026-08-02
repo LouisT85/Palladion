@@ -2,7 +2,7 @@ import { AOBase, Batisse3D, Fenetre3D, MurPierre, OmbreVolume, PAL, Porte3D, ale
 import { Feu, Fumee } from './primitives'
 
 /*
- * MAISONS — quartier d'habitation, peint réaliste (bible : docs/STYLE-ART.md).
+ * MAISONS - quartier d'habitation, peint réaliste (bible : docs/STYLE-ART.md).
  * Lumière NW, ombres portées SE, zéro contour noir.
  *  1. campement de toile et feu de camp    2. cabanes de torchis à chaume
  *  3. maisons de pierre à tuiles           4. quartier prospère : étage,
@@ -51,7 +51,7 @@ function Banc({ x = 0, y = 0 }: { x?: number; y?: number }) {
   )
 }
 
-/** poule picorant — silhouette 2 tons, crête rouge */
+/** poule picorant - silhouette 2 tons, crête rouge */
 function Poule({ x = 0, y = 0, c = '#ece5d2', flip = false }: { x?: number; y?: number; c?: string; flip?: boolean }) {
   return (
     <g transform={`translate(${x},${y}) scale(${flip ? -1 : 1},1)`}>
@@ -68,7 +68,7 @@ function Poule({ x = 0, y = 0, c = '#ece5d2', flip = false }: { x?: number; y?: 
   )
 }
 
-/** chèvre — corps modelé (dos éclairé, ventre ombré), cornes recourbées */
+/** chèvre - corps modelé (dos éclairé, ventre ombré), cornes recourbées */
 function ChevreArt({ x = 0, y = 0, s = 1, c = '#d4c8ac', flip = false }: { x?: number; y?: number; s?: number; c?: string; flip?: boolean }) {
   return (
     <g transform={`translate(${x},${y}) scale(${flip ? -s : s},${s})`}>
@@ -293,7 +293,7 @@ function Olivier({ x = 0, y = 0, s = 1 }: { x?: number; y?: number; s?: number }
   )
 }
 
-/** drap suspendu qui ondule (SMIL léger) — épinglé en haut, bas au vent */
+/** drap suspendu qui ondule (SMIL léger) - épinglé en haut, bas au vent */
 function Drap({ x = 0, y = 0, w = 5, h = 6.5, c = '#ece5d2', dur = '3s', tard = '0s' }: { x?: number; y?: number; w?: number; h?: number; c?: string; dur?: string; tard?: string }) {
   const d0 = `M0,0 L${w},0 L${w + 0.7},${h} Q${w / 2},${h + 1.7} -0.4,${h - 0.5} Z`
   const d1 = `M0,0 L${w},0 L${w - 0.7},${h - 0.4} Q${w / 2},${h - 1.5} 0.5,${h + 0.6} Z`
@@ -328,7 +328,7 @@ function Linge({ x = 0, y = 0, larg = 24, y2 = 2, habits = ['#ece5d2', '#c98d6b'
   )
 }
 
-/** pergola : poteaux de bois, traverses, vigne — ombre AJOURÉE au sol (SE) */
+/** pergola : poteaux de bois, traverses, vigne - ombre AJOURÉE au sol (SE) */
 function Pergola({ x = 0, y = 0 }: { x?: number; y?: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
@@ -731,7 +731,7 @@ export function Maisons({ n }: { n: number }) {
       <path d="M-26,4 Q-8,10 8,9 Q22,8 34,0" stroke="#cfbf93" strokeWidth={5} fill="none" opacity={0.55} strokeLinecap="round" />
       {n >= 4 && <Dallage x={12} y={9} rx={26} ry={8.5} seed={9} />}
 
-      {/* maison à étage du fond (niveau 4) — escalier extérieur vers le palier */}
+      {/* maison à étage du fond (niveau 4) - escalier extérieur vers le palier */}
       {n >= 4 && (
         <g transform="translate(-30,-22)">
           <Batisse3D w={26} h={26} g={8} mat="stuc" toit="tuiles" enfants={

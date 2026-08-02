@@ -12,7 +12,7 @@ export type BuildingId =
   | 'temple'
   | 'port'
 export type UnitId = 'lancier' | 'archer' | 'hoplite' | 'frondeur' | 'peltaste' | 'belier'
-/** les héros de la matière troyenne — leurs fiches vivent dans heros.ts */
+/** les héros de la matière troyenne - leurs fiches vivent dans heros.ts */
 export type HeroId =
   | 'hector'
   | 'ulysse'
@@ -105,7 +105,7 @@ export interface BuildingState {
 export interface Villageois {
   id: string
   nom: string
-  /** bâtiment où il travaille — null = sans emploi, disponible pour l'enrôlement */
+  /** bâtiment où il travaille - null = sans emploi, disponible pour l'enrôlement */
   poste: BuildingId | null
   /**
    * Son métier de naissance, parmi les six qui s'apprennent au village. À son
@@ -116,12 +116,12 @@ export interface Villageois {
   /**
    * Jour de jeu de sa naissance. Une journée vaut deux ans de vie : l'âge se
    * déduit donc du calendrier, sans compteur à faire tourner. Absent sur les
-   * sauvegardes antérieures aux lignées — on les lit alors comme des adultes.
+   * sauvegardes antérieures aux lignées - on les lit alors comme des adultes.
    */
   neLe?: number
   /** sa maison. Elle se transmet de père en enfant et interdit les mariages entre soi. */
   lignee?: string
-  /** l'id de son conjoint — un foyer, donc des naissances possibles */
+  /** l'id de son conjoint - un foyer, donc des naissances possibles */
   conjoint?: string
   /** prénoms de ses parents, pour le recensement : « fils de Damon et Théano » */
   parents?: [string, string]
@@ -213,12 +213,12 @@ export interface Fighter {
   mortAt?: number
   /**
    * Ce combattant EST un héros : il porte ses couleurs sur le champ de bataille
-   * et ne compte pas dans les pertes de la garnison — un héros abattu est
+   * et ne compte pas dans les pertes de la garnison - un héros abattu est
    * blessé, pas rayé de l'effectif.
    */
   heros?: HeroId
   /**
-   * Dépêché par un village allié. Ils tombent avant vos hommes — encore faut-il
+   * Dépêché par un village allié. Ils tombent avant vos hommes - encore faut-il
    * les reconnaître sur le rempart : ils portaient jusqu'ici vos propres
    * couleurs, si bien que l'aide d'un allié ne se voyait que dans le rapport.
    */
@@ -243,7 +243,7 @@ export interface BattleEffect {
   x: number
   y: number
   until: number
-  /** instant d'apparition — permet de jouer l'effet sur toute sa durée réelle */
+  /** instant d'apparition - permet de jouer l'effet sur toute sa durée réelle */
   debut?: number
   /** effets divins : quel dieu frappe, et à quelle ferveur (0 maudit → 6 élu) */
   dieu?: GodId
@@ -271,7 +271,7 @@ export interface TourDef {
 /**
  * Un front d'assaut : les assaillants se scindent en groupes qui attaquent
  * des secteurs distincts de l'enceinte. Chaque secteur a ses propres points
- * de structure et peut céder seul — c'est là que se joue la défense.
+ * de structure et peut céder seul - c'est là que se joue la défense.
  */
 export interface SecteurBataille {
   /** nom lisible du secteur (« porte de l'est », « mur nord »…) */
@@ -305,7 +305,7 @@ export interface OrdresBataille {
   tir: OrdreTir
   /**
    * Secteur assigné à un type d'unité (index dans `secteurs`). Les hommes de ce
-   * type s'y portent et n'y frappent que ce qui l'assaille — c'est ainsi qu'on
+   * type s'y portent et n'y frappent que ce qui l'assaille - c'est ainsi qu'on
    * répond à un assaut sur trois fronts avec une garnison qui n'est pas triple.
    */
   secteurs: Partial<Record<UnitId, number>>
@@ -322,7 +322,7 @@ export interface EtatChampion {
   capaciteA: number
   /** elle est tombée : on ne la relance pas */
   lancee: boolean
-  /** il est mort sous vos murs — sa capacité meurt avec lui */
+  /** il est mort sous vos murs - sa capacité meurt avec lui */
   abattu: boolean
   /** identifiant du combattant qui le porte, pour le retrouver */
   fighterId: string
@@ -343,7 +343,7 @@ export interface BattleState {
   projectiles: Projectile[]
   /** tours d'archers du camp défenseur (muettes une fois la brèche ouverte) */
   toursDef: TourDef[]
-  /** fronts d'assaut — chaque secteur de mur cède indépendamment */
+  /** fronts d'assaut - chaque secteur de mur cède indépendamment */
   secteurs: SecteurBataille[]
   effects: BattleEffect[]
   phase: 'approche' | 'siege' | 'melee' | 'fini'
@@ -354,26 +354,26 @@ export interface BattleState {
   geo: BattleGeo
   defBuffUntil: number
   atkBuffUntil: number
-  /** puissance des bénédictions en cours — dépend de la relation au dieu */
+  /** puissance des bénédictions en cours - dépend de la relation au dieu */
   defBuffForce?: number
   atkBuffForce?: number
   /** passifs de héros appliqués au camp du joueur, pour toute la bataille */
   bonusAtkJoueur?: number
   reducJoueur?: number
-  /** allonge du tir des tours (1 = portée normale) — grâce de Poséidon */
+  /** allonge du tir des tours (1 = portée normale) - grâce de Poséidon */
   porteeTours?: number
   /**
    * Moral de chaque camp : la part de ses effectifs encore debout. Sous un seuil,
-   * les hommes rompent un par un — et un héros vivant abaisse ce seuil. C'est ce
+   * les hommes rompent un par un - et un héros vivant abaisse ce seuil. C'est ce
    * qui fait qu'une ligne s'effrite au lieu de fondre jusqu'au dernier.
    */
   moral?: { attaque: number; defense: number }
-  /** ordres donnés par le joueur — absent = posture neutre, tir tendu */
+  /** ordres donnés par le joueur - absent = posture neutre, tir tendu */
   ordres?: OrdresBataille
   /**
    * Le champion achéen qui mène la colonne, s'il y en a un. Il porte un NOM
-   * connu — l'un des huit héros de la matière troyenne, précisément ceux qu'on
-   * peut recruter — et retourne sa capacité contre le village.
+   * connu - l'un des huit héros de la matière troyenne, précisément ceux qu'on
+   * peut recruter - et retourne sa capacité contre le village.
    */
   champion?: EtatChampion
   result: BattleResult | null
@@ -397,7 +397,7 @@ export interface Alliance {
   /**
    * Un mariage a scellé cette alliance : elle ne se dénoue plus, quoi qu'il
    * arrive à la relation, et le tribut est doublé. C'est ce qu'on achète en
-   * donnant un habitant — et c'est le seul engagement irréversible du jeu.
+   * donnant un habitant - et c'est le seul engagement irréversible du jeu.
    */
   mariage?: { villageois: string; lignee?: string; depuis: number }
 }

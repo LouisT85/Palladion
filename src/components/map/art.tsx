@@ -5,24 +5,24 @@ import type { ReactNode } from 'react'
  * Style : peint réaliste méditerranéen (Age of Empires / Zeus).
  * Le volume vient de la LUMIÈRE, jamais de contours noirs.
  *
- * Conventions absolues — tout composant d'art les respecte :
+ * Conventions absolues - tout composant d'art les respecte :
  *  · Soleil au NORD-OUEST (haut-gauche). Faces ouest et pans de toit
  *    gauches ÉCLAIRÉS ; faces est et pans droits DANS L'OMBRE ; façades
  *    sud en demi-teinte.
- *  · Ombres portées projetées vers le SUD-EST : +x, +y×0.42 — douces
- *    (flou), couleur terre (#241a08), opacité 0.14–0.2.
+ *  · Ombres portées projetées vers le SUD-EST : +x, +y×0.42 - douces
+ *    (flou), couleur terre (#241a08), opacité 0.14-0.2.
  *  · Occlusion ambiante à la base de tout volume posé au sol (AOBase).
  *  · Ancre bâtiment : (0,0) = centre du pied. Boîte maximale :
  *    x ∈ [-135, 135], y ∈ [-100, +32] (le clip des chantiers en dépend).
  *  · JAMAIS de Math.random() dans un render (re-rendu 4×/s) : utiliser
- *    alea(seed) — déterministe, stable d'un rendu à l'autre.
+ *    alea(seed) - déterministe, stable d'un rendu à l'autre.
  *  · Liserés fins autorisés uniquement dans la teinte sombre du matériau
  *    (jamais #000). Épaisseur ≤ 1.
  *  · IDs de defs préfixés « a- » (bible) ou par domaine (« t- » temple…).
  *  · Budget : ≤ ~400 nœuds SVG par bâtiment au niveau 4.
  */
 
-/** PRNG déterministe (mulberry32) — remplace Math.random dans les renders */
+/** PRNG déterministe (mulberry32) - remplace Math.random dans les renders */
 export function alea(seed: number): () => number {
   let a = (seed * 1_000_003) >>> 0 || 7
   return () => {
@@ -34,7 +34,7 @@ export function alea(seed: number): () => number {
   }
 }
 
-/** Palette maîtresse — s'y tenir pour que la carte reste UNE peinture */
+/** Palette maîtresse - s'y tenir pour que la carte reste UNE peinture */
 export const PAL = {
   // stuc / enduit chaulé
   stucLit: '#f2e7cd',
@@ -67,7 +67,7 @@ export const PAL = {
 } as const
 
 /**
- * Défs partagées de la bible — à monter UNE fois dans chaque <svg> de scène
+ * Défs partagées de la bible - à monter UNE fois dans chaque <svg> de scène
  * (VillageMap, scène d'expédition, aperçus).
  */
 export function DefsArt() {
@@ -156,7 +156,7 @@ export function DefsArt() {
   )
 }
 
-/** Occlusion ambiante à la base d'un volume — TOUJOURS sous le bâtiment */
+/** Occlusion ambiante à la base d'un volume - TOUJOURS sous le bâtiment */
 export function AOBase({ rx, ry = 0, cx = 0, cy = 1, o = 1 }: { rx: number; ry?: number; cx?: number; cy?: number; o?: number }) {
   return <ellipse cx={cx} cy={cy} rx={rx} ry={ry || rx * 0.3} fill="url(#a-ao)" opacity={o} />
 }
@@ -253,7 +253,7 @@ export function Colonne3D({ x, h, larg = 5, or = false }: { x: number; h: number
 }
 
 /**
- * Bâtisse volumétrique — LE volume standard de la carte.
+ * Bâtisse volumétrique - LE volume standard de la carte.
  * Pignon face au joueur (sud, demi-teinte), pan de toit gauche éclairé,
  * pan droit ombré, retour de mur est dans l'ombre, débord d'avant-toit
  * avec ombre portée sur la façade, faîtage clair, AO à la base.
@@ -320,7 +320,7 @@ export function Batisse3D({
 
       {/* pans de toit */}
       <g>
-        {/* pan gauche — éclairé */}
+        {/* pan gauche - éclairé */}
         <path d={`M${-w / 2 - deb},${-h} L0,${-h - g} L0,${-h - g - prof} L${-w / 2 - deb},${-h - prof} Z`} fill={panL} />
         {lignes.map((t, i) => (
           <line
@@ -335,7 +335,7 @@ export function Batisse3D({
             strokeDasharray={toit === 'tuiles' ? '3.2 1.1' : undefined}
           />
         ))}
-        {/* pan droit — dans l'ombre */}
+        {/* pan droit - dans l'ombre */}
         <path d={`M${w / 2 + deb},${-h} L0,${-h - g} L0,${-h - g - prof} L${w / 2 + deb},${-h - prof} Z`} fill={panR} />
         {lignes.map((t, i) => (
           <line

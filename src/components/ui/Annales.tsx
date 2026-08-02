@@ -9,7 +9,7 @@ import { Modale } from './Modale'
  * Le journal racontait des faits ; il ne disait pas de quel côté penchait la
  * cité. On trace donc, à même le SVG comme tout le reste du jeu : quatre
  * graphes, une pente chiffrée par série, et une phrase qui dit ce que la courbe
- * apprend — un tracé qu'on ne sait pas lire ne vaut pas mieux qu'un ornement.
+ * apprend - un tracé qu'on ne sait pas lire ne vaut pas mieux qu'un ornement.
  */
 
 const L = 520
@@ -134,7 +134,7 @@ export function PanneauAnnales() {
       sous={
         annales.length < 2
           ? 'Les scribes viennent de prendre leur poste : un relevé toutes les trente secondes.'
-          : `${annales.length} relevés — le règne se lit enfin en chiffres, pas seulement en récits.`
+          : `${annales.length} relevés - le règne se lit enfin en chiffres, pas seulement en récits.`
       }
     >
       <>
@@ -149,7 +149,7 @@ export function PanneauAnnales() {
           <Chiffre v={allies} quoi="alliés" />
           <Chiffre v={s.exploits?.championsAbattus ?? 0} quoi="champions abattus" aide="Les héros achéens tombés sous vos murs" />
           <Chiffre v={s.exploits?.benedictions ?? 0} quoi="bénédictions" />
-          <Chiffre v={s.graces?.length ?? 0} quoi="grâces obtenues" aide="Sur douze — trois par Olympien" />
+          <Chiffre v={s.graces?.length ?? 0} quoi="grâces obtenues" aide="Sur douze - trois par Olympien" />
           <Chiffre v={s.exploits?.pertesCiviles ?? 0} quoi="habitants perdus" />
         </div>
 

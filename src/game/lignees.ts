@@ -14,14 +14,14 @@ import type { BuildingId, Villageois } from './types'
  *    qu'un homme dans la force de l'âge, et il finit par mourir. La pyramide des
  *    âges devient donc une donnée du village, au même titre que les greniers.
  *  · LE MARIAGE. Deux adultes libres de lignées différentes font un foyer. Sans
- *    foyer, pas de naissance — les nouveaux venus arrivent alors de la côte, avec
+ *    foyer, pas de naissance - les nouveaux venus arrivent alors de la côte, avec
  *    le métier qui manque, ce qui est plus lent et moins choisi.
  *  · LA TRANSMISSION. Un enfant né dans un foyer apprend le métier d'un de ses
  *    parents. C'est là tout le sel : marier son forgeron, c'est se donner des
  *    forgerons ; le laisser mourir célibataire, c'est perdre la forge avec lui.
  *
  * Échelle du temps : une journée de jeu vaut DEUX ANS de vie. Un enfant né le
- * jour 10 est adulte au jour 18 et vieux au jour 38 — assez lent pour qu'on ne
+ * jour 10 est adulte au jour 18 et vieux au jour 38 - assez lent pour qu'on ne
  * regarde pas une horloge, assez rapide pour qu'un règne voie passer trois
  * générations.
  */
@@ -30,7 +30,7 @@ import type { BuildingId, Villageois } from './types'
 export const ANS_PAR_JOUR = 2
 /** on travaille pleinement à partir de cet âge */
 export const AGE_ADULTE = 16
-/** au-delà, on rend moins — mais on a tout appris */
+/** au-delà, on rend moins - mais on a tout appris */
 export const AGE_ANCIEN = 56
 /** à partir de là, chaque journée peut être la dernière */
 export const AGE_FRAGILE = 64
@@ -72,10 +72,10 @@ export function estAdulte(v: Villageois, jour: number): boolean {
   return ageDe(v, jour) >= AGE_ADULTE
 }
 
-/** « 34 ans », « 8 ans (enfant) » — ce que le recensement affiche */
+/** « 34 ans », « 8 ans (enfant) » - ce que le recensement affiche */
 export function motAge(age: number): string {
   const s = saisonDeVie(age)
-  return `${age} ans${s === 'enfant' ? ' — enfant' : s === 'ancien' ? ' — ancien' : ''}`
+  return `${age} ans${s === 'enfant' ? ' - enfant' : s === 'ancien' ? ' - ancien' : ''}`
 }
 
 /**
@@ -106,7 +106,7 @@ export function maisonnee(tous: Villageois[], lignee: string): Villageois[] {
 
 /**
  * Deux adultes libres qu'on peut marier. On refuse deux choses : les mineurs, et
- * l'entre-soi d'une même maison — c'est ce qui empêche une lignée d'absorber tout
+ * l'entre-soi d'une même maison - c'est ce qui empêche une lignée d'absorber tout
  * le village et fait circuler les métiers entre familles.
  */
 export function trouverParti(tous: Villageois[], jour: number): [Villageois, Villageois] | null {
@@ -134,8 +134,8 @@ export function foyersFeconds(tous: Villageois[], jour: number): Villageois[] {
 }
 
 /**
- * Le métier qu'un enfant apprend. Deux fois sur trois celui d'un parent — on
- * apprend d'abord de son père et de sa mère — sinon celui qui manque le plus au
+ * Le métier qu'un enfant apprend. Deux fois sur trois celui d'un parent - on
+ * apprend d'abord de son père et de sa mère - sinon celui qui manque le plus au
  * village, parce qu'une génération entière de forgerons affamerait la cité.
  */
 export function metierTransmis(
@@ -156,7 +156,7 @@ export function risqueDeMort(age: number): number {
   return Math.min(0.9, (age - AGE_FRAGILE) * RISQUE_PAR_AN)
 }
 
-/** répartition du village par saison de vie — la pyramide des âges, en trois cases */
+/** répartition du village par saison de vie - la pyramide des âges, en trois cases */
 export function pyramide(tous: Villageois[], jour: number): Record<Saison2, number> {
   const out: Record<Saison2, number> = { enfant: 0, adulte: 0, ancien: 0 }
   for (const v of tous) out[saisonDeVie(ageDe(v, jour))]++

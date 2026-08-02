@@ -17,7 +17,7 @@ import type { BattleState, Fighter, OrdreLigne, OrdreTir, OrdresBataille } from 
  *
  * On regardait la bataille : hors bénédictions, aucun geste du joueur ne
  * changeait ce que faisaient ses hommes. Trois postures, deux façons de tirer,
- * un pan assignable par unité — et la seule chose qui compte ici est que CHAQUE
+ * un pan assignable par unité - et la seule chose qui compte ici est que CHAQUE
  * ordre fasse quelque chose de mesurable, et que chacun ait un PRIX.
  *
  * Un ordre qui n'aurait que des avantages ne serait pas un ordre, ce serait un
@@ -90,7 +90,7 @@ const pv = (b: BattleState, camp: 'attaque' | 'defense'): number =>
 /**
  * Rend tout le monde inépuisable. Sans cela, on ne mesure pas ce que la posture
  * change aux coups portés mais ce qu'elle change au nombre de survivants : une
- * ligne qui frappe plus fort meurt plus vite, et — pire — elle ROMPT plus tôt,
+ * ligne qui frappe plus fort meurt plus vite, et - pire - elle ROMPT plus tôt,
  * puisque « charger » relève le seuil de panique. Les trois effets se mêlent au
  * point d'inverser la mesure. On fige donc les effectifs pour lire les seuls
  * multiplicateurs, et l'on éprouve la rupture ailleurs, dans son propre test.
@@ -169,11 +169,11 @@ describe('mur de boucliers', () => {
     expect(poser('mur')).toBeLessThan(poser('tenir'))
   })
 
-  it('tient là où une ligne ordinaire aurait rompu — et la charge, elle, casse', () => {
+  it('tient là où une ligne ordinaire aurait rompu - et la charge, elle, casse', () => {
     /*
      * Même moral pour les trois postures : dix hommes, cinq à terre. Le seuil
      * ordinaire est à 45 % : à 50 % debout, personne ne devrait rompre. La charge
-     * relève ce seuil, le mur de boucliers l'abaisse — c'est là que se lit le vrai
+     * relève ce seuil, le mur de boucliers l'abaisse - c'est là que se lit le vrai
      * prix de chaque ordre, et pas dans la table des coefficients.
      */
     const ruptures = (ligne: OrdreLigne): number => {
@@ -201,7 +201,7 @@ describe('mur de boucliers', () => {
 })
 
 describe('charger', () => {
-  it('frappe plus fort — et encaisse davantage pour ce plaisir', () => {
+  it('frappe plus fort - et encaisse davantage pour ce plaisir', () => {
     const neutre = echange('tenir')
     const charge = echange('charge')
     expect(charge.inflige).toBeGreaterThan(neutre.inflige)
@@ -258,7 +258,7 @@ describe('tir en cloche', () => {
     // à 380 pas, l'arc tendu ne porte plus ; la cloche, si
     expect(tirs('tendu', 380)).toBe(0)
     expect(tirs('cloche', 380)).toBe(1)
-    // et de près, les deux décochent — la cloche n'interdit rien
+    // et de près, les deux décochent - la cloche n'interdit rien
     expect(tirs('tendu', 150)).toBe(1)
     expect(tirs('cloche', 150)).toBe(1)
   })
@@ -316,7 +316,7 @@ describe('assigner une unité à un pan', () => {
   it('l’y poste et l’y garde, même si l’on s’égorge à l’autre bout', () => {
     /*
      * Trois fronts, une menace au SUD seulement. Sans assignation, les lanciers
-     * courent tous au sud. Assignés au nord, ils tiennent le nord — c'est la
+     * courent tous au sud. Assignés au nord, ils tiennent le nord - c'est la
      * seule réponse possible à un assaut sur trois fronts avec une garnison
      * unique, et le moteur l'ignorait complètement.
      */
@@ -354,7 +354,7 @@ describe('assigner une unité à un pan', () => {
     expect(auSud).toHaveLength(0)
   })
 
-  it('sans assignation, la garnison court au plus chaud — comme avant', () => {
+  it('sans assignation, la garnison court au plus chaud - comme avant', () => {
     const b = bataille({
       attaquants: [{ enemy: 'pillard', count: 3 }],
       defenseurs: troupes({ lancier: 4 }),

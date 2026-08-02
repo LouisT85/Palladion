@@ -2,7 +2,7 @@ import { MAP } from '../../game/data'
 import type { SaisonId } from '../../game/saisons'
 import { PAL, alea } from './art'
 
-/** phase du jour ∈ [0,1) : 0–0.08 aube, 0.08–0.55 jour, 0.55–0.68 crépuscule, 0.68–1 nuit */
+/** phase du jour ∈ [0,1) : 0-0.08 aube, 0.08-0.55 jour, 0.55-0.68 crépuscule, 0.68-1 nuit */
 export function phaseJour(now: number, createdAt: number, dayMs: number): number {
   return ((now - createdAt) % dayMs) / dayMs
 }
@@ -224,7 +224,7 @@ const CAILLOUX: { x: number; y: number; r: number; t: number }[] = []
   }
 }
 
-/** buissons bas du maquis — brisent la monotonie de la plaine */
+/** buissons bas du maquis - brisent la monotonie de la plaine */
 const BUISSONS: { x: number; y: number; s: number }[] = []
 {
   const rnd = alea(57)
@@ -256,7 +256,7 @@ const CRETES_LOIN: [number, number][] = [
   [690, 182], [810, 144], [930, 182], [1050, 150], [1200, 188],
 ]
 
-/** polyligne de crête accidentée — les sommets restent exacts */
+/** polyligne de crête accidentée - les sommets restent exacts */
 function traceCrete(pts: [number, number][], seed: number, jit: number): string {
   const rnd = alea(seed)
   let d = `M${pts[0][0]},${pts[0][1]}`
@@ -284,7 +284,7 @@ function montsDe(cretes: [number, number][], pics: number[]): Mont[] {
 const MONTS = montsDe(CRETES, [1, 3, 5, 7, 9])
 const MONTS_LOIN = montsDe(CRETES_LOIN, [1, 3, 5, 7, 9])
 
-/** arêtes NW frappées par le soleil — un seul path multi-segments */
+/** arêtes NW frappées par le soleil - un seul path multi-segments */
 const D_ARETES_LIT = `${MONTS.map(({ g, p }) => `M${g[0]},${g[1]} L${p[0]},${p[1]}`).join(' ')} M1120,201 L1200,180`
 
 /** éperons rocheux : couloirs d'ombre côté SE, arêtes claires côté NW */
@@ -486,7 +486,7 @@ const D_RIVE = 'M0,598 C110,608 185,651 225,725 C243,762 251,800 251,800'
 /*
  * La terre ferme, exportée pour les actes de la campagne. Le sol du bac à sable
  * est une plaine de Troade générique ; « La Chute » a besoin d'y poser sa grève
- * de sable, sa boue de camp, sa poussière de siège, ses crues et ses cendres —
+ * de sable, sa boue de camp, sa poussière de siège, ses crues et ses cendres -
  * et tout cela doit s'arrêter net au bord de la mer.
  *
  * On repart des mêmes bornes que la plaine (horizon en haut, rivage au sud-ouest)
@@ -674,11 +674,11 @@ export function Terrain({
         <rect x={0} y={146} width={MAP.w} height={HORIZON - 146} fill="url(#ter-haze)" />
       </g>
 
-      {/* ── chaîne principale — le mont Ida au centre ── */}
+      {/* ── chaîne principale - le mont Ida au centre ── */}
       <path d={D_CHAINE} fill="url(#ter-mont)" />
       <g clipPath="url(#ter-clip-chaine)">
         <g filter="url(#a-flou2)">
-          {/* versants NW éclairés / SE dans l'ombre — chaque mont a sa teinte */}
+          {/* versants NW éclairés / SE dans l'ombre - chaque mont a sa teinte */}
           {MONTS.map(({ g, p, d }, i) => {
             const lits = ['#a4b483', '#9db088', '#b2c294', '#9fb287', '#a7b78a']
             const ombres = ['#3f5348', '#43564a', '#37493f', '#41544a', '#455749']

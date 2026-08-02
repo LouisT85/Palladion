@@ -4,10 +4,10 @@ import { assaillantsParSecteur, indexSecteurChaud } from './camera'
 import { EffetDivin, EffetHeros } from './EffetsDivins'
 
 /*
- * Figurines de bataille — animées en SMIL (aucun coût JS par frame) :
+ * Figurines de bataille - animées en SMIL (aucun coût JS par frame) :
  *  - marche : jambes en ciseaux, balancement du corps, cape d'ombre qui suit
- *  - mêlée / siège : coup d'arme porté en boucle — jab de lance, taillade de
- *    dague, estoc d'épée — désynchronisé par figurine via `seed`
+ *  - mêlée / siège : coup d'arme porté en boucle - jab de lance, taillade de
+ *    dague, estoc d'épée - désynchronisé par figurine via `seed`
  *  - tir : l'archer bande son arc au rythme réel de sa cadence
  *  - mort : la figurine bascule au sol puis se dissout dans la poussière
  * Les durées de cycle collent aux cadences de combat.ts pour que le geste
@@ -20,7 +20,7 @@ const PEAU = '#d9a97c'
 /** ombre propre de la peau (flanc est du visage, bras au second plan) */
 const PEAU_OMBRE = '#bd8a5c'
 
-/** mélange déterministe de deux hex — pour nuancer les tuniques autour de leur teinte */
+/** mélange déterministe de deux hex - pour nuancer les tuniques autour de leur teinte */
 function mix(a: string, b: string, t: number): string {
   const pa = parseInt(a.slice(1), 16)
   const pb = parseInt(b.slice(1), 16)
@@ -45,7 +45,7 @@ function OmbreSol({ rx = 5, ry = 1.8 }: { rx?: number; ry?: number }) {
   )
 }
 
-/** casque de bronze : calotte modelée, reflet NW, couvre-nuque — la crête est à part */
+/** casque de bronze : calotte modelée, reflet NW, couvre-nuque - la crête est à part */
 function Casque() {
   return (
     <g>
@@ -58,7 +58,7 @@ function Casque() {
       {/* reflet spéculaire NW court, doublé d'un demi-ton qui arrondit la calotte */}
       <path d="M-2.05,-14.5 Q-1.5,-15.6 -0.4,-15.8" stroke="#f2e6b0" strokeWidth={0.75} fill="none" strokeLinecap="round" />
       <path d="M-2.45,-13.4 Q-2.35,-14.3 -1.85,-14.9" stroke="#c9b878" strokeWidth={0.55} fill="none" strokeLinecap="round" opacity={0.9} />
-      {/* bourrelet du bord : ombre dessous, filet clair dessus — assoit le casque */}
+      {/* bourrelet du bord : ombre dessous, filet clair dessus - assoit le casque */}
       <path d="M-2.8,-12.6 L2.8,-12.6" stroke="#4c431f" strokeWidth={0.85} />
       <path d="M-2.7,-13.05 L2.7,-13.05" stroke="#a08c50" strokeWidth={0.45} opacity={0.7} />
       {/* nasal court au front */}
@@ -114,7 +114,7 @@ export function Bonhomme({
   crete?: boolean
   anim?: Anim
   seed?: number
-  /** durée (s) du cycle d'attaque — alignée sur la cadence de frappe */
+  /** durée (s) du cycle d'attaque - alignée sur la cadence de frappe */
   dur?: number
 }) {
   const marche = anim === 'marche'
@@ -128,7 +128,7 @@ export function Bonhomme({
     <g transform={`scale(${taille})`}>
       <OmbreSol rx={5} ry={1.8} />
 
-      {/* jambes — un petit pied tourné vers l'avant ancre la silhouette au sol */}
+      {/* jambes - un petit pied tourné vers l'avant ancre la silhouette au sol */}
       {marche ? (
         <>
           <path d="M-1.6,-4 L-1.6,-0.5 L-0.55,-0.35" stroke={PEAU} strokeWidth={1.6} fill="none" strokeLinecap="round">
@@ -145,7 +145,7 @@ export function Bonhomme({
         </>
       )}
 
-      {/* corps, tête et arme — le buste porte le geste */}
+      {/* corps, tête et arme - le buste porte le geste */}
       <g>
         {marche && (
           <animateTransform attributeName="transform" type="translate" values="0,0;0,-1.2;0,0" dur="0.3s" begin={decal} repeatCount="indefinite" />
@@ -183,7 +183,7 @@ export function Bonhomme({
         <path d="M-2.76,-7.5 L-0.3,-7.5 L-0.3,-6.5 L-2.68,-6.5 Z" fill="#7a5a3e" opacity={0.75} />
         {/* épaules : ourlet clair côté lumière */}
         <path d="M-2.2,-11 L0.4,-11" stroke={drapLit(tunique)} strokeWidth={0.9} opacity={0.8} />
-        {/* creux d'ombre sous le menton — assoit la tête sur les épaules */}
+        {/* creux d'ombre sous le menton - assoit la tête sur les épaules */}
         <path d="M-1.5,-10.9 Q0,-10.2 1.5,-10.9" stroke={drapOmbre(tunique)} strokeWidth={0.7} fill="none" opacity={0.5} />
         {/* tête : face au soleil, joue est dans l'ombre */}
         <circle cx={0} cy={-13} r={2.7} fill={PEAU} />
@@ -318,14 +318,14 @@ export function Bonhomme({
           </g>
         )}
 
-        {/* bouclier (à gauche) — bombé : arcs concentriques décalés vers la lumière NW */}
+        {/* bouclier (à gauche) - bombé : arcs concentriques décalés vers la lumière NW */}
         {arme === 'lance' && (
           <g>
             <circle cx={-4} cy={-8} r={3.5} fill="#4f3d22" />
             {/* liseré de rive accroché par le soleil au NW */}
             <path d="M-6.85,-9.4 A3.5,3.5 0 0 1 -5.15,-11.05" stroke="#c8a869" strokeWidth={0.7} fill="none" strokeLinecap="round" />
             <circle cx={-4} cy={-8} r={3} fill="#7c5f38" />
-            {/* ombre du champ contre la rive, côté SE — creuse le bombé */}
+            {/* ombre du champ contre la rive, côté SE - creuse le bombé */}
             <path d="M-1.3,-6.9 A3,3 0 0 1 -3.2,-5.15" stroke="#3f301a" strokeWidth={0.75} fill="none" strokeLinecap="round" opacity={0.55} />
             <circle cx={-4.5} cy={-8.5} r={2.2} fill="#97744a" />
             <circle cx={-5} cy={-9} r={1.3} fill="#b3905f" />
@@ -378,7 +378,7 @@ function Belier({ enMarche }: { enMarche?: boolean }) {
       {/* arête faîtière frappée par le soleil, revers éteint */}
       <path d="M-13,-13.2 L0,-18" stroke="#c9a97a" strokeWidth={0.9} />
       <path d="M0,-18 L13,-13.2" stroke="#5d4230" strokeWidth={0.7} opacity={0.8} />
-      {/* tronc suspendu — au repos pendant la marche, en plein élan au siège */}
+      {/* tronc suspendu - au repos pendant la marche, en plein élan au siège */}
       <g>
         {!enMarche && (
           <animateTransform
@@ -450,9 +450,9 @@ function lookHeros(h: HeroId): Look {
   return { tunique: def.couleur, arme, taille: h === 'cassandre' ? 1.15 : 1.32, crete: h !== 'cassandre' }
 }
 
-/** allure par type — la couleur de tunique dépend du camp du joueur */
+/** allure par type - la couleur de tunique dépend du camp du joueur */
 /*
- * Les couleurs des renforts alliés. Ils portaient les vôtres — l'aide d'un allié
+ * Les couleurs des renforts alliés. Ils portaient les vôtres - l'aide d'un allié
  * ne se lisait donc que dans le rapport d'après-bataille. Ils passent au vert
  * olive : franchement distinct du bleu du joueur comme du rouge de l'assaillant,
  * et cohérent avec le 🤝 des alliances.
@@ -566,8 +566,8 @@ function FigurineCombattant({
     <g style={{ transform: `translate(${f.x}px,${f.y}px)`, transition: 'transform 0.3s linear' }}>
       {/* un héros se distingue avant même qu'on lise son nom : cercle à ses
           couleurs sous ses pieds, et son nom gravé au-dessus de la mêlée.
-          Un héros ENNEMI porte les mêmes couleurs de maison — c'est le même
-          homme — mais son cercle bat en rouge sang et son nom est souligné d'une
+          Un héros ENNEMI porte les mêmes couleurs de maison - c'est le même
+          homme - mais son cercle bat en rouge sang et son nom est souligné d'une
           barre : on ne doit pas confondre une seconde Achille chez soi et
           Achille à sa porte. */}
       {f.heros && (
@@ -647,7 +647,7 @@ function tonStructure(ratio: number): string {
 /*
  * Il y avait ici un liseré doré tracé au pied du pan le plus menacé. Retiré : un
  * trait épais en travers de la mêlée salissait la vue là où justement il faut
- * regarder, et la jauge du secteur dit déjà lequel souffre — en toutes lettres.
+ * regarder, et la jauge du secteur dit déjà lequel souffre - en toutes lettres.
  */
 
 /**
@@ -717,7 +717,7 @@ export function BatailleLayer({
   )
   const porte = battle.geo.porte
 
-  // « au contact » : un adversaire vivant à portée de coup — déclenche le geste d'attaque
+  // « au contact » : un adversaire vivant à portée de coup - déclenche le geste d'attaque
   const contact = (f: Fighter): boolean =>
     vivants.some(
       (o) => o.camp !== f.camp && o.etat !== 'fuite' && Math.hypot(o.x - f.x, o.y - f.y) < 26,
@@ -735,7 +735,7 @@ export function BatailleLayer({
         <FigurineCombattant key={f.id} f={f} campJoueur={battle.campJoueur} auContact={contact(f)} />
       ))}
 
-      {/* flèches — tirées en cloche, la pointe suit la trajectoire */}
+      {/* flèches - tirées en cloche, la pointe suit la trajectoire */}
       {battle.projectiles.map((p) => {
         const d = Math.hypot(p.x1 - p.x0, p.y1 - p.y0)
         const mx = (p.x0 + p.x1) / 2

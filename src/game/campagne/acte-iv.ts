@@ -2,12 +2,12 @@ import { WALL_HP, troupes } from '../data'
 import { jalons, seuil, type ActeCampagne } from './types'
 
 /*
- * ACTE IV — LE FLEUVE
+ * ACTE IV - LE FLEUVE
  *
  * Le seul acte qui commence par une perte. Le joueur n'hérite pas d'un village à
  * agrandir : il hérite d'un pan de mur couché (murPart 0,42), de trois fronts
  * assaillables et de quatre minutes avant la première colonne. Il n'a rien de
- * neuf à bâtir — il a à REMETTRE DEBOUT ce qu'il avait déjà, sous la pluie,
+ * neuf à bâtir - il a à REMETTRE DEBOUT ce qu'il avait déjà, sous la pluie,
  * pendant qu'on le frappe. C'est une autre façon de jouer, et elle est plus dure.
  *
  * Deux tensions se croisent, et elles sont tout l'acte :
@@ -20,7 +20,7 @@ import { jalons, seuil, type ActeCampagne } from './types'
  *  · LES FUYARDS DES DEUX CAMPS. Des Troyens chassés de la plaine, des esclaves
  *    échappés du camp achéen. On ne peut pas refuser en fermant sa porte : la
  *    porte est cassée. Il faut donc trancher, et chaque réponse coûte quelque
- *    chose — d'où l'objectif sur les dilemmes plutôt que sur un total de vivres.
+ *    chose - d'où l'objectif sur les dilemmes plutôt que sur un total de vivres.
  *
  * Enfin Poséidon, qu'on a laissé s'offenser depuis trois actes (−20), redevient
  * indispensable : sa bénédiction est la seule chose au monde qui relève un pan
@@ -29,7 +29,7 @@ import { jalons, seuil, type ActeCampagne } from './types'
 export const ACTE_IV: ActeCampagne = {
   id: 'le-fleuve',
   numero: 4,
-  titre: 'Acte IV — Le fleuve',
+  titre: 'Acte IV - Le fleuve',
   lieu: 'Les rives du Scamandre, à la fin de l’automne',
   emoji: '🌊',
   cadre: 'fleuve',
@@ -37,25 +37,25 @@ export const ACTE_IV: ActeCampagne = {
     'Le pan qui flanque la porte de l’est s’est couché cette nuit, sans bruit, dans la boue. Au matin il y avait un trou de quinze pieds à l’endroit où l’on montait la garde, et deux hommes dessous.',
     'Deux lieues plus loin, la guerre a changé de couleur. Un jeune homme a revêtu les armes d’Achille pour faire reculer les Troyens ; Hector l’a tué en croyant tuer le Pélide, et lui a pris son armure. On l’appelait Patrocle. Achille n’a pas pleuré : il a hurlé toute la nuit, et on l’entendait d’ici.',
     'Depuis, le Scamandre ne coule plus, il pousse. Achille y jette les morts par brassées et le fleuve les recrache dans les roseaux ; l’eau a passé les berges, pris les champs bas et la moitié de la route. Les vieux disent qu’un fleuve s’est levé contre un homme. Les vieux ont peut-être raison.',
-    'Cet homme campe chez toi. Personne ne l’a invité : il est arrivé avec ses Myrmidons, a désigné la meilleure grange et s’y est installé. Il mange le grain de six familles et ne remercie pas. Tant qu’il est là, aucune vague ne t’emportera — et le jour où il tombera, il ne restera que ton mur.',
+    'Cet homme campe chez toi. Personne ne l’a invité : il est arrivé avec ses Myrmidons, a désigné la meilleure grange et s’y est installé. Il mange le grain de six familles et ne remercie pas. Tant qu’il est là, aucune vague ne t’emportera - et le jour où il tombera, il ne restera que ton mur.',
     'Sur la route, deux files attendent : des Troyens qui fuient la plaine, des esclaves achéens qui fuient leur camp. Ta porte est cassée, tu ne peux même pas dire non en la fermant. Relève le mur d’abord. Ensuite, décide qui entre.',
   ],
   epilogue: [
     'Le mur tient. Le pan de l’est a été rebâti avec les pierres de la grange écroulée, et le dernier assaut est venu se casser dessus sans qu’un moellon bouge.',
     'L’eau est redescendue d’un pied. Ce qu’elle laisse sur les berges, on ne le regarde pas de trop près : on l’enterre en haut du champ, sans demander de quel camp.',
-    'Une nuit, un chariot est passé sous tes murs sans escorte, à la lueur d’une seule torche : un vieillard, un cocher, des étoffes pliées et des trépieds de bronze. Priam allait racheter le corps de son fils à l’homme qui l’avait tué. On lui a ouvert, et on n’a rien pris — on n’allège pas la rançon d’un père.',
+    'Une nuit, un chariot est passé sous tes murs sans escorte, à la lueur d’une seule torche : un vieillard, un cocher, des étoffes pliées et des trépieds de bronze. Priam allait racheter le corps de son fils à l’homme qui l’avait tué. On lui a ouvert, et on n’a rien pris - on n’allège pas la rançon d’un père.',
     'Achille a rendu le corps. Les deux camps ont brûlé leurs morts pendant onze jours, et pendant onze jours personne n’est venu frapper chez toi. Cela ne sauve pas Troie. Cela t’a laissé le temps de finir ton mur.',
   ],
   echec: [
     'La brèche est restée ouverte. Ils sont entrés par là trois fois, et la troisième personne n’a couru la boucher : il n’y avait plus assez de bras pour à la fois tenir la porte et porter les blessés.',
-    'Achille est reparti vers ses nefs sans se retourner — on ne meurt pas pour un mur qu’on n’a pas bâti. Le fleuve, lui, est resté. Il faudra reprendre au premier matin, du temps où la porte tenait encore.',
+    'Achille est reparti vers ses nefs sans se retourner - on ne meurt pas pour un mur qu’on n’a pas bâti. Le fleuve, lui, est resté. Il faudra reprendre au premier matin, du temps où la porte tenait encore.',
   ],
   depart: {
     // trois actes de guerre ont rempli les greniers et vidé les carrières : il y a
     // de quoi relever un mur, pas de quoi bâtir une cité
     resources: { bois: 900, pierre: 820, grain: 520, bronze: 380 },
     pop: 24,
-    // dix domaines debout, aucun au-dessus de l'agora — le port est resté un ponton
+    // dix domaines debout, aucun au-dessus de l'agora - le port est resté un ponton
     batiments: {
       agora: 3,
       maisons: 3,
@@ -136,7 +136,7 @@ export const ACTE_IV: ActeCampagne = {
     },
   ],
   defaite: {
-    texte: 'Le village a rompu : trois assauts perdus dans la brèche — ou deux coup sur coup, et plus personne pour y retourner.',
+    texte: 'Le village a rompu : trois assauts perdus dans la brèche - ou deux coup sur coup, et plus personne pour y retourner.',
     // deux défaites rapprochées cumulent leurs « Village pillé » (−14 chacun) :
     // le moral tombe à 30 et la garnison se débande. C'est la seconde façon de perdre.
     atteinte: (s) =>

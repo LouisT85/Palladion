@@ -12,7 +12,7 @@ function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, numbe
         <span
           key={r}
           className={`montant ${resources[r] >= n ? 'okk' : 'ko'}`}
-          title={`${n} ${RES[r].nom.toLowerCase()} — vous en avez ${Math.floor(resources[r])}`}
+          title={`${n} ${RES[r].nom.toLowerCase()} - vous en avez ${Math.floor(resources[r])}`}
         >
           <Icone id={r} taille={15} /> {n}
         </span>
@@ -53,7 +53,7 @@ function BlocProduction({ id, level }: { id: BuildingId; level: number }) {
             </span>
           </div>
           <div style={{ fontSize: 12, color: '#93a7b4' }}>
-            {postesPourvus(s, id)}/{total} postes tenus — {Math.round(r * 100)} % du rendement.
+            {postesPourvus(s, id)}/{total} postes tenus - {Math.round(r * 100)} % du rendement.
           </div>
         </>
       ) : (
@@ -78,13 +78,13 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
   const equipe = s.villageois.filter((v) => v.poste === id)
   const libres = oisifs(s)
   const metier = METIERS[id] ?? 'Ouvriers'
-  // les candidats, le bon métier en tête — c'est lui qu'on proposera
+  // les candidats, le bon métier en tête - c'est lui qu'on proposera
   const candidats = candidatsPour(s, id)
   const duMetier = candidats.find((v) => v.metier === id)
   return (
     <div className="bloc">
       <h3>
-        👷 Ouvriers — {pourvus}/{total}
+        👷 Ouvriers - {pourvus}/{total}
       </h3>
       <div className="ligne">
         <div className="barre">
@@ -106,7 +106,7 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
               <span style={{ color: '#7fc79b' }}>· {metier} de métier</span>
             ) : (
               <span style={{ color: '#d98a4e' }}>
-                · {metierDe(v)} déplacé ici — {Math.round(RENDEMENT_HORS_METIER * 100)} %
+                · {metierDe(v)} déplacé ici - {Math.round(RENDEMENT_HORS_METIER * 100)} %
               </span>
             )}
           </span>
@@ -121,15 +121,15 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
       ))}
       {pourvus === 0 && (
         <div style={{ fontSize: 12, color: '#d05a41', marginTop: 4 }}>
-          Personne ici — l’atelier ne produit rien de plus que la cueillette.
+          Personne ici - l’atelier ne produit rien de plus que la cueillette.
         </div>
       )}
       {pourvus < total && (
         <>
           <div style={{ fontSize: 12, color: libres.length > 0 ? '#93a7b4' : '#d98a4e', marginTop: 5 }}>
             {libres.length > 0
-              ? `${libres.length} villageois sans emploi au village${duMetier ? `, dont ${duMetier.nom} qui est ${metier.toLowerCase()} de son métier` : ' — mais aucun de ce métier'}.`
-              : 'Aucun villageois sans emploi — libérez un artisan ailleurs.'}
+              ? `${libres.length} villageois sans emploi au village${duMetier ? `, dont ${duMetier.nom} qui est ${metier.toLowerCase()} de son métier` : ' - mais aucun de ce métier'}.`
+              : 'Aucun villageois sans emploi - libérez un artisan ailleurs.'}
           </div>
           {/* on propose le mieux placé, jamais le premier venu : le métier compte */}
           <button
@@ -142,7 +142,7 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
               ? 'Personne de disponible'
               : duMetier
                 ? `Affecter ${duMetier.nom} (${metier.toLowerCase()})`
-                : `Affecter ${candidats[0].nom} — hors métier, ${Math.round(RENDEMENT_HORS_METIER * 100)} %`}
+                : `Affecter ${candidats[0].nom} - hors métier, ${Math.round(RENDEMENT_HORS_METIER * 100)} %`}
           </button>
         </>
       )}
@@ -159,7 +159,7 @@ function BlocHabitants({ onVoirHabitants }: { onVoirHabitants: () => void }) {
   const libres = oisifs(s)
   return (
     <div className="bloc">
-      <h3>👥 Habitants — {s.pop}/{cap}</h3>
+      <h3>👥 Habitants - {s.pop}/{cap}</h3>
       <div className="ligne">
         <div className="barre">
           <div style={{ width: `${Math.min(1, s.pop / cap) * 100}%` }} />
@@ -170,7 +170,7 @@ function BlocHabitants({ onVoirHabitants }: { onVoirHabitants: () => void }) {
       </div>
       <div className="desc" style={{ fontSize: 12, color: '#93a7b4' }}>
         {libres.length > 0
-          ? `${libres.length} villageois sans emploi — à placer dans un atelier ou à enrôler à la caserne.`
+          ? `${libres.length} villageois sans emploi - à placer dans un atelier ou à enrôler à la caserne.`
           : 'Tous les habitants ont un métier : aucun bras libre pour l’enrôlement.'}
       </div>
       <button style={{ width: '100%', marginTop: 7 }} onClick={onVoirHabitants}>
@@ -192,7 +192,7 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
         <div className="desc" style={{ fontSize: 12, marginBottom: 6 }}>
           Villageois disponibles :{' '}
           <b style={{ color: dispo > 0 ? '#5fae7d' : '#d05a41' }}>{dispo} sans emploi</b>
-          <span style={{ color: '#93a7b4' }}> — les artisans restent à leur poste.</span>
+          <span style={{ color: '#93a7b4' }}> - les artisans restent à leur poste.</span>
         </div>
         {dispo === 0 && (
           <div style={{ fontSize: 12, color: '#d98a4e', marginBottom: 6 }}>
@@ -270,11 +270,11 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
  *
  * Deux défauts corrigés d'un coup. Le premier était visuel : le bouton alignait
  * ses pictogrammes en flux de texte, et comme l'icône était un bloc, la ligne se
- * cassait — on lisait « −40 » puis « → +10 » sur trois lignes, les images
+ * cassait - on lisait « −40 » puis « → +10 » sur trois lignes, les images
  * perdues dans l'or du bouton. Le second était de règle : le même taux
  * s'appliquait à tout, donc 40 de grain donnaient 10 de bronze. Le comptoir
  * échange maintenant à la VALEUR, et la marge du port se resserre à chaque
- * niveau — c'est ce qui rend le port franc désirable.
+ * niveau - c'est ce qui rend le port franc désirable.
  */
 /*
  * Le troc choisi survit à la fermeture du panneau. C'est un état d'INTERFACE, pas
@@ -403,7 +403,7 @@ function BlocTours() {
   return (
     <div className="bloc">
       <h3>
-        🏹 Tours d’archers — {s.tours}/{max}
+        🏹 Tours d’archers - {s.tours}/{max}
       </h3>
       <div className="desc">
         Postées sur l’enceinte, elles arrosent de flèches tout assaillant à portée ({TOUR_PORTEE} pas) tant que la
@@ -415,7 +415,7 @@ function BlocTours() {
         </div>
       ) : s.tours >= max ? (
         <div style={{ fontSize: 12, color: '#93a7b4', marginTop: 5 }}>
-          L’enceinte est garnie — rehaussez les remparts pour bâtir plus de tours.
+          L’enceinte est garnie - rehaussez les remparts pour bâtir plus de tours.
         </div>
       ) : (
         cout && (
@@ -499,7 +499,7 @@ export function PanneauBatiment() {
           <div style={{ fontSize: 12, color: '#93a7b4' }}>⏱ {fmtDuree(def.times[cible - 1] * 1000)}</div>
           {enChantier ? (
             <div style={{ marginTop: 8, color: '#e8c04a' }}>
-              🏗️ En chantier — fin dans {fmtDuree((b.busyUntil ?? 0) - s.lastSeen)}
+              🏗️ En chantier - fin dans {fmtDuree((b.busyUntil ?? 0) - s.lastSeen)}
             </div>
           ) : (
             <>
@@ -523,7 +523,7 @@ export function PanneauBatiment() {
           )}
         </div>
       )}
-      {auMax && <div className="bloc">🏆 Niveau maximal atteint — digne des grandes cités de l’Égée.</div>}
+      {auMax && <div className="bloc">🏆 Niveau maximal atteint - digne des grandes cités de l’Égée.</div>}
     </aside>
   )
 }

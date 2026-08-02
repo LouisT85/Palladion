@@ -35,7 +35,7 @@ function Pierre() {
   return (
     <g>
       {/* bloc de taille en trois-quarts : dessus au soleil, face en demi-teinte,
-          flanc est dans l'ombre — un cube équarri, pas un galet */}
+          flanc est dans l'ombre - un cube équarri, pas un galet */}
       <path d="M3,9 L12,4.4 L21,9 L12,13.6 Z" fill="#e2dac6" />
       <path d="M3,9 L12,13.6 L12,20 L3,15.4 Z" fill="#b8ae95" />
       <path d="M21,9 L12,13.6 L12,20 L21,15.4 Z" fill="#8b8169" />
@@ -144,7 +144,7 @@ const NOMS: Record<IconeId, string> = {
   prestige: 'Prestige',
 }
 
-/** pictogramme peint d'une ressource — remplace l'émoji partout où il y a la place */
+/** pictogramme peint d'une ressource - remplace l'émoji partout où il y a la place */
 export function Icone({ id, taille = 18, titre }: { id: IconeId; taille?: number; titre?: string }) {
   const Dessin = DESSINS[id]
   return (
@@ -163,7 +163,7 @@ export function Icone({ id, taille = 18, titre }: { id: IconeId; taille?: number
 }
 
 /**
- * « 120 [bronze] » — un montant suivi de son pictogramme. `signe` force le
+ * « 120 [bronze] » - un montant suivi de son pictogramme. `signe` force le
  * « + » devant les gains, comme dans les récompenses de mission.
  */
 export function Montant({

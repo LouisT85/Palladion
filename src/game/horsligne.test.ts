@@ -20,17 +20,17 @@ import type { BuildingId, BuildingState, ResourceId, Villageois, WaveUnit } from
 /*
  * La résolution hors-ligne est la seule partie du jeu que le joueur ne voit pas
  * tourner : elle s'exécute une fois, au chargement, et ce qu'elle se trompe est
- * définitif — un grenier vidé ou un rempart abattu ne se rejoue pas. D'où ce
+ * définitif - un grenier vidé ou un rempart abattu ne se rejoue pas. D'où ce
  * fichier, qui recharge de vraies sauvegardes et vérifie ce que le village
  * trouve à son réveil.
  *
  * Deux règles de conduite s'y appliquent :
  *
- * — Chaque chargement repart d'un store et d'un disque neufs (`rechargerApres`
+ * - Chaque chargement repart d'un store et d'un disque neufs (`rechargerApres`
  *   remet tout à zéro avant de poser sa sauvegarde), pour qu'aucun test ne
  *   dépende de celui qui l'a précédé ni de l'ordre du fichier.
  *
- * — Les nombres attendus sont écrits en clair (« 3,5 de cueillette × 0,89
+ * - Les nombres attendus sont écrits en clair (« 3,5 de cueillette × 0,89
  *   d'ambiance × 1,05 de printemps ») plutôt que recalculés depuis les tables :
  *   un test qui rappelle la formule qu'il vérifie ne vérifie rien.
  *
@@ -42,7 +42,7 @@ import type { BuildingId, BuildingState, ResourceId, Villageois, WaveUnit } from
  * la moitié de ce fichier rougirait.
  */
 
-/** bâtiments au complet — sans agora debout, la capacité de stockage serait nulle */
+/** bâtiments au complet - sans agora debout, la capacité de stockage serait nulle */
 function niveaux(n: Partial<Record<BuildingId, number>>): Record<BuildingId, BuildingState> {
   const out = {} as Record<BuildingId, BuildingState>
   for (const b of BUILDING_IDS) out[b] = { level: n[b] ?? (b === 'agora' ? 1 : 0) }
@@ -51,7 +51,7 @@ function niveaux(n: Partial<Record<BuildingId, number>>): Record<BuildingId, Bui
 
 /**
  * Village de référence : greniers spacieux, printemps clair, aucun assaut à
- * l'horizon et une population déjà au plafond des maisons — de sorte que rien
+ * l'horizon et une population déjà au plafond des maisons - de sorte que rien
  * ne bouge sinon ce que le test cherche à éprouver.
  *
  * Le ciel et la date de fondation sont posés explicitement : `simulerHorsLigne`
@@ -96,7 +96,7 @@ function socle(): Partial<GameState> {
 /**
  * Cueillette de base au socle, par minute : 3,5 🪵 (BASE_PROD) × 0,89
  * d'ambiance (moral 52) × 1,05 de printemps clair. Sert de référence aux
- * quelques montants vérifiés au centième — si l'un de ces trois facteurs bouge,
+ * quelques montants vérifiés au centième - si l'un de ces trois facteurs bouge,
  * on veut le savoir ici aussi, car le hors-ligne promet au joueur le taux que
  * le HUD affiche.
  */
@@ -111,7 +111,7 @@ function reinitialiser(): void {
 /**
  * Pose l'état voulu sur un village neuf, l'écrit dans localStorage comme le fait
  * l'autosave, puis recharge la partie après `absenceMs` d'absence. C'est
- * exactement le chemin du joueur qui rouvre son onglet le lendemain — et la
+ * exactement le chemin du joueur qui rouvre son onglet le lendemain - et la
  * remise à zéro initiale garantit qu'un test peut en enchaîner plusieurs.
  */
 function rechargerApres(absenceMs: number, patch: Partial<GameState>): GameState {
@@ -204,7 +204,7 @@ describe('production pendant l’absence', () => {
 
     /*
      * Le même village avec une agora de plus : le bois butte sur le nouveau
-     * plafond, la pierre — qui sort deux fois moins vite — n'y arrive pas. Sans
+     * plafond, la pierre - qui sort deux fois moins vite - n'y arrive pas. Sans
      * ce second chargement, un écrêtage figé sur une constante passerait.
      */
     const vaste = rechargerApres(OFFLINE_CAP_MS, {
@@ -228,7 +228,7 @@ describe('production pendant l’absence', () => {
     for (const r of Object.keys(RES) as ResourceId[]) {
       expect(s.resources[r]).toBeGreaterThanOrEqual(0)
     }
-    // le résumé annonce la perte réelle — 80, pas les milliers de grains
+    // le résumé annonce la perte réelle - 80, pas les milliers de grains
     // théoriquement mangés : le joueur ne peut pas perdre ce qu'il n'avait pas
     expect(s.offlineSummary).toContain('-80 🌾 grain')
     // la disette n'arrête pas les autres chantiers
@@ -260,7 +260,7 @@ describe('production pendant l’absence', () => {
      * Un joueur qui remet son horloge en arrière (ou une machine qui se
      * resynchronise) relit une sauvegarde postérieure au présent. Sans le
      * plancher à zéro sur `dt`, l'écart négatif retirerait des ressources et
-     * ferait reculer les chantiers — une partie détruite par un fuseau horaire.
+     * ferait reculer les chantiers - une partie détruite par un fuseau horaire.
      */
     const s = rechargerApres(-3_600_000, socle())
     expect(s.offlineSummary).toBeNull()
@@ -273,7 +273,7 @@ describe('assauts nocturnes', () => {
   it('applique à la lettre les pertes et les dégâts de l’assaut échu', () => {
     const now = Date.now()
     // combat volontairement serré : la garnison l'emporte mais y laisse des
-    // hommes. Une victoire écrasante ne prouverait rien — avec zéro perte, on
+    // hommes. Une victoire écrasante ne prouverait rien - avec zéro perte, on
     // pourrait supprimer l'application des pertes sans que rien ne rougisse.
     const vague: WaveUnit[] = [{ enemy: 'guerrier', count: 9 }]
     const army = { lancier: 10, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }
@@ -307,7 +307,7 @@ describe('assauts nocturnes', () => {
     expect(s.moraleMods).toEqual([])
 
     // l'alerte est entièrement consommée : au réveil, ce n'est plus « une vague
-    // approche » — sinon la carte garderait ses flèches sur des fronts fantômes
+    // approche » - sinon la carte garderait ses flèches sur des fronts fantômes
     expect(s.incomingWave).toBeNull()
     expect(s.incomingFronts).toBeNull()
     expect(s.defRecompense).toBeNull()
@@ -350,7 +350,7 @@ describe('assauts nocturnes', () => {
     /*
      * Le moral lui-même n'est PAS recalculé hors-ligne (store.ts:1398 ne rappelle
      * jamais `calcMorale`) : les trois pénalités ne se feront sentir qu'au premier
-     * battement d'horloge. Comportement RÉEL, divergence connue — voir le rapport.
+     * battement d'horloge. Comportement RÉEL, divergence connue - voir le rapport.
      */
     expect(s.morale).toBe(52)
 
@@ -372,7 +372,7 @@ describe('famine et désertion au réveil', () => {
     /*
      * `simulerHorsLigne` ne recalcule pas le moral : c'est le premier battement
      * d'horloge qui constate le grenier vide et retranche ses vingt points. On
-     * éprouve donc la chaîne complète — absence, puis réveil — sur deux villages
+     * éprouve donc la chaîne complète - absence, puis réveil - sur deux villages
      * qui ne diffèrent que par le contenu de leur grenier.
      */
     const garnison = { lancier: 40, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }
@@ -393,12 +393,12 @@ describe('famine et désertion au réveil', () => {
     expect(moralAffame).toBe(38)
   })
 
-  it('ne coûte jamais un soldat à l’absence — la désertion attend le réveil', () => {
+  it('ne coûte jamais un soldat à l’absence - la désertion attend le réveil', () => {
     /*
      * Le compte à rebours de désertion n'existe que dans le tick. Une nuit
      * entière de moral à zéro ne fait donc perdre personne : c'est le
      * comportement RÉEL, et une divergence connue avec la consigne (voir le
-     * rapport). Ce test le verrouille dans les deux sens — rien pendant
+     * rapport). Ce test le verrouille dans les deux sens - rien pendant
      * l'absence, puis la mécanique complète au réveil.
      */
     const s = rechargerApres(OFFLINE_CAP_MS, {
@@ -631,7 +631,7 @@ describe('chargement de la sauvegarde', () => {
      */
     expect(s.resources.bois).toBeCloseTo(330 + 3.5 * 1.025 * 1.05 * 2, 1)
     // deux minutes = deux naissances (une toutes les 45 s), et le champ sauvé
-    // n'est pas écrasé — le moral n'est pas recalculé hors-ligne
+    // n'est pas écrasé - le moral n'est pas recalculé hors-ligne
     expect(s.pop).toBe(5)
     expect(s.morale).toBe(70)
     expect(s.lastSeen).toBeGreaterThanOrEqual(now)
@@ -641,7 +641,7 @@ describe('chargement de la sauvegarde', () => {
     /*
      * Le jeu s'est appelé ILION. Les parties de ces joueurs doivent survivre au
      * changement de nom : on lit l'ancienne clé, on réécrit sous la nouvelle, et
-     * l'ancienne disparaît seulement APRÈS — jamais de fenêtre sans sauvegarde.
+     * l'ancienne disparaît seulement APRÈS - jamais de fenêtre sans sauvegarde.
      */
     localStorage.setItem(ANCIEN_STORAGE_KEY, JSON.stringify({ pop: 9, faveur: 33, tours: 2 }))
     useGame.getState().init()
@@ -668,7 +668,7 @@ describe('chargement de la sauvegarde', () => {
     expect(s.resources).toEqual({ bois: 330, pierre: 180, grain: 220, bronze: 24 })
     /*
      * Et l'on repose la question du mode : bac à sable ou campagne. C'est le
-     * choix qui lance ensuite la leçon de Zeus ou l'acte I — d'où un tutoriel
+     * choix qui lance ensuite la leçon de Zeus ou l'acte I - d'où un tutoriel
      * encore à `null` à cet instant précis.
      */
     expect(s.mode).toBeNull()

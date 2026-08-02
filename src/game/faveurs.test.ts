@@ -18,7 +18,7 @@ import type { GodId } from './types'
  *
  * La relation à un dieu était une jauge : elle montait, elle descendait, elle
  * multipliait la bénédiction, et l'on n'en faisait jamais rien d'autre. Ce qui
- * est testé ici n'est pas la table des douze grâces — elle bougera — mais
+ * est testé ici n'est pas la table des douze grâces - elle bougera - mais
  * l'arbitrage qu'elle installe :
  *
  *  · une grâce se PAIE en relation, donc affaiblit les bénédictions futures ;
@@ -90,7 +90,7 @@ describe('la table des douze grâces', () => {
 })
 
 describe('acheter une grâce', () => {
-  it('retranche son prix à la relation — c’est là tout l’arbitrage', () => {
+  it('retranche son prix à la relation - c’est là tout l’arbitrage', () => {
     comblerLeDieu('ares', 60)
     jeu().acquerirGrace('ares-1')
     const s = jeu()

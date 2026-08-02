@@ -7,7 +7,7 @@ import type { BuildingId, GodId, HeroId, ResourceId, UnitId } from './types'
  * Une prise en main SCÉNARISÉE, pas une suite de bulles d'aide. Le maître de
  * l'Olympe descend expliquer sa création, et à chaque étape il exige un geste :
  * bâtir la ferme, y placer un paysan, lever une lance, ouvrir son temple. Le
- * reste de l'écran est éteint tant que ce geste n'est pas fait — on ne peut pas
+ * reste de l'écran est éteint tant que ce geste n'est pas fait - on ne peut pas
  * se perdre, et on ne peut pas non plus se contenter de cliquer « suivant ».
  *
  * Deux règles de conception :
@@ -34,7 +34,7 @@ export type PlaceCarte = 'centre' | 'bas' | 'haut' | 'gauche' | 'droite'
 export interface EtapeTuto {
   id: string
   titre: string
-  /** ce que Zeus dit — un paragraphe par élément */
+  /** ce que Zeus dit - un paragraphe par élément */
   texte: string[]
   humeur?: 'calme' | 'grave' | 'content'
   /**
@@ -70,7 +70,7 @@ export const ETAPES: EtapeTuto[] = [
     humeur: 'calme',
     texte: [
       'Mortel. Tu vois cette plaine ? Elle est à toi. Ce tas de cabanes aussi.',
-      'Troie brûlera bientôt à quelques lieues d’ici, et les armées passeront par ta porte. Je vais te montrer comment tenir — une fois. Ensuite tu te débrouilleras.',
+      'Troie brûlera bientôt à quelques lieues d’ici, et les armées passeront par ta porte. Je vais te montrer comment tenir - une fois. Ensuite tu te débrouilleras.',
     ],
     place: 'centre',
   },
@@ -112,7 +112,7 @@ export const ETAPES: EtapeTuto[] = [
     titre: 'Le temps des bâtisseurs',
     texte: [
       'Rien ne se bâtit d’un claquement de doigts. Tes ouvriers y sont, la barre au-dessus du chantier dit où ils en sont. Deux chantiers de front, pas plus.',
-      'Tu n’as pas à regarder pousser les murs : presse le temps. **×2, ×4, ×8** — ou les touches 1 à 4. Tout accélère, la production comme les assauts.',
+      'Tu n’as pas à regarder pousser les murs : presse le temps. **×2, ×4, ×8** - ou les touches 1 à 4. Tout accélère, la production comme les assauts.',
       'Fais-le maintenant, et attends que le champ sorte de terre.',
     ],
     cibles: ['vitesses', 'carte-ferme'],
@@ -125,7 +125,7 @@ export const ETAPES: EtapeTuto[] = [
     titre: 'Un atelier sans bras ne rend rien',
     texte: [
       'Tu croyais qu’un champ se cultive tout seul ? Chacun de tes habitants est né avec un métier : paysan, bûcheron, tailleur de pierre, forgeron, prêtre, docker.',
-      'À son métier, il donne tout. Ailleurs, il fait ce qu’il peut — un peu plus de la moitié. Et **personne ne prend son poste sans qu’on le lui dise** : c’est ton travail, pas le mien.',
+      'À son métier, il donne tout. Ailleurs, il fait ce qu’il peut - un peu plus de la moitié. Et **personne ne prend son poste sans qu’on le lui dise** : c’est ton travail, pas le mien.',
       'Ouvre le recensement et envoie quelqu’un à la ferme. Un paysan, si le sort t’en a donné un.',
     ],
     cibles: ['habitants', 'recensement'],
@@ -150,7 +150,7 @@ export const ETAPES: EtapeTuto[] = [
     id: 'caserne',
     titre: 'Une lance, un homme en moins aux champs',
     texte: [
-      'Là, sur la carte, l’emplacement de la caserne. Tu la bâtiras quand ton bois le permettra — mais retiens d’abord la règle.',
+      'Là, sur la carte, l’emplacement de la caserne. Tu la bâtiras quand ton bois le permettra - mais retiens d’abord la règle.',
       '**Un soldat est un villageois en moins.** Il quitte l’atelier, il ne produit plus, et il mange le double.',
       'Une armée trop grosse affame la cité qu’elle protège. C’est le premier arbitrage d’un chef, et le plus mal compris.',
     ],
@@ -174,7 +174,7 @@ export const ETAPES: EtapeTuto[] = [
     titre: 'Nous autres, sur l’Olympe',
     texte: [
       'Nous sommes quatre à regarder ce que tu fais : moi, Poséidon, Athéna, Arès. Chacun tient un compte.',
-      'La **faveur** paie nos bénédictions. La **relation** en fixe la force : de la moitié pour qui nous offense au double pour notre élu. Et un dieu offensé le montre — sa foudre n’atteint même plus le sol.',
+      'La **faveur** paie nos bénédictions. La **relation** en fixe la force : de la moitié pour qui nous offense au double pour notre élu. Et un dieu offensé le montre - sa foudre n’atteint même plus le sol.',
       'Ouvre le panthéon. Regarde à quoi ressemble ma main quand elle est contente de toi.',
     ],
     cibles: ['bouton-pantheon', 'modale-pantheon'],
@@ -186,8 +186,8 @@ export const ETAPES: EtapeTuto[] = [
     id: 'expeditions',
     titre: 'Le monde ne s’arrête pas à ta porte',
     texte: [
-      'Huit places fortes autour de toi. Tu peux les **piller** — riche, rapide, et je te le ferai payer, car je protège l’hôte et le suppliant.',
-      'Ou les **secourir** quand elles appellent. Rien à rafler, des hommes à perdre pour rien — mais un allié qui paiera tribut et enverra ses lances mourir sur tes murs à ta place.',
+      'Huit places fortes autour de toi. Tu peux les **piller** - riche, rapide, et je te le ferai payer, car je protège l’hôte et le suppliant.',
+      'Ou les **secourir** quand elles appellent. Rien à rafler, des hommes à perdre pour rien - mais un allié qui paiera tribut et enverra ses lances mourir sur tes murs à ta place.',
       'La richesse ou le réseau. Choisis souvent, tu verras ce que tu es.',
     ],
     cibles: ['bouton-expeditions', 'modale-expeditions'],
@@ -223,7 +223,7 @@ export const ETAPES: EtapeTuto[] = [
     id: 'temps',
     titre: 'Le temps et le regard',
     texte: [
-      'Les saisons tournent : l’hiver ferme la mer et vide les greniers. Le ciel change aussi — sous la pluie, un arc porte mal.',
+      'Les saisons tournent : l’hiver ferme la mer et vide les greniers. Le ciel change aussi - sous la pluie, un arc porte mal.',
       'Tu peux presser le temps avec ×2, ×4, ×8, ou les touches 1 à 4. Il repassera seul à ×1 dès qu’on t’attaquera.',
       'Et la carte se manipule : molette pour approcher, glisser pour te déplacer, double-clic pour reprendre la vue d’ensemble.',
     ],
@@ -235,7 +235,7 @@ export const ETAPES: EtapeTuto[] = [
     titre: 'À toi de jouer',
     humeur: 'content',
     texte: [
-      'Voilà. Bâtis, nourris, arme, honore — et tiens.',
+      'Voilà. Bâtis, nourris, arme, honore - et tiens.',
       'Je regarderai. Nous regarderons tous. Le point d’interrogation en haut te redira tout ceci si ta mémoire flanche.',
       'Que la plaine te soit clémente, mortel.',
     ],

@@ -78,7 +78,7 @@ export default function App() {
     <div className="app">
       {/*
         Deux rangs, deux idées : en haut ce que le village POSSÈDE, en bas ce qui
-        lui ARRIVE — avec les boutons qui ouvrent les grands panneaux. Tout tenait
+        lui ARRIVE - avec les boutons qui ouvrent les grands panneaux. Tout tenait
         sur une ligne, et rien ne s'y lisait plus.
       */}
       <header className="hud">
@@ -97,7 +97,7 @@ export default function App() {
             onClick={() => openPanel('expeditions')}
             title={
               appel
-                ? 'Un village assiégé appelle à l’aide — la fenêtre se referme vite'
+                ? 'Un village assiégé appelle à l’aide - la fenêtre se referme vite'
                 : 'Piller ou secourir les villages de la Troade'
             }
             className={appel ? 'appelle' : undefined}
@@ -112,7 +112,7 @@ export default function App() {
           <button
             data-tuto="bouton-heros"
             onClick={() => openPanel('heros')}
-            title="Les héros de la matière troyenne — les recruter, les faire monter, trancher leurs dilemmes"
+            title="Les héros de la matière troyenne - les recruter, les faire monter, trancher leurs dilemmes"
             className={herosARecruter > 0 ? 'appelle' : undefined}
           >
             🛡️<span className="lbl"> Héros</span>

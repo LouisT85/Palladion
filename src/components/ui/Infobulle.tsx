@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
  *
  * L'attribut `title` du navigateur ne convenait pas : une seconde d'attente,
  * une seule ligne grise, aucune mise en forme, et il disparaît au moindre
- * mouvement. Or c'est là qu'on explique à quoi sert une jauge — donc là qu'il
+ * mouvement. Or c'est là qu'on explique à quoi sert une jauge - donc là qu'il
  * faut de la place, des chiffres alignés et de la couleur.
  *
  * L'encart est rendu en position fixe sous le jeton, recalé pour ne jamais

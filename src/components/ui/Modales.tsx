@@ -43,7 +43,7 @@ export function ModaleEvenement() {
                       onClick={() => s.choisirEvenement(i)}
                     >
                       {c.label}
-                      {!reqOk && c.requiertLabel ? ` — ${c.requiertLabel}` : ''}
+                      {!reqOk && c.requiertLabel ? ` - ${c.requiertLabel}` : ''}
                     </button>
                     {indice && <div className="murmure">🦉 {indice}</div>}
                   </div>
@@ -52,7 +52,7 @@ export function ModaleEvenement() {
             </div>
             {!sagesse && def.choices.some((c) => c.hint) && (
               <div style={{ fontSize: 11.5, color: '#8c7a55', marginTop: 10, fontStyle: 'italic' }}>
-                🦉 Avec la confiance d’Athéna (relation ≥ 25) — ou Cassandre à votre table — la vérité cachée de ce
+                🦉 Avec la confiance d’Athéna (relation ≥ 25) - ou Cassandre à votre table - la vérité cachée de ce
                 dilemme vous serait murmurée…
               </div>
             )}
@@ -145,7 +145,7 @@ export function ModaleAide() {
   const [confirmeCampagne, setConfirmeCampagne] = useState(false)
   return (
     <Modale
-      titre="🏛️ PALLADION — survivre à l’ombre de Troie"
+      titre="🏛️ PALLADION - survivre à l’ombre de Troie"
       onFermer={() => s.openPanel(null)}
       fermerTexte={null}
     >
@@ -154,59 +154,59 @@ export function ModaleAide() {
           <h3>Votre village</h3>
           <p>
             Le <i>Palladion</i> est la statue d’Athéna tombée du ciel : tant qu’elle se tient dans la cité, la cité ne
-            peut pas tomber. Votre village est votre Palladion — la guerre fait rage sous les murs de Troie, et vous
+            peut pas tomber. Votre village est votre Palladion - la guerre fait rage sous les murs de Troie, et vous
             êtes sur la route des armées. Bâtissez, prospérez, survivez.{' '}
-            <b>Chaque niveau de bâtiment change réellement son apparence</b> — regardez vos remparts passer de la
+            <b>Chaque niveau de bâtiment change réellement son apparence</b> - regardez vos remparts passer de la
             palissade aux hautes murailles.
           </p>
         </div>
         <div className="aide-section">
           <h3>⚔️ Les assauts</h3>
           <p>
-            Des bandes armées attaquent régulièrement — la richesse attire les convoitises (🔥 menace). Vos éclaireurs
+            Des bandes armées attaquent régulièrement - la richesse attire les convoitises (🔥 menace). Vos éclaireurs
             vous préviennent ~5 minutes avant, avec la <b>récompense</b> promise si vous tenez ; les impatients peuvent
             <b> lancer l’assaut immédiatement (+25 % de butin)</b>. Les archers tirent depuis les remparts ; si la
             muraille cède, la mêlée se joue dans le village. Dès les remparts de niveau 2, bâtissez des{' '}
-            <b>tours d’archers</b> sur l’enceinte : elles tirent d’elles-mêmes sur tout ennemi à portée — mais leur
+            <b>tours d’archers</b> sur l’enceinte : elles tirent d’elles-mêmes sur tout ennemi à portée - mais leur
             silhouette attire des assauts plus fournis. Le jeu continue même onglet fermé.
           </p>
           <p>
             Passé une certaine menace, un <b>nom</b> prend la tête de la colonne : Achille, Hector, Ajax, Agamemnon…
-            l’un des huit héros que vous auriez pu recruter — et c’est précisément parce qu’il n’est <i>pas</i> à votre
+            l’un des huit héros que vous auriez pu recruter - et c’est précisément parce qu’il n’est <i>pas</i> à votre
             table qu’il marche sur vos murs. Vos éclaireurs l’annoncent avec sa <b>manœuvre</b>, et le bandeau d’assaut
             en donne le décompte : sa fureur, son bouclier, sa sape ou sa réserve tombent à l’heure dite. Vous avez
-            jusque-là pour <b>l’abattre</b> — sa manœuvre meurt avec lui, et son cadavre vaut du bronze, de la faveur et
+            jusque-là pour <b>l’abattre</b> - sa manœuvre meurt avec lui, et son cadavre vaut du bronze, de la faveur et
             la reconnaissance d’Arès.
           </p>
         </div>
         <div className="aide-section">
           <h3>🗺️ Piller ou secourir</h3>
           <p>
-            Envoyez jusqu’à 20 soldats contre les 8 places fortes de la Troade. <b>Piller</b> rapporte gros — mais Zeus
+            Envoyez jusqu’à 20 soldats contre les 8 places fortes de la Troade. <b>Piller</b> rapporte gros - mais Zeus
             Xenios n’aime pas cela, la menace monte, et le village renforce sa garnison pour votre prochaine visite.
             Quand un village assiégé <b>appelle à l’aide</b>, vous avez quelques minutes pour trancher : aucun butin,
-            mais la faveur des dieux et une <b>alliance</b> — tribut régulier et renforts sur vos remparts à chaque
+            mais la faveur des dieux et une <b>alliance</b> - tribut régulier et renforts sur vos remparts à chaque
             assaut. Moins de pertes = plus d’étoiles (★★★ sous 20 % de pertes).
           </p>
           <p>
             Chaque place forte tient sa propre <b>relation</b> avec vous, de −100 à +100, et la Troade est petite : ce
             que vous faites à l’une, les sept autres l’apprennent avant le soir. Un village <b>hostile</b> arme contre
-            vous — chacun grossit la menace qui pèse sur vos murs. Trois façons de traiter sans lever une lance :
+            vous - chacun grossit la menace qui pèse sur vos murs. Trois façons de traiter sans lever une lance :
             un <b>présent</b> rachète une rancune (mais réparer coûte plus cher que casser), un <b>pacte</b> s’achète à
-            qui vous voit déjà d’un bon œil et donne tribut et renforts, et un <b>mariage</b> — qui coûte un habitant,
-            définitivement — scelle une alliance que rien ne dénoue, au tribut doublé. Les rancunes s’émoussent avec les
+            qui vous voit déjà d’un bon œil et donne tribut et renforts, et un <b>mariage</b> - qui coûte un habitant,
+            définitivement - scelle une alliance que rien ne dénoue, au tribut doublé. Les rancunes s’émoussent avec les
             journées ; une alliance ordinaire, elle, se rompt si la relation retombe.
           </p>
         </div>
         <div className="aide-section">
           <h3>⚑ Commander la bataille</h3>
           <p>
-            Pendant un assaut — chez vous comme en expédition — la <b>barre d’ordres</b> commande vos hommes. Trois
+            Pendant un assaut - chez vous comme en expédition - la <b>barre d’ordres</b> commande vos hommes. Trois
             postures pour la ligne : <b>tenir</b> (au plus proche, à pleine force), <b>mur de boucliers</b> (on encaisse
             presque moitié moins, on frappe mou, on ne poursuit plus, et la ligne ne rompt quasiment jamais),{' '}
-            <b>charger</b> (+40 % de dégâts et l’on <i>sort</i> crever les béliers sous le mur — mais on encaisse tout,
+            <b>charger</b> (+40 % de dégâts et l’on <i>sort</i> crever les béliers sous le mur - mais on encaisse tout,
             et la ligne casse vite). Deux façons de tirer : <b>tendu</b> sur l’homme le plus proche, ou{' '}
-            <b>en cloche</b> — moitié plus loin, sur le plus gros tas, mais la flèche arrive amortie. Enfin, sur un
+            <b>en cloche</b> - moitié plus loin, sur le plus gros tas, mais la flèche arrive amortie. Enfin, sur un
             assaut à plusieurs fronts, <b>assignez un pan à un type d’unité</b> : ces hommes-là tiendront ce mur et n’en
             bougeront plus. Un ordre donné se tient <b>cinq secondes</b> avant qu’on puisse en changer.
           </p>
@@ -214,10 +214,10 @@ export function ModaleAide() {
         <div className="aide-section">
           <h3>🛡️ Les héros</h3>
           <p>
-            Huit héros de la matière troyenne peuvent entrer à votre service — mais seulement si la cité en est digne :
+            Huit héros de la matière troyenne peuvent entrer à votre service - mais seulement si la cité en est digne :
             Hector veut des remparts de niveau 3, Ulysse un port et la confiance d’Athéna, Achille du sang déjà versé.
             Chacun apporte un <b>passif permanent</b> et une <b>capacité</b> à invoquer, gagne des niveaux en
-            combattant, <b>mange chaque minute</b> — et s’en va si on l’ignore trois fois. Leur <b>arc narratif</b>
+            combattant, <b>mange chaque minute</b> - et s’en va si on l’ignore trois fois. Leur <b>arc narratif</b>
             pose des choix sans retour : certains y perdent la vie, d’autres n’en sortent plus jamais grandis.
           </p>
         </div>
@@ -234,10 +234,10 @@ export function ModaleAide() {
         <div className="aide-section">
           <h3>🏅 Hauts faits et prestige</h3>
           <p>
-            Cinquante et un hauts faits jalonnent le règne — « tenir un assaut sur trois fronts sans perdre un homme »,
+            Cinquante et un hauts faits jalonnent le règne - « tenir un assaut sur trois fronts sans perdre un homme »,
             « élu des quatre Olympiens », « trois étoiles sur les huit places fortes ». Ils alimentent votre{' '}
             <b>prestige</b>, la seule note finale. Quand vous jugez le règne accompli, <b>abdiquez</b> : le score se
-            fige, les aèdes vous donnent un titre — de « Roi de pacotille » à « Égal des dieux ».
+            fige, les aèdes vous donnent un titre - de « Roi de pacotille » à « Égal des dieux ».
           </p>
         </div>
         <div className="aide-section">
@@ -247,8 +247,8 @@ export function ModaleAide() {
             égide d’Athéna, fureur d’Arès. Vos choix dans les dilemmes forgent vos <b>relations</b> : Zeus punit qui
             viole l’hospitalité, Athéna souffle la vérité à qui l’honore, un dieu bafoué se venge. La relation ne fait
             pas que régler la puissance d’un bras divin : elle se <b>dépense</b>. Chaque Olympien offre trois{' '}
-            <b>grâces permanentes</b> — récoltes de Zeus Xenios, murs et mer de Poséidon, métier et prudence d’Athéna,
-            butin et fureur d’Arès — payées en points de relation, prises dans l’ordre, et jamais reprises. Monter sa
+            <b>grâces permanentes</b> - récoltes de Zeus Xenios, murs et mer de Poséidon, métier et prudence d’Athéna,
+            butin et fureur d’Arès - payées en points de relation, prises dans l’ordre, et jamais reprises. Monter sa
             ferveur ou l’échanger contre un don définitif est l’un des vrais arbitrages du règne.
           </p>
         </div>
@@ -256,7 +256,7 @@ export function ModaleAide() {
           <h3>👪 Familles et lignées</h3>
           <p>
             Une journée de jeu vaut <b>deux ans de vie</b>. Un <b>enfant</b> (moins de 16 ans) aide sans remplacer et ne
-            porte pas les armes ; un <b>ancien</b> (plus de 56 ans) rend moins, et l’âge finit par l’emporter — son
+            porte pas les armes ; un <b>ancien</b> (plus de 56 ans) rend moins, et l’âge finit par l’emporter - son
             métier s’éteint alors avec lui. Chaque habitant appartient à une <b>maison</b>, et deux adultes libres de
             maisons différentes <b>font foyer</b>. Un enfant né dans un foyer <b>apprend le métier d’un de ses
             parents</b> : marier son forgeron, c’est se donner des forgerons. Sans foyer, le village ne grandit que par
@@ -269,7 +269,7 @@ export function ModaleAide() {
           <p>
             Des scribes relèvent le village <b>toutes les trente secondes</b> : greniers, garnison, menace, ambiance,
             faveur, remparts, prestige. Le panneau <b>Annales</b> en trace les courbes et donne la <b>pente par
-            minute</b> de chaque série — c’est elle qui répond à la seule question qui compte : est-ce que ça monte ?
+            minute</b> de chaque série - c’est elle qui répond à la seule question qui compte : est-ce que ça monte ?
             Une menace qui s’écarte durablement de la courbe de garnison annonce l’assaut de trop.
           </p>
         </div>
@@ -277,13 +277,13 @@ export function ModaleAide() {
           <h3>🎭 L’ambiance</h3>
           <p>
             Fêtes, victoires et greniers pleins exaltent le village (production accrue). Famine, défaites et choix
-            cruels le minent — sous 25, gare à la <b>mutinerie</b>.
+            cruels le minent - sous 25, gare à la <b>mutinerie</b>.
           </p>
         </div>
         <div className="aide-section">
           <h3>⏩ La vitesse du temps</h3>
           <p>
-            Comme dans les Sims : les boutons <b>×1 ×2 ×4 ×8</b> (ou les touches 1–4) accélèrent tout — production,
+            Comme dans les Sims : les boutons <b>×1 ×2 ×4 ×8</b> (ou les touches 1-4) accélèrent tout - production,
             chantiers, recrues, cycle du jour… et le compte à rebours des attaques. Le jeu repasse automatiquement en
             ×1 pendant les batailles.
           </p>
@@ -293,7 +293,7 @@ export function ModaleAide() {
           <p>
             <b>Molette</b> pour zoomer là où pointe le curseur, <b>glisser</b> pour déplacer la carte,{' '}
             <b>double-clic</b> pour rendre la main à la caméra. Pendant un assaut, elle se rapproche seule du front le
-            plus menacé — jusqu’à ce que vous y touchiez. Le bouton 🔊 règle la lyre, les cors et le tambour de siège.
+            plus menacé - jusqu’à ce que vous y touchiez. Le bouton 🔊 règle la lyre, les cors et le tambour de siège.
             Tout menu se referme par sa <b>croix</b>, par <b>Échap</b>, ou d’un clic à côté.
           </p>
         </div>
@@ -301,7 +301,7 @@ export function ModaleAide() {
           <h3>🏅 Les missions</h3>
           <p>
             Le suivi en haut à gauche affiche les trois missions ouvertes ; le bouton <b>🏅 Missions</b> du bandeau
-            déroule le fil entier — <b>cinquante-cinq objectifs en cinq actes</b>, du premier toit à la cité de légende.
+            déroule le fil entier - <b>cinquante-cinq objectifs en cinq actes</b>, du premier toit à la cité de légende.
             Chacun rapporte une <b>récompense</b> (ressources, faveur, villageois) et laisse une ligne au journal. Si
             vous ne savez pas où agir, le bouton de la mission (« 👥 Recensement », « 🏛️ Agora », « 🗺️ Expéditions »…){' '}
             <b>vous emmène directement à l’écran concerné</b>.
@@ -310,26 +310,26 @@ export function ModaleAide() {
         <div className="aide-section">
           <h3>👷 Les métiers</h3>
           <p>
-            Chaque habitant naît avec un métier — paysan, bûcheron, tailleur de pierre, forgeron, prêtre, docker — et
+            Chaque habitant naît avec un métier - paysan, bûcheron, tailleur de pierre, forgeron, prêtre, docker - et
             les sept premiers en couvrent un de chaque. <b>Personne ne prend son poste tout seul</b> : c’est à vous
             d’ouvrir le recensement (👥) et de placer chacun. À son métier il rend pleinement, ailleurs seulement 55 %.
-            Un atelier dont les postes ne sont pas tenus produit au prorata — un ⚠️ le signale.
+            Un atelier dont les postes ne sont pas tenus produit au prorata - un ⚠️ le signale.
           </p>
         </div>
         <div className="aide-section">
           <h3>⚓ Le comptoir du port</h3>
           <p>
             Le port échange <b>à la valeur</b>, pas au tas : le bronze vaut quatre charretées de bois, la pierre un peu
-            plus qu’une. Les marchands prélèvent une marge — <b>+70 % au petit quai, +15 % au port franc</b> —, donc
+            plus qu’une. Les marchands prélèvent une marge - <b>+70 % au petit quai, +15 % au port franc</b> -, donc
             monter le port est le seul moyen de commercer sans se faire tondre.
           </p>
         </div>
         <div className="aide-section">
-          <h3>🐴 « La Chute » — la campagne</h3>
+          <h3>🐴 « La Chute » - la campagne</h3>
           <p>
             Cinq actes qui suivent l’Iliade, du débarquement achéen à la nuit du cheval. Chaque acte{' '}
             <b>impose son village de départ</b> (bâtiments debout, garnison, saison, jusqu’à un pan de mur déjà à terre),
-            ses objectifs — qui portent sur la <i>manière</i> de tenir plus que sur des totaux — et parfois un héros que
+            ses objectifs - qui portent sur la <i>manière</i> de tenir plus que sur des totaux - et parfois un héros que
             le récit vous met à la porte sans rançon. <b>Un acte peut se perdre</b> : on le reprend, pas la campagne. Le
             bouton se trouve tout en bas de cette aide.
           </p>
@@ -338,7 +338,7 @@ export function ModaleAide() {
           <h3>Premiers pas</h3>
           <p>
             1. Cliquez un emplacement en pointillés pour construire. 2. Ferme, scierie et carrière d’abord. 3. Puis
-            remparts et caserne — le premier assaut n’attendra pas. 4. L’Agora limite le niveau des autres bâtiments.
+            remparts et caserne - le premier assaut n’attendra pas. 4. L’Agora limite le niveau des autres bâtiments.
           </p>
         </div>
         <button className="principal" style={{ width: '100%', marginTop: 14 }} onClick={() => s.openPanel(null)}>
@@ -354,7 +354,7 @@ export function ModaleAide() {
           ⚡ Refaire la leçon de Zeus
         </button>
         <button style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('sauvegardes')}>
-          💾 Vos parties — trois emplacements, export et import
+          💾 Vos parties - trois emplacements, export et import
         </button>
         {s.campagne && !s.campagne.fini ? (
           <button style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('campagne')}>
@@ -364,7 +364,7 @@ export function ModaleAide() {
           /*
            * L'entrée dans la campagne depuis une partie EN COURS. L'écran de choix
            * ne s'ouvre qu'au tout premier lancement : sans ce bouton, un joueur qui
-           * a déjà une cité n'avait aucun moyen d'atteindre « La Chute » — sinon
+           * a déjà une cité n'avait aucun moyen d'atteindre « La Chute » - sinon
            * effacer sa partie, ce qui n'est pas une porte d'entrée.
            */
           <div className="aide-campagne">
@@ -388,7 +388,7 @@ export function ModaleAide() {
               </>
             ) : (
               <button style={{ width: '100%' }} onClick={() => setConfirmeCampagne(true)}>
-                🐴 Jouer la campagne « La Chute » — cinq actes de l’Iliade
+                🐴 Jouer la campagne « La Chute » - cinq actes de l’Iliade
               </button>
             )}
           </div>

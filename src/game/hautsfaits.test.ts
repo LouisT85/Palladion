@@ -95,7 +95,7 @@ function village(modif: Partial<SnapHautFait> = {}): SnapHautFait {
  * bâtiment, niveaux de héros, places fortes, relations bornées à ±100) ; là où
  * rien ne borne (assauts, dilemmes, soldats, journées), on prend large. Une
  * condition qui réclamerait plus qu'un plafond n'accorde apparaîtrait alors
- * dans les manquants — c'est le filet contre le haut fait impossible.
+ * dans les manquants - c'est le filet contre le haut fait impossible.
  */
 function regneTotal(modif: Partial<SnapHautFait> = {}): SnapHautFait {
   const cap = STOCKAGE[NIVEAU_BATIMENT_MAX]
@@ -160,7 +160,7 @@ function manquants(s: SnapHautFait): string[] {
   return HAUTS_FAITS.filter((h) => !h.atteint(s)).map((h) => h.id)
 }
 
-/** un axe du bilan, par son intitulé — le `throw` empêche un `undefined` complaisant */
+/** un axe du bilan, par son intitulé - le `throw` empêche un `undefined` complaisant */
 function axe(detail: DetailPrestige[], label: string): number {
   const ligne = detail.find((d) => d.label === label)
   if (!ligne) throw new Error(`axe de prestige inconnu : ${label}`)
@@ -213,7 +213,7 @@ describe('le tableau des hauts faits', () => {
      * Le seul haut fait qu'un règne parfait ne peut pas avoir est « Maudit
      * soit-il » : il faut un dieu à −70, ce qu'« Élu des quatre Olympiens »
      * interdit. Toute autre absence dans cette liste signale une condition
-     * devenue impossible — un plafond abaissé ailleurs, un identifiant de
+     * devenue impossible - un plafond abaissé ailleurs, un identifiant de
      * village mal recopié, une clé d'exploit qui ne s'écrit plus.
      */
     expect(manquants(regneTotal())).toEqual(['maudit'])
@@ -302,7 +302,7 @@ describe('les conditions', () => {
       /*
        * Le millésime bascule au PREMIER jour de l'année suivante : jour 17 pour
        * la deuxième, jour 65 pour la cinquième. À noter : le titre « Cinq ans de
-       * règne » se gagne donc après quatre années révolues — la description
+       * règne » se gagne donc après quatre années révolues - la description
        * (« Atteindre la cinquième année ») est la seule des deux à dire vrai.
        */
       ['une-annee', { jour: JOURS_PAR_AN }, { jour: JOURS_PAR_AN + 1 }],
@@ -497,7 +497,7 @@ describe('le prestige', () => {
       ['Bâtiments élevés', 80], // 10 domaines au niveau 2 = 20 niveaux × 4
       ['Tours d’archers', 24], // 4 × 6
       ['Habitants', 60], // 30 habitants × 2 // 30 × 2
-      ['Assauts repoussés', 48], // 12 × 4 — les 9 perdus ne retirent rien
+      ['Assauts repoussés', 48], // 12 × 4 - les 9 perdus ne retirent rien
       ['Étoiles d’expédition', 48], // 6 × 8
       ['Villages alliés', 36], // 2 × 18
       ['Ferveur des Olympiens', 30],
@@ -611,7 +611,7 @@ describe('les titres des aèdes', () => {
     for (let i = 0; i < echelle.length; i++) {
       const [seuil, titre] = echelle[i]
       expect(titrePrestige(seuil).titre, `${seuil}`).toBe(titre)
-      // un point sous le seuil, c'est exactement le rang du dessous — pas « un autre titre »
+      // un point sous le seuil, c'est exactement le rang du dessous - pas « un autre titre »
       if (i > 0) expect(titrePrestige(seuil - 1).titre, `${seuil - 1}`).toBe(echelle[i - 1][1])
       descriptions.add(titrePrestige(seuil).desc)
     }
@@ -674,7 +674,7 @@ describe('la couture avec le store', () => {
     /*
      * Et le jugement rendu sur cet état, haut fait par haut fait : la forge
      * bâtie (mais pas l'agora seule), le premier assaut repoussé, vingt soldats
-     * dont douze hoplites, Arès à −73 et l'hiver traversé. Ni plus — l'ambiance
+     * dont douze hoplites, Arès à −73 et l'hiver traversé. Ni plus - l'ambiance
      * à 88 et les 19 dilemmes restent sous leurs seuils.
      */
     expect(decroches(vu)).toEqual([
@@ -698,7 +698,7 @@ describe('la couture avec le store', () => {
     const s = useGame.getState()
     /*
      * Sans le contrôle final, le joueur perdrait les hauts faits gagnés entre
-     * le dernier tick et son abdication — et ses points avec eux.
+     * le dernier tick et son abdication - et ses points avec eux.
      */
     expect(s.hautsFaits).toEqual(['premiere-pierre', 'premier-sang'])
     expect(s.finDePartie?.score).toBe(38) // 28 + 5 + 5

@@ -2,7 +2,7 @@ import { AOBase, Colonne3D, MurPierre, OmbreVolume, PAL, alea } from '../art'
 import { Amphore, Buisson, Feu, Fumee, OlivierMini } from './primitives'
 
 /*
- * TEMPLE — bâtiment de RÉFÉRENCE de la bible visuelle (docs/STYLE-ART.md).
+ * TEMPLE - bâtiment de RÉFÉRENCE de la bible visuelle (docs/STYLE-ART.md).
  * Peint réaliste : lumière NW, ombres portées SE, zéro contour noir.
  *  1. autel sous le vieux chêne     2. naïskos à fronton peint
  *  3. temple périptère de pierre    4. grand temple de marbre et d'or

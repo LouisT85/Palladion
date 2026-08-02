@@ -7,7 +7,7 @@ import { Ouvriers } from './components/map/Ouvriers'
 import type { BuildingId } from './game/types'
 
 /*
- * Atelier d'aperçu — hors jeu, pour travailler l'art en le REGARDANT.
+ * Atelier d'aperçu - hors jeu, pour travailler l'art en le REGARDANT.
  * URL : /?apercu=<cible>[&z=<zoom>]
  *   cible ∈ agora|temple|maisons|ferme|scierie|carriere|forge|caserne|port
  *         | murailles | terrain | figurines

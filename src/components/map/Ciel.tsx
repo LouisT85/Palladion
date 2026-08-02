@@ -4,7 +4,7 @@ import { alea } from './art'
 /*
  * Le ciel de la Troade, posé PAR-DESSUS la peinture : une teinte de saison qui
  * réchauffe ou refroidit toute la scène, puis ce qui tombe du ciel ce jour-là.
- * Tout est animé en SMIL — aucun coût JS par image, et le tick à 4 Hz n'y touche
+ * Tout est animé en SMIL - aucun coût JS par image, et le tick à 4 Hz n'y touche
  * jamais. Les semis sont déterministes (alea) : la pluie ne saute pas d'un
  * rendu à l'autre.
  */
@@ -180,7 +180,7 @@ function Orage({ w, h }: { w: number; h: number }) {
   )
 }
 
-/** ce qui tombe du ciel — rien du tout par temps clair */
+/** ce qui tombe du ciel - rien du tout par temps clair */
 export function Meteo({ meteo, w, h }: { meteo: MeteoId; w: number; h: number }) {
   switch (meteo) {
     case 'pluie':
@@ -198,7 +198,7 @@ export function Meteo({ meteo, w, h }: { meteo: MeteoId; w: number; h: number })
   }
 }
 
-/** teinte d'ambiance de la saison — l'été jaunit tout, l'hiver bleuit tout */
+/** teinte d'ambiance de la saison - l'été jaunit tout, l'hiver bleuit tout */
 export function VoileSaison({ saison, w, h }: { saison: SaisonId; w: number; h: number }) {
   const def = SAISONS[saison]
   return (
@@ -220,6 +220,6 @@ export function libelleCiel(saison: SaisonId, meteo: MeteoId): { txt: string; em
   return {
     txt: s.nom,
     emoji: s.emoji,
-    detail: `${s.nom} — ${s.desc}\n${m.emoji} ${m.nom} : ${m.desc}`,
+    detail: `${s.nom} - ${s.desc}\n${m.emoji} ${m.nom} : ${m.desc}`,
   }
 }

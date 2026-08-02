@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from 'react'
 import { AOBase, OmbreVolume, PAL, alea } from '../art'
 
 /*
- * CARRIÈRE — peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres
+ * CARRIÈRE - peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres
  * portées SE, zéro contour noir, le volume vient des valeurs.
  *  1. premier front de taille, coins de bois enfoncés dans la veine
  *  2. échafaudages contre la paroi + rampe de halage
@@ -11,14 +11,14 @@ import { AOBase, OmbreVolume, PAL, alea } from '../art'
  *
  * La star est le FRONT DE TAILLE. Sa lecture repose sur une échelle de
  * valeurs stricte : la roche PATINÉE du sommet est ocre et sombre, la zone
- * EXPLOITÉE du bas est calcaire frais et clair, et chaque dessus de banc —
- * seule surface horizontale — reçoit le ciel donc reste le point le plus
+ * EXPLOITÉE du bas est calcaire frais et clair, et chaque dessus de banc -
+ * seule surface horizontale - reçoit le ciel donc reste le point le plus
  * lumineux. Sous chaque surplomb, une ombre franche : c'est elle qui creuse.
  * Les tailleurs d'Ouvriers.tsx frappent à (12,9) et (-22,13) : un bloc en
  * cours d'équarrissage attend sous chaque ciseau, la zone reste dégagée.
  */
 
-/** défs locales — préfixe car- */
+/** défs locales - préfixe car- */
 function DefsCarriere() {
   return (
     <defs>
@@ -150,7 +150,7 @@ function Gravats({ x, y, w, h = 7, n = 10, seed = 3 }: { x: number; y: number; w
   return <g>{items}</g>
 }
 
-/** buisson bas de garrigue sur la crête — trois valeurs, ombre portée SE */
+/** buisson bas de garrigue sur la crête - trois valeurs, ombre portée SE */
 function Garrigue({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
   return (
     <g transform={`translate(${x},${y}) scale(${s})`}>
@@ -220,7 +220,7 @@ function Empreintes({ x, y, seed = 5 }: { x: number; y: number; seed?: number })
 
 /**
  * Galerie taillée au pied du front : la seule vraie valeur sombre de la
- * carrière — elle creuse la paroi et donne l'échelle. Linteau de bois étayé.
+ * carrière - elle creuse la paroi et donne l'échelle. Linteau de bois étayé.
  */
 function Galerie({ x, y, w = 13, h = 11 }: { x: number; y: number; w?: number; h?: number }) {
   return (
@@ -307,7 +307,7 @@ function FrontTaille({
 
       {/* bancs, du plus haut (arrière) au plus bas (avant). La masse de chaque
           assise s'arrête au dessus de l'assise inférieure : son dégradé se lit
-          alors en entier — clair sous l'arête, sombre au pied de la face. */}
+          alors en entier - clair sous l'arête, sombre au pied de la face. */}
       {liste
         .map((b, i) => ({ b, i }))
         .reverse()
@@ -344,7 +344,7 @@ function FrontTaille({
           )
         })}
 
-      {/* facettes : la paroi n'est pas un plan — deux pans tournés vers l'est,
+      {/* facettes : la paroi n'est pas un plan - deux pans tournés vers l'est,
           strictement contenus dans la silhouette de l'assise concernée */}
       {[0.26, 0.62].map((t, i) => {
         const b = liste[Math.min(bancs - 1, 1)]
@@ -379,7 +379,7 @@ function FrontTaille({
       })()}
 
       {/* cheminée : une diaclase franche traverse toute la falaise et casse le
-          rythme des assises — sans elle, la paroi retombe en mille-feuille */}
+          rythme des assises - sans elle, la paroi retombe en mille-feuille */}
       {(() => {
         const cx = x0 + (x1 - x0) * 0.44
         const yh = haut.recul[3]
@@ -521,12 +521,12 @@ function BlocPierre({
     <g>
       <AOBase rx={w * 0.72} ry={w * 0.2} cx={x + 1} cy={y + 1} />
       <OmbreVolume w={w} h={h} x={x} y={y} o={0.16} />
-      {/* flanc est — ombre */}
+      {/* flanc est - ombre */}
       <path d={`M${x + w / 2},${y} L${x + w / 2 + p},${y - dy} L${x + w / 2 + p},${y - h - dy} L${x + w / 2},${y - h} Z`} fill={frais ? '#95886a' : '#82755b'} />
-      {/* face avant — demi-teinte */}
+      {/* face avant - demi-teinte */}
       <rect x={x - w / 2} y={y - h} width={w} height={h} fill={frais ? '#cdbf9a' : '#b6a884'} />
       <rect x={x - w / 2} y={y - h} width={w} height={h * 0.34} fill={frais ? '#ded2ae' : '#c6b995'} />
-      {/* dessus — le plus clair */}
+      {/* dessus - le plus clair */}
       <path d={`M${x - w / 2},${y - h} L${x + w / 2},${y - h} L${x + w / 2 + p},${y - h - dy} L${x - w / 2 + p},${y - h - dy} Z`} fill={frais ? '#f3ebd0' : '#ded2b0'} />
       {/* arêtes : vive en haut, liseré clair à gauche, contact sombre en bas */}
       <path

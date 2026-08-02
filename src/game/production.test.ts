@@ -44,7 +44,7 @@ import type { BuildingId, ResourceId, Villageois } from './types'
  * de la mer et le tiers du port en hiver), `horsligne.test.ts` la reprise de
  * partie et la faveur gagnée en dormant, `heros.test.ts` la table des passifs de
  * la maisonnée. Ici, ce qui reste : les postes, le rendement, l'aiguillage
- * atelier → ressource, les deux plafonds de l'entrepôt — et du passif d'Hector,
+ * atelier → ressource, les deux plafonds de l'entrepôt - et du passif d'Hector,
  * seulement le bout de la chaîne, là où le chantier de réparation s'en sert.
  */
 
@@ -71,7 +71,7 @@ function equipe(metier: BuildingId, n: number): Villageois[] {
   return Array.from({ length: n }, () => habitant(metier, metier))
 }
 
-/** table de bâtiments complète — tout ce qui n'est pas cité reste à zéro */
+/** table de bâtiments complète - tout ce qui n'est pas cité reste à zéro */
 function niveaux(patch: Partial<Record<BuildingId, number>>): GameState['buildings'] {
   const out = {} as GameState['buildings']
   for (const b of BUILDING_IDS) out[b] = { level: patch[b] ?? 0 }
@@ -119,13 +119,13 @@ function posteDe(id: string): BuildingId | null {
   return v.poste
 }
 
-/** émoji du dernier toast — c'est par là que le joueur apprend un refus */
+/** émoji du dernier toast - c'est par là que le joueur apprend un refus */
 function dernierEmoji(): string | undefined {
   const t = useGame.getState().toasts
   return t[t.length - 1]?.emoji
 }
 
-/** Hector à notre table — recruté, et vivant */
+/** Hector à notre table - recruté, et vivant */
 function avecHector(): GameState['heros'] {
   const base = useGame.getState().heros
   return { ...base, hector: { ...base.hector, recrute: true, mort: false } }
@@ -139,7 +139,7 @@ describe('mode test', () => {
      * trésor accepte tout. Ce n'est pas un détail : c'est la raison pour
      * laquelle les tests d'échange ci-dessous ne vérifient que la ressource
      * REÇUE. La vraie règle du découvert ne s'observe qu'en rechargeant le
-     * module hors mode test — sans quoi elle ne serait vérifiée nulle part.
+     * module hors mode test - sans quoi elle ne serait vérifiée nulle part.
      */
     expect(MODE_TEST).toBe(true)
     expect(peutPayer({ bois: 0, pierre: 0, grain: 0, bronze: 0 }, { bois: 9_999 })).toBe(true)
@@ -203,7 +203,7 @@ describe('postes de travail', () => {
 
     /*
      * La règle qui donne tout son sens au recensement : un camp de bûcherons
-     * désert produit EXACTEMENT autant qu'un village qui n'en a pas — et la
+     * désert produit EXACTEMENT autant qu'un village qui n'en a pas - et la
      * cueillette de base reste acquise, un village ruiné peut toujours se relever.
      */
     expect(desert).toBe(sansAtelier)
@@ -230,7 +230,7 @@ describe('postes de travail', () => {
       RENDEMENT_HORS_METIER,
       5,
     )
-    // moitié-moitié : entre les deux, et strictement — pas d'arrondi à l'entier
+    // moitié-moitié : entre les deux, et strictement - pas d'arrondi à l'entier
     const mixte = rendement(
       etat([...equipe('carriere', 2), habitant('ferme', 'carriere'), habitant('ferme', 'carriere')]),
       'carriere',
@@ -277,7 +277,7 @@ describe('postes de travail', () => {
     /*
      * Le panneau du bâtiment attrape `candidats[0]` d'un seul clic : les deux
      * tailleurs de pierre doivent donc passer devant les deux autres, et pas
-     * seulement le premier trouvé — un comparateur qui n'en remonterait qu'un
+     * seulement le premier trouvé - un comparateur qui n'en remonterait qu'un
      * enverrait un bûcheron à la carrière au deuxième clic.
      */
     expect(candidats.slice(0, 2).map((v) => v.metier)).toEqual(['carriere', 'carriere'])
@@ -370,7 +370,7 @@ describe('ce que chaque atelier verse au coffre', () => {
      * Les quatre coefficients de saison sont lus dans la même boucle : les
      * échanger deux à deux (bois ↔ pierre, par exemple) laisserait le total
      * plausible et les quatre ressources positives. Seul le rapport entre deux
-     * saisons, ressource par ressource, attrape l'interversion — d'où le choix
+     * saisons, ressource par ressource, attrape l'interversion - d'où le choix
      * du printemps contre l'été, dont les quatre rapports sont tous distincts.
      */
     const village = {
@@ -389,7 +389,7 @@ describe('ce que chaque atelier verse au coffre', () => {
     }
   })
 
-  it('multiplie saison, météo et ambiance — il ne les additionne pas', () => {
+  it('multiplie saison, météo et ambiance - il ne les additionne pas', () => {
     /*
      * Le HUD annonce trois coefficients séparés dans l'infobulle de chaque
      * ressource. Le rapport entre deux villages identiques placés sous deux
@@ -416,7 +416,7 @@ describe('ce que chaque atelier verse au coffre', () => {
      * elle ne doit jamais fermer les ateliers : à zéro il reste la moitié de la
      * production, sinon un village au fond du trou n'aurait plus les moyens de
      * s'en sortir et la partie serait perdue sans être jouée.
-     * (L'infobulle du HUD recopie ces deux nombres à la main — Hud.tsx : si
+     * (L'infobulle du HUD recopie ces deux nombres à la main - Hud.tsx : si
      * l'équilibrage change ici, il faut aller la corriger là-bas.)
      */
     expect(multMorale(0)).toBeCloseTo(0.5, 10)
@@ -469,7 +469,7 @@ describe('taux net par minute', () => {
     expect(net.bronze).toBe(brut.bronze)
     /*
      * Dix habitants et un soldat : les rations ne sont pas les mêmes, et les
-     * deux constantes ne doivent pas être interverties — d'où un effectif civil
+     * deux constantes ne doivent pas être interverties - d'où un effectif civil
      * et un effectif militaire volontairement dissemblables.
      */
     expect(brut.grain - net.grain).toBeCloseTo(10 * CONSO_POP + 1 * CONSO_SOLDAT, 5)
@@ -512,7 +512,7 @@ describe('entrepôt et comptoir', () => {
      * le plafond un jour ou l'autre. Ce jour-là, l'entrepôt doit rogner le
      * surplus au lieu de le stocker dans le vide.
      * (Le mode test rendant les paiements gratuits, on ne vérifie ici que la
-     * ressource REÇUE — voir le premier describe.)
+     * ressource REÇUE - voir le premier describe.)
      */
     const aRasBord = STOCKAGE[1] - 3
     poserVillage({ buildings: niveaux({ agora: 1, port: 1 }), resources: { bois: aRasBord, pierre: 0, grain: 0, bronze: 500 } })
@@ -536,7 +536,7 @@ describe('entrepôt et comptoir', () => {
 
   it('ne tient pas comptoir sans port, et n’échange pas une ressource contre elle-même', () => {
     /*
-     * Deux gardes qui n'en ont pas l'air : sans port, `coutEchange` renvoie 0 —
+     * Deux gardes qui n'en ont pas l'air : sans port, `coutEchange` renvoie 0 -
      * l'échange serait donc gratuit ; et troquer du bois contre du bois
      * fabriquerait dix bois par clic. Le mode test payant tout sans regarder, ce
      * sont ces deux `return` qui tiennent la caisse, et rien d'autre.
@@ -559,7 +559,7 @@ describe('réparation de l’enceinte', () => {
     /*
      * Le chantier de réparation doit viser murMax et non la table WALL_HP,
      * sinon l'enceinte d'Hector se retrouve définitivement plafonnée à
-     * l'épaisseur d'un mur ordinaire dès la première réparation — et les pans
+     * l'épaisseur d'un mur ordinaire dès la première réparation - et les pans
      * effondrés resteraient dessinés sur une muraille pourtant remise à neuf.
      */
     poserVillage({ buildings: niveaux({ agora: 3, remparts: 3 }), wallHp: 100, brechesMur: [0, 1.5], heros: avecHector() })

@@ -7,7 +7,7 @@ import type { BattleState, OrdreLigne, OrdreTir, UnitId } from '../../game/types
  * ═══════════════════ LA BARRE D'ORDRES ═══════════════════
  *
  * On regardait la bataille. Les bénédictions mises à part, rien de ce que
- * faisait le joueur pendant l'assaut ne changeait ce que faisaient ses hommes —
+ * faisait le joueur pendant l'assaut ne changeait ce que faisaient ses hommes -
  * l'issue était décidée au moment où la vague se formait.
  *
  * Trois postures, deux façons de tirer, et un pan de mur assignable par type
@@ -107,7 +107,7 @@ export function BarreOrdres() {
        */}
       {parPan && types.length > 0 && (
         <div className="ordres-secteurs">
-          <div className="ordres-titre">Tenir un pan — ces hommes n’en bougeront plus</div>
+          <div className="ordres-titre">Tenir un pan - ces hommes n’en bougeront plus</div>
           <div className="ordres-grille">
             {types.map((u) => (
               <div key={u} className="ordres-ligne-unite">
@@ -126,7 +126,7 @@ export function BarreOrdres() {
                     key={sec.nom}
                     className={`pan${o.secteurs[u] === i ? ' actif' : ''}${sec.breche ? ' perce' : ''}`}
                     onClick={() => assigner(u, i)}
-                    title={`${sec.nom}${sec.breche ? ' — percé' : ` — ${Math.round((sec.hp / Math.max(1, sec.max)) * 100)} %`}`}
+                    title={`${sec.nom}${sec.breche ? ' - percé' : ` - ${Math.round((sec.hp / Math.max(1, sec.max)) * 100)} %`}`}
                   >
                     {court(sec.nom)}
                   </button>

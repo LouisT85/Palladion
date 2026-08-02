@@ -12,13 +12,13 @@ import { PortraitZeus } from './Zeus'
  *
  * Quatre moments, et un seul panneau permanent.
  *
- *  · le CHOIX DU MODE, au tout premier lancement — bac à sable ou La Chute ;
+ *  · le CHOIX DU MODE, au tout premier lancement - bac à sable ou La Chute ;
  *  · le PROLOGUE d'un acte, qu'on lit avant que le compte à rebours ne démarre ;
  *  · l'ÉPILOGUE, quand les objectifs obligatoires sont tous franchis ;
  *  · l'ÉCHEC, qui renvoie au premier matin de l'acte et non à la case départ.
  *
  * Le panneau des objectifs, lui, remplace le suivi des missions : en campagne, le
- * fil rouge du bac à sable n'a plus rien à dire — c'est l'acte qui commande.
+ * fil rouge du bac à sable n'a plus rien à dire - c'est l'acte qui commande.
  */
 
 /** le récit se lit en gros, sur parchemin, comme les dilemmes */
@@ -47,7 +47,7 @@ function Recompense({ acte }: { acte: ActeCampagne }) {
 
 /**
  * Premier lancement : deux façons de jouer, présentées honnêtement. Le bac à
- * sable ne finit jamais ; la campagne finit — et c'est tout l'intérêt.
+ * sable ne finit jamais ; la campagne finit - et c'est tout l'intérêt.
  */
 export function ModaleChoixMode() {
   const mode = useGame((s) => s.mode)
@@ -61,7 +61,7 @@ export function ModaleChoixMode() {
         </div>
         <h2>🏛️ PALLADION</h2>
         <p className="choix-intro">
-          Un village de la Troade, sur la route des armées. Deux façons d’y régner — et l’on peut changer d’avis plus
+          Un village de la Troade, sur la route des armées. Deux façons d’y régner - et l’on peut changer d’avis plus
           tard, dans l’aide.
         </p>
         <div className="choix-cartes">
@@ -75,7 +75,7 @@ export function ModaleChoixMode() {
           </button>
           <button className="choix-carte principal" onClick={() => choisir('campagne')}>
             <span className="cc-emoji">🐴</span>
-            <b>La Chute — campagne</b>
+            <b>La Chute - campagne</b>
             <span className="cc-desc">
               Cinq actes qui suivent l’Iliade, du débarquement achéen à la nuit du cheval. Objectifs imposés, situation
               héritée d’un acte à l’autre, héros qui s’imposent à vous. <i>On peut y perdre.</i>
@@ -116,7 +116,7 @@ export function ModaleProlologue() {
               <span className="ao-puce">{o.facultatif ? '◇' : '◆'}</span>
               <div>
                 <b>{o.texte}</b>
-                {o.facultatif && <span className="ao-fac"> — facultatif</span>}
+                {o.facultatif && <span className="ao-fac"> - facultatif</span>}
                 {o.pourquoi && <div className="ao-pourquoi">{o.pourquoi}</div>}
               </div>
             </div>
@@ -137,7 +137,7 @@ export function ModaleProlologue() {
   )
 }
 
-/** l'épilogue d'un acte accompli — ou de la campagne entière */
+/** l'épilogue d'un acte accompli - ou de la campagne entière */
 export function ModaleEpilogue() {
   const campagne = useGame((s) => s.campagne)
   const suivant = useGame((s) => s.acteSuivant)
@@ -151,7 +151,7 @@ export function ModaleEpilogue() {
         <div className="acte-bandeau">
           <span className="acte-emoji">{campagne.fini ? '👑' : acte.emoji}</span>
           <div>
-            <h2>{campagne.fini ? 'La Chute — fin de la campagne' : `${acte.titre} — accompli`}</h2>
+            <h2>{campagne.fini ? 'La Chute - fin de la campagne' : `${acte.titre} - accompli`}</h2>
             <div className="acte-lieu">{acte.lieu}</div>
           </div>
         </div>
@@ -163,12 +163,12 @@ export function ModaleEpilogue() {
         )}
         {campagne.fini ? (
           <div className="acte-defaite" style={{ borderColor: '#8c6f4e' }}>
-            Troie n’est plus qu’une braise sur l’horizon. Votre village, lui, a passé la nuit — et c’est déjà plus que
+            Troie n’est plus qu’une braise sur l’horizon. Votre village, lui, a passé la nuit - et c’est déjà plus que
             n’en ont dit les aèdes. Le bac à sable reste ouvert : la partie continue.
           </div>
         ) : null}
         <button className="principal" style={{ width: '100%', marginTop: 14 }} onClick={suivant}>
-          {dernier ? 'Clore la campagne' : `Acte ${acte.numero + 1} — ${ACTES_CAMPAGNE[campagne.acte + 1].titre.split('— ')[1]}`}
+          {dernier ? 'Clore la campagne' : `Acte ${acte.numero + 1} - ${ACTES_CAMPAGNE[campagne.acte + 1].titre.split('- ')[1]}`}
         </button>
       </div>
     </div>
@@ -185,7 +185,7 @@ export function ModaleEchecActe() {
   return (
     <div className="voile">
       <div className="modale parchemin acte-modale">
-        <h2>💀 {acte.titre} — le village est tombé</h2>
+        <h2>💀 {acte.titre} - le village est tombé</h2>
         <Recit paragraphes={acte.echec ?? ['Il ne reste rien à défendre.']} />
         <button className="principal" style={{ width: '100%', marginTop: 14 }} onClick={rejouer}>
           Reprendre l’acte au premier matin
@@ -197,7 +197,7 @@ export function ModaleEchecActe() {
 
 /**
  * Le panneau des objectifs, à la place du suivi des missions. Il est repliable
- * comme lui — mais il ne disparaît jamais tout à fait : en campagne, c'est la
+ * comme lui - mais il ne disparaît jamais tout à fait : en campagne, c'est la
  * seule chose qui dit pourquoi on joue.
  */
 export function SuiviActe() {
@@ -265,10 +265,10 @@ export function PanneauCampagne() {
   const iActe = s.campagne?.acte ?? -1
   return (
     <Modale
-      titre="🐴 La Chute — les cinq actes"
+      titre="🐴 La Chute - les cinq actes"
       large
       onFermer={() => s.openPanel(null)}
-      sous="Cinq actes qui suivent l’Iliade. Chacun impose une situation de départ, des objectifs et parfois un héros — et chacun peut se perdre."
+      sous="Cinq actes qui suivent l’Iliade. Chacun impose une situation de départ, des objectifs et parfois un héros - et chacun peut se perdre."
     >
       <>
         {ACTES_CAMPAGNE.map((a, i) => {

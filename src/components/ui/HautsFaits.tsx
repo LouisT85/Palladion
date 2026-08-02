@@ -13,7 +13,7 @@ import { Modale } from './Modale'
 /*
  * Le tableau d'honneur. Il doit répondre à deux questions en un coup d'œil :
  * « qu'est-ce que j'ai accompli ? » et « qu'est-ce que je vaux ? ». Le détail du
- * prestige est donc affiché ligne à ligne — un score opaque n'apprend rien.
+ * prestige est donc affiché ligne à ligne - un score opaque n'apprend rien.
  */
 
 const ORDRE: CategorieHF[] = ['batisseur', 'guerre', 'divin', 'peuple', 'legende']
@@ -55,7 +55,7 @@ export function PanneauHautsFaits() {
           <b style={{ color: '#e8c04a' }}>
             {acquis.length}/{HAUTS_FAITS.length}
           </b>{' '}
-          hauts faits — {gagnes}/{POINTS_TOTAUX} points. Un haut fait gagné l’est pour toujours, même si l’on perd
+          hauts faits - {gagnes}/{POINTS_TOTAUX} points. Un haut fait gagné l’est pour toujours, même si l’on perd
           ensuite ce qui l’a permis.
         </div>
 
@@ -93,7 +93,7 @@ export function PanneauHautsFaits() {
           {confirme ? (
             <>
               <span>
-                Abdiquer fige votre score, vous donne un titre — puis une nouvelle cité s’élève sur les ruines.
+                Abdiquer fige votre score, vous donne un titre - puis une nouvelle cité s’élève sur les ruines.
               </span>
               <button
                 className="danger"

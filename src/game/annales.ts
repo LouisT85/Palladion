@@ -2,7 +2,7 @@
  * ═══════════════════ LES ANNALES DU RÈGNE ═══════════════════
  *
  * Le jeu ne gardait aucune mémoire chiffrée de lui-même. Le journal racontait
- * des ÉVÉNEMENTS — « assaut repoussé », « Hector est entré à votre service » —
+ * des ÉVÉNEMENTS - « assaut repoussé », « Hector est entré à votre service » -
  * mais rien ne disait si la cité montait ou descendait. Un joueur qui trouvait
  * ses greniers vides ne pouvait pas savoir s'ils se vidaient depuis dix minutes
  * ou depuis le début, ni si sa menace grimpait plus vite que son armée.
@@ -10,7 +10,7 @@
  * Un relevé toutes les trente secondes, un tableau borné, et l'on peut enfin
  * TRACER le règne. Deux principes :
  *
- *  · on n'enregistre que des états lisibles à l'œil — stocks, effectifs,
+ *  · on n'enregistre que des états lisibles à l'œil - stocks, effectifs,
  *    menace, ambiance : rien qui demande d'expliquer une formule ;
  *  · le tableau est BORNÉ et arrondi. Une sauvegarde n'a pas à grossir sans fin
  *    parce qu'on laisse l'onglet ouvert une nuit.
@@ -18,7 +18,7 @@
 
 /** un relevé toutes les trente secondes de temps réel */
 export const PAS_RELEVE_MS = 30_000
-/** au-delà, on oublie le plus ancien — deux bonnes heures de jeu tiennent */
+/** au-delà, on oublie le plus ancien - deux bonnes heures de jeu tiennent */
 export const MAX_RELEVES = 260
 
 export interface Releve {
@@ -54,7 +54,7 @@ export interface SerieDef {
 export interface GrapheDef {
   id: string
   titre: string
-  /** ce que la courbe apprend, en une phrase — sinon ce n'est qu'un joli tracé */
+  /** ce que la courbe apprend, en une phrase - sinon ce n'est qu'un joli tracé */
   lecture: string
   series: SerieDef[]
   /** échelle fixe (0…max) plutôt qu'ajustée au contenu */
@@ -99,7 +99,7 @@ export const GRAPHES: GrapheDef[] = [
   {
     id: 'prestige',
     titre: 'Le prestige',
-    lecture: 'La seule note finale. Elle ne redescend qu’en perdant ce que le village MONTRE encore — jamais les hauts faits.',
+    lecture: 'La seule note finale. Elle ne redescend qu’en perdant ce que le village MONTRE encore - jamais les hauts faits.',
     series: [{ cle: 'prestige', nom: 'Prestige', couleur: '#e8c04a' }],
   },
 ]
@@ -111,7 +111,7 @@ export function serie(annales: Releve[], cle: SerieDef['cle']): number[] {
 
 /**
  * Pente d'une série sur les `n` derniers relevés, par minute. C'est ce chiffre
- * qui répond à « est-ce que ça monte ? » — la question que la courbe pose et
+ * qui répond à « est-ce que ça monte ? » - la question que la courbe pose et
  * qu'un œil moyen tranche mal sur trente points serrés.
  */
 export function pente(annales: Releve[], cle: SerieDef['cle'], n = 10): number {
@@ -122,7 +122,7 @@ export function pente(annales: Releve[], cle: SerieDef['cle'], n = 10): number {
   return (bout[bout.length - 1][cle] - bout[0][cle]) / dt
 }
 
-/** minimum et maximum d'un jeu de séries — l'échelle commune du graphe */
+/** minimum et maximum d'un jeu de séries - l'échelle commune du graphe */
 export function bornes(annales: Releve[], series: SerieDef[], max?: number): { bas: number; haut: number } {
   if (max !== undefined) return { bas: 0, haut: max }
   let haut = 0

@@ -2,7 +2,7 @@ import { WALL_HP } from './data'
 import type { BuildingId, Cost, GodId, ResourceId, UnitId } from './types'
 
 /*
- * Missions à récompenses — le fil rouge du joueur, façon Clash of Clans :
+ * Missions à récompenses - le fil rouge du joueur, façon Clash of Clans :
  * toujours un objectif visible, une récompense qui débloque l'étape suivante.
  * Elles se réclament dans l'ordre (les 3 premières non réclamées sont actives).
  *
@@ -20,7 +20,7 @@ import type { BuildingId, Cost, GodId, ResourceId, UnitId } from './types'
  */
 export interface EtatMissions {
   buildings: Record<BuildingId, { level: number }>
-  /** habitants nommés — seul le poste tenu intéresse les missions de travail */
+  /** habitants nommés - seul le poste tenu intéresse les missions de travail */
   villageois: { poste: BuildingId | null }[]
   army: Record<UnitId, number>
   resources: Record<ResourceId, number>
@@ -31,7 +31,7 @@ export interface EtatMissions {
   tours: number
   /** points de structure restants des remparts */
   wallHp: number
-  /** menace courante — c'est elle qui commande le nombre de fronts d'un assaut */
+  /** menace courante - c'est elle qui commande le nombre de fronts d'un assaut */
   threat: number
   stats: { repousses: number; perdus: number; evenements: number }
   expeditions: Record<string, { etoiles: number }>
@@ -40,7 +40,7 @@ export interface EtatMissions {
 
 /**
  * Où la mission se joue. C'est ce qui rattache le fil rouge au jeu : un clic sur
- * la mission ouvre l'écran concerné — le chantier, le recensement, la carte des
+ * la mission ouvre l'écran concerné - le chantier, le recensement, la carte des
  * expéditions. Sans cela, les missions n'étaient qu'une liste à côté du jeu, et
  * « affectez un villageois au temple » laissait le joueur chercher où.
  */
@@ -57,7 +57,7 @@ export interface MissionDef {
   /** progression courante (fait quand cur ≥ max) */
   progres: (s: EtatMissions) => { cur: number; max: number }
   recompense: { res?: Cost; faveur?: number; pop?: number }
-  /** l'écran où l'accomplir — absent quand il n'y a rien à aller cliquer */
+  /** l'écran où l'accomplir - absent quand il n'y a rien à aller cliquer */
   cible?: CibleMission
 }
 
@@ -97,7 +97,7 @@ function auTravail(s: EtatMissions): number {
   return s.villageois.filter((v) => v.poste !== null).length
 }
 
-/** meilleure relation obtenue avec un Olympien — la ferveur se mesure au plus dévoué */
+/** meilleure relation obtenue avec un Olympien - la ferveur se mesure au plus dévoué */
 function ferveurMax(s: EtatMissions): number {
   return Object.values(s.gods).reduce((a, g) => Math.max(a, g.relation), -100)
 }
@@ -111,7 +111,7 @@ function meilleurRaid(s: EtatMissions): number {
 }
 
 export const MISSIONS: MissionDef[] = [
-  // ── Acte I — Le hameau ─────────────────────────────────────────────────────
+  // ── Acte I - Le hameau ─────────────────────────────────────────────────────
   {
     id: 'nouveau-depart',
     emoji: '🏺',
@@ -180,7 +180,7 @@ export const MISSIONS: MissionDef[] = [
     id: 'trois-lances',
     emoji: '🗡️',
     titre: 'Trois lances au râtelier',
-    desc: 'Entretenez une garnison de 3 soldats — on n’enrôle que des villageois sans emploi.',
+    desc: 'Entretenez une garnison de 3 soldats - on n’enrôle que des villageois sans emploi.',
     progres: (s) => seuil(armee(s), 3),
     recompense: { res: { bronze: 30, grain: 50 } },
   },
@@ -193,7 +193,7 @@ export const MISSIONS: MissionDef[] = [
     recompense: { res: { bronze: 60 }, faveur: 10 },
   },
 
-  // ── Acte II — Le village s'organise ────────────────────────────────────────
+  // ── Acte II - Le village s'organise ────────────────────────────────────────
   {
     id: 'maison-des-dieux',
     emoji: '⚡',
@@ -275,7 +275,7 @@ export const MISSIONS: MissionDef[] = [
     recompense: { res: { grain: 120, bronze: 40 }, faveur: 10 },
   },
 
-  // ── Acte III — La pierre et le bronze ──────────────────────────────────────
+  // ── Acte III - La pierre et le bronze ──────────────────────────────────────
   {
     id: 'muraille-de-pierre',
     emoji: '🏰',
@@ -349,7 +349,7 @@ export const MISSIONS: MissionDef[] = [
     recompense: { res: { bronze: 120, grain: 100 }, faveur: 15 },
   },
 
-  // ── Acte IV — La cité fortifiée ────────────────────────────────────────────
+  // ── Acte IV - La cité fortifiée ────────────────────────────────────────────
   {
     id: 'prosperite',
     emoji: '💰',
@@ -394,7 +394,7 @@ export const MISSIONS: MissionDef[] = [
     id: 'deux-tours',
     emoji: '🗼',
     titre: 'Deux tours de guet',
-    desc: 'Dressez une seconde tour. Chacune ne couvre que son arc — la porte en réclame deux.',
+    desc: 'Dressez une seconde tour. Chacune ne couvre que son arc - la porte en réclame deux.',
     progres: (s) => seuil(s.tours, 2),
     recompense: { res: { pierre: 300, bois: 140 } },
   },
@@ -439,7 +439,7 @@ export const MISSIONS: MissionDef[] = [
     recompense: { res: { bronze: 180, grain: 200 } },
   },
 
-  // ── Acte V — Vers la légende ──────────────────────────────────────────────
+  // ── Acte V - Vers la légende ──────────────────────────────────────────────
   {
     id: 'temple-d-ares',
     emoji: '🐗',
@@ -476,7 +476,7 @@ export const MISSIONS: MissionDef[] = [
     id: 'murs-de-poseidon',
     emoji: '🔱',
     titre: 'Les murs de Poséidon',
-    desc: 'Portez les remparts au niveau 4 — ceux de Troie, dit-on, furent bâtis de la main du dieu.',
+    desc: 'Portez les remparts au niveau 4 - ceux de Troie, dit-on, furent bâtis de la main du dieu.',
     progres: niveau('remparts', 4),
     recompense: { res: { pierre: 400, bronze: 120 }, faveur: 25 },
   },
@@ -540,7 +540,7 @@ export const MISSIONS: MissionDef[] = [
     id: 'tous-aux-postes',
     emoji: '🐝',
     titre: 'Une ruche d’ateliers',
-    desc: '15 villageois au travail en même temps, du champ au quai — et une garnison malgré tout.',
+    desc: '15 villageois au travail en même temps, du champ au quai - et une garnison malgré tout.',
     progres: (s) => seuil(auTravail(s), 15),
     recompense: { res: { bois: 400, pierre: 400, grain: 400 }, faveur: 25 },
   },
@@ -571,7 +571,7 @@ export const MISSIONS: MissionDef[] = [
 /*
  * Où chaque mission se joue, en un seul tableau plutôt qu'une ligne de plus dans
  * chacune des cinquante définitions ci-dessus. Les missions absentes d'ici ne
- * mènent nulle part — « repoussez un assaut » ne s'accomplit sur aucun écran.
+ * mènent nulle part - « repoussez un assaut » ne s'accomplit sur aucun écran.
  */
 const CIBLES: Record<string, CibleMission> = {
   'le-pain-d-abord': AU('ferme'),
@@ -641,11 +641,11 @@ export function rangMission(id: string): number {
  * cinquante-cinq lignes.
  */
 export const ACTES: { nom: string; fin: number }[] = [
-  { nom: 'Acte I — Le hameau', fin: 10 },
-  { nom: 'Acte II — Le village s’organise', fin: 20 },
-  { nom: 'Acte III — La pierre et le bronze', fin: 29 },
-  { nom: 'Acte IV — La cité fortifiée', fin: 40 },
-  { nom: 'Acte V — Vers la légende', fin: MISSIONS.length },
+  { nom: 'Acte I - Le hameau', fin: 10 },
+  { nom: 'Acte II - Le village s’organise', fin: 20 },
+  { nom: 'Acte III - La pierre et le bronze', fin: 29 },
+  { nom: 'Acte IV - La cité fortifiée', fin: 40 },
+  { nom: 'Acte V - Vers la légende', fin: MISSIONS.length },
 ]
 
 /** l'acte auquel appartient cette mission (par son rang, 1-indexé) */
@@ -658,7 +658,7 @@ export function acteDe(rang: number): string {
  *
  * Le fil rouge étant strictement ordonné, la coupure d'acte ne se voyait pas :
  * on passait de « repoussez un assaut » à « élevez un temple » sans que rien ne
- * marque le changement de chapitre. Un acte est désormais un vrai palier — on
+ * marque le changement de chapitre. Un acte est désormais un vrai palier - on
  * l'achève avant de voir le suivant s'ouvrir, ce qui donne au fil sa respiration.
  */
 export function missionsActives(reclamees: string[]): MissionDef[] {

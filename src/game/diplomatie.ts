@@ -14,14 +14,14 @@ import type { Cost } from './types'
  *
  *  · ce que vous faites à l'un, les autres l'apprennent. Piller un voisin fâche
  *    toute la côte ; lever un siège vous vaut du crédit partout ;
- *  · une relation se travaille sans armée — un PRÉSENT coûte des ressources et
+ *  · une relation se travaille sans armée - un PRÉSENT coûte des ressources et
  *    rachète une rancune ; un PACTE s'achète quand on est déjà bien vu ;
  *  · un MARIAGE scelle ce qu'aucun présent ne scelle : on donne un habitant, on
  *    reçoit une alliance qui ne se rompt plus et un tribut doublé ;
  *  · une alliance dont la relation s'effondre se DÉNOUE d'elle-même, et un
  *    village franchement hostile grossit la menace qui pèse sur vos murs.
  *
- * Tout est donc réversible sauf le mariage — et c'est précisément ce qui rend le
+ * Tout est donc réversible sauf le mariage - et c'est précisément ce qui rend le
  * mariage cher : il coûte un bras au village, pour toujours.
  */
 
@@ -71,7 +71,7 @@ export const STATUTS: Record<StatutVillage, FicheStatut> = {
     nom: 'Allié',
     emoji: '🤝',
     couleur: '#7fb069',
-    desc: 'Tribut régulier et renforts sur vos remparts — tant que la relation tient.',
+    desc: 'Tribut régulier et renforts sur vos remparts - tant que la relation tient.',
   },
   ami: {
     nom: 'Bien disposé',
@@ -104,7 +104,7 @@ export function statutVillage(relation: number, allie: boolean, marie: boolean):
 /**
  * Ce qu'un présent coûte, et ce qu'il rapporte. Le prix suit la puissance du
  * village : on n'achète pas la citadelle de Ténédos avec ce qui suffit à un camp
- * de pillards. Vingt points de relation par présent — quatre présents rachètent
+ * de pillards. Vingt points de relation par présent - quatre présents rachètent
  * tout juste un pillage, ce qui est le bon ordre de grandeur : réparer coûte
  * plus cher que casser.
  */
@@ -128,8 +128,8 @@ export function coutPacte(v: VillageCible): Cost {
 }
 
 /**
- * Le prix d'un mariage. On donne un habitant — c'est là le vrai coût, et il se
- * paie en bras au village — plus les présents d'usage. En échange, l'alliance ne
+ * Le prix d'un mariage. On donne un habitant - c'est là le vrai coût, et il se
+ * paie en bras au village - plus les présents d'usage. En échange, l'alliance ne
  * se rompt jamais et le tribut double.
  */
 export function coutMariage(v: VillageCible): Cost {
@@ -160,7 +160,7 @@ export function borner(n: number): number {
   return Math.max(-100, Math.min(100, n))
 }
 
-/** « +45 », « −12 », « 0 » — le chiffre tel qu'on l'affiche */
+/** « +45 », « −12 », « 0 » - le chiffre tel qu'on l'affiche */
 export function motRelation(n: number): string {
   const v = Math.round(n)
   return v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0'

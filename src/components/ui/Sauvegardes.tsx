@@ -24,7 +24,7 @@ import { Modale } from './Modale'
  *  · effacer et importer par-dessus demandent une confirmation nommée.
  */
 
-/** « il y a 3 min », « hier », « le 28/07 » — une date lisible sans réfléchir */
+/** « il y a 3 min », « hier », « le 28/07 » - une date lisible sans réfléchir */
 function quand(t: number | null): string {
   if (!t) return ''
   const min = Math.floor((Date.now() - t) / 60_000)
@@ -72,7 +72,7 @@ function Fiche({
           ) : (
             <>
               <b>Emplacement libre</b>
-              <div className="emp-detail">Aucun village ici — une nouvelle cité peut s’y élever.</div>
+              <div className="emp-detail">Aucun village ici - une nouvelle cité peut s’y élever.</div>
             </>
           )}
         </div>
@@ -128,7 +128,7 @@ export function PanneauSauvegardes() {
     if (!texte) return setMessage({ txt: 'Cet emplacement est vide.', ok: false })
     /*
      * Téléchargement sans dépendance : un Blob, une URL éphémère, un clic
-     * simulé. On révoque l'URL derrière soi — un objet oublié garde la
+     * simulé. On révoque l'URL derrière soi - un objet oublié garde la
      * sauvegarde entière en mémoire jusqu'à la fermeture de l'onglet.
      */
     const url = URL.createObjectURL(new Blob([texte], { type: 'application/json' }))
@@ -183,7 +183,7 @@ export function PanneauSauvegardes() {
         {message && <div className={`emp-message${message.ok ? ' ok' : ' ko'}`}>{message.txt}</div>}
         <div className="emp-note">
           Un fichier exporté est du texte : on peut le garder, l’envoyer, le remettre plus tard. À l’import, il est
-          contrôlé avant d’écrire quoi que ce soit — un fichier qui n’est pas une partie de PALLADION ne remplacera
+          contrôlé avant d’écrire quoi que ce soit - un fichier qui n’est pas une partie de PALLADION ne remplacera
           jamais la vôtre.
         </div>
         <input

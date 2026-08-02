@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 /*
- * Langage graphique commun — inspiré des city-builders classiques :
+ * Langage graphique commun - inspiré des city-builders classiques :
  *  - volumes en fausse perspective (face avant + deux pans de toit vus de dessus-avant)
  *  - lumière venant du haut-gauche : pans droits assombris, ombres portées vers la droite
  *  - textures par motifs SVG (tuiles, pierre, chaume, sillons, planches, pavés)
@@ -11,7 +11,7 @@ import type { ReactNode } from 'react'
 
 export const T = '#4a3a28' // trait commun
 
-/** motifs partagés — à inclure dans le <defs> de chaque SVG utilisant BatimentArt */
+/** motifs partagés - à inclure dans le <defs> de chaque SVG utilisant BatimentArt */
 export function DefsBatiments() {
   return (
     <>
@@ -329,7 +329,7 @@ export function Banniere({ x = 0, y = 0, h = 14, c = '#b3543f' }: { x?: number; 
   )
 }
 
-/** tente partagée — utilisée par Maisons (niveau 1) et Caserne (niveau 1) */
+/** tente partagée - utilisée par Maisons (niveau 1) et Caserne (niveau 1) */
 export function Tente({ x = 0, y = 0, w = 24, h = 15, c = '#c9b696' }: { x?: number; y?: number; w?: number; h?: number; c?: string }) {
   return (
     <g transform={`translate(${x},${y})`}>
@@ -343,7 +343,7 @@ export function Tente({ x = 0, y = 0, w = 24, h = 15, c = '#c9b696' }: { x?: num
   )
 }
 
-/** bloc de pierre taillée — utilisé par Carriere et Chantier */
+/** bloc de pierre taillée - utilisé par Carriere et Chantier */
 export function Bloc({ x, y, w = 10, h = 7 }: { x: number; y: number; w?: number; h?: number }) {
   return (
     <g transform={`translate(${x},${y})`}>

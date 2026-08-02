@@ -9,7 +9,7 @@ const TUNIQUES: ReadonlyArray<readonly [string, string, string]> = [
   ['#9a8ca8', '#ab9eb4', '#746881'],
 ]
 
-/** villageois qui vaquent dans l'enceinte — plus nombreux quand l'ambiance est bonne */
+/** villageois qui vaquent dans l'enceinte - plus nombreux quand l'ambiance est bonne */
 export function Villageois({ pop, morale, now, enBataille }: { pop: number; morale: number; now: number; enBataille: boolean }) {
   if (enBataille) return null
   const n = Math.min(8, Math.max(1, Math.floor(pop / 4)))

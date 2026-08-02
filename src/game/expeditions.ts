@@ -13,7 +13,7 @@ export interface VillageCible {
   nom: string
   emoji: string
   desc: string
-  /** niveau des remparts ennemis (0–4) */
+  /** niveau des remparts ennemis (0-4) */
   mur: number
   garnison: Record<UnitId, number>
   /** butin complet (premier pillage victorieux) */
@@ -24,7 +24,7 @@ export interface VillageCible {
   maritime?: boolean
   /** décor de la scène d'assaut */
   decor: 'camp' | 'hameau' | 'comptoir' | 'village' | 'fort' | 'cite' | 'citadelle' | 'forteresse'
-  /** cadre du lieu : plaine, grève ou île — pilote le terrain de la scène */
+  /** cadre du lieu : plaine, grève ou île - pilote le terrain de la scène */
   terrain: 'plaine' | 'cote' | 'ile' | 'colline'
 }
 
@@ -159,7 +159,7 @@ export function puissanceTroupes(troupes: Record<UnitId, number>, atk: Record<Un
 
 /**
  * Garnison réellement en place : un village déjà pillé se méfie et double les
- * gardes. C'est le prix du butin répété — le raid facile ne le reste jamais.
+ * gardes. C'est le prix du butin répété - le raid facile ne le reste jamais.
  */
 export function garnisonEffective(v: VillageCible, pillages: number): Record<UnitId, number> {
   const k = Math.min(RENFORT_MAX, 1 + pillages * RENFORT_PAR_PILLAGE)
@@ -197,7 +197,7 @@ export function puissanceAssiegeants(v: VillageCible): number {
  * Puissance d'une troupe, dans la métrique que le panneau d'expédition affiche au
  * joueur. C'est elle qui doit servir à décider QUI appelle au secours : un village
  * dont les assiégeants pèsent 247 ne peut pas implorer l'aide d'un chef qui a
- * trois lanciers — la fenêtre s'ouvrait, le joueur voyait le chiffre, et n'avait
+ * trois lanciers - la fenêtre s'ouvrait, le joueur voyait le chiffre, et n'avait
  * plus qu'à regarder Zeus compter son absence.
  */
 export function puissanceTroupe(army: Record<UnitId, number>): number {
@@ -206,15 +206,15 @@ export function puissanceTroupe(army: Record<UnitId, number>): number {
 
 /**
  * Les villages qui peuvent décemment appeler CE chef à l'aide : ceux dont les
- * assiégeants sont à sa portée. On garde une marge de 15 % — un secours doit être
- * un risque, pas une formalité — mais jamais l'impossible.
+ * assiégeants sont à sa portée. On garde une marge de 15 % - un secours doit être
+ * un risque, pas une formalité - mais jamais l'impossible.
  */
 export function appelsAPortee(candidats: VillageCible[], army: Record<UnitId, number>): VillageCible[] {
   const force = puissanceTroupe(army)
   return candidats.filter((v) => puissanceAssiegeants(v) <= force * 1.15)
 }
 
-/** tribut qu'un allié fait porter toutes les TRIBUT_MS — un dixième de son butin */
+/** tribut qu'un allié fait porter toutes les TRIBUT_MS - un dixième de son butin */
 export function tributDe(v: VillageCible): Cost {
   const out: Cost = {}
   for (const [r, n] of Object.entries(v.butin) as [keyof Cost, number][]) {

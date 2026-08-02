@@ -4,7 +4,7 @@ import type { HeroId } from '../../game/types'
 
 /*
  * Les héros ne vivent pas dans un panneau : ce sont des habitants. On les voit
- * donc SUR la carte, en train d'arpenter la place — plus grands que les autres,
+ * donc SUR la carte, en train d'arpenter la place - plus grands que les autres,
  * aux couleurs de leur maison, avec leur nom au-dessus de la tête et leur
  * emblème sur le bouclier. Un héros blessé s'assied à l'écart, bandé.
  *

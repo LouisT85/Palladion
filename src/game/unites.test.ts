@@ -8,7 +8,7 @@ import type { BattleState, UnitId } from './types'
  *
  * Trois existaient, et elles ne différaient que par le prix : on n'arbitrait pas,
  * on empilait. Les trois nouvelles n'ont d'intérêt que si chacune fait quelque
- * chose qu'AUCUNE autre ne fait — c'est cela qu'on garde ici, et non leurs
+ * chose qu'AUCUNE autre ne fait - c'est cela qu'on garde ici, et non leurs
  * chiffres, qui bougeront à l'équilibrage.
  */
 
@@ -78,7 +78,7 @@ describe('les frondeurs tirent depuis le rempart', () => {
     expect(tireurs.every((f) => f.etat === 'siege')).toBe(true)
     /*
      * Les créneaux d'un rempart sont comptés : à six tireurs pour deux positions,
-     * on tourne. Ce qui compte est que le compteur soit COMMUN — sinon les
+     * on tourne. Ce qui compte est que le compteur soit COMMUN - sinon les
      * frondeurs se seraient empilés exactement sur les archers.
      */
     const places = postesArchers(GEO_VILLAGE, 2).length
@@ -118,7 +118,7 @@ describe('le peltaste chasse les tireurs', () => {
   it('court au tireur plutôt qu’au fantassin le plus proche', () => {
     /*
      * Un archer ennemi LOIN, un pillard TOUT PRÈS. Un lancier va au plus proche ;
-     * le peltaste doit traverser pour l'archer — sinon il n'est qu'un lancier cher.
+     * le peltaste doit traverser pour l'archer - sinon il n'est qu'un lancier cher.
      */
     const b = creerBataille({
       attaquants: [
@@ -137,7 +137,7 @@ describe('le peltaste chasse les tireurs', () => {
     const peltaste = b.fighters.find((f) => f.type === 'peltaste')!
     const lancier = b.fighters.find((f) => f.type === 'lancier')!
     /*
-     * Les deux assaillants doivent être DEDANS — la ligne de mêlée ne sort pas
+     * Les deux assaillants doivent être DEDANS - la ligne de mêlée ne sort pas
      * chercher ce qui est encore hors des murs. On les place donc tous deux près du
      * ralliement, l'archer un peu plus loin que le pillard.
      */
@@ -160,7 +160,7 @@ describe('le peltaste chasse les tireurs', () => {
 
 describe('le bélier du joueur abat les murs', () => {
   it('se conduit exactement comme celui de l’ennemi : même fiche, même besogne', () => {
-    // les deux tables décrivent la même machine — sinon le joueur aurait un jouet
+    // les deux tables décrivent la même machine - sinon le joueur aurait un jouet
     expect(UNITS.belier.wallDps).toBe(ENEMIES.belier.wallDps)
     expect(UNITS.belier.hp).toBe(ENEMIES.belier.hp)
     expect(UNITS.belier.atk).toBe(ENEMIES.belier.atk)

@@ -8,7 +8,7 @@ import type { ActeCampagne, EtatActe } from './types'
 export * from './types'
 
 /**
- * LA CHUTE — cinq actes, de l'arrivée des nefs à la nuit du cheval.
+ * LA CHUTE - cinq actes, de l'arrivée des nefs à la nuit du cheval.
  *
  * Un acte par fichier : ce sont des textes longs, et les mélanger rendrait la
  * relecture impossible. L'ordre du tableau EST l'ordre du récit.
@@ -34,7 +34,7 @@ export function objectifFait(a: ActeCampagne, id: string, s: EtatActe): boolean 
  *
  * On raisonne sur la liste des objectifs VERROUILLÉS, et non sur l'état courant :
  * tenir tous les objectifs au même instant serait un tout autre contrat, et un
- * contrat impossible — l'assaut que l'acte I demande de repousser tue les soldats
+ * contrat impossible - l'assaut que l'acte I demande de repousser tue les soldats
  * que le même acte demande de lever.
  */
 export function acteAccompli(a: ActeCampagne, faits: string[]): boolean {

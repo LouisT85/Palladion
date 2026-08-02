@@ -32,7 +32,7 @@ import type { BattleGeo, BattleState } from './types'
  * d'où ce filet : on vérifie la naissance des combattants, les invariants du tick
  * sur une bataille entière, et l'effet MESURABLE de chaque capacité.
  *
- * Note : `combat.ts` n'importe pas MODE_TEST — les ressources illimitées du mode
+ * Note : `combat.ts` n'importe pas MODE_TEST - les ressources illimitées du mode
  * test ne changent donc rien ici, tout se joue sur les arguments qu'on passe.
  */
 
@@ -41,7 +41,7 @@ import type { BattleGeo, BattleState } from './types'
 /*
  * `creerBataille` et le tick tirent au sort : dispersion des colonnes, décalages
  * d'animation, nuages de poussière. Laissé libre, ce hasard ferait de chaque
- * exécution une bataille différente — la suite finirait par rougir un matin sans
+ * exécution une bataille différente - la suite finirait par rougir un matin sans
  * qu'on ait touché à quoi que ce soit. On substitue donc un générateur à graine :
  * les positions restent dispersées, mais reproductibles. Les tests dont l'ISSUE
  * compte rejouent plusieurs graines pour ne pas se contenter d'une trajectoire.
@@ -196,7 +196,7 @@ describe('creerBataille', () => {
     /*
      * Régression connue (voir posteRalliement) : les fantassins convergeaient tous
      * vers le MÊME point et s'empilaient en une bouillie de figurines. Lanciers et
-     * hoplites partagent un seul compteur de places — d'où vingt postes distincts.
+     * hoplites partagent un seul compteur de places - d'où vingt postes distincts.
      */
     const ligne = b.fighters.filter((f) => f.type === 'lancier' || f.type === 'hoplite')
     expect(ligne).toHaveLength(20)
@@ -357,7 +357,7 @@ describe('géométries du champ de bataille', () => {
     const larges = postesArchers(GEO_VILLAGE, 3)
     expect(pres).toHaveLength(2)
     expect(larges).toHaveLength(4)
-    // les paliers : 1 et 2 se ressemblent, 3 et 4 aussi — c'est au 3ᵉ que le mur s'ouvre
+    // les paliers : 1 et 2 se ressemblent, 3 et 4 aussi - c'est au 3ᵉ que le mur s'ouvre
     expect(postesArchers(GEO_VILLAGE, 1)).toEqual(pres)
     expect(postesArchers(GEO_VILLAGE, 4)).toEqual(larges)
     for (const niveau of [1, 2, 3, 4]) {
@@ -402,7 +402,7 @@ describe('tickBataille', () => {
       })
 
       const fautes: string[] = []
-      const dire = (m: string) => fautes.push(`graine ${semence} — ${m}`)
+      const dire = (m: string) => fautes.push(`graine ${semence} - ${m}`)
       const dejaMorts = new Set<string>()
       let deboutAvant = b.fighters.length
       let murAvant = Infinity
@@ -463,7 +463,7 @@ describe('tickBataille', () => {
       expect(sortie!.pillage).toBe(false)
       expect(pertesAttaque(b)).toBe(24)
       expect(mortsAttaque(b)).toEqual({ pillard: 14, guerrier: 6, mercenaire: 2, belier: 2 })
-      // les deux béliers, cloués au premier front, finissent par l'ouvrir — et lui
+      // les deux béliers, cloués au premier front, finissent par l'ouvrir - et lui
       // seul : c'est toute la raison d'être des secteurs indépendants
       expect(b.secteurs.filter((s) => s.breche)).toEqual([b.secteurs[0]])
       expect(b.secteurs[1].hp).toBeGreaterThan(0)
@@ -491,7 +491,7 @@ describe('tickBataille', () => {
     expect(sortie).not.toBeNull()
     expect(b.secteurs[1].breche).toBe(true)
     expect(b.secteurs[1].hp).toBe(0)
-    // les deux autres pans tiennent toujours — c'est tout l'intérêt des secteurs
+    // les deux autres pans tiennent toujours - c'est tout l'intérêt des secteurs
     expect(b.secteurs[0].breche).toBe(false)
     expect(b.secteurs[2].breche).toBe(false)
     expect(b.secteurs[0].hp).toBeGreaterThan(0)
@@ -560,7 +560,7 @@ describe('tickBataille', () => {
     avancer(b, { now: 5000, dt: 0, wallLevel: 3 })
     expect(b.projectiles).toHaveLength(1)
     // 200 pas à 250 px/s : la flèche est en l'air 800 ms, et pendant ce temps
-    // le pillard est intact — sinon les salves tueraient avant d'être vues
+    // le pillard est intact - sinon les salves tueraient avant d'être vues
     expect(b.projectiles[0].dur).toBeCloseTo(800, 6)
     avancer(b, { now: 5700, dt: 0, wallLevel: 3 })
     expect(b.projectiles).toHaveLength(1)
@@ -677,7 +677,7 @@ describe('capacités résolues sur le champ de bataille', () => {
       const out = avancer(b, { now, dt: 1, wallLevel: 2 })
       expect(f.etat).toBe('siege')
       expect(rayonEllipse(GEO_VILLAGE, f)).toBeGreaterThan(1)
-      // le pan reste crevé dans les faits — l'événement ne se rejoue pas —
+      // le pan reste crevé dans les faits - l'événement ne se rejoue pas -
       // et le mur rendu au store ne passe jamais sous zéro
       expect(sect.breche).toBe(true)
       expect(out.brecheOuverte).toBe(false)

@@ -2,9 +2,9 @@ import type { BuildingId, Cost, GodId, HeroId, ResourceId, UnitId } from '../typ
 import type { MeteoId, SaisonId } from '../saisons'
 
 /*
- * ═══════════════════════ LA CHUTE — MODE CAMPAGNE ═══════════════════════
+ * ═══════════════════════ LA CHUTE - MODE CAMPAGNE ═══════════════════════
  *
- * Le bac à sable ne raconte rien : il fait durer. La campagne, elle, a une fin —
+ * Le bac à sable ne raconte rien : il fait durer. La campagne, elle, a une fin -
  * cinq actes qui suivent l'Iliade, du débarquement achéen à la ruse du cheval.
  *
  * Trois principes de conception, et ils comptent plus que le contenu :
@@ -24,7 +24,7 @@ import type { MeteoId, SaisonId } from '../saisons'
  *     acte doit demander une manière de jouer, pas un total à atteindre.
  */
 
-/** ce que les objectifs d'acte savent lire de la partie — vue en lecture seule */
+/** ce que les objectifs d'acte savent lire de la partie - vue en lecture seule */
 export interface EtatActe {
   resources: Record<ResourceId, number>
   faveur: number
@@ -84,14 +84,14 @@ export interface ObjectifActe {
   id: string
   /** l'ordre, à l'impératif : « Dressez une palissade » */
   texte: string
-  /** la raison narrative, une phrase — c'est elle qui donne envie */
+  /** la raison narrative, une phrase - c'est elle qui donne envie */
   pourquoi?: string
   progres: (s: EtatActe) => { cur: number; max: number }
   /** un objectif facultatif rapporte, mais n'empêche pas de finir l'acte */
   facultatif?: boolean
 }
 
-/** état imposé au premier matin d'un acte — fusionné dans le store */
+/** état imposé au premier matin d'un acte - fusionné dans le store */
 export interface DepartActe {
   resources: Record<ResourceId, number>
   pop: number
@@ -110,8 +110,8 @@ export interface DepartActe {
 }
 
 /**
- * Le cadre de l'acte. Il ne redessine pas la carte — le village reste le village
- * — mais il en change la LUMIÈRE et l'horizon : la grève au petit matin n'a rien
+ * Le cadre de l'acte. Il ne redessine pas la carte - le village reste le village
+ * - mais il en change la LUMIÈRE et l'horizon : la grève au petit matin n'a rien
  * de la plaine sous l'orage, et une ruine fumante se lit d'un coup d'œil.
  */
 export type CadreActe = 'greve' | 'plaine' | 'murailles' | 'fleuve' | 'ruines'
@@ -119,7 +119,7 @@ export type CadreActe = 'greve' | 'plaine' | 'murailles' | 'fleuve' | 'ruines'
 export interface ActeCampagne {
   id: string
   numero: number
-  /** « Acte I — Les mille nefs » */
+  /** « Acte I - Les mille nefs » */
   titre: string
   /** le lieu, en une ligne : « La grève de Sigée » */
   lieu: string
@@ -128,7 +128,7 @@ export interface ActeCampagne {
   prologue: string[]
   /** chanté par l'aède quand l'acte est accompli */
   epilogue: string[]
-  /** ce qu'on lit si l'acte est perdu — la campagne se reprend à son début */
+  /** ce qu'on lit si l'acte est perdu - la campagne se reprend à son début */
   echec?: string[]
   depart: DepartActe
   objectifs: ObjectifActe[]
@@ -143,7 +143,7 @@ export interface ActeCampagne {
     threatMod: number
   }
   cadre: CadreActe
-  /** conditions de défaite propres à l'acte — l'échec doit être possible */
+  /** conditions de défaite propres à l'acte - l'échec doit être possible */
   defaite?: {
     texte: string
     atteinte: (s: EtatActe) => boolean

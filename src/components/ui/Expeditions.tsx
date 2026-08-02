@@ -52,7 +52,7 @@ function JaugeRelation({ valeur, couleur }: { valeur: number; couleur: string })
   return (
     <div className="jauge-diplo" title={`Relation : ${motRelation(valeur)}`}>
       {/* la piste porte ses propres coordonnées : les repères se placent en % de
-          ELLE, jamais de la ligne entière — sinon le curseur déborde sur le chiffre */}
+          ELLE, jamais de la ligne entière - sinon le curseur déborde sur le chiffre */}
       <span className="jd-piste">
         <span className="jd-rail" />
         <span className="jd-zero" />
@@ -81,7 +81,7 @@ function Prix({ cout }: { cout: Cost }) {
 /**
  * Ce qu'on peut faire d'une place forte sans lever une lance : lui porter un
  * présent, lui acheter un pacte, ou lui donner un des siens en mariage. Les
- * trois sont visibles en permanence — un bouton grisé qui dit POURQUOI il l'est
+ * trois sont visibles en permanence - un bouton grisé qui dit POURQUOI il l'est
  * apprend au joueur qu'il existe une voie qu'il n'a pas encore ouverte.
  */
 function DiplomatieVillage({
@@ -114,7 +114,7 @@ function DiplomatieVillage({
           disabled={relation < SEUIL_PACTE}
           title={
             relation < SEUIL_PACTE
-              ? `Il faut ${SEUIL_PACTE} de relation — vous en êtes à ${motRelation(relation)}`
+              ? `Il faut ${SEUIL_PACTE} de relation - vous en êtes à ${motRelation(relation)}`
               : 'Tribut et renforts, sans qu’un coup soit porté'
           }
         >
@@ -127,10 +127,10 @@ function DiplomatieVillage({
           disabled={relation < SEUIL_MARIAGE || promis.length === 0}
           title={
             relation < SEUIL_MARIAGE
-              ? `Il faut ${SEUIL_MARIAGE} de relation — vous en êtes à ${motRelation(relation)}`
+              ? `Il faut ${SEUIL_MARIAGE} de relation - vous en êtes à ${motRelation(relation)}`
               : promis.length === 0
                 ? 'Il faut un adulte sans emploi et sans foyer à donner'
-                : 'Une alliance que rien ne dénoue, au tribut doublé — mais le village perd un bras'
+                : 'Une alliance que rien ne dénoue, au tribut doublé - mais le village perd un bras'
           }
         >
           💍 Mariage (<Prix cout={dot} /> + 1 habitant)
@@ -146,7 +146,7 @@ function DiplomatieVillage({
                 s.scellerMariage(v.id, x.id)
                 setChoisirPromis(false)
               }}
-              title={`${x.nom}${x.lignee ? ` des ${x.lignee}` : ''} — ${BUILDINGS[x.metier].nom}`}
+              title={`${x.nom}${x.lignee ? ` des ${x.lignee}` : ''} - ${BUILDINGS[x.metier].nom}`}
             >
               {BUILDINGS[x.metier].emoji} {x.nom}
             </button>
@@ -206,13 +206,13 @@ export function PanneauExpeditions() {
           <div className={`intention ${intention}`}>
             {secours ? (
               <>
-                <b>🤝 Secourir</b> — aucun butin, mais Zeus et Athéna vous en sauront gré, et {cible.nom} deviendra un
+                <b>🤝 Secourir</b> - aucun butin, mais Zeus et Athéna vous en sauront gré, et {cible.nom} deviendra un
                 allié : tribut régulier et renforts à chaque assaut sur vos murs. Vous pouvez y perdre des hommes pour
                 rien.
               </>
             ) : (
               <>
-                <b>🏴‍☠️ Piller</b> — butin élevé, mais Zeus Xenios n’aime pas cela (−5), la menace monte, et le village
+                <b>🏴‍☠️ Piller</b> - butin élevé, mais Zeus Xenios n’aime pas cela (−5), la menace monte, et le village
                 s’en souviendra : sa garnison sera plus fournie la prochaine fois.
               </>
             )}
@@ -220,7 +220,7 @@ export function PanneauExpeditions() {
           <div className="bloc">
             <h3>{secours ? 'Les assiégeants' : 'Leur défense'}</h3>
             <div className="ligne-exp">
-              {secours ? '⚔️ Rase campagne — aucun mur à briser' : `🧱 Remparts niveau ${cible.mur} (${WALL_HP[cible.mur]} pts)`}{' '}
+              {secours ? '⚔️ Rase campagne - aucun mur à briser' : `🧱 Remparts niveau ${cible.mur} (${WALL_HP[cible.mur]} pts)`}{' '}
               ·{' '}
               {UNIT_IDS.filter((u) => face[u] > 0)
                 .map((u) => `${face[u]} ${UNITS[u].emoji}`)
@@ -233,7 +233,7 @@ export function PanneauExpeditions() {
           </div>
           <div className="bloc">
             <h3>
-              Vos troupes ({total}/{MAX_TROUPES}) — puissance ≈ {Math.round(maPuissance)}
+              Vos troupes ({total}/{MAX_TROUPES}) - puissance ≈ {Math.round(maPuissance)}
             </h3>
             {UNIT_IDS.map((u) => (
               <div key={u} className="unite">
@@ -261,7 +261,7 @@ export function PanneauExpeditions() {
               {maPuissance >= leurPuissance * 1.3
                 ? '⚖️ Rapport de force très favorable.'
                 : maPuissance >= leurPuissance
-                  ? '⚖️ Rapport de force favorable — mais la guerre a ses caprices.'
+                  ? '⚖️ Rapport de force favorable - mais la guerre a ses caprices.'
                   : '⚠️ Rapport de force défavorable : vos troupes risquent d’y rester.'}
             </div>
           </div>
@@ -285,13 +285,13 @@ export function PanneauExpeditions() {
 
   return (
     <Modale
-      titre="🗺️ Expéditions — la Troade à feu et à sang"
+      titre="🗺️ Expéditions - la Troade à feu et à sang"
       dataTuto="modale-expeditions"
       large
       onFermer={() => s.openPanel(null)}
       sous={
         <>
-          Envoyez vos troupes piller les places fortes de la région — ou les sauver. Moins de pertes = plus d’étoiles.{' '}
+          Envoyez vos troupes piller les places fortes de la région - ou les sauver. Moins de pertes = plus d’étoiles.{' '}
           <b style={{ color: '#e8c04a' }}>{totalEtoiles(s.expeditions)}</b>/24 ★
         </>
       }
@@ -305,7 +305,7 @@ export function PanneauExpeditions() {
               <span className="appel-compte">{fmtDuree(Math.max(0, s.appelSecours.expireAt - now))}</span>
             </div>
             <div className="appel-texte">
-              Aucun butin à espérer. En échange : Zeus +12, Athéna +7, et une alliance — tribut toutes les{' '}
+              Aucun butin à espérer. En échange : Zeus +12, Athéna +7, et une alliance - tribut toutes les{' '}
               {Math.round(TRIBUT_MS / 60_000)} min et des renforts sur vos remparts à chaque assaut.
             </div>
             <div className="appel-actions">
@@ -341,7 +341,7 @@ export function PanneauExpeditions() {
                   <span
                     className="badge-statut"
                     style={{ color: fiche.couleur, borderColor: `${fiche.couleur}66` }}
-                    title={`${fiche.desc}${allie ? ` — allié depuis ${fmtDuree(now - allie.depuis)}` : ''}`}
+                    title={`${fiche.desc}${allie ? ` - allié depuis ${fmtDuree(now - allie.depuis)}` : ''}`}
                   >
                     {fiche.emoji} {fiche.nom}
                   </span>

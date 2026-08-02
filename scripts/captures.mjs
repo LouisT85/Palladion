@@ -9,7 +9,7 @@
  * ni patience requises, et deux exécutions donnent la même image. Le store est
  * exposé sur `window.__palladion` en développement uniquement (voir store.ts).
  *
- * Le navigateur est le Chrome (ou l'Edge) déjà installé sur la machine — aucun
+ * Le navigateur est le Chrome (ou l'Edge) déjà installé sur la machine - aucun
  * téléchargement de 130 Mo, `playwright-core` suffit.
  */
 import { chromium } from 'playwright-core'
@@ -47,7 +47,7 @@ const NIVEAUX = (n) => ({
  * Âge du village choisi pour tomber sur la bonne saison ET en plein jour :
  * la saison suit `floor(jour / 4) % 4`, la phase du jour la partie décimale
  * (0,30 = matinée franche). Poser une saison qui contredirait l'âge ferait
- * basculer le calendrier au premier tick — et surgir un bandeau de saison.
+ * basculer le calendrier au premier tick - et surgir un bandeau de saison.
  */
 const AGE = {
   printemps: JOUR * 2.3, // jour 2
@@ -164,7 +164,7 @@ const VIGNETTES = [
   {
     nom: 'tutoriel',
     format: 'jpeg',
-    quoi: 'La leçon de Zeus — focus verrouillé sur le geste attendu',
+    quoi: 'La leçon de Zeus - focus verrouillé sur le geste attendu',
     save: sauvegarde(AGE.printemps, {
       resources: { bois: 220, pierre: 150, grain: 220, bronze: 20 },
       buildings: { ...NIVEAUX(0), agora: { level: 1 } },
@@ -180,7 +180,7 @@ const VIGNETTES = [
   {
     nom: 'village-max',
     format: 'jpeg',
-    quoi: 'La cité de légende — dix domaines au niveau 4, quatre tours',
+    quoi: 'La cité de légende - dix domaines au niveau 4, quatre tours',
     save: sauvegarde(AGE.ete, {
       ...CITE,
       resources: { bois: 2100, pierre: 2400, grain: 2600, bronze: 1450 },
@@ -193,7 +193,7 @@ const VIGNETTES = [
   {
     nom: 'saisons',
     format: 'jpeg',
-    quoi: 'L’hiver ferme la mer — neige au sol, congères, arbres nus',
+    quoi: 'L’hiver ferme la mer - neige au sol, congères, arbres nus',
     save: sauvegarde(AGE.hiver, {
       resources: { bois: 1400, pierre: 1600, grain: 900, bronze: 720 },
       buildings: { ...NIVEAUX(3), agora: { level: 4 }, remparts: { level: 4 }, maisons: { level: 4 } },
@@ -231,14 +231,14 @@ const VIGNETTES = [
   {
     nom: 'campagne',
     format: 'jpeg',
-    quoi: 'Le prologue de l’acte I — objectifs imposés, situation héritée',
+    quoi: 'Le prologue de l’acte I - objectifs imposés, situation héritée',
     // aucune sauvegarde : on veut l'écran de choix du mode, puis la campagne
     save: null,
     apres: { campagne: true },
   },
   {
     nom: 'missions-fil',
-    quoi: 'Le fil rouge complet — cinq actes, et un bouton par mission',
+    quoi: 'Le fil rouge complet - cinq actes, et un bouton par mission',
     save: sauvegarde(AGE.automne, {
       resources: { bois: 640, pierre: 520, grain: 700, bronze: 180 },
       buildings: { ...NIVEAUX(2), agora: { level: 3 }, ferme: { level: 3 }, remparts: { level: 2 } },
@@ -274,14 +274,14 @@ const VIGNETTES = [
   {
     nom: 'expedition',
     format: 'jpeg',
-    quoi: 'L’assaut de la cité de Lesbos — décor peint, caméra serrée',
+    quoi: 'L’assaut de la cité de Lesbos - décor peint, caméra serrée',
     save: sauvegarde(AGE.ete, { ...CITE, faveur: 100, army: ARMEE(11, 8, 7) }),
     apres: { auTravail: true, expedition: { village: 'cite-lesbos', troupes: ARMEE(8, 5, 5), intention: 'pillage' } },
     attendre: 21_000,
   },
   {
     nom: 'heros',
-    quoi: 'La maisonnée héroïque — passifs, capacités, arcs, entretien',
+    quoi: 'La maisonnée héroïque - passifs, capacités, arcs, entretien',
     save: sauvegarde(AGE.ete, {
       ...CITE,
       gods: RELATIONS(66, 52, 74, 48),
@@ -291,7 +291,7 @@ const VIGNETTES = [
         'hameau-thrace': { etoiles: 3, dernierRaid: 0 },
       },
       // Cassandre au niveau 2 : son deuxième nœud attend le niveau 3, elle
-      // n'interrompra donc pas la pose — mais le panneau montre « arc 1/2 »
+      // n'interrompra donc pas la pose - mais le panneau montre « arc 1/2 »
       heros: { hector: HERO(4), ulysse: HERO(3), cassandre: HERO(2, 1) },
     }),
     apres: { auTravail: true, panel: 'heros' },
@@ -310,12 +310,12 @@ const VIGNETTES = [
   },
   {
     nom: 'pantheon',
-    quoi: 'La ferveur se voit — aperçu de la manifestation de chaque dieu',
+    quoi: 'La ferveur se voit - aperçu de la manifestation de chaque dieu',
     save: sauvegarde(AGE.ete, {
       ...CITE,
       faveur: 88,
       // Zeus élu et Poséidon offensé en tête de liste : le premier écran montre
-      // d'emblée les deux extrêmes — l'éclair pourpre et la manifestation avortée
+      // d'emblée les deux extrêmes - l'éclair pourpre et la manifestation avortée
       gods: RELATIONS(82, -58, 47, 4),
     }),
     apres: { auTravail: true, panel: 'pantheon' },
@@ -355,7 +355,7 @@ const VIGNETTES = [
   },
   {
     nom: 'evenement',
-    quoi: 'Un dilemme — et le murmure d’Athéna, qui ne peut pas mentir',
+    quoi: 'Un dilemme - et le murmure d’Athéna, qui ne peut pas mentir',
     save: sauvegarde(AGE.automne, {
       resources: { bois: 780, pierre: 640, grain: 820, bronze: 240 },
       buildings: { ...NIVEAUX(2), agora: { level: 3 }, temple: { level: 3 }, remparts: { level: 3 } },

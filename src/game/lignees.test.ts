@@ -25,7 +25,7 @@ import type { BuildingId, Villageois } from './types'
  * FAMILLES ET LIGNÉES.
  *
  * Les habitants étaient des jetons nommés : deux villages de vingt habitants se
- * valaient exactement. Ce qui est testé ici n'est pas l'état civil — c'est que
+ * valaient exactement. Ce qui est testé ici n'est pas l'état civil - c'est que
  * l'âge et la parenté CHANGENT quelque chose :
  *
  *  · un enfant ne rend pas ce que rend un adulte, et ne porte pas les armes ;
@@ -160,7 +160,7 @@ describe('le village vivant, dans le store', () => {
     useGame.getState().tick()
   })
 
-  it('fonde le village avec des adultes — jamais une fournée de nourrissons', () => {
+  it('fonde le village avec des adultes - jamais une fournée de nourrissons', () => {
     const s = useGame.getState()
     const jour = jourDe(s)
     expect(s.villageois.length).toBeGreaterThan(0)

@@ -7,7 +7,7 @@
  * quand la colonne touche les murs.
  *
  * Deux règles que le navigateur impose et que l'on respecte :
- *  · aucun son avant une interaction — le contexte n'est créé qu'au premier
+ *  · aucun son avant une interaction - le contexte n'est créé qu'au premier
  *    geste de l'utilisateur (`debloquerAudio`) ;
  *  · tout est enveloppé : un navigateur sans Web Audio joue simplement en muet.
  */
@@ -28,22 +28,22 @@ export type Ambiance = 'paix' | 'alerte' | 'siege' | 'muet'
 
 export interface ReglagesAudio {
   muet: boolean
-  /** 0…1 — volume général */
+  /** 0…1 - volume général */
   volume: number
-  /** 0…1 — volume de la musique de fond, relatif au général */
+  /** 0…1 - volume de la musique de fond, relatif au général */
   musique: number
 }
 
 /*
  * v2 : les réglages d'origine sortaient beaucoup trop bas. La musique passait
- * par un bus à 0,275 et des notes à 0,075 — au bout de la chaîne, un vingtième
+ * par un bus à 0,275 et des notes à 0,075 - au bout de la chaîne, un vingtième
  * de la puissance des bruits de bataille. La chaîne a été refaite, d'où la clé
  * neuve : un 0,5 enregistré du temps de l'ancienne échelle ne veut plus rien
  * dire.
  *
  * Mais on ne jette pas pour autant ce que le joueur avait choisi : le coupe-son
  * se reporte tel quel (c'est une intention, pas un dosage), et un réglage
- * volontairement BAS reste bas — simplement remonté à l'échelle nouvelle. Seul
+ * volontairement BAS reste bas - simplement remonté à l'échelle nouvelle. Seul
  * le cas « je n'y avais pas touché » repart des valeurs par défaut.
  */
 const CLE = 'palladion-audio-v2'
@@ -74,7 +74,7 @@ function lireReglages(): ReglagesAudio {
     const repris = {
       muet: !!d.muet,
       // un curseur laissé au défaut de la v1 n'était pas un choix : on l'ignore.
-      // Un curseur déplacé, si — reporté proportionnellement sur la nouvelle échelle.
+      // Un curseur déplacé, si - reporté proportionnellement sur la nouvelle échelle.
       volume: borne(Math.abs(v - DEFAUT_V1.volume) < 0.02 ? DEFAUT.volume : v * (DEFAUT.volume / DEFAUT_V1.volume)),
       musique: borne(Math.abs(m - DEFAUT_V1.musique) < 0.02 ? DEFAUT.musique : m * (DEFAUT.musique / DEFAUT_V1.musique)),
     }
@@ -91,7 +91,7 @@ let ctx: AudioContext | null = null
 let master: GainNode | null = null
 let gainMusique: GainNode | null = null
 let gainEffets: GainNode | null = null
-/** bruit blanc réutilisé par tous les percussifs — un seul buffer suffit */
+/** bruit blanc réutilisé par tous les percussifs - un seul buffer suffit */
 let bruit: AudioBuffer | null = null
 let ambiance: Ambiance = 'muet'
 let boucle: number | null = null
@@ -232,7 +232,7 @@ function pincee(freq: number, t: number, duree = 1.6, gain = 0.16, sortie?: Gain
 
 /**
  * Flûte de berger : sinus fondamental, octave très discrète, attaque lente.
- * C'est le timbre le plus doux qu'on puisse fabriquer sans échantillon — celui
+ * C'est le timbre le plus doux qu'on puisse fabriquer sans échantillon - celui
  * qu'on veut entendre au-dessus d'un village qui vaque à ses affaires.
  *
  * La partielle était une douzième légèrement désaccordée (×3,01) : ce battement
@@ -348,12 +348,12 @@ export function jouer(son: SonId): void {
  *
  * · La PAIX est une pentatonique majeure sur fa (fa sol la do ré). Aucun
  *   demi-ton : il est musicalement impossible d'y sonner inquiétant. C'est le
- *   contraire du mode phrygien, dont la seconde mineure — la « couleur antique »
- *   qu'on entend partout — met en réalité l'oreille en alerte.
+ *   contraire du mode phrygien, dont la seconde mineure - la « couleur antique »
+ *   qu'on entend partout - met en réalité l'oreille en alerte.
  *
  *   Deux versions ont échoué avant celle-ci, et pour des raisons opposées :
  *   trop timide d'abord (un robinet qui goutte à volume de fond sonore), puis
- *   trop DENSE — mélodie pincée toutes les six dixièmes de seconde, tierce
+ *   trop DENSE - mélodie pincée toutes les six dixièmes de seconde, tierce
  *   complice, basse sur chaque temps fort, décroissances de deux secondes et
  *   demie : cinq voix résonnaient en permanence dans le même registre, et la
  *   régularité des attaques pincées faisait sonner l'ensemble comme une
@@ -363,7 +363,7 @@ export function jouer(son: SonId): void {
  *   D'ATTAQUES. Une pièce reposante en compte peu. Ici : une seule voix
  *   mélodique, soufflée (attaque d'une demi-seconde, aucune corde pincée), une
  *   note toutes les deux secondes et demie, un bourdon qui ne s'interrompt
- *   jamais, et une figure de lyre une fois par phrase — trente secondes. Le
+ *   jamais, et une figure de lyre une fois par phrase - trente secondes. Le
  *   fond est CONTINU et les événements RARES : c'est cela, une safe place.
  *
  * · L'ALERTE, elle, garde le phrygien et ses cordes pincées : là, l'inquiétude
@@ -406,7 +406,7 @@ function planifier(): void {
       }
       // bourdon renouvelé bien avant de s'éteindre : le fond ne se troue jamais
       if (i % 16 === 0) bourdon(PENTA[0] / 2, t, 12.4, 0.075, gainMusique)
-      // une seule figure de lyre par phrase, très douce — le seul geste pincé
+      // une seule figure de lyre par phrase, très douce - le seul geste pincé
       if (i === cycle - 8) {
         pincee(PENTA[2], t, 2.6, 0.05, gainMusique)
         pincee(PENTA[4], t + dt * 1.4, 2.6, 0.045, gainMusique)
@@ -434,7 +434,7 @@ function lancerBoucle(): void {
   boucle = window.setInterval(planifier, 250)
 }
 
-/** change la couleur de fond : paix, alerte, siège — ou silence */
+/** change la couleur de fond : paix, alerte, siège - ou silence */
 export function setAmbiance(a: Ambiance): void {
   if (a === ambiance) return
   ambiance = a
@@ -446,7 +446,7 @@ export function ambianceCourante(): Ambiance {
   return ambiance
 }
 
-/** coupe tout et libère la boucle — utilisé au démontage de l'application */
+/** coupe tout et libère la boucle - utilisé au démontage de l'application */
 export function arreterAudio(): void {
   if (boucle !== null) {
     clearInterval(boucle)

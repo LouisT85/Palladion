@@ -3,7 +3,7 @@ import { AOBase, Batisse3D, Colonne3D, MurPierre, OmbreVolume, PAL, Porte3D, ale
 import { Amphore, Buisson, Feu, Fumee, OlivierMini } from './primitives'
 
 /*
- * AGORA — peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres SE.
+ * AGORA - peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres SE.
  *  1. place de terre battue + autel du foyer
  *  2. dallage + étals + stoa de bois
  *  3. stoa de pierre à colonnade + statue + entrepôts
@@ -112,7 +112,7 @@ function SacArt({ x = 0, y = 0, s = 1 }: { x?: number; y?: number; s?: number })
   )
 }
 
-/** parasol de toile sur perche inclinée — abrite la marchande du niveau 1 */
+/** parasol de toile sur perche inclinée - abrite la marchande du niveau 1 */
 function Parasol({ x = 0, y = 0, s = 1 }: { x?: number; y?: number; s?: number }) {
   return (
     <g transform={`translate(${x},${y})${s !== 1 ? ` scale(${s})` : ''}`}>
@@ -133,7 +133,7 @@ function Foyer({ n }: { n: number }) {
   const w = n >= 3 ? 14 : n === 2 ? 12 : 11
   return (
     <g transform={`translate(0,${n >= 2 ? 3 : -1})`}>
-      {/* socle dallé rond dès que la place est pavée — rebord doré au niveau 4 */}
+      {/* socle dallé rond dès que la place est pavée - rebord doré au niveau 4 */}
       {n >= 2 && <ellipse cx={0.6} cy={1} rx={w * 1.02} ry={w * 0.33} fill={n >= 4 ? '#c6bca1' : '#b1a584'} />}
       {n >= 2 && <ellipse cx={-0.4} cy={0.5} rx={w * 0.9} ry={w * 0.27} fill={n >= 4 ? '#ded5bf' : '#c9bfa2'} />}
       {n >= 4 && <ellipse cx={-0.4} cy={0.5} rx={w * 0.9} ry={w * 0.27} fill="none" stroke={PAL.or} strokeWidth={1.1} opacity={0.9} />}
@@ -298,7 +298,7 @@ function EtalArt({
   )
 }
 
-/** poteau de bois de la stoa rustique — se détache du mur assombri derrière */
+/** poteau de bois de la stoa rustique - se détache du mur assombri derrière */
 function Poteau({ x, h }: { x: number; h: number }) {
   return (
     <g>
@@ -312,7 +312,7 @@ function Poteau({ x, h }: { x: number; h: number }) {
 }
 
 /**
- * stoa : portique long vu de face — podium, mur de fond dans la pénombre
+ * stoa : portique long vu de face - podium, mur de fond dans la pénombre
  * (ombres des colonnes décalées SE), colonnade, entablement, toit en croupe
  * (pan frontal en demi-teinte, arêtier gauche éclairé, droit ombré).
  */
@@ -389,7 +389,7 @@ function Stoa({ w, h, mode }: { w: number; h: number; mode: 'bois' | 'pierre' | 
         ))}
         {/* colonnade */}
         {cols.map((x) => (bois ? <Poteau key={x} x={x} h={h} /> : <Colonne3D key={x} x={x} h={h} larg={marbre ? 5.2 : 4.8} or={marbre} />))}
-        {/* guirlandes de laurier suspendues entre les colonnes — grande fête du niveau 4 */}
+        {/* guirlandes de laurier suspendues entre les colonnes - grande fête du niveau 4 */}
         {marbre &&
           cols.map((x, i) =>
             i === cols.length - 1 ? null : (
@@ -489,7 +489,7 @@ function StatueArt({
       <path d="M-1.7,-16.8 Q-2.1,-15 -1.6,-13.4 L-1.3,-10" stroke={cL} strokeWidth={0.7} fill="none" opacity={0.9} />
       <circle cx={0.1} cy={-18.4} r={1.7} fill={cM} />
       <path d="M0.6,-19.9 A1.7,1.7 0 0 1 1.7,-18 L0.9,-17.4 Z" fill={cO} opacity={0.8} />
-      {/* bras levé et lance — côté place (retourné si flip) */}
+      {/* bras levé et lance - côté place (retourné si flip) */}
       {flip ? (
         <g>
           <path d="M-1.5,-16 L-4.1,-18.2" stroke={cM} strokeWidth={1.2} strokeLinecap="round" />
@@ -651,7 +651,7 @@ export function Agora({ n }: { n: number }) {
 
       <Foyer n={n} />
 
-      {/* étals — emplacements des marchandes (Ouvriers.tsx) conservés */}
+      {/* étals - emplacements des marchandes (Ouvriers.tsx) conservés */}
       <EtalArt x={-30} y={4} c="#b0503a" biens="tissus" />
       <EtalArt x={30} y={6} c="#5f7d64" biens="poterie" s={0.95} />
       {n >= 3 && <EtalArt x={14} y={15} c="#7c6a9c" biens="fruits" s={0.85} />}

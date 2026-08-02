@@ -2,17 +2,17 @@
  * ═════════════════ LES AVERTISSEMENTS DU NAVIGATEUR ═════════════════
  *
  * Le jeu continue onglet fermé : les assauts se résolvent tout seuls et le joueur
- * découvre le pillage au retour. Une notification système change cela — elle
+ * découvre le pillage au retour. Une notification système change cela - elle
  * prévient à temps, même quand PALLADION n'est pas l'onglet regardé.
  *
  * Trois règles, et elles tiennent à la politesse :
  *
  *  · on ne DEMANDE l'autorisation qu'après un geste explicite du joueur (le
- *    bouton du panneau de son) — jamais au chargement, ce qui est le plus sûr
+ *    bouton du panneau de son) - jamais au chargement, ce qui est le plus sûr
  *    moyen de se faire refuser une fois pour toutes ;
  *  · on ne notifie que ce qui a une échéance : un assaut annoncé, un appel au
  *    secours. Ni les récoltes, ni les hauts faits, ni les naissances ;
- *  · on ne notifie JAMAIS quand l'onglet est visible — le bandeau du jeu est là
+ *  · on ne notifie JAMAIS quand l'onglet est visible - le bandeau du jeu est là
  *    pour cela, et deux alertes pour un même événement, c'est du bruit.
  */
 
@@ -69,7 +69,7 @@ export async function basculerNotifs(): Promise<EtatNotifs> {
   return 'allume'
 }
 
-/** dernière notification envoyée, par sujet — pour ne pas répéter la même */
+/** dernière notification envoyée, par sujet - pour ne pas répéter la même */
 const derniere: Record<string, number> = {}
 
 /**

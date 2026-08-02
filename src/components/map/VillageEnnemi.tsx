@@ -7,8 +7,8 @@ import { AOBase, Batisse3D, Colonne3D, PAL, Porte3D, alea } from './art'
  *
  * Les scènes d'assaut se contentaient de deux rectangles et d'un tas de
  * marchandises : un camp de pillards ressemblait à une citadelle. Chaque cible
- * a désormais son décor peint — tentes de peaux, comptoir à amphores, cité à
- * colonnade, forteresse à donjon — et son cadre : plaine, colline, grève ou île.
+ * a désormais son décor peint - tentes de peaux, comptoir à amphores, cité à
+ * colonnade, forteresse à donjon - et son cadre : plaine, colline, grève ou île.
  *
  * Mêmes conventions que la carte du village : soleil au nord-ouest, ombres
  * portées vers le sud-est, aucun contour noir, tirages déterministes (alea).
@@ -290,7 +290,7 @@ function Etendard({ x, y, c }: { x: number; y: number; c: string }) {
 /**
  * Ce que l'on voit DANS l'enceinte, ancré sur la place du village visé.
  * L'échelle est commune : l'enceinte fait 470 × 260, les cœurs sont dessinés
- * sur ±150 et remis à l'échelle ici pour occuper vraiment la place — un temple
+ * sur ±150 et remis à l'échelle ici pour occuper vraiment la place - un temple
  * perdu au milieu d'un pré ne ressemble pas à une cité.
  */
 export function CoeurVillage({ decor }: { decor: Decor }) {

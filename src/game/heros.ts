@@ -7,7 +7,7 @@ export type { HeroId }
 /*
  * Les héros de la matière troyenne. Ils ne s'achètent pas : ils viennent quand
  * la cité en est digne, exigent des honneurs, gagnent des niveaux, traversent
- * un arc à embranchements — et peuvent mourir. C'est ce qui rend leur présence
+ * un arc à embranchements - et peuvent mourir. C'est ce qui rend leur présence
  * tendue plutôt que confortable.
  */
 
@@ -22,7 +22,7 @@ export interface HeroState {
   arc: number
   /** choix déjà tranchés dans l'arc, par id de nœud */
   choix: string[]
-  /** mort définitivement — il ne revient pas */
+  /** mort définitivement - il ne revient pas */
   mort: boolean
   /** prochaine utilisation autorisée de sa capacité active */
   cooldownUntil: number
@@ -30,7 +30,7 @@ export interface HeroState {
   boudeJusqua: number
   /** niveau maximum auquel un choix d'arc l'a condamné (5 = aucun plafond) */
   plafond: number
-  /** rappels d'entretien restés sans réponse — au troisième, il s'en va */
+  /** rappels d'entretien restés sans réponse - au troisième, il s'en va */
   impayes: number
   /** assauts traversés sans qu'on l'ait lâché sur l'ennemi (Achille) */
   inactif: number
@@ -137,7 +137,7 @@ export interface HeroDef {
   couleur: string
   /** son histoire en deux phrases */
   desc: string
-  /** conditions d'apparition — toutes requises */
+  /** conditions d'apparition - toutes requises */
   requiert: {
     batiment?: { id: BuildingId; niveau: number }
     armee?: number
@@ -148,7 +148,7 @@ export interface HeroDef {
   }
   /** ce qu'il coûte pour entrer à votre service */
   coutRecrutement: Cost
-  /** entretien par minute — un héros ne vit pas d'amour */
+  /** entretien par minute - un héros ne vit pas d'amour */
   entretien: { grain?: number; faveur?: number }
   /** xp nécessaire pour passer au niveau suivant (index = niveau courant − 1) */
   xpParNiveau: number[]
@@ -203,7 +203,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Qu’il sorte affronter l’ennemi',
             issue:
-              'Il sort et disperse les pillards. Sa légende grandit — et Andromaque ne vous adresse plus la parole.',
+              'Il sort et disperse les pillards. Sa légende grandit - et Andromaque ne vous adresse plus la parole.',
             effets: { niveau: 1, morale: { delta: -5, label: 'Andromaque en deuil d’avance', durMs: 10 * MIN }, relation: [{ dieu: 'ares', delta: 8 }] },
           },
         ],
@@ -219,7 +219,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Accepter le duel',
             issue:
-              'Hector triomphe de justesse, l’épaule ouverte. On chante son nom du mont Ida à la mer — il en tire une force nouvelle.',
+              'Hector triomphe de justesse, l’épaule ouverte. On chante son nom du mont Ida à la mer - il en tire une force nouvelle.',
             effets: { niveau: 2, morale: { delta: 12, label: 'Le duel d’Hector', durMs: 15 * MIN }, relation: [{ dieu: 'ares', delta: 12 }] },
           },
           {
@@ -248,7 +248,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Le laisser affronter son destin',
             issue:
-              'Hector tombe, traîné dans la poussière. Le village pleure son rempart — mais son nom devient un cri de ralliement que rien n’éteindra.',
+              'Hector tombe, traîné dans la poussière. Le village pleure son rempart - mais son nom devient un cri de ralliement que rien n’éteindra.',
             effets: { mort: true, morale: { delta: -18, label: 'Hector est mort', durMs: 20 * MIN }, relation: [{ dieu: 'zeus', delta: 15 }], faveur: 30 },
           },
           {
@@ -302,7 +302,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
         emoji: '📜',
         niveauRequis: 2,
         texte:
-          'Une nef d’Ithaque mouille au port : Pénélope est assiégée de prétendants, son fils menacé. Ulysse vous demande un congé — et trois navires.',
+          'Une nef d’Ithaque mouille au port : Pénélope est assiégée de prétendants, son fils menacé. Ulysse vous demande un congé - et trois navires.',
         options: [
           {
             label: 'Le laisser partir avec des navires',
@@ -335,7 +335,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
             effets: { niveau: 2, relation: [{ dieu: 'athena', delta: 20 }] },
           },
           {
-            label: 'Trop retors — refuser',
+            label: 'Trop retors - refuser',
             issue:
               'Vous préférez l’honneur des armes. Arès vous en sait gré ; Ulysse remballe son plan sans un mot et vous en garde rancune.',
             effets: { relation: [{ dieu: 'ares', delta: 12 }], boude: 5 * MIN, plafond: 3 },
@@ -365,7 +365,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
     capacite: {
       nom: 'Fureur du Pélide',
       emoji: '🔥',
-      desc: 'Achille fauche tout sur son passage et devient invulnérable 8 s — puis s’effondre, épuisé.',
+      desc: 'Achille fauche tout sur son passage et devient invulnérable 8 s - puis s’effondre, épuisé.',
       cout: 45,
       cooldown: 200_000,
       batailleUniquement: true,
@@ -378,7 +378,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
         emoji: '😤',
         niveauRequis: 2,
         texte:
-          'Achille exige la plus belle part du dernier pillage — celle que vous aviez promise à la garnison. Il est sous sa tente, sa lance plantée dans le sable, et il attend.',
+          'Achille exige la plus belle part du dernier pillage - celle que vous aviez promise à la garnison. Il est sous sa tente, sa lance plantée dans le sable, et il attend.',
         options: [
           {
             label: 'Céder : la part est à lui',
@@ -413,7 +413,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Le lâcher sur l’ennemi',
             issue:
-              'Ce qui suit ne s’appelle plus une bataille. Achille revient couvert de sang qui n’est pas le sien, transfiguré — sa fureur est désormais sans retour.',
+              'Ce qui suit ne s’appelle plus une bataille. Achille revient couvert de sang qui n’est pas le sien, transfiguré - sa fureur est désormais sans retour.',
             effets: { niveau: 2, morale: { delta: -4, label: 'L’horreur du carnage', durMs: 8 * MIN }, relation: [{ dieu: 'ares', delta: 22 }] },
           },
           {
@@ -423,7 +423,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
             /*
              * Plafond 4 et non 3 : à 3, Achille n'atteignait jamais le niveau que
              * réclame « La flèche de Pâris », et son arc s'arrêtait en silence sur
-             * cette branche — le joueur ne voyait jamais la fin de son histoire.
+             * cette branche - le joueur ne voyait jamais la fin de son histoire.
              */
             effets: { plafond: 4, morale: { delta: 4, label: 'La fureur contenue', durMs: 10 * MIN } },
           },
@@ -440,7 +440,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Le laisser mourir les armes à la main',
             issue:
-              'Il tombe au troisième assaut, entouré d’ennemis morts. Les aèdes chanteront ce jour pendant mille ans — et vous n’aurez plus jamais d’Achille.',
+              'Il tombe au troisième assaut, entouré d’ennemis morts. Les aèdes chanteront ce jour pendant mille ans - et vous n’aurez plus jamais d’Achille.',
             effets: { mort: true, morale: { delta: -14, label: 'Achille est tombé', durMs: 18 * MIN }, faveur: 40, relation: [{ dieu: 'ares', delta: 25 }] },
           },
           {
@@ -521,7 +521,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Le confier au temple',
             issue:
-              'Les prêtres l’apaisent en trois jours de rites coûteux. Il revient lucide et reconnaissant — Athéna aussi.',
+              'Les prêtres l’apaisent en trois jours de rites coûteux. Il revient lucide et reconnaissant - Athéna aussi.',
             cout: { grain: 100, bronze: 40 },
             effets: { niveau: 1, relation: [{ dieu: 'athena', delta: 15 }], faveur: -10 },
           },
@@ -543,7 +543,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
     emoji: '👑',
     couleur: '#c9a441',
     desc:
-      'Il apporte l’autorité, l’or et les hommes — et le mépris des dieux pour ceux qui se croient au-dessus d’eux.',
+      'Il apporte l’autorité, l’or et les hommes - et le mépris des dieux pour ceux qui se croient au-dessus d’eux.',
     requiert: { armee: 12, batiment: { id: 'agora', niveau: 3 } },
     coutRecrutement: { bronze: 220, grain: 250 },
     entretien: { grain: 1.5, faveur: 0.15 },
@@ -580,7 +580,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Sacrifier cent bêtes à la place',
             issue:
-              'L’hécatombe vide les enclos. Le vent se lève le lendemain — allez savoir pourquoi.',
+              'L’hécatombe vide les enclos. Le vent se lève le lendemain - allez savoir pourquoi.',
             cout: { grain: 300 },
             effets: { niveau: 1, faveur: 25, relation: [{ dieu: 'poseidon', delta: 12 }] },
           },
@@ -609,7 +609,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Le retenir sous un prétexte',
             issue:
-              'Il reste, furieux, mais vivant — et son or reste avec lui.',
+              'Il reste, furieux, mais vivant - et son or reste avec lui.',
             cout: { bronze: 150 },
             effets: { niveau: 1, boude: 4 * MIN },
           },
@@ -651,18 +651,18 @@ export const HEROS: Record<HeroId, HeroDef> = {
         emoji: '🐴',
         niveauRequis: 2,
         texte:
-          'Cassandre s’est jetée devant l’offrande de bois trouvée à l’aube : « Il y a des hommes dedans. Brûlez-la. » Le village voudrait la garder — c’est une belle pièce, et un présage favorable.',
+          'Cassandre s’est jetée devant l’offrande de bois trouvée à l’aube : « Il y a des hommes dedans. Brûlez-la. » Le village voudrait la garder - c’est une belle pièce, et un présage favorable.',
         options: [
           {
             label: 'La croire et brûler l’offrande',
             issue:
-              'Des cris sortent des flammes. Personne ne doutera plus d’elle — et c’est la première fois de sa vie.',
+              'Des cris sortent des flammes. Personne ne doutera plus d’elle - et c’est la première fois de sa vie.',
             effets: { niveau: 2, morale: { delta: 8, label: 'La prophétesse écoutée', durMs: 14 * MIN }, relation: [{ dieu: 'athena', delta: 10 }] },
           },
           {
             label: 'Garder l’offrande',
             issue:
-              'La nuit, une vingtaine d’ombres en sortent. Vous perdez des hommes et des vivres — et Cassandre ne dit plus rien pendant longtemps.',
+              'La nuit, une vingtaine d’ombres en sortent. Vous perdez des hommes et des vivres - et Cassandre ne dit plus rien pendant longtemps.',
             effets: { morale: { delta: -12, label: 'L’avertissement ignoré', durMs: 16 * MIN }, res: { grain: -200, bronze: -60 }, boude: 8 * MIN },
           },
         ],
@@ -673,7 +673,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
         emoji: '☀️',
         niveauRequis: 3,
         texte:
-          'Elle vous confie qu’Apollon lui propose de lever la malédiction — au prix d’un serment qu’elle ne veut pas nommer. « Décidez pour moi. Vous êtes le seul qui m’écoute. »',
+          'Elle vous confie qu’Apollon lui propose de lever la malédiction - au prix d’un serment qu’elle ne veut pas nommer. « Décidez pour moi. Vous êtes le seul qui m’écoute. »',
         options: [
           {
             label: 'Qu’elle accepte',
@@ -684,7 +684,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Qu’elle refuse',
             issue:
-              'Elle refuse, soulagée. Sa malédiction demeure, votre confiance aussi — et elle reste entière.',
+              'Elle refuse, soulagée. Sa malédiction demeure, votre confiance aussi - et elle reste entière.',
             effets: { niveau: 1, morale: { delta: 6, label: 'Cassandre libre', durMs: 12 * MIN }, relation: [{ dieu: 'athena', delta: 12 }] },
           },
         ],
@@ -724,7 +724,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
         emoji: '👴',
         niveauRequis: 2,
         texte:
-          'Anchise, son père, ne marche plus. Énée demande une place au village pour un vieillard qui ne produira rien — et refuse de le laisser derrière.',
+          'Anchise, son père, ne marche plus. Énée demande une place au village pour un vieillard qui ne produira rien - et refuse de le laisser derrière.',
         options: [
           {
             label: 'Accueillir le vieillard',
@@ -751,7 +751,7 @@ export const HEROS: Record<HeroId, HeroDef> = {
           {
             label: 'Le laisser partir fonder sa ville',
             issue:
-              'Les voiles disparaissent à l’ouest. Vous perdez des bras et un héros — mais on dira que Rome est née de votre village.',
+              'Les voiles disparaissent à l’ouest. Vous perdez des bras et un héros - mais on dira que Rome est née de votre village.',
             effets: { mort: true, pop: -3, faveur: 50, morale: { delta: 10, label: 'La légende d’Énée', durMs: 20 * MIN } },
           },
           {
@@ -868,7 +868,7 @@ export function forceNiveau(niveau: number): number {
 /*
  * Un héros ne reste pas au chaud pendant qu'on se bat pour lui : il descend sur
  * le champ de bataille avec les autres. Il y vaut trois hoplites, encaisse
- * comme un mur — mais s'il tombe, il n'est pas rayé de l'effectif : il est
+ * comme un mur - mais s'il tombe, il n'est pas rayé de l'effectif : il est
  * BLESSÉ, et sa capacité reste indisponible le temps qu'il se relève. Seul son
  * arc narratif peut le tuer pour de bon.
  */
@@ -882,7 +882,7 @@ export function statsCombatHeros(niveau: number): { hp: number; atk: number } {
   return { hp: Math.round(HERO_HP_BASE * f), atk: Math.round(HERO_ATK_BASE * f) }
 }
 
-/** prochain nœud d'arc à déclencher, s'il est mûr — sinon null */
+/** prochain nœud d'arc à déclencher, s'il est mûr - sinon null */
 export function noeudMur(def: HeroDef, etat: HeroState): NoeudArc | null {
   if (etat.mort || !etat.recrute) return null
   const n = def.arc[etat.arc]
@@ -932,7 +932,7 @@ export function cumulerPassifs(etats: Record<HeroId, HeroState>): BonusHeros {
     b.alerteBonusMs += p.alerteBonusMs ?? 0
     b.popParSaison += p.popParSaison ?? 0
     /*
-     * Somme, comme tous les autres passifs — et non `Math.max`, qui contredisait
+     * Somme, comme tous les autres passifs - et non `Math.max`, qui contredisait
      * le contrat de `BonusHeros` et aurait ignoré un second garde du corps le jour
      * où il en existerait un. Plafonné à 80 % : aucune maisonnée ne rend une
      * garnison invulnérable.

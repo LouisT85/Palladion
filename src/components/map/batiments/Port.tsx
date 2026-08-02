@@ -2,7 +2,7 @@ import { AOBase, MurPierre, OmbreVolume, PAL, alea } from '../art'
 import { Feu, Fumee } from './primitives'
 
 /*
- * PORT — la mer occupe le triangle SUD-OUEST du cadre (bas-gauche), la terre
+ * PORT - la mer occupe le triangle SUD-OUEST du cadre (bas-gauche), la terre
  * le nord-est. Peint réaliste (docs/STYLE-ART.md) : lumière NW, ombres portées
  * SE, zéro contour noir. IDs de defs locaux préfixés « po- ».
  *  1. ponton sur pilotis + barque de pêche
@@ -11,7 +11,7 @@ import { Feu, Fumee } from './primitives'
  *  4. port franc : trirème à éperon de bronze, comptoirs phéniciens
  *
  * Repères d'intégration : les dockers de Ouvriers.tsx sont posés en (18,7) et
- * (40,-2) — ces deux points restent au sec sur le terre-plein du quai.
+ * (40,-2) - ces deux points restent au sec sur le terre-plein du quai.
  */
 
 /* ── géométrie partagée ───────────────────────────────────────────────────── */
@@ -315,7 +315,7 @@ function Quai({ n }: { n: number }) {
         <path d={`M${ax},${ay + QH} L${bx},${by + QH} L${bx - 5},${by + QH + 6} L${ax - 5},${ay + QH + 6} Z`} fill="#0c2e42" opacity={0.45} filter="url(#a-flou2)" />
       </g>
 
-      {/* bande dallée le long de l'arête — le reste du sol reste le terre-plein */}
+      {/* bande dallée le long de l'arête - le reste du sol reste le terre-plein */}
       <path d={D_QUAI_DECK} fill="#877b62" />
       {dalles}
       {/* la terre du port mord sur le dallage : l'arrière du quai n'a pas de bord net */}
@@ -416,7 +416,7 @@ function Quai({ n }: { n: number }) {
 }
 
 /* ── bateaux ──────────────────────────────────────────────────────────────── */
-/** œil peint à la proue — apotropaïque */
+/** œil peint à la proue - apotropaïque */
 function OeilPeint({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
   return (
     <g transform={`translate(${x},${y}) scale(${s})`}>
@@ -1156,7 +1156,7 @@ export function Port({ n }: { n: number }) {
         </>
       )}
 
-      {/* cargaison sur le terre-plein — (18,7) et (40,-2) restent libres */}
+      {/* cargaison sur le terre-plein - (18,7) et (40,-2) restent libres */}
       <Cordage x={n >= 2 ? -18 : 10} y={n >= 2 ? -12 : -22} s={0.95} />
       <AmphoresCalees x={n >= 2 ? 30 : 20} y={n >= 2 ? 10 : -4} s={0.9} seed={3} nb={n >= 3 ? 4 : 3} />
       {n === 1 && (

@@ -128,8 +128,8 @@ describe('la relation dans le store', () => {
     /*
      * Sous Vitest, `MODE_TEST` rend `payer()` complaisant et le tick repose les
      * coffres à chaque battement : on ne peut pas lire la dépense dans le stock.
-     * On éprouve donc ce qui est propre à l'action — la relation qui monte, chez
-     * lui et chez lui seul — et le barème du prix se vérifie sur la table.
+     * On éprouve donc ce qui est propre à l'action - la relation qui monte, chez
+     * lui et chez lui seul - et le barème du prix se vérifie sur la table.
      */
     jeu().offrirPresent(CIBLE)
     expect(relationVillage(jeu(), CIBLE)).toBe(GAIN_PRESENT)
@@ -214,7 +214,7 @@ describe('le mariage', () => {
     jeu().tick()
     expect(jeu().alliances[CIBLE]).toBeUndefined()
 
-    // le mariage, lui, ne bouge pas — et la relation ne peut même plus descendre
+    // le mariage, lui, ne bouge pas - et la relation ne peut même plus descendre
     const autre = VILLAGES_CIBLES[2].id
     poserRelation(autre, 100)
     const jour = jourDe(jeu())

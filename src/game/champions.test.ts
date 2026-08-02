@@ -16,7 +16,7 @@ import type { BattleState, HeroId } from './types'
  * LES CHAMPIONS ACHÉENS.
  *
  * Une vague, c'était un budget dépensé en pillards : toutes se ressemblaient,
- * seulement plus grosses. Un champion met un NOM en tête de colonne — et pas
+ * seulement plus grosses. Un champion met un NOM en tête de colonne - et pas
  * n'importe lequel : l'un des huit héros que le joueur peut recruter.
  *
  * Trois promesses, et ce sont elles qu'on éprouve ici :
@@ -102,7 +102,7 @@ describe('la table des champions', () => {
 })
 
 describe('qui peut venir vous assiéger', () => {
-  it('écarte ceux qui mangent à votre table — c’est la raison d’aller les chercher', () => {
+  it('écarte ceux qui mangent à votre table - c’est la raison d’aller les chercher', () => {
     const tous = championsPossibles(100, []).map((c) => c.id)
     expect(tous).toContain('achille')
     const sansAchille = championsPossibles(100, ['achille']).map((c) => c.id)

@@ -3,7 +3,7 @@ import { AOBase, Batisse3D, Fenetre3D, MurPierre, OmbreVolume, PAL, Porte3D, ale
 import { Buisson, Feu, Fumee, OlivierMini } from './primitives'
 
 /*
- * CASERNE — camp d'entraînement puis école de guerre.
+ * CASERNE - camp d'entraînement puis école de guerre.
  * Peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres portées SE,
  * zéro contour noir, modelé par les valeurs.
  *  1. terrain d'exercice battu + faisceau de lances + tente de campagne
@@ -14,7 +14,7 @@ import { Buisson, Feu, Fumee, OlivierMini } from './primitives'
  * vers l'OUEST : les mannequins sont plantés juste devant leurs coups.
  */
 
-// bronze : casques et cuirasses — sombre pour se détacher de la paille
+// bronze : casques et cuirasses - sombre pour se détacher de la paille
 const BR = { creux: '#5c451c', mi: '#8f6d29', clair: '#b8933a', spec: '#e2c778' }
 // paille battue : quatre valeurs (ombre propre → éclat NW)
 const PA = { ombre: '#6f5225', mi: '#a8853e', lit: '#d3b46c', ecl: '#eddfa8' }
@@ -457,7 +457,7 @@ function TenteCamp({ x, y, s = 1, fanion = true }: { x: number; y: number; s?: n
     <g transform={`translate(${x},${y}) scale(${s})`}>
       <AOBase rx={16} ry={4.4} cy={1.5} />
       <OmbreVolume w={27} h={14} y={0.5} o={0.15} />
-      {/* pans arrière : gauche au soleil, droit dans l'ombre — faîte long */}
+      {/* pans arrière : gauche au soleil, droit dans l'ombre - faîte long */}
       <path d="M-13.5,0 L0,-14 L0,-22 L-13.5,-8.4 Z" fill="#e4d3a8" />
       <path d="M13.5,0 L0,-14 L0,-22 L13.5,-8.4 Z" fill="#94804f" />
       <line x1={0} y1={-14} x2={0} y2={-22} stroke="#f6ecd2" strokeWidth={1.3} />
@@ -873,7 +873,7 @@ export function Caserne({ n }: { n: number }) {
         </g>
       )}
 
-      {/* zone d'entraînement à l'ouest — les Recrues frappent vers l'ouest */}
+      {/* zone d'entraînement à l'ouest - les Recrues frappent vers l'ouest */}
       <Mannequin x={-30} y={4} seed={3} armure={n >= 3} bouclier />
       <Mannequin x={-17} y={10} seed={8} armure={n >= 3} />
       <RatelierArmes x={-3} y={1} n={n} />

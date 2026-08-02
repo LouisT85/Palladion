@@ -31,7 +31,7 @@ function echantillons(geo: GeoMur, a0: number, a1: number, pas: number): { x: nu
   return pts
 }
 
-/** ruban fermé entre deux hauteurs le long de l'arc — le corps du mur en volume */
+/** ruban fermé entre deux hauteurs le long de l'arc - le corps du mur en volume */
 function bande(geo: GeoMur, a0: number, a1: number, dyBas: number, dyHaut: number, n = 46): string {
   let d = ''
   for (let i = 0; i <= n; i++) {
@@ -99,7 +99,7 @@ const TONS_TAILLE = ['#ddd5c1', '#cdc3ac', '#b9ae95', '#9f937a', '#877b62']
 
 /**
  * assises de pierre épousant l'arc, groupées en UN chemin par ton (perf).
- * Le ton de chaque bloc répond à la lumière NW — ouest clair, est sombre —
+ * Le ton de chaque bloc répond à la lumière NW - ouest clair, est sombre -
  * avec un tirage alea() pour la vibration peinte. Les joints sont les
  * respirations où le corps du mur affleure.
  */
@@ -260,7 +260,7 @@ function Tour({ x, y, flamme }: { x: number; y: number; flamme?: boolean }) {
   )
 }
 
-/** tour d'archers constructible — fût cylindrique, plateforme crénelée, archer de faction */
+/** tour d'archers constructible - fût cylindrique, plateforme crénelée, archer de faction */
 function TourArcher({ x, y }: { x: number; y: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
@@ -352,7 +352,7 @@ function Decombres({ geo, angle, hFace, bois }: { geo: GeoMur; angle: number; hF
   /**
    * Le tas : d'abord des BLOCS taillés descellés du grand appareil, puis des
    * pierres roulées entre eux. x en fractions de la demi-largeur de la trouée,
-   * tailles en fractions de la hauteur du mur — un pan de palissade s'effondre
+   * tailles en fractions de la hauteur du mur - un pan de palissade s'effondre
    * en petit, une muraille de niveau 4 en grand.
    */
   const BLOCS: [number, number, number, number, number][] = [
@@ -662,11 +662,11 @@ interface Props {
   max: number
   breche: boolean
   layer: 'back' | 'front'
-  /** géométrie de l'enceinte — par défaut celle du village du joueur */
+  /** géométrie de l'enceinte - par défaut celle du village du joueur */
   geo?: GeoMur
   /** tours d'archers bâties sur l'enceinte */
   tours?: number
-  /** fraction d'arc dessinée (chantier en cours) — 1 = enceinte complète */
+  /** fraction d'arc dessinée (chantier en cours) - 1 = enceinte complète */
   span?: number
   /** angles des secteurs effondrés : chaque pan cède à son propre endroit */
   brechesAngles?: number[]
@@ -887,7 +887,7 @@ export function Murailles({
         </g>
       )}
 
-      {/* pans effondrés hors de la porte — chaque secteur cède à son endroit */}
+      {/* pans effondrés hors de la porte - chaque secteur cède à son endroit */}
       {span >= 1 &&
         (brechesAngles ?? [])
           .map((a) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI))

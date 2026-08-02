@@ -25,18 +25,18 @@ import type { BuildingId, BuildingState, ResourceId, Villageois } from './types'
 /*
  * Le calendrier est la seule horloge du jeu : l'équilibrage des récoltes, la
  * fermeture de la mer, les hauts faits d'ancienneté et jusqu'aux captures
- * d'écran reposent sur une unique hypothèse — la saison se déduit du nombre de
+ * d'écran reposent sur une unique hypothèse - la saison se déduit du nombre de
  * journées écoulées depuis la fondation. On la vérifie donc des deux côtés :
  * sur les fonctions pures de saisons.ts, puis sur le tick du store.
  *
  * Deux partis pris pour que ce fichier ne mente jamais :
- * — le tirage du ciel se teste avec `Math.random` sous contrôle, jamais en
+ * - le tirage du ciel se teste avec `Math.random` sous contrôle, jamais en
  *   espérant qu'un millier de tirages tombe bien ;
- * — les tests du store figent `Date.now`, parce qu'un test du calendrier qui
+ * - les tests du store figent `Date.now`, parce qu'un test du calendrier qui
  *   dépend de l'heure de la machine ne prouve rien.
  *
  * Note d'environnement : sous Vitest `import.meta.env.MODE` vaut 'test', donc
- * MODE_TEST est ACTIF — le tick repose les coffres au maximum à chaque battement
+ * MODE_TEST est ACTIF - le tick repose les coffres au maximum à chaque battement
  * (store.ts, bloc « mode test : coffres pleins en permanence »). Aucun effet de
  * saison ne se lit donc dans le stock : les récoltes se testent par
  * `productionParMinute`, jamais par `resources`.
@@ -45,7 +45,7 @@ import type { BuildingId, BuildingState, ResourceId, Villageois } from './types'
 const RES_IDS: ResourceId[] = ['bois', 'pierre', 'grain', 'bronze']
 const METEO_IDS = Object.keys(METEOS) as MeteoId[]
 
-/** multiplicateur de saison pour une ressource — absent = table incomplète, on veut le savoir */
+/** multiplicateur de saison pour une ressource - absent = table incomplète, on veut le savoir */
 function mult(saison: SaisonId, res: ResourceId): number {
   const v = SAISONS[saison].prod[res]
   if (v === undefined) throw new Error(`la saison ${saison} ne dit rien de la ressource ${res}`)
@@ -81,7 +81,7 @@ describe('les quatre saisons', () => {
   })
 
   it('dessinent une année : l’automne nourrit, l’hiver affame', () => {
-    // c'est toute la boucle de jeu — engranger à l'automne pour tenir l'hiver.
+    // c'est toute la boucle de jeu - engranger à l'automne pour tenir l'hiver.
     // Un rééquilibrage qui inverserait cet ordre viderait la saison de son sens
     expect(mult('automne', 'grain')).toBeGreaterThan(mult('printemps', 'grain'))
     expect(mult('printemps', 'grain')).toBeGreaterThan(1)
@@ -125,7 +125,7 @@ describe('les quatre saisons', () => {
     expect(new Set(SAISON_IDS.flatMap((id) => SAISONS[id].meteos.map((m) => m.id)))).toEqual(new Set(METEO_IDS))
   })
 
-  it('gardent chacune sa signature de ciel — et laissent toujours une éclaircie', () => {
+  it('gardent chacune sa signature de ciel - et laissent toujours une éclaircie', () => {
     // le temps clair est la respiration du joueur : une saison sans lui serait
     // une punition continue de quatre journées
     expect(saisonsAvec('clair')).toEqual(SAISON_IDS)
@@ -135,7 +135,7 @@ describe('les quatre saisons', () => {
     /*
      * L'orage est le seul mauvais temps qui RAPPORTE quelque chose : la foudre de
      * Zeus y frappe plus lourd (store.ts, bénédiction de Zeus). Il doit donc
-     * rester tirable — et le rester hors de l'hiver, la saison où l'on n'a
+     * rester tirable - et le rester hors de l'hiver, la saison où l'on n'a
      * justement pas de quoi payer une bénédiction.
      */
     expect(saisonsAvec('orage')).toEqual(['printemps', 'ete', 'automne'])
@@ -184,7 +184,7 @@ const CHARNIERES: Record<SaisonId, [number, MeteoId][]> = {
     [0.4999, 'clair'],
     // 0,5 × 100 tombe sur 50 au bit près : le seul point du tableau qui atteint
     // exactement un cumul, donc le seul qui distingue `r <= 0` de `r < 0`. Le
-    // créneau du temps clair est fermé à droite — un `<` le rognerait
+    // créneau du temps clair est fermé à droite - un `<` le rognerait
     [0.5, 'clair'],
     [0.5001, 'pluie'],
     [0.7999, 'pluie'],
@@ -260,7 +260,7 @@ describe('les six météos', () => {
     for (const cle of ['nom', 'desc', 'emoji'] as const) {
       expect(new Set(METEO_IDS.map((id) => METEOS[id][cle])).size).toBe(METEO_IDS.length)
     }
-    // le résumé se lit « saison · météo — ce que ça coûte » : la saison d'abord,
+    // le résumé se lit « saison · météo - ce que ça coûte » : la saison d'abord,
     // la description du ciel en dernier. Intervertir les deux arguments donnerait
     // « Neige · Hiver », que le HUD affiche tel quel
     const txt = resumeCiel('hiver', 'neige')
@@ -273,7 +273,7 @@ describe('les six météos', () => {
     expect(new Set(phrases).size).toBe(SAISON_IDS.length * METEO_IDS.length)
   })
 
-  it('gênent toujours, jamais elles n’avantagent — sauf le temps clair, neutre', () => {
+  it('gênent toujours, jamais elles n’avantagent - sauf le temps clair, neutre', () => {
     // la météo est une contrainte : si un multiplicateur passait au-dessus de 1,
     // le joueur aurait intérêt à attendre le mauvais temps pour attaquer
     for (const id of METEO_IDS) {
@@ -301,7 +301,7 @@ describe('les six météos', () => {
   })
 
   it('tiennent la promesse de leur description : la brume aveugle, la neige englue', () => {
-    /** le pire ciel pour ce levier — et il doit être seul à ce niveau */
+    /** le pire ciel pour ce levier - et il doit être seul à ce niveau */
     const pireSeul = (cle: 'portee' | 'vitesse' | 'alerte'): MeteoId => {
       const mini = Math.min(...METEO_IDS.map((id) => METEOS[id][cle]))
       const exaequo = METEO_IDS.filter((id) => METEOS[id][cle] === mini)
@@ -368,7 +368,7 @@ const DEUX_ANNEES: SaisonId[] = [
 
 /**
  * Journées charnières sur deux ans : la PREMIÈRE et la DERNIÈRE de chacune des
- * huit saisons. Les deux bords comptent — n'éprouver que les premières laisserait
+ * huit saisons. Les deux bords comptent - n'éprouver que les premières laisserait
  * passer un `+ 1` glissé dans le calcul du store (la veille du basculement est le
  * seul endroit où un décalage d'une journée se voit).
  */
@@ -380,7 +380,7 @@ const ECHEANCE_BIDON = 12_345
 /** horodatage figé : le calendrier se lit sur `createdAt`, jamais sur l'heure de la machine */
 const T0 = 1_712_000_000_000
 
-/** `Date.now` sous contrôle — sinon un tick lent suffirait à changer de journée */
+/** `Date.now` sous contrôle - sinon un tick lent suffirait à changer de journée */
 function figerHorloge(): void {
   if (Date.now() !== T0) vi.spyOn(Date, 'now').mockReturnValue(T0)
 }
@@ -414,7 +414,7 @@ function poserPartie(joursEcoules: number, champs: Partial<GameState> = {}): voi
   })
 }
 
-/** les bandeaux « Automne sur la Troade » — ceux que les captures ne veulent pas voir */
+/** les bandeaux « Automne sur la Troade » - ceux que les captures ne veulent pas voir */
 function bandeauxSaison(): string[] {
   return useGame
     .getState()
@@ -450,7 +450,7 @@ describe('calendrier', () => {
     /*
      * Comportement RÉEL, figé ici tel qu'il est et non tel qu'on le voudrait :
      * `saisonDe` ne se défend pas d'un jour négatif. `createdAt` et `lastSeen`
-     * sont des horodatages absolus — une horloge système reculée, ou une
+     * sont des horodatages absolus - une horloge système reculée, ou une
      * sauvegarde venue du futur, donne un nombre de journées négatif, l'index
      * sort de la table et la fonction rend `undefined`. Le store écrirait ce
      * `undefined` dans `s.saison`, et la première lecture de `SAISONS[s.saison]`
@@ -483,7 +483,7 @@ describe('calendrier', () => {
     // premier et dernier jour des huit saisons de deux années : à chacun, le tick
     // doit corriger la saison posée, tirer un ciel de la NOUVELLE saison et
     // reprogrammer la météo. Les journées du milieu sont couvertes par la table de
-    // `saisonDe` — inutile de repasser trente-deux fois par le store
+    // `saisonDe` - inutile de repasser trente-deux fois par le store
     vi.spyOn(Math, 'random').mockReturnValue(0) // tirage bloqué sur le premier ciel du pool
     for (const ecoules of CHARNIERES_DU_STORE) {
       const attendu = DEUX_ANNEES[ecoules]
@@ -497,13 +497,13 @@ describe('calendrier', () => {
       expect(s.saison, `journée ${ecoules}`).toBe(attendu)
       expect(jourDe(s)).toBe(ecoules + 1)
       // la saison du store se relit avec l'index des journées écoulées, pas avec
-      // le numéro affiché — le jour de garde de tout ce fichier
+      // le numéro affiché - le jour de garde de tout ce fichier
       expect(saisonDe(jourDe(s) - 1)).toBe(s.saison)
       /*
        * Le ciel du basculement est tiré dans la NOUVELLE saison, jamais dans
        * celle qu'on quitte : avec le tirage bloqué sur le premier du pool, on lit
        * exactement de quel pool il sort. Se contenter de « ce ciel existe dans la
-       * nouvelle saison » ne prouverait rien — les pools se recouvrent largement
+       * nouvelle saison » ne prouverait rien - les pools se recouvrent largement
        * (le temps clair est partout).
        */
       expect(s.meteo, `journée ${ecoules}`).toBe(SAISONS[attendu].meteos[0].id)
@@ -525,13 +525,13 @@ describe('calendrier', () => {
     const rapport = s.reports.find((r) => r.titre === 'Hiver sur la Troade')
     expect(rapport?.lignes.join(' ')).toContain('La mer se ferme')
     expect(rapport?.lignes.join(' ')).toContain('grain −50 %')
-    expect(s.toasts.some((t) => t.msg === `${SAISONS.hiver.nom} — ${SAISONS.hiver.desc}`)).toBe(true)
+    expect(s.toasts.some((t) => t.msg === `${SAISONS.hiver.nom} - ${SAISONS.hiver.desc}`)).toBe(true)
   })
 
   it('fait tourner le ciel à l’heure dite, sans annoncer de saison', () => {
     /*
      * L'autre moitié de `tournerCiel`, celle que personne ne regarde : à saison
-     * inchangée, la météo se retire quand `meteoJusqua` est passé — et seulement
+     * inchangée, la météo se retire quand `meteoJusqua` est passé - et seulement
      * à ce moment-là. Un `>` mis pour un `>=`, ou une échéance qu'on oublie de
      * reporter, ferait tirer un ciel neuf à chaque battement (quatre par seconde).
      */
@@ -569,7 +569,7 @@ describe('calendrier', () => {
     /*
      * Le grenier posé à zéro finit pourtant plein : c'est la preuve que le
      * calendrier tourne AVANT le remplissage du mode test. Si l'ordre s'inversait
-     * dans le tick, ce haut fait deviendrait acquis d'office — et plus aucun test
+     * dans le tick, ce haut fait deviendrait acquis d'office - et plus aucun test
      * de saison ne pourrait observer une ressource.
      */
     expect(s.resources.grain).toBe(stockageMax(s))
@@ -581,7 +581,7 @@ describe('calendrier', () => {
 describe('âges de scripts/captures.mjs', () => {
   /**
    * Le script pose un âge ET une saison. S'ils se contredisent, le premier tick
-   * fait surgir un bandeau de saison en travers de la capture — et onze images du
+   * fait surgir un bandeau de saison en travers de la capture - et onze images du
    * README sont à refaire. On lit donc le script tel qu'il est sur le disque :
    * recopier ses valeurs ici ne protégerait rien.
    */
@@ -655,8 +655,8 @@ describe('récoltes au fil des saisons', () => {
 
   it('applique à chaque ressource SON coefficient de saison, pas un facteur commun', () => {
     // quatre ateliers tenus par leur homme de métier : le rapport hiver/été doit
-    // suivre la table saison par saison. Un facteur unique appliqué à tout — la
-    // simplification qui guette `productionParMinute` — donnerait quatre rapports
+    // suivre la table saison par saison. Un facteur unique appliqué à tout - la
+    // simplification qui guette `productionParMinute` - donnerait quatre rapports
     // identiques, et l'hiver cesserait d'être une saison à choix
     const village = niveaux({ agora: 2, ferme: 1, scierie: 1, carriere: 1, forge: 1 })
     const hiver = recolte('hiver', village, ARTISANS)
@@ -673,7 +673,7 @@ describe('récoltes au fil des saisons', () => {
 
   it('ne laisse plus tourner le port qu’à une fraction pendant l’hiver', () => {
     // le quai est ici la seule source de bronze (la cueillette de base n'en donne
-    // pas) : on lit donc directement la double peine de l'hiver — le coefficient
+    // pas) : on lit donc directement la double peine de l'hiver - le coefficient
     // de saison comme tout le monde, PORT_HIVER en plus parce que les nefs
     // restent au mouillage. Si le facteur disparaissait de `productionParMinute`,
     // le port encaisserait exactement la même chose que la forge

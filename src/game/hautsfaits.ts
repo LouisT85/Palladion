@@ -6,7 +6,7 @@ import type { SaisonId } from './saisons'
 
 /*
  * Les hauts faits ne sont pas des cases à cocher : chacun raconte une manière
- * de jouer. On les gagne UNE fois et pour toujours — même si l'on perd ensuite
+ * de jouer. On les gagne UNE fois et pour toujours - même si l'on perd ensuite
  * ce qui les a permis. Ils alimentent le prestige, seule note finale du règne.
  */
 
@@ -317,7 +317,7 @@ export const HAUTS_FAITS: HautFaitDef[] = [
     id: 'par-le-sang',
     emoji: '💍',
     titre: 'Par le sang, non par la lance',
-    desc: 'Sceller deux alliances par mariage. Chacune a coûté un habitant — et aucune ne se dénouera.',
+    desc: 'Sceller deux alliances par mariage. Chacune a coûté un habitant - et aucune ne se dénouera.',
     cat: 'peuple',
     points: 35,
     atteint: (s) => (s.exploits.mariagesDiplomatiques ?? 0) >= 2,
@@ -351,7 +351,7 @@ export const HAUTS_FAITS: HautFaitDef[] = [
     id: 'sang-de-heros',
     emoji: '⚔️',
     titre: 'Le sang d’un héros',
-    desc: 'Abattre sous vos murs un champion achéen — l’un de ceux dont on chante le nom.',
+    desc: 'Abattre sous vos murs un champion achéen - l’un de ceux dont on chante le nom.',
     cat: 'guerre',
     points: 40,
     atteint: (s) => (s.exploits.championsAbattus ?? 0) >= 1,
@@ -513,7 +513,7 @@ export const HAUTS_FAITS: HautFaitDef[] = [
     id: 'nom-pour-les-aedes',
     emoji: '🕯️',
     titre: 'Un nom pour les aèdes',
-    desc: 'Aller au bout de l’arc d’un héros — jusqu’à sa mort.',
+    desc: 'Aller au bout de l’arc d’un héros - jusqu’à sa mort.',
     cat: 'legende',
     points: 30,
     atteint: (s) => HERO_IDS.some((h) => s.heros[h]?.mort),
@@ -559,7 +559,7 @@ export interface DetailPrestige {
 
 /**
  * Score de prestige : ce que le règne laisse derrière lui. Bâti, tenu, honoré,
- * conquis, allié — chaque axe compte, aucun ne suffit seul.
+ * conquis, allié - chaque axe compte, aucun ne suffit seul.
  */
 export function detailPrestige(s: SnapHautFait, acquis: string[]): DetailPrestige[] {
   const relationsPositives = GOD_IDS.reduce((a, g) => a + Math.max(0, s.gods[g].relation), 0)
@@ -587,7 +587,7 @@ export function titrePrestige(score: number): { titre: string; desc: string } {
   if (score >= 1400) return { titre: 'Égal des dieux', desc: 'On ne sait plus si l’on raconte un homme ou un Olympien.' }
   if (score >= 1000) return { titre: 'Héros de la Troade', desc: 'Votre nom se chante d’Ilion à Mycènes.' }
   if (score >= 700) return { titre: 'Prince d’Ilion', desc: 'Priam vous aurait reçu à sa table.' }
-  if (score >= 450) return { titre: 'Seigneur de la plaine', desc: 'La région compte avec vous — et vous craint un peu.' }
+  if (score >= 450) return { titre: 'Seigneur de la plaine', desc: 'La région compte avec vous - et vous craint un peu.' }
   if (score >= 250) return { titre: 'Chef de guerre', desc: 'On sait où sont vos murs, et qu’ils tiennent.' }
   if (score >= 120) return { titre: 'Maître de village', desc: 'Une bourgade honnête, quelques greniers pleins.' }
   return { titre: 'Roi de pacotille', desc: 'Un tas de cabanes et beaucoup d’ambition.' }

@@ -38,18 +38,18 @@ import type { BuildingId, GodId, ResourceId, UnitId } from './types'
  * quatre choses : que les jauges tiennent leurs bornes sur les deux extrêmes du
  * jeu (hameau vide / cité achevée), que le fil se déroule dans l'ordre annoncé,
  * que chaque objectif reste ATTEIGNABLE compte tenu des règles qui vivent
- * ailleurs — postes de travail, entrepôt, plafond de population, niveaux de
- * caserne, seuils de fronts — et que le bouton « y aller » ouvre bien l'écran
+ * ailleurs - postes de travail, entrepôt, plafond de population, niveaux de
+ * caserne, seuils de fronts - et que le bouton « y aller » ouvre bien l'écran
  * promis. C'est cette couture entre missions.ts, data.ts et le store qui casse
  * en silence quand on rééquilibre.
  *
  * Deux partis pris de méthode :
- *  — les exigences des missions ne sont jamais recopiées à la main, elles sont
+ *  - les exigences des missions ne sont jamais recopiées à la main, elles sont
  *    SONDÉES (on abaisse un seul levier depuis la cité achevée et l'on regarde
  *    à partir de quand la mission cesse d'être faite), puis confrontées aux
  *    tables de data.ts. Un rééquilibrage de POSTES, STOCKAGE ou TOURS_MAX fait
  *    donc rougir ce fichier au lieu de passer inaperçu ;
- *  — chaque test part d'un store remis à neuf (`beforeEach`), pour qu'aucun ne
+ *  - chaque test part d'un store remis à neuf (`beforeEach`), pour qu'aucun ne
  *    dépende de l'ordre d'exécution ni de ce que le précédent a laissé traîner.
  *
  * Note : sous Vitest, `import.meta.env.MODE` vaut 'test', donc MODE_TEST est
@@ -61,13 +61,13 @@ import type { BuildingId, GodId, ResourceId, UnitId } from './types'
 /**
  * Bornes des cinq actes, recopiées à la main : c'est le point de contrôle du
  * découpage. `ACTES` se termine sur `MISSIONS.length`, donc une mission insérée
- * n'y ferait aucun trou — elle grossirait le dernier acte sans bruit. Ces cinq
+ * n'y ferait aucun trou - elle grossirait le dernier acte sans bruit. Ces cinq
  * nombres sont là pour qu'on ne puisse pas allonger le fil rouge sans dire à
  * quel acte la nouvelle mission appartient.
  */
 const FINS_ATTENDUES = [10, 20, 29, 40, 55]
 
-/** les trois panneaux qu'une mission peut demander — cf. `CibleMission` */
+/** les trois panneaux qu'une mission peut demander - cf. `CibleMission` */
 const PANNEAUX_CIBLES = ['expeditions', 'pantheon', 'heros']
 
 /** niveau d'Agora d'une partie neuve, avant que le fil rouge n'en réclame */
@@ -113,13 +113,13 @@ function tousAuxPostes(niveauB: number): { poste: BuildingId | null }[] {
 }
 
 /**
- * La cité achevée — mais achevée DANS LES LIMITES QUE LE JEU IMPOSE : pas un
+ * La cité achevée - mais achevée DANS LES LIMITES QUE LE JEU IMPOSE : pas un
  * travailleur de plus que POSTES n'en offre, pas un grain de plus que
  * l'entrepôt n'en tient, pas un habitant au-delà du plafond des maisons, pas
  * une étoile de plus que la Troade n'en compte, et une garnison qui tienne dans
  * la population restante. Une mission qui réclamerait au-delà d'un de ces
  * plafonds serait infinissable : c'est ce décor qui le révèle. Il sert aussi de
- * base à tous les sondages ci-dessous — on n'abaisse qu'un levier à la fois.
+ * base à tous les sondages ci-dessous - on n'abaisse qu'un levier à la fois.
  */
 function etatAcheve(): EtatMissions {
   const stock = STOCKAGE[4]
@@ -200,7 +200,7 @@ function etatPlausible(r: () => number): EtatMissions {
 }
 
 /*
- * Les sondages. Chacun part de la cité achevée — où tout est fait — et abaisse
+ * Les sondages. Chacun part de la cité achevée - où tout est fait - et abaisse
  * UN seul levier jusqu'à ce que la mission cesse de l'être : on obtient ainsi ce
  * que la mission exige réellement, sans recopier la définition (donc sans
  * réécrire la formule qu'on prétend tester). Un sondage qui rend 0 signifie que
@@ -347,7 +347,7 @@ describe('catalogue du fil rouge', () => {
       return tranche.reduce((s, m) => s + valeur(m), 0) / tranche.length
     })
     // acte par acte, la courbe n'est PAS strictement croissante : l'acte III fait un
-    // léger creux (180 contre 186 pour l'acte II — signalé au rapport). Ce qui doit
+    // léger creux (180 contre 186 pour l'acte II - signalé au rapport). Ce qui doit
     // rester vrai : aucun acte ne retombe au tarif du hameau, et la légende paie le mieux
     for (let i = 1; i < moyennes.length; i++) {
       expect(moyennes[i], ACTES[i].nom).toBeGreaterThan(moyennes[0])
@@ -407,7 +407,7 @@ describe('les jauges de progression', () => {
   it('ne compte que les habitants réellement affectés, et au bon atelier', () => {
     // quatre paysans dans les sillons : la ferme est pourvue, l'autel reste froid.
     // Un compteur qui additionnerait tous les postes ferait avancer « Un prêtre au
-    // temple » sans qu'aucun prêtre n'y monte — et la faveur ne monterait pas
+    // temple » sans qu'aucun prêtre n'y monte - et la faveur ne monterait pas
     const auxChamps: EtatMissions = {
       ...etatVide(),
       villageois: Array.from({ length: 4 }, () => ({ poste: 'ferme' as BuildingId })),
@@ -474,7 +474,7 @@ describe('les trois missions ouvertes', () => {
     const reclamees: string[] = []
     for (let i = 0; i < ids.length; i++) {
       /*
-       * Trois à la fois — mais jamais par-dessus une fin d'acte : un acte est un
+       * Trois à la fois - mais jamais par-dessus une fin d'acte : un acte est un
        * palier du récit, on l'achève avant que le suivant ne se descelle. En fin
        * d'acte comme en fin de fil, il en reste donc moins de trois. L'attente est
        * calculée sur les bornes recopiées plus haut, pas sur `finActe` : sinon le
@@ -486,7 +486,7 @@ describe('les trois missions ouvertes', () => {
       )
       reclamees.push(ids[i])
     }
-    // le fil épuisé, le panneau n'a plus rien à proposer — et surtout rien à
+    // le fil épuisé, le panneau n'a plus rien à proposer - et surtout rien à
     // reproposer, ce qui rendrait la dernière récompense réclamable sans fin
     expect(missionsActives(reclamees)).toEqual([])
   })
@@ -520,7 +520,7 @@ describe('le découpage en cinq actes', () => {
     expect(acteDe(MISSIONS.length + 7)).toBe(ACTES[ACTES.length - 1].nom)
     expect(finActe(MISSIONS.length + 7)).toBe(MISSIONS.length)
     // un id disparu vaut rang 0, et le rang 0 retombe dans l'acte I : le journal
-    // écrirait « Mission 0 — … » plutôt que de refuser (comportement constaté)
+    // écrirait « Mission 0 - … » plutôt que de refuser (comportement constaté)
     expect(rangMission('mission-fantome')).toBe(0)
     expect(acteDe(0)).toBe(ACTES[0].nom)
   })
@@ -572,7 +572,7 @@ describe('où chaque mission se joue', () => {
       useGame.getState().allerAMission(m.id)
       const s = useGame.getState()
       // « y aller » est un vrai bouton : ce qu'il ouvre doit correspondre à la
-      // cible, et une seule chose à la fois — deux modales superposées et l'on
+      // cible, et une seule chose à la fois - deux modales superposées et l'on
       // ne voit plus rien
       if (m.cible.quoi === 'batiment') {
         expect(BUILDINGS[m.cible.id], m.id).toBeDefined()
@@ -608,7 +608,7 @@ describe('où chaque mission se joue', () => {
      * Le test précédent garde la plomberie ; celui-ci garde le choix éditorial.
      * `CIBLES` est un tableau à part, tenu à la main : rien n'empêchait « Le culte
      * d'Arès » d'envoyer au chantier de l'Agora. On ne recopie donc pas le
-     * tableau — on redéduit la cible de ce que la mission EXIGE, et l'on compare.
+     * tableau - on redéduit la cible de ce que la mission EXIGE, et l'on compare.
      */
     let verifiees = 0
     for (const m of MISSIONS) {
@@ -795,7 +795,7 @@ describe('les missions collent aux règles du jeu', () => {
     /*
      * L'échelle d'Agora du fil rouge, sondée elle aussi : elle s'arrête au niveau 3
      * (« Prospérité », rang 30). Les trois missions listées ensuite supposent
-     * pourtant des bâtiments de niveau 4 — donc une Agora 4 que le fil ne réclame
+     * pourtant des bâtiments de niveau 4 - donc une Agora 4 que le fil ne réclame
      * jamais et que le joueur doit deviner (défaut signalé au rapport). Les deux
      * listes sont arrêtées pour qu'une mission de niveau 4 ajoutée, ou glissée plus
      * tôt dans le fil, fasse rougir ce test au lieu de coincer le joueur.
@@ -924,14 +924,14 @@ describe('le fil rouge branché sur le store', () => {
     // la récompense laisse une trace : sans elle, le joueur voit ses stocks bouger
     // sans savoir pourquoi
     const s = useGame.getState()
-    expect(s.reports[0].titre).toBe('Mission 1 — Un nouveau départ')
+    expect(s.reports[0].titre).toBe('Mission 1 - Un nouveau départ')
     expect(s.toasts.map((t) => t.msg)).toContain('Un nouveau départ : récompense reçue !')
   })
 
   it('ne paie ni deux fois, ni une mission verrouillée, ni une mission inachevée', () => {
     useGame.getState().reclamerMission('nouveau-depart')
     // cinq assauts repoussés : « Première victoire » (rang 10) est ACHEVÉE, mais
-    // elle n'est pas encore ouverte — le fil rouge ne se saute pas
+    // elle n'est pas encore ouverte - le fil rouge ne se saute pas
     useGame.setState({ stats: { repousses: 5, perdus: 0, evenements: 0 } })
     const apresUnePrime = { ...useGame.getState().resources }
     const refus = [

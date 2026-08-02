@@ -5,7 +5,7 @@ import type { BuildingId, ResourceId } from './types'
 /*
  * Premier filet de sécurité du projet. On commence par ce qui se teste sans le
  * navigateur ni le store : des fonctions pures dont une erreur se paierait en
- * équilibrage — le comptoir du port et le tirage des métiers.
+ * équilibrage - le comptoir du port et le tirage des métiers.
  */
 
 describe('comptoir du port', () => {

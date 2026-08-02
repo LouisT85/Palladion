@@ -99,17 +99,17 @@ function LigneVillageois({ v, jour, conjoint }: { v: Villageois; jour: number; c
           {sansEmploi ? (
             <span className="hab-oisif">
               {vie === 'enfant'
-                ? `Encore un enfant — adulte dans ${Math.ceil((AGE_ADULTE - age) / 2)} journée(s)`
-                : 'Sans emploi — enrôlable à la caserne'}
+                ? `Encore un enfant - adulte dans ${Math.ceil((AGE_ADULTE - age) / 2)} journée(s)`
+                : 'Sans emploi - enrôlable à la caserne'}
             </span>
           ) : aSonMetier ? (
             <span className="hab-juste">
-              ✔ à son métier, à {BUILDINGS[poste].nom} — {Math.round(eff * 100)} %
+              ✔ à son métier, à {BUILDINGS[poste].nom} - {Math.round(eff * 100)} %
               {vie !== 'adulte' && (vie === 'enfant' ? ' (un enfant aide, il ne remplace pas)' : ' (l’âge pèse)')}
             </span>
           ) : (
             <span className="hab-mal">
-              ⚠ {BUILDINGS[poste].nom}, ce n’est pas son métier — il ne rend que {Math.round(eff * 100)} %
+              ⚠ {BUILDINGS[poste].nom}, ce n’est pas son métier - il ne rend que {Math.round(eff * 100)} %
             </span>
           )}
         </div>
@@ -119,7 +119,7 @@ function LigneVillageois({ v, jour, conjoint }: { v: Villageois; jour: number; c
               💍 marié(e) à {conjoint.nom}
             </span>
           ) : vie === 'adulte' ? (
-            <span className="hab-celib" title="Sans foyer, pas de naissance — le village dépend alors des arrivants">
+            <span className="hab-celib" title="Sans foyer, pas de naissance - le village dépend alors des arrivants">
               célibataire
             </span>
           ) : null}
@@ -190,11 +190,11 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
           Un atelier ne produit qu’au prorata de ses postes tenus : une ferme de niveau 3 sans paysan ne rapporte rien de
           plus que la cueillette. <b style={{ color: '#e8dcc0' }}>Chaque habitant a un métier de naissance</b> : à son
           métier il rend pleinement, ailleurs seulement {Math.round(RENDEMENT_HORS_METIER * 100)} %. Personne ne prend son
-          poste tout seul — c’est à vous de placer chacun. Les villageois{' '}
+          poste tout seul - c’est à vous de placer chacun. Les villageois{' '}
           <b style={{ color: '#d98a4e' }}>adultes sans emploi</b> sont aussi les seuls que la caserne peut enrôler.
           <div style={{ marginTop: 5 }}>
             Une journée de jeu vaut deux ans de vie. Les adultes libres <b style={{ color: '#e8dcc0' }}>font foyer</b>, et
-            un enfant né dans un foyer <b style={{ color: '#e8dcc0' }}>apprend le métier d’un de ses parents</b> — marier
+            un enfant né dans un foyer <b style={{ color: '#e8dcc0' }}>apprend le métier d’un de ses parents</b> - marier
             son forgeron, c’est se donner des forgerons. Sans foyer, le village ne grandit que par les arrivants de la
             côte, dont on ne choisit pas le métier.
           </div>
@@ -204,14 +204,14 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
           <h3>Ateliers et postes</h3>
           {ateliers.length === 0 ? (
             <div style={{ fontSize: 12.5, color: '#d98a4e' }}>
-              Aucun atelier bâti — construisez une ferme, un camp de bûcherons ou une carrière pour employer ces bras.
+              Aucun atelier bâti - construisez une ferme, un camp de bûcherons ou une carrière pour employer ces bras.
             </div>
           ) : (
             ateliers.map((b) => <LigneRecap key={b} b={b} />)
           )}
           {libres.length === 0 && placesLibres > 0 && (
             <div style={{ fontSize: 12, color: '#93a7b4', marginTop: 5 }}>
-              Plus un bras de libre — attendez une naissance ou libérez un artisan.
+              Plus un bras de libre - attendez une naissance ou libérez un artisan.
             </div>
           )}
           {placesLibres === 0 && libres.length > 0 && ateliers.length > 0 && (
@@ -223,7 +223,7 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
 
         <div className="bloc">
           <h3>
-            Recensement — {habitants.length} habitant{habitants.length > 1 ? 's' : ''}
+            Recensement - {habitants.length} habitant{habitants.length > 1 ? 's' : ''}
           </h3>
           {/*
             La pyramide des âges, en trois cases. Elle dit d'un coup d'œil ce
@@ -244,7 +244,7 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
             <span className="p-foyers" title="Sans foyer, pas de naissance : le village ne grandit alors que par les arrivants">
               💍 {foyers} foyer{foyers > 1 ? 's' : ''}
             </span>
-            <span className="p-maisons" title="Les lignées du village — un enfant hérite de la maison de son père">
+            <span className="p-maisons" title="Les lignées du village - un enfant hérite de la maison de son père">
               🏛️ {maisons} maison{maisons > 1 ? 's' : ''}
             </span>
           </div>

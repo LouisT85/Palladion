@@ -5,9 +5,9 @@ import type { BattleState, Fighter } from '../../game/types'
  * ════════════════════════════ LA CAMÉRA ════════════════════════════
  *
  * Deux conducteurs, jamais en même temps :
- *  · AUTOMATIQUE — pendant un assaut, la vue se rapproche du front le plus
+ *  · AUTOMATIQUE - pendant un assaut, la vue se rapproche du front le plus
  *    chaud et le suit, en douceur ;
- *  · MANUEL — dès que le joueur touche la molette ou fait glisser la carte,
+ *  · MANUEL - dès que le joueur touche la molette ou fait glisser la carte,
  *    il prend la main et la garde jusqu'à ce qu'il recentre.
  *
  * Le SVG garde son viewBox : seul un groupe intérieur est transformé, si bien
@@ -29,7 +29,7 @@ export const ZOOM_MAX = 5
 /**
  * Instant du dernier déplacement à la souris. Une seule caméra est active à la
  * fois, d'où le module-level : n'importe quel gestionnaire de clic de la scène
- * peut ainsi savoir qu'il ne doit PAS réagir — on vient de faire glisser, pas
+ * peut ainsi savoir qu'il ne doit PAS réagir - on vient de faire glisser, pas
  * de cliquer.
  */
 let dernierGlissement = 0
@@ -119,7 +119,7 @@ function cadrageBataille(b: BattleState | null, vue: VueScene): Cadrage {
   const cx = sx / sp
   const cy = sy / sp
 
-  // étendue à cadrer — les traînards très à l'écart ne dictent pas le zoom
+  // étendue à cadrer - les traînards très à l'écart ne dictent pas le zoom
   let x0 = chaud.x
   let x1 = chaud.x
   let y0 = chaud.y
@@ -138,7 +138,7 @@ function cadrageBataille(b: BattleState | null, vue: VueScene): Cadrage {
   return recadrer({ cx, cy: cy - 34 / z, z }, vue)
 }
 
-/** constante de temps de la caméra automatique (ms) — elle doit s'oublier */
+/** constante de temps de la caméra automatique (ms) - elle doit s'oublier */
 const TAU_CAMERA = 1150
 
 export interface Camera {

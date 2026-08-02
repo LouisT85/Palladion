@@ -8,18 +8,18 @@ import { D_TERRE } from './Terrain'
  * plante un REPÈRE dans le paysage, et ce repère est toujours le même que dans
  * l'Iliade. On les reconnaît sans lire une ligne :
  *
- *   · grève      — mille nefs noires tirées sur le sable, à l'ouest ;
- *   · plaine     — le camp achéen installé pour dix ans, tentes et fumées ;
- *   · murailles  — Ilion sur son tertre, à l'est de la plaine ;
- *   · fleuve     — le Scamandre débordé, qui coupe la plaine en deux ;
- *   · ruines     — la ville en flammes, et la carcasse du cheval sur la grève.
+ *   · grève      - mille nefs noires tirées sur le sable, à l'ouest ;
+ *   · plaine     - le camp achéen installé pour dix ans, tentes et fumées ;
+ *   · murailles  - Ilion sur son tertre, à l'est de la plaine ;
+ *   · fleuve     - le Scamandre débordé, qui coupe la plaine en deux ;
+ *   · ruines     - la ville en flammes, et la carcasse du cheval sur la grève.
  *
  * Ce sont des couches ADDITIVES, posées entre le terrain et le village : elles ne
  * touchent pas à la carte, elles la peuplent. Tout est dessiné dans le repère
  * 1200×800 de la carte, avec l'horizon à y = 212 et la mer au sud-ouest.
  *
  * Style : lumière au nord-ouest, ombres portées vers le sud-est, aucun contour
- * noir, aucun tirage aléatoire au rendu — les positions sont écrites en dur ou
+ * noir, aucun tirage aléatoire au rendu - les positions sont écrites en dur ou
  * dérivées d'un indice, pour que deux rendus donnent la même image.
  */
 
@@ -45,7 +45,7 @@ function Nef({ x, y, s = 1, teinte = '#33291f' }: { x: number; y: number; s?: nu
   )
 }
 
-/** ACTE I — la grève de Sigée : la flotte échouée, gréements à l'horizon */
+/** ACTE I - la grève de Sigée : la flotte échouée, gréements à l'horizon */
 function Greve() {
   // les nefs suivent la ligne de rivage (D_RIVE de Terrain.tsx), en trois rangs
   const rangs: { x: number; y: number; s: number }[] = []
@@ -56,7 +56,7 @@ function Greve() {
     <g pointerEvents="none">
       {/* voiles encore au large, dans l'eau et non dans le ciel : la flotte n'a
           pas fini d'arriver. La mer n'occupe que l'angle sud-ouest de la carte,
-          d'où ces coordonnées serrées — une voile posée plus haut flotterait
+          d'où ces coordonnées serrées - une voile posée plus haut flotterait
           au-dessus de la prairie. */}
       <g opacity={0.62}>
         {[
@@ -99,7 +99,7 @@ function Greve() {
   )
 }
 
-/** ACTE II — le camp achéen installé pour durer : tentes, palissade, fumées */
+/** ACTE II - le camp achéen installé pour durer : tentes, palissade, fumées */
 function CampAcheen() {
   const tentes: { x: number; y: number; s: number }[] = []
   for (let i = 0; i < 14; i++) tentes.push({ x: 132 + i * 41, y: HORIZON - 4 + (i % 3) * 3, s: 0.9 + (i % 4) * 0.06 })
@@ -204,7 +204,7 @@ function Ilion({ feu = false, ruine = false }: { feu?: boolean; ruine?: boolean 
           ))}
           {/*
            * La fumée : trois masses et non cinq tuyaux. Une colonne de fumée
-           * s'ÉLARGIT en montant et penche avec le vent — cinq traits verticaux
+           * s'ÉLARGIT en montant et penche avec le vent - cinq traits verticaux
            * de même épaisseur se lisaient comme des cheminées d'usine.
            */}
           {[
@@ -239,7 +239,7 @@ function Ilion({ feu = false, ruine = false }: { feu?: boolean; ruine?: boolean 
 }
 
 /**
- * ACTE IV — le Scamandre débordé. Il traverse la plaine du nord-est vers la mer
+ * ACTE IV - le Scamandre débordé. Il traverse la plaine du nord-est vers la mer
  * du sud-ouest, en contournant l'enceinte par le nord : le village garde ses
  * abords, mais la plaine n'est plus franchissable sans mouiller ses lances.
  */
@@ -252,7 +252,7 @@ function Fleuve() {
       <path d={lit} stroke="#6d7f7a" strokeWidth={44} fill="none" strokeLinecap="round" />
       <path d={lit} stroke="#7d9089" strokeWidth={34} fill="none" strokeLinecap="round" />
       <path d={lit} stroke="#8fa39a" strokeWidth={16} fill="none" opacity={0.7} strokeLinecap="round" />
-      {/* moires du courant, animées très lentement — un fleuve en crue est lourd */}
+      {/* moires du courant, animées très lentement - un fleuve en crue est lourd */}
       <path d={lit} stroke="#c3d2c6" strokeWidth={2.6} fill="none" opacity={0.34} strokeDasharray="26 58" strokeLinecap="round">
         <animate attributeName="stroke-dashoffset" values="0;-336" dur="14s" repeatCount="indefinite" />
       </path>
@@ -306,7 +306,7 @@ function Fleuve() {
 }
 
 /**
- * ACTE V — la carcasse du cheval, abandonnée sur la grève désertée. Posée au haut
+ * ACTE V - la carcasse du cheval, abandonnée sur la grève désertée. Posée au haut
  * de plage, entre l'eau et la prairie : c'est là qu'on l'a laissé.
  */
 function ChevalDeBois() {
@@ -333,7 +333,7 @@ function ChevalDeBois() {
       <path d="M43,-27 Q47,-25 46,-21" stroke="#5f4c33" strokeWidth={1.1} fill="none" />
       <circle cx={41} cy={-26} r={1.5} fill="#3c3024" />
       <path d="M31,-30 l-3,-6 M35,-32 l-1,-7" stroke="#5f4c33" strokeWidth={1.6} strokeLinecap="round" />
-      {/* la pique de Laocoon, restée dans le flanc — le bois avait sonné creux */}
+      {/* la pique de Laocoon, restée dans le flanc - le bois avait sonné creux */}
       <path d="M-6,8 L-30,-6" stroke="#6b5333" strokeWidth={1.6} />
       <path d="M-30,-6 l-5,-1.4 l3,4 Z" fill="#9aa0a8" />
       {/* dédicace à Athéna, gravée sur le poitrail */}
@@ -353,14 +353,14 @@ function ChevalDeBois() {
  * Cette couche repeint la terre elle-même, clippée sur la même silhouette que la
  * plaine (`D_TERRE`) pour que rien ne déborde sur la mer :
  *
- *   · grève      — le sable remonte dans l'herbe, les dunes gagnent ;
- *   · plaine     — dix ans de camp : boue, ornières de chars, feux éteints ;
- *   · murailles  — la poussière du siège, la terre battue, plus une fleur ;
- *   · fleuve     — la crue a tout détrempé : flaques, limon, roseaux ;
- *   · ruines     — la cendre est tombée sur tout, et quelques braises tiennent.
+ *   · grève      - le sable remonte dans l'herbe, les dunes gagnent ;
+ *   · plaine     - dix ans de camp : boue, ornières de chars, feux éteints ;
+ *   · murailles  - la poussière du siège, la terre battue, plus une fleur ;
+ *   · fleuve     - la crue a tout détrempé : flaques, limon, roseaux ;
+ *   · ruines     - la cendre est tombée sur tout, et quelques braises tiennent.
  *
  * Deux règles tenues : aucun tirage au rendu (les semis sont dérivés d'un indice)
- * et aucune opacité assez forte pour effacer le relief du terrain — on TEINTE,
+ * et aucune opacité assez forte pour effacer le relief du terrain - on TEINTE,
  * on ne recouvre pas.
  */
 
@@ -618,7 +618,7 @@ function SolActe({ cadre }: { cadre: CadreActe }) {
 
 /**
  * Le décor d'un acte, posé entre le terrain et le village : d'abord la TERRE
- * repeinte, ensuite les repères qu'on y plante. `null` en bac à sable — la
+ * repeinte, ensuite les repères qu'on y plante. `null` en bac à sable - la
  * plaine de la Troade s'y suffit.
  */
 export function DecorActe({ cadre }: { cadre: CadreActe | null }) {
@@ -637,7 +637,7 @@ export function DecorActe({ cadre }: { cadre: CadreActe | null }) {
   )
 }
 
-/** les repères plantés dans le paysage — nefs, camp, murailles, fleuve, cheval */
+/** les repères plantés dans le paysage - nefs, camp, murailles, fleuve, cheval */
 function Reperes({ cadre }: { cadre: CadreActe }) {
   switch (cadre) {
     case 'greve':

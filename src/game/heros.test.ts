@@ -26,13 +26,13 @@ import { ferveur, relationEffective, useGame, type GameState } from './store'
  * Les héros sont la partie la plus chère du jeu en contenu écrit et la plus
  * fragile en équilibrage : huit fiches à la main, des arcs à embranchements et
  * des passifs qui s'additionnent en silence. On verrouille ici ce qui ne se voit
- * pas à l'écran — la cohérence des tables, la progression, le moment exact où un
+ * pas à l'écran - la cohérence des tables, la progression, le moment exact où un
  * nœud d'arc a le droit de s'ouvrir, et le branchement des passifs sur la partie.
  *
  * Deux partis pris pour que chaque test puisse rougir :
- *  — les valeurs attendues sont écrites en clair (0,15 pour Hector, 5,7 🌾 pour
+ *  - les valeurs attendues sont écrites en clair (0,15 pour Hector, 5,7 🌾 pour
  *    la table complète) plutôt que relues dans la table qu'on prétend vérifier ;
- *  — les invariants d'arc sont des recensements EXHAUSTIFS (« il existe
+ *  - les invariants d'arc sont des recensements EXHAUSTIFS (« il existe
  *    exactement un cul-de-sac, celui d'Achille »), de sorte qu'un nœud ajouté ou
  *    un plafond déplacé se signale au lieu de passer entre les mailles.
  *
@@ -56,7 +56,7 @@ function auService(...ids: HeroId[]): Record<HeroId, HeroState> {
   return etats
 }
 
-/** ce que CHAQUE héros apporte, seul, à la maisonnée — écrit à la main exprès */
+/** ce que CHAQUE héros apporte, seul, à la maisonnée - écrit à la main exprès */
 const APPORT: Record<HeroId, Partial<BonusHeros>> = {
   hector: { wallHpPct: 0.15 },
   ulysse: { revelerVague: true, alerteBonusMs: 120_000 },
@@ -237,7 +237,7 @@ describe('progression d’un héros', () => {
      * L'index est décalé d'un cran (niveau 1 → première case). Ces valeurs en
      * dur sont le seul garde-fou contre un décalage silencieux : relire
      * `xpParNiveau[niveau - 1]` dans le test reviendrait à recopier la fonction
-     * et laisserait passer l'erreur classique — faire monter le niveau 1 au prix
+     * et laisserait passer l'erreur classique - faire monter le niveau 1 au prix
      * du 2.
      */
     expect(HEROS.achille.xpParNiveau).toEqual([80, 200, 380, 640])
@@ -376,7 +376,7 @@ describe('entretien de la maisonnée', () => {
     for (const id of HERO_IDS) expect(entretienTotal(auService(id)), id).toEqual(ENTRETIEN[id])
     // les huit à table : c'est ce total que le tick prélève chaque minute et qui
     // décide du départ d'un impayé. Un `Math.max` à la place de la somme le
-    // ferait tomber à 1,5 🌾 — la maisonnée deviendrait gratuite à partir du
+    // ferait tomber à 1,5 🌾 - la maisonnée deviendrait gratuite à partir du
     // deuxième héros
     const total = entretienTotal(auService(...HERO_IDS))
     expect(total.grain).toBeCloseTo(5.7, 6)
@@ -419,7 +419,7 @@ describe('ouverture des nœuds d’arc', () => {
      * Un parti qui tue le héros ou le plafonne SOUS le nœud suivant efface la
      * fin de son récit sans un mot : `peutMonter` devient faux, `noeudMur` rend
      * `null` pour toujours. On recense donc tous les partis qui referment un arc
-     * et on exige que la liste reste VIDE — un nœud ajouté, un plafond abaissé ou
+     * et on exige que la liste reste VIDE - un nœud ajouté, un plafond abaissé ou
      * une mort avancée d'un chapitre se signale ici.
      *
      * (Un tel cul-de-sac a existé : « Le retenir de force » plafonnait Achille au
@@ -460,7 +460,7 @@ describe('ouverture des nœuds d’arc', () => {
     }
     /*
      * Le plafond doit couvrir EXACTEMENT le dernier nœud : ni moins (l'arc
-     * s'arrêterait en silence), ni forcément plus (le parti perdrait sa morsure —
+     * s'arrêterait en silence), ni forcément plus (le parti perdrait sa morsure -
      * un Achille retenu ne doit pas finir aussi haut que celui qu'on a lâché).
      */
     expect(brise.plafond).toBe(def.arc[2].niveauRequis)
@@ -483,7 +483,7 @@ describe('ouverture des nœuds d’arc', () => {
  * l'horizon) et on n'observe que ce que les héros y changent.
  */
 
-/** tous les Olympiens à la même relation — le seul levier qui nous intéresse ici */
+/** tous les Olympiens à la même relation - le seul levier qui nous intéresse ici */
 function relations(n: number): GameState['gods'] {
   return Object.fromEntries(GOD_IDS.map((g) => [g, { relation: n, cooldownUntil: 0 }])) as GameState['gods']
 }
@@ -534,14 +534,14 @@ describe('les passifs branchés sur la partie', () => {
     // 1 + 40 % (Achille, partout) + 25 % (Diomède, en expédition seulement) :
     // oublier l'un des deux termes dans le store donnerait 1,4 ou 1,25
     expect(exp!.battle.bonusAtkJoueur).toBeCloseTo(1.65, 6)
-    // ils marchent en tête de colonne — et le boudeur n'y est pas
+    // ils marchent en tête de colonne - et le boudeur n'y est pas
     const colonne = exp!.battle.fighters.filter((f) => f.heros)
     expect(colonne.map((f) => f.heros)).toEqual(['achille', 'diomede'])
     for (const f of colonne) expect(f.camp).toBe('attaque')
     /*
      * La garde d'Ajax vaut aussi loin de chez soi. `lancerExpedition` ne
      * transmettait pas `reducJoueur` : le moteur retombait sur 1, et la fiche
-     * d'Ajax — qui la promet sans réserve — mentait en pillage comme en secours.
+     * d'Ajax - qui la promet sans réserve - mentait en pillage comme en secours.
      *
      * 0,75 et non 1, alors qu'Ajax ne marche pas dans cette colonne : un PASSIF
      * s'applique depuis la maisonnée, pas depuis le champ de bataille. C'est vrai

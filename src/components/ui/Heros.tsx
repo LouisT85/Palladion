@@ -7,10 +7,10 @@ import { Modale } from './Modale'
 /*
  * Les héros ne sont pas une collection : ce sont des hôtes exigeants. Ce panneau
  * doit donc montrer, dans l'ordre, ce qu'ils APPORTENT, ce qu'ils COÛTENT, et où
- * ils en sont de leur histoire — y compris quand elle s'est mal terminée.
+ * ils en sont de leur histoire - y compris quand elle s'est mal terminée.
  */
 
-/** coût en pictogrammes peints — jamais d'émoji dans une fiche de héros */
+/** coût en pictogrammes peints - jamais d'émoji dans une fiche de héros */
 function Cout({ c, taille = 14 }: { c: Cost; taille?: number }) {
   return (
     <>
@@ -56,7 +56,7 @@ function Niveaux({ niveau, plafond }: { niveau: number; plafond: number }) {
   )
 }
 
-/** boutons d'appel des héros pendant une bataille — à côté de ceux des dieux */
+/** boutons d'appel des héros pendant une bataille - à côté de ceux des dieux */
 export function HerosRapides() {
   const heros = useGame((s) => s.heros)
   const faveur = useGame((s) => s.faveur)
@@ -82,7 +82,7 @@ export function HerosRapides() {
             title={
               boude
                 ? `${def.nom} boude sous sa tente.`
-                : `${def.capacite.nom} — ${def.capacite.desc} (niveau ${e.niveau}, puissance ×${forceNiveau(e.niveau).toFixed(1)})`
+                : `${def.capacite.nom} - ${def.capacite.desc} (niveau ${e.niveau}, puissance ×${forceNiveau(e.niveau).toFixed(1)})`
             }
           >
             {def.emoji} {boude ? '😤' : cd > 0 ? `${Math.ceil(cd / 1000)}s` : `${def.capacite.cout}✨`}
@@ -133,13 +133,13 @@ export function PanneauHeros() {
           ) : e.recrute ? (
             <>
               <div className="heros-ligne">
-                <b>Passif</b> — {def.passif.desc}
+                <b>Passif</b> - {def.passif.desc}
               </div>
               <div className="heros-ligne">
                 <b>
                   {def.capacite.emoji} {def.capacite.nom}
                 </b>{' '}
-                — {def.capacite.desc}
+                - {def.capacite.desc}
                 <span className="heros-force"> (puissance ×{forceNiveau(e.niveau).toFixed(1)})</span>
               </div>
               {progresse ? (
@@ -177,13 +177,13 @@ export function PanneauHeros() {
           ) : (
             <>
               <div className="heros-ligne">
-                <b>Passif</b> — {def.passif.desc}
+                <b>Passif</b> - {def.passif.desc}
               </div>
               <div className="heros-ligne">
                 <b>
                   {def.capacite.emoji} {def.capacite.nom}
                 </b>{' '}
-                — {def.capacite.desc}
+                - {def.capacite.desc}
               </div>
               <div className="heros-conds">
                 {conds.map((c, i) => (
@@ -216,14 +216,14 @@ export function PanneauHeros() {
       dataTuto="modale-heros"
       large
       onFermer={() => s.openPanel(null)}
-      sous="Ils ne s’achètent pas : ils viennent quand la cité en est digne, exigent des honneurs chaque minute, gagnent des niveaux en combattant — et traversent une histoire dont certaines fins sont sans retour."
+      sous="Ils ne s’achètent pas : ils viennent quand la cité en est digne, exigent des honneurs chaque minute, gagnent des niveaux en combattant - et traversent une histoire dont certaines fins sont sans retour."
     >
       <>
         {(ent.grain > 0 || ent.faveur > 0) && (
           <div style={{ fontSize: 12.5, color: '#e0bc5c', marginTop: 6 }}>
             🍖 Entretien de la maisonnée : {ent.grain > 0 ? `${ent.grain.toFixed(1)} 🌾/min` : ''}
             {ent.grain > 0 && ent.faveur > 0 ? ' + ' : ''}
-            {ent.faveur > 0 ? `${ent.faveur.toFixed(2)} ✨/min` : ''} — trois rappels sans réponse et ils s’en vont.
+            {ent.faveur > 0 ? `${ent.faveur.toFixed(2)} ✨/min` : ''} - trois rappels sans réponse et ils s’en vont.
           </div>
         )}
 
@@ -253,7 +253,7 @@ export function ModaleArcHeros() {
           {noeud.emoji} {noeud.titre}
         </h2>
         <div style={{ fontSize: 12.5, color: '#7a5f38', marginTop: -4, marginBottom: 8 }}>
-          {def.emoji} {def.nom} — {def.titre} · niveau {s.heros[s.arcHeros.heros].niveau}
+          {def.emoji} {def.nom} - {def.titre} · niveau {s.heros[s.arcHeros.heros].niveau}
         </div>
         {s.arcIssue ? (
           <div className="issue">
@@ -278,7 +278,7 @@ export function ModaleArcHeros() {
                   {o.label}
                   {o.cout ? (
                     <>
-                      {' — '}
+                      {' - '}
                       <Cout c={o.cout} taille={13} />
                     </>
                   ) : null}

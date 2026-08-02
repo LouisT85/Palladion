@@ -8,10 +8,10 @@ import { PortraitZeus } from './Zeus'
  *
  * Deux mécanismes distincts, volontairement séparés :
  *
- *  · ce qu'on VOIT — un masque SVG plein écran percé d'un trou par cible. Il
+ *  · ce qu'on VOIT - un masque SVG plein écran percé d'un trou par cible. Il
  *    n'intercepte rien du tout (`pointer-events: none`), il ne fait qu'éteindre.
  *
- *  · ce qu'on PEUT TOUCHER — un écouteur en phase de capture qui avale tout
+ *  · ce qu'on PEUT TOUCHER - un écouteur en phase de capture qui avale tout
  *    clic hors des cibles. C'est lui, et lui seul, qui verrouille le focus.
  *
  * Les avoir séparés permet plusieurs cibles à la fois : bâtir la ferme demande
@@ -49,7 +49,7 @@ function memeCadres(a: Cadre[], b: Cadre[]): boolean {
   return a.every((c, i) => Math.abs(c.x - b[i].x) < 0.5 && Math.abs(c.y - b[i].y) < 0.5 && c.w === b[i].w && c.h === b[i].h)
 }
 
-/** aire commune à deux rectangles — 0 s'ils ne se touchent pas */
+/** aire commune à deux rectangles - 0 s'ils ne se touchent pas */
 function recouvrement(a: Cadre, b: Cadre): number {
   const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
   const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
@@ -59,8 +59,8 @@ function recouvrement(a: Cadre, b: Cadre): number {
 /**
  * Ce qui ne doit JAMAIS passer sous l'encart de Zeus, même quand toutes les
  * places sont mauvaises : la barre de titre des panneaux, donc leur croix de
- * fermeture. Quand la cible est un panneau entier — 680 px de large, 86 % de la
- * hauteur —, aucune position n'est libre, et l'encart finissait en travers de la
+ * fermeture. Quand la cible est un panneau entier - 680 px de large, 86 % de la
+ * hauteur -, aucune position n'est libre, et l'encart finissait en travers de la
  * seule sortie visible : le joueur devait deviner qu'il fallait dérouler jusqu'au
  * bouton « Fermer » du bas.
  */
@@ -78,7 +78,7 @@ function zonesSacrees(): Cadre[] {
  *
  * `place` n'est qu'une PRÉFÉRENCE : on essaie plusieurs positions et on garde
  * la première qui ne recouvre AUCUNE cible. Sans cela, l'encart se mettait en
- * travers du bouton à cliquer — au recensement, il masquait précisément la
+ * travers du bouton à cliquer - au recensement, il masquait précisément la
  * ligne « + Danaé » qu'il demandait d'actionner, et la leçon était bloquée.
  *
  * Les zones sacrées, elles, pèsent quarante fois plus lourd qu'une cible
@@ -212,8 +212,8 @@ export function Tutoriel() {
 
   /*
    * Geste attendu. Deux régimes :
-   *  · `fait` — une condition sur l'état du jeu, relue quatre fois par seconde ;
-   *  · `voir` — le joueur doit avoir OUVERT le panneau puis l'avoir REFERMÉ.
+   *  · `fait` - une condition sur l'état du jeu, relue quatre fois par seconde ;
+   *  · `voir` - le joueur doit avoir OUVERT le panneau puis l'avoir REFERMÉ.
    *    Sans le second temps, l'étape se validerait à l'ouverture et la suivante
    *    refermerait le panneau au quart de seconde : rien à voir, leçon perdue.
    */
@@ -264,7 +264,7 @@ export function Tutoriel() {
         </div>
         <div className="tuto-corps">
           <div className="tuto-compteur">
-            Zeus — {etapeIdx + 1} / {NB_ETAPES}
+            Zeus - {etapeIdx + 1} / {NB_ETAPES}
           </div>
           <h3>{etape.titre}</h3>
           {etape.texte.map((p, i) => (
@@ -291,7 +291,7 @@ export function Tutoriel() {
 }
 
 /**
- * Les textes de Zeus portent quelques **mots en gras** — la syntaxe Markdown la
+ * Les textes de Zeus portent quelques **mots en gras** - la syntaxe Markdown la
  * plus universelle. On ne convertit QUE cela, sur du texte que nous écrivons
  * nous-mêmes : aucune saisie du joueur ne passe par ici.
  */

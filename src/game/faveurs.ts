@@ -4,7 +4,7 @@ import type { GodId } from './types'
  * ═══════════════════ L'ARBRE DE FAVEUR ═══════════════════
  *
  * La relation à un dieu ne servait qu'à une chose : multiplier la puissance de sa
- * bénédiction. Elle montait, elle descendait, et l'on n'en faisait jamais rien —
+ * bénédiction. Elle montait, elle descendait, et l'on n'en faisait jamais rien -
  * c'était une jauge, pas une décision.
  *
  * Ici, la relation se DÉPENSE. Chaque Olympien offre trois grâces permanentes,
@@ -12,7 +12,7 @@ import type { GodId } from './types'
  *
  *  · ce qu'on achète est ACQUIS : une grâce ne se perd pas si le dieu se refroidit
  *    ensuite. On a versé le prix, on garde le don ;
- *  · ce qu'on dépense est PERDU pour la puissance des bénédictions — la relation
+ *  · ce qu'on dépense est PERDU pour la puissance des bénédictions - la relation
  *    retombe d'autant. Monter sa ferveur ou l'échanger, c'est le vrai arbitrage ;
  *  · les grâces d'un dieu se prennent DANS L'ORDRE : la troisième d'Arès n'a de
  *    sens qu'après les deux premières, et l'ordre raconte quelque chose de lui.
@@ -23,7 +23,7 @@ export interface Grace {
   nom: string
   desc: string
   emoji: string
-  /** points de relation à verser — retirés définitivement */
+  /** points de relation à verser - retirés définitivement */
   cout: number
 }
 
@@ -118,7 +118,7 @@ export const GRACES: Record<GodId, Grace[]> = {
       id: 'poseidon-3',
       nom: 'Ébranleur du sol',
       emoji: '🔱',
-      desc: 'Vos tours portent un cinquième plus loin — la plaine se couvre de flèches.',
+      desc: 'Vos tours portent un cinquième plus loin - la plaine se couvre de flèches.',
       cout: 55,
     },
   ],
@@ -182,7 +182,7 @@ export function dieuDe(id: string): GodId | null {
 }
 
 /**
- * La prochaine grâce qu'un dieu peut accorder — les siennes se prennent dans
+ * La prochaine grâce qu'un dieu peut accorder - les siennes se prennent dans
  * l'ordre. `null` quand il a tout donné.
  */
 export function graceSuivante(dieu: GodId, acquises: string[]): Grace | null {

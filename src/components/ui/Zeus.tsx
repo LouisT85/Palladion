@@ -4,7 +4,7 @@
  * Le maître de l'Olympe tel qu'on le reconnaît sans légende : front lourd,
  * sourcils barrés, barbe et chevelure épaisses et blanches, couronne de laurier,
  * et l'éclair à la main. C'est l'iconographie du Zeus d'Olympie et des vases
- * attiques — celle que tout le monde a déjà vue.
+ * attiques - celle que tout le monde a déjà vue.
  *
  * Dessiné en SVG comme le reste du jeu : PALLADION ne charge aucune image, et
  * une photographie poserait de toute façon une question de droits. Même lumière
@@ -136,7 +136,7 @@ export function PortraitZeus({
         </g>
       ))}
 
-      {/* sourcils barrés — c'est eux qui font l'autorité du visage */}
+      {/* sourcils barrés - c'est eux qui font l'autorité du visage */}
       <path
         d={`M-18,${-6 + sourcil} Q-10,${-11 + sourcil} -3,${-7 + sourcil}`}
         stroke={P.cheveuxOmbre}
@@ -201,7 +201,7 @@ export function PortraitZeus({
         ))}
       </g>
 
-      {/* l'éclair, tenu bas à droite — la signature du personnage */}
+      {/* l'éclair, tenu bas à droite - la signature du personnage */}
       <g transform="translate(40,26) rotate(18)">
         <path d="M0,-26 L-7,-4 L-1,-4 L-6,18 L9,-6 L2,-6 L8,-26 Z" fill={P.or} />
         <path d="M0,-26 L-7,-4 L-3.4,-4 L1.6,-26 Z" fill={P.orLit} />

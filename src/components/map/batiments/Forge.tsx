@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { AOBase, Batisse3D, Fenetre3D, MurPierre, OmbreVolume, PAL, alea } from '../art'
 
 /*
- * FORGE — peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres SE.
+ * FORGE - peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres SE.
  *  1. foyer d'argile + soufflet + enclume en plein air
  *  2. atelier couvert (appentis de tuiles, lanterne à fumée)
  *  3. forge en dur : four de briques contre le mur + râtelier d'armes
@@ -10,7 +10,7 @@ import { AOBase, Batisse3D, Fenetre3D, MurPierre, OmbreVolume, PAL, alea } from 
  * Les forgerons de Ouvriers.tsx frappent en (12,6) et (-22,13) : l'enclume
  * principale reste en (3.5,7), la seconde en (-13.5,14).
  * La forge IRRADIE : halo radial sur les briques, nappe chaude au sol,
- * liserés orangés sur les flancs ouest — contre l'acier et l'eau, froids.
+ * liserés orangés sur les flancs ouest - contre l'acier et l'eau, froids.
  * IDs de defs locaux préfixés « f- ».
  */
 
@@ -94,7 +94,7 @@ function DefsForge() {
   )
 }
 
-/** bouffées à bords fondus — remplace les disques opaques, même cadence SMIL */
+/** bouffées à bords fondus - remplace les disques opaques, même cadence SMIL */
 function FumeeForge({ x = 0, y = 0, s = 1, t = 0, grasse = false }: { x?: number; y?: number; s?: number; t?: number; grasse?: boolean }) {
   const f = grasse ? 'url(#f-suie)' : 'url(#f-fumee)'
   return (
@@ -137,7 +137,7 @@ function AssisesBriques({ seed, rustique, simple }: { seed: number; rustique?: b
   COURS.forEach((c, i) => {
     const yAt = (t: number) => c.y - c.sag * (1 - t * t)
     dLits.push(`M${-c.hw},${c.y} Q0,${c.y - c.sag * 2} ${c.hw},${c.y}`)
-    // joints verticaux décalés d'une assise à l'autre — la brique, pas l'argile
+    // joints verticaux décalés d'une assise à l'autre - la brique, pas l'argile
     const ts = i % 2 ? [-0.66, -0.22, 0.24, 0.68] : [-0.84, -0.44, 0, 0.44, 0.84]
     if (!rustique) {
       ts.forEach((t) => dMonts.push(`M${(t * c.hw).toFixed(2)},${yAt(t).toFixed(2)} l${(t * 0.9).toFixed(2)},${c.h.toFixed(2)}`))
@@ -339,7 +339,7 @@ function Enclume({ x, y, s = 1, t = 0, piece = true }: { x: number; y: number; s
       <path d="M2.4,-6.9 Q5.2,-6.9 6.7,-6.1 L5.7,-5.95 Q4.4,-6.45 2.4,-6.5 Z" fill="#8b939d" />
       <path d="M-3.5,-6.9 L-3.1,-7.7 L2.6,-7.7 L2.4,-6.9 Z" fill="#a8b1bb" />
       <path d="M-3.1,-7.7 L2.6,-7.7 L2.5,-7.45 L-3.2,-7.45 Z" fill="#dbe3ea" opacity={0.85} />
-      {/* le four rougeoie sur les arêtes ouest — contraste chaud / froid */}
+      {/* le four rougeoie sur les arêtes ouest - contraste chaud / froid */}
       <path d="M-3.55,-5.3 L-3.55,-6.85" stroke="#ff9a45" strokeWidth={0.9} opacity={0.6} />
       <path d="M-3.62,-3.5 L-3.5,-1" stroke="#ff9a45" strokeWidth={0.8} opacity={0.32} />
       {piece && (
@@ -593,12 +593,12 @@ function Etabli({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
   )
 }
 
-/** cuirasse de bronze sur mannequin, casque à crête, jambières — l'étal d'Héphaïstos */
+/** cuirasse de bronze sur mannequin, casque à crête, jambières - l'étal d'Héphaïstos */
 function Cuirasse({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
   return (
     <g transform={`translate(${x},${y}) scale(${s})`}>
       <ellipse cx={2} cy={0.8} rx={6.4} ry={1.8} fill={PAL.ombrePortee} opacity={0.18} filter="url(#a-flou1)" />
-      {/* présentoir : panneau de planches sombres — le bronze y prend toute sa valeur */}
+      {/* présentoir : panneau de planches sombres - le bronze y prend toute sa valeur */}
       <path d="M-5.8,-0.4 L-5.5,-16.2 L5.5,-16.2 L5.8,-0.4 Z" fill="#5a4327" />
       <path d="M-5.8,-0.4 L-5.5,-16.2 L-4.4,-16.2 L-4.6,-0.4 Z" fill="#7a5731" />
       <path d="M4.3,-16.2 L5.5,-16.2 L5.8,-0.4 L4.5,-0.4 Z" fill="#40301b" />
@@ -783,7 +783,7 @@ export function Forge({ n }: { n: number }) {
   const gros = n >= 4
   const aire = 37 + n * 2.6
 
-  // suie et cendre au sol, chutes de fer qui traînent — semis déterministe
+  // suie et cendre au sol, chutes de fer qui traînent - semis déterministe
   const taches = Array.from({ length: 5 }, (_, i) => ({
     x: -26 + rnd() * 48,
     y: 1 + rnd() * 10,

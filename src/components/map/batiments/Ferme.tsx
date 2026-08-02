@@ -3,7 +3,7 @@ import { AOBase, Batisse3D, Fenetre3D, OmbreVolume, PAL, Porte3D, alea } from '.
 import { Fumee } from './primitives'
 
 /*
- * FERME — les champs s'étendent vers l'EST (x+), loin de la mer.
+ * FERME - les champs s'étendent vers l'EST (x+), loin de la mer.
  * Peint réaliste (bible docs/STYLE-ART.md) : lumière NW, ombres portées SE,
  * zéro contour noir, modelé par les valeurs.
  *  1. un champ d'orge + hutte de torchis     2. deux champs + enclos à chèvres
@@ -129,7 +129,7 @@ function Champ({ x, y, w, h, stade, seed = 1 }: { x: number; y: number; w: numbe
       <path d={`M${eR[0] + 0.8},${eY[0] + 1} L${eR[n] + 0.6},${eY[n] + 0.4} L${eL[n] + 1.5},${eY[n] + 0.7}`} stroke="#5d472a" strokeWidth={1.1} opacity={0.7} fill="none" />
       <path d={`M${eR[0] + 0.2},${eY[0] - 0.9} L${eL[0] + 0.4},${eY[0] - 0.9} L${eL[n] - 0.9},${eY[n] - 0.3}`} stroke="#b69762" strokeWidth={0.9} opacity={0.75} fill="none" />
       {bandes}
-      {/* creux des sillons (ombre) puis crêtes prises par la lumière NW —
+      {/* creux des sillons (ombre) puis crêtes prises par la lumière NW -
           traits rompus : de la terre travaillée, pas des joints de planches */}
       <path d={grooves.join(' ')} stroke={creux} strokeWidth={0.85} opacity={0.34} fill="none" strokeDasharray="2.6 1.6" />
       <path d={cretes.join(' ')} stroke={crete} strokeWidth={0.6} opacity={0.4} fill="none" strokeDasharray="1.9 2.3" />
@@ -214,7 +214,7 @@ function Muret({ x1, y1, x2, y2, seed = 1 }: { x1: number; y1: number; x2: numbe
   )
 }
 
-/** l'épouvantail — le gardien immuable des champs */
+/** l'épouvantail - le gardien immuable des champs */
 function Epouvantail({ x = 0, y = 0 }: { x?: number; y?: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
@@ -270,7 +270,7 @@ function Hutte({ n }: { n: number }) {
   )
 }
 
-/** corps de ferme en pierre, tuiles (niveaux 3–4) */
+/** corps de ferme en pierre, tuiles (niveaux 3-4) */
 function FermePierre({ n }: { n: number }) {
   return (
     <Batisse3D
@@ -567,7 +567,7 @@ export function Ferme({ n }: { n: number }) {
       <path d="M4,3.8 C13,4.6 21,5 30,5.2 C21,6.6 12,6.4 3,5.6 Z" fill="#dbc794" opacity={0.55} />
       <path d="M4,4 C13,4.8 21,5 29,5.1 M4,6 C13,6.4 20,6.3 28,6" stroke="#a68c5c" strokeWidth={0.6} opacity={0.5} fill="none" />
 
-      {/* parcelles — vers l'est */}
+      {/* parcelles - vers l'est */}
       <Champ x={44} y={4} w={54} h={22} stade={n >= 3 ? 'or' : n === 2 ? 'mur' : 'jeune'} seed={3} />
       {n >= 2 && <Champ x={56} y={-21} w={44} h={17} stade={n >= 3 ? 'or' : 'mur'} seed={8} />}
       {n >= 4 && <Champ x={95} y={-2} w={36} h={22} stade="or" seed={13} />}

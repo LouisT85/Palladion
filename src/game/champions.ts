@@ -8,19 +8,19 @@ import type { HeroId } from './types'
  * vagues se ressemblaient donc : plus grosses, jamais autres.
  *
  * Un champion change cela. Quand la menace est haute, un NOM prend la tête de la
- * colonne — et pas n'importe lequel : l'un des huit héros de la matière
+ * colonne - et pas n'importe lequel : l'un des huit héros de la matière
  * troyenne, précisément ceux que le joueur peut recruter. Achille ne vient pas
  * sous vos murs par hasard : il vient parce qu'il n'est pas à votre table.
  *
  * Trois règles qui font tout l'intérêt :
  *
  *  · un héros À VOTRE SERVICE ne peut pas vous assiéger. Recruter Achille, c'est
- *    littéralement se retirer Achille de la liste des ennemis possibles — la
+ *    littéralement se retirer Achille de la liste des ennemis possibles - la
  *    meilleure raison du monde d'aller le chercher ;
  *  · le champion retourne SA capacité contre vous. Celle-là même que sa fiche
  *    vous promet si vous l'engagez : on sait exactement ce qu'on subit ;
  *  · il se tue. C'est un homme, il a des points de vie, et l'abattre coupe net
- *    sa capacité — plus l'honneur d'avoir versé le sang d'un héros.
+ *    sa capacité - plus l'honneur d'avoir versé le sang d'un héros.
  */
 
 export interface CapaciteChampion {
@@ -46,7 +46,7 @@ export interface ChampionDef {
   presage: string
   /** menace minimale pour qu'il daigne se déplacer */
   menaceMin: number
-  /** poids du tirage — les plus grands noms restent rares */
+  /** poids du tirage - les plus grands noms restent rares */
   poids: number
   /** points de vie et frappe, en multiples d'un mercenaire */
   vigueur: number
@@ -198,15 +198,15 @@ export const CHAMPIONS: ChampionDef[] = [
 
 export const CHAMPION_PAR_ID: Record<string, ChampionDef> = Object.fromEntries(CHAMPIONS.map((c) => [c.id, c]))
 
-/** nom, emblème et couleur — repris de la fiche du héros, il s'agit du même homme */
+/** nom, emblème et couleur - repris de la fiche du héros, il s'agit du même homme */
 export function ficheChampion(id: HeroId): { nom: string; emoji: string; couleur: string } {
   const h = HEROS[id]
   return { nom: h.nom, emoji: h.emoji, couleur: h.couleur }
 }
 
 /**
- * Qui peut venir vous assiéger. On écarte ceux qui sont à votre service — c'est
- * la raison d'être du recrutement — et ceux que leur arc a tués : un mort ne
+ * Qui peut venir vous assiéger. On écarte ceux qui sont à votre service - c'est
+ * la raison d'être du recrutement - et ceux que leur arc a tués : un mort ne
  * revient pas, même contre vous.
  */
 export function championsPossibles(

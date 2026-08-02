@@ -1,4 +1,4 @@
-# PALLADION — feuille de route
+# PALLADION - feuille de route
 
 État au 2 août 2026.
 
@@ -14,11 +14,11 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Domaine | État | Reste à faire |
 |---|---|---|
 | Boucle de gestion | ✅ complet | rien de bloquant |
-| Défense et batailles | ✅ complet | rien de bloquant — ordres, moral, six unités, champions nommés |
+| Défense et batailles | ✅ complet | rien de bloquant - ordres, moral, six unités, champions nommés |
 | Offensive (8 places fortes) | ✅ complet | caravanes, espionnage |
 | Dieux et ferveur | ✅ complet | oracles, colère graduée |
 | Héros (8, arcs, entretien) | ✅ complet | rien de bloquant |
-| Diplomatie | ✅ complet | rien de bloquant — relations, présents, pactes, mariages, trahisons |
+| Diplomatie | ✅ complet | rien de bloquant - relations, présents, pactes, mariages, trahisons |
 | Village vivant | ✅ complet | âges, foyers, lignées, transmission des métiers |
 | Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, 51 hauts faits, campagne en 5 actes |
 | Campagne « La Chute » | ✅ complet | cinq actes, chacun avec son sol et ses repères |
@@ -30,16 +30,16 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 
 ---
 
-## 🎯 Priorité 1 — ce qui manque le plus au jeu
+## 🎯 Priorité 1 - ce qui manque le plus au jeu
 
 | # | Chantier | Effort | Impact | Pourquoi maintenant |
 |---|---|---|---|---|
-| 1 | **Siège sans fin** | M | ★★★ | Vagues de difficulté croissante, sans répit, score local. Réutilise tout le moteur de bataille — et désormais les ordres, le moral, les six unités et les champions nommés. Les hauts faits sont déjà là pour le noter. |
+| 1 | **Siège sans fin** | M | ★★★ | Vagues de difficulté croissante, sans répit, score local. Réutilise tout le moteur de bataille - et désormais les ordres, le moral, les six unités et les champions nommés. Les hauts faits sont déjà là pour le noter. |
 | 2 | **Tests de rendu (composants)** | M | ★★ | Les 314 tests couvrent les règles, pas l'écran. Le HUD, les panneaux et le placement de l'encart du tutoriel ne sont vérifiés qu'à l'œil et par des parcours Playwright joués à la main. |
 | 3 | **Nouvelle Partie +** | M | ★★ | Rejouer en gardant le prestige : bonus de départ, héros déjà connus, Troade qui se souvient de vos trahisons, difficulté accrue. Tout l'état nécessaire existe déjà. |
 | 4 | **LOD de la carte** | M | ★★ | Au dézoom, la carte dessine tous ses nœuds SVG. Un culling hors écran et une version simplifiée des bâtiments lointains rendraient le zoom arrière franc. |
 
-## 🎯 Priorité 2 — ce qui donnerait de la profondeur
+## 🎯 Priorité 2 - ce qui donnerait de la profondeur
 
 | Chantier | Effort | Impact | Domaine |
 |---|---|---|---|
@@ -52,7 +52,7 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | **Technologies de l'âge du bronze** (arbre de recherche) | L | ★★ | économie |
 | **Chars** : la quatrième unité qui manque, rapide et chère | M | ★★ | militaire |
 
-## 🎯 Priorité 3 — bon à prendre
+## 🎯 Priorité 3 - bon à prendre
 
 | Chantier | Effort | Impact | Domaine |
 |---|---|---|---|
@@ -94,10 +94,10 @@ Courte, et c'est voulu.
 
 ## 📚 Historique des lots livrés
 
-Conservé pour mémoire. Le détail des choix de conception vit dans les commentaires du code — c'est
+Conservé pour mémoire. Le détail des choix de conception vit dans les commentaires du code - c'est
 là qu'il reste juste.
 
-### Lot 8 — la profondeur *(le plus récent)*
+### Lot 8 - la profondeur *(le plus récent)*
 
 Le plus gros lot du projet : huit chantiers, tous sous test (`+133` tests, 314 au total).
 
@@ -105,23 +105,23 @@ Le plus gros lot du projet : huit chantiers, tous sous test (`+133` tests, 314 a
 |---|---|
 | Trois nouvelles unités | Le **frondeur** (aucun bronze, la moins chère, monte au rempart mais porte les deux tiers d'un arc), le **peltaste** (court plus vite que l'infanterie et va d'abord aux tireurs) et le **bélier** côté joueur (abat un mur bien plus vite qu'une colonne d'hommes, inutile en défense). Chacune fait ce qu'aucune autre ne fait. |
 | Arbre de faveur | La relation à un dieu se **dépense** : douze grâces permanentes, trois par Olympien, prises dans l'ordre et jamais reprises. Récoltes de Zeus Xenios, mer ouverte en hiver de Poséidon, blessés relevés d'Athéna, entretien allégé d'Arès… Monter sa ferveur ou l'échanger contre un don définitif est le vrai arbitrage. |
-| Ordres à la troupe | On regardait la bataille. Trois postures — **tenir**, **mur de boucliers** (−45 % de dégâts subis, on ne poursuit plus, la ligne ne rompt presque jamais), **charger** (+40 % de dégâts et l'on sort crever les béliers sous le mur) — deux façons de tirer (**tendu** / **en cloche**, moitié plus loin sur le plus gros tas), et un **pan assignable par type d'unité**. Un ordre se tient cinq secondes. |
-| Champions achéens | Passé une certaine menace, un **nom** prend la tête de la colonne : Achille, Hector, Ajax, Agamemnon, Ulysse, Diomède, Énée, Cassandre — précisément ceux qu'on peut recruter, et c'est parce qu'ils ne sont *pas* à votre table qu'ils marchent sur vos murs. Manœuvre annoncée d'avance avec son décompte ; l'abattre l'éteint sur-le-champ. La nuit ne les efface pas. |
+| Ordres à la troupe | On regardait la bataille. Trois postures - **tenir**, **mur de boucliers** (−45 % de dégâts subis, on ne poursuit plus, la ligne ne rompt presque jamais), **charger** (+40 % de dégâts et l'on sort crever les béliers sous le mur) - deux façons de tirer (**tendu** / **en cloche**, moitié plus loin sur le plus gros tas), et un **pan assignable par type d'unité**. Un ordre se tient cinq secondes. |
+| Champions achéens | Passé une certaine menace, un **nom** prend la tête de la colonne : Achille, Hector, Ajax, Agamemnon, Ulysse, Diomède, Énée, Cassandre - précisément ceux qu'on peut recruter, et c'est parce qu'ils ne sont *pas* à votre table qu'ils marchent sur vos murs. Manœuvre annoncée d'avance avec son décompte ; l'abattre l'éteint sur-le-champ. La nuit ne les efface pas. |
 | Moral de troupe | Une ligne ne fond plus jusqu'au dernier homme : sous un seuil, les hommes **rompent** un par un, en commençant par les plus entamés. Un héros debout abaisse fortement ce seuil. Jauge et marqueur de seuil dans le bandeau, bouclier jeté au sol pour le fuyard. |
 | Terrains des cinq actes | Chaque acte a désormais **sa terre**, pas seulement ses repères : le sable de Sigée qui remonte dans l'herbe, la boue et les ornières de dix ans de camp, la poussière du siège où plus rien ne pousse, la crue du Scamandre avec ses flaques et ses roseaux, la cendre d'Ilion avec ses braises et ses souches noircies. |
 | Familles et lignées | Une journée de jeu vaut deux ans. Les habitants **vieillissent** (un enfant aide sans remplacer et ne porte pas les armes, un ancien rend moins et finit par mourir), **font foyer** entre maisons différentes, et un enfant né dans un foyer **apprend le métier d'un de ses parents**. Marier son forgeron, c'est se donner des forgerons. Pyramide des âges au recensement. |
 | Diplomatie vivante | Chaque place forte tient sa **relation** (−100…+100) et la Troade est petite : ce qu'on fait à l'une, les sept autres l'apprennent. Un **présent** rachète une rancune, un **pacte** s'achète à qui vous voit bien, un **mariage** coûte un habitant pour toujours mais scelle une alliance que rien ne dénoue, au tribut doublé. Une alliance ordinaire se rompt si la relation retombe ; un village hostile grossit la menace. |
-| Annales du règne | Un relevé chiffré toutes les trente secondes, borné à 260 : greniers, garnison, menace, ambiance, faveur, remparts, prestige. Quatre graphes dessinés en SVG comme le reste du jeu, avec la **pente par minute** de chaque série — c'est elle qui répond à « est-ce que ça monte ? ». |
+| Annales du règne | Un relevé chiffré toutes les trente secondes, borné à 260 : greniers, garnison, menace, ambiance, faveur, remparts, prestige. Quatre graphes dessinés en SVG comme le reste du jeu, avec la **pente par minute** de chaque série - c'est elle qui répond à « est-ce que ça monte ? ». |
 | Notifications navigateur | Un assaut annoncé, un village qui implore : on prévient hors de l'onglet, jamais quand la page est visible, avec un débit d'une notification par sujet et par minute. Le nom du champion passe dans le titre. |
 
-### Lot 7 — les dettes refermées
+### Lot 7 - les dettes refermées
 
 Décor des cinq actes (repères) · garde d'Ajax enfin transmise en expédition et sommée · orgueil
 d'Agamemnon appliqué aux bénédictions · arc d'Achille débloqué jusqu'au bout · fronts comptés dans
 la résolution nocturne · pertes civiles réelles · renforts alliés à leurs couleurs · réglages du son
 respectés · dernier troc mémorisé.
 
-### Lot 6 — campagne, tests et bundle
+### Lot 6 - campagne, tests et bundle
 
 Campagne « La Chute » en cinq actes (situation héritée, objectifs sur la manière de tenir, défaite
 réelle, héros imposés) · 165 tests Vitest sur huit domaines · bundle coupé en trois morceaux ·
@@ -129,26 +129,26 @@ actes de missions verrouillés · musique de la paix ramenée à 24 attaques/min
 en deux rangs · liseré doré et émoji explosion retirés de la mêlée · l'encart de Zeus ne masque
 plus une croix de fermeture · départs de famine.
 
-### Lot 5 — sorties, missions et comptoir
+### Lot 5 - sorties, missions et comptoir
 
 Une croix, Échap ou un clic à côté pour refermer chaque menu (châssis commun à en-tête figé) ·
 encart chiffré pour la vitesse du temps · missions intégrées au jeu (panneau complet, pastille,
 bouton « y aller », trace au journal) · musique enfin audible · comptoir d'échange qui compte en
 valeur et non en tas · sept premiers habitants couvrant les six métiers.
 
-### Lot 4 — Zeus, métiers et héros incarnés
+### Lot 4 - Zeus, métiers et héros incarnés
 
 Tutoriel scénarisé en 15 étapes à focus verrouillé, porté par un Zeus dessiné en SVG · encarts au
 survol partout · métiers de naissance et affectation manuelle · héros visibles sur la carte et au
 premier rang des lignes · pictogrammes peints à la place des émojis.
 
-### Lot 3 — zoom, icônes et villages ennemis
+### Lot 3 - zoom, icônes et villages ennemis
 
 Zoom molette et déplacement manuels · remparts endommagés visibles hors combat · pictogrammes de
 ressources peints · descriptions du HUD · animation de victoire · jauge de ferveur à sept bandes ·
 décor peint pour les huit places fortes · zone de portée des tours rendue discrète.
 
-### Lot 2 — dieux, saisons, héros et campagne offensive
+### Lot 2 - dieux, saisons, héros et campagne offensive
 
 Visuels divins selon la ferveur (sept paliers) · quatre saisons et six météos qui pèsent sur la
 récolte et la bataille · huit héros à arcs narratifs mortels · expéditions à deux intentions
@@ -156,7 +156,7 @@ récolte et la bataille · huit héros à arcs narratifs mortels · expéditions
 
 ### Socle initial
 
-10 bâtiments × 4 niveaux, production, moral, menace, stockage, cycle jour/nuit, vitesses ×1–×8,
+10 bâtiments × 4 niveaux, production, moral, menace, stockage, cycle jour/nuit, vitesses ×1-×8,
 résolution hors-ligne · remparts à 4 niveaux, tours d'archers, 3 unités, batailles animées ·
 8 places fortes de la Troade · 4 Olympiens · dilemmes à issues cachées · missions en fil rouge ·
 refonte graphique peinte (lumière au nord-ouest, ombres portées, matières).

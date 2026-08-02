@@ -13,14 +13,14 @@ import type {
 
 // ── Constantes globales ───────────────────────────────────────────────────────
 export const STORAGE_KEY = 'palladion-save-v1'
-/** ancienne clé de sauvegarde (le jeu s'appelait ILION) — migrée au chargement */
+/** ancienne clé de sauvegarde (le jeu s'appelait ILION) - migrée au chargement */
 export const ANCIEN_STORAGE_KEY = 'ilion-save-v1'
 export const TICK_MS = 250
 /** une journée de jeu = 8 minutes réelles */
 export const DAY_MS = 8 * 60_000
 export const OFFLINE_CAP_MS = 8 * 3_600_000
 export const FAVEUR_MAX = 100
-/** production de base (cueillette) même sans bâtiment, par minute —
+/** production de base (cueillette) même sans bâtiment, par minute -
  *  assez pour qu'un village ruiné puisse toujours se relever */
 export const BASE_PROD: Record<ResourceId, number> = { bois: 3.5, pierre: 2.2, grain: 3.5, bronze: 0 }
 /** capacité de stockage par niveau d'agora (index = niveau) */
@@ -58,7 +58,7 @@ export const SECTEURS: { id: string; nom: string; angle: number; spawn: { x: num
   { id: 'nord', nom: 'Mur du nord', angle: -1.5, spawn: { x: 470, y: 120 } },
 ]
 
-/** nombre de fronts d'une vague selon la menace — la guerre se complique */
+/** nombre de fronts d'une vague selon la menace - la guerre se complique */
 export function nbFronts(threat: number): number {
   if (threat >= 55) return 3
   if (threat >= 28) return 2
@@ -70,7 +70,7 @@ export const POP_CAP = [7, 13, 22, 34, 52]
 /**
  * Postes de travail par bâtiment (index = niveau). Un bâtiment ne produit
  * qu'au prorata de ses postes pourvus : sans ouvrier, pas de récolte.
- * La cueillette de base (BASE_PROD) reste acquise — le village ne se bloque jamais.
+ * La cueillette de base (BASE_PROD) reste acquise - le village ne se bloque jamais.
  */
 export const POSTES: Partial<Record<BuildingId, number[]>> = {
   ferme: [0, 1, 2, 3, 4],
@@ -103,7 +103,7 @@ export const RENDEMENT_HORS_METIER = 0.55
 
 /**
  * Métier tiré à la naissance. Pondéré : il naît plus de paysans et de bûcherons
- * que de prêtres — le village a besoin de manger avant d'avoir besoin de prier,
+ * que de prêtres - le village a besoin de manger avant d'avoir besoin de prier,
  * et un prêtre qui se fait attendre a de la valeur.
  */
 export const POIDS_METIERS: { id: BuildingId; poids: number }[] = [
@@ -127,7 +127,7 @@ export function tirerMetier(): BuildingId {
 
 /**
  * Les sept premiers habitants, dans l'ordre où ils arrivent. Un métier de
- * chaque, plus un second paysan — parce que la ferme ouvre deux postes avant
+ * chaque, plus un second paysan - parce que la ferme ouvre deux postes avant
  * tous les autres.
  *
  * Le tirage pondéré seul ne suffisait pas : sur sept lancers, il laissait
@@ -147,8 +147,8 @@ export const METIERS_DEPART: BuildingId[] = [
 
 /**
  * Métier du prochain-né, choisi pour combler le plus grand MANQUE du village
- * au regard des poids ci-dessus. Toujours pondéré à long terme — il naîtra bien
- * trois fois plus de paysans que de prêtres — mais sans jamais laisser un métier
+ * au regard des poids ci-dessus. Toujours pondéré à long terme - il naîtra bien
+ * trois fois plus de paysans que de prêtres - mais sans jamais laisser un métier
  * entier absent pendant vingt minutes.
  */
 export function metierManquant(deja: BuildingId[]): BuildingId {
@@ -168,7 +168,7 @@ export function metierManquant(deja: BuildingId[]): BuildingId {
   return choix
 }
 
-/** noms grecs donnés aux habitants — le village cesse d'être un compteur */
+/** noms grecs donnés aux habitants - le village cesse d'être un compteur */
 export const NOMS_VILLAGEOIS = [
   'Alexios', 'Nikandros', 'Théron', 'Kleitos', 'Damon', 'Lysandre', 'Périclès', 'Straton',
   'Timon', 'Xanthos', 'Hégias', 'Oreste', 'Phidias', 'Kallias', 'Mélanthos', 'Aristée',
@@ -190,7 +190,7 @@ export function multRelation(relation: number): number {
 
 /**
  * Index du palier de ferveur : 0 maudit … 3 indifférent … 6 élu.
- * Pilote la couleur de la jauge ET la mise en scène des bénédictions —
+ * Pilote la couleur de la jauge ET la mise en scène des bénédictions -
  * un dieu offensé ne doit pas frapper comme un dieu qui vous chérit.
  */
 export function palierFerveur(relation: number): number {
@@ -216,12 +216,12 @@ export function nomFerveur(relation: number): string {
 /** consommation de grain par minute */
 export const CONSO_POP = 0.25
 export const CONSO_SOLDAT = 0.5
-/** premier assaut ~7 min après création du village, puis toutes les 8–16 min */
+/** premier assaut ~7 min après création du village, puis toutes les 8-16 min */
 /*
  * Le premier assaut d'une partie neuve. Sept minutes ne suffisaient pas : avec
  * 220 de bois au départ, il faut compter la ferme (60), le camp de bûcherons
  * (30 + 30), la palissade (90) et la caserne (70 + 60) avant d'avoir une seule
- * lance — soit plus que la réserve, donc il faut attendre la cueillette. Onze
+ * lance - soit plus que la réserve, donc il faut attendre la cueillette. Onze
  * minutes laissent le temps de bâtir DANS L'ORDRE plutôt que de choisir entre
  * manger et se défendre.
  */
@@ -233,7 +233,7 @@ export const ASSAUT_MAX_MS = 16 * 60_000
  * Menace maximale des deux premiers assauts d'une partie. Ils tâtent le terrain :
  * une bande de trois pillards, pas une colonne. Sans ce plafond, la formule
  * générale (bâtiments + minutes) offrait cinq à six pillards à un village qui
- * n'avait encore ni mur ni garnison — et la partie commençait par un pillage
+ * n'avait encore ni mur ni garnison - et la partie commençait par un pillage
  * qu'aucune décision du joueur ne pouvait éviter.
  */
 export const MENACE_PREMIERS_ASSAUTS = 6
@@ -247,8 +247,8 @@ export const MODE_TEST: boolean = import.meta.env.MODE === 'test'
 
 /**
  * Les pictogrammes peints (composant `Icone`) remplacent l'émoji partout où
- * l'interface a la place. L'émoji ne sert plus qu'aux textes courants —
- * rapports, toasts — d'où le choix du lingot 🪙 plutôt que de la médaille 🥉,
+ * l'interface a la place. L'émoji ne sert plus qu'aux textes courants -
+ * rapports, toasts - d'où le choix du lingot 🪙 plutôt que de la médaille 🥉,
  * qui se lisait « troisième place » et non « métal ».
  */
 export const RES: Record<ResourceId, { nom: string; emoji: string }> = {
@@ -273,14 +273,14 @@ export const PROD = {
  *
  * L'ancien comptoir appliquait le MÊME taux à tout : 40 de n'importe quoi
  * donnaient 10 de n'importe quoi d'autre. On y fabriquait donc du bronze avec
- * du grain — la forge et le port devenaient inutiles, et l'inverse (40 bronze
+ * du grain - la forge et le port devenaient inutiles, et l'inverse (40 bronze
  * pour 10 bois) n'avait aucun sens pour le joueur.
  *
  * Le comptoir raisonne maintenant en VALEUR. La référence est le bois, qui
  * sort le plus vite de terre (10/min au premier niveau) ; le bronze, quatre
  * fois plus lent à produire, vaut quatre fois plus. La marge du comptoir est
  * ce que les marchands prélèvent : écrasante au petit quai, honnête au port
- * franc — améliorer le port change vraiment quelque chose.
+ * franc - améliorer le port change vraiment quelque chose.
  */
 export const VALEUR_RES: Record<ResourceId, number> = {
   bois: 1,
@@ -292,7 +292,7 @@ export const VALEUR_RES: Record<ResourceId, number> = {
 /** marge prélevée par les marchands (index = niveau du port) */
 export const MARGE_PORT = [0, 1.7, 1.45, 1.28, 1.15]
 
-/** lot reçu à chaque échange — un chiffre rond, le joueur n'a rien à calculer */
+/** lot reçu à chaque échange - un chiffre rond, le joueur n'a rien à calculer */
 export const LOT_ECHANGE = 10
 
 /** ce que coûte un lot de `recevoir`, payé en `donner`, au port de ce niveau */
@@ -329,7 +329,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     id: 'remparts',
     nom: 'Remparts',
     emoji: '🧱',
-    desc: 'Protègent le cœur du village. Chaque niveau change réellement la muraille — et sa résistance.',
+    desc: 'Protègent le cœur du village. Chaque niveau change réellement la muraille - et sa résistance.',
     interieur: true,
     costs: [
       { bois: 90 },
@@ -434,7 +434,7 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     id: 'forge',
     nom: 'Forge de bronze',
     emoji: '⚒️',
-    desc: 'Fond le cuivre et l’étain en bronze — armes, armures, outils.',
+    desc: 'Fond le cuivre et l’étain en bronze - armes, armures, outils.',
     interieur: true,
     costs: [
       { bois: 70, pierre: 60 },
@@ -536,7 +536,7 @@ export const UNITS: Record<UnitId, UnitDef> = {
     id: 'archer',
     nom: 'Archer',
     emoji: '🏹',
-    desc: 'Tire depuis les remparts — intouchable tant que la muraille tient.',
+    desc: 'Tire depuis les remparts - intouchable tant que la muraille tient.',
     cost: { bois: 45, bronze: 8 },
     time: 26,
     atk: 7,
@@ -563,12 +563,12 @@ export const UNITS: Record<UnitId, UnitDef> = {
    * Trois unités, un seul axe : le prix. On n'ARBITRAIT pas, on empilait. Chacune
    * de celles-ci existe pour une raison qu'aucune autre ne remplit :
    *
-   *  · le FRONDEUR ne coûte pas un gramme de bronze — le seul soldat qu'un village
+   *  · le FRONDEUR ne coûte pas un gramme de bronze - le seul soldat qu'un village
    *    pauvre lève en nombre, et le seul tireur qui vaille sans rempart ;
    *  · le PELTASTE court et frappe les tireurs : la réponse à une vague d'archers,
    *    et la seule troupe qui tienne vraiment en rase campagne ;
    *  · le BÉLIER est une machine, pas un homme. Il ne se bat pas : il ABAT. Seul
-   *    l'ennemi en avait — vos hommes grattaient les murailles à mains nues.
+   *    l'ennemi en avait - vos hommes grattaient les murailles à mains nues.
    */
   frondeur: {
     id: 'frondeur',
@@ -723,7 +723,7 @@ export function pointMur(angle: number): { x: number; y: number } {
   }
 }
 
-/** positions de tir des archers selon le niveau des remparts — réparties sur l'enceinte */
+/** positions de tir des archers selon le niveau des remparts - réparties sur l'enceinte */
 export function postesArchers(niveau: number): { x: number; y: number }[] {
   if (niveau <= 0) return [{ x: MAP.ralliement.x, y: MAP.ralliement.y }]
   const angles = niveau >= 3 ? [-1.5, -0.45, 0.45, 1.5] : [-0.45, 0.45]

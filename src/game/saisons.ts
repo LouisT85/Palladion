@@ -2,7 +2,7 @@ import type { ResourceId } from './types'
 
 /*
  * Le temps qui passe sur la Troade : quatre saisons, et une météo qui tourne
- * par-dessus. Les deux pèsent sur l'économie ET sur les batailles — un assaut
+ * par-dessus. Les deux pèsent sur l'économie ET sur les batailles - un assaut
  * sous la pluie d'automne ne se joue pas comme un assaut par un matin d'été.
  */
 
@@ -110,7 +110,7 @@ export interface MeteoDef {
   prod: number
   /** portée des archers et des tours (×) */
   portee: number
-  /** vitesse de déplacement en bataille (×) — la boue ralentit tout le monde */
+  /** vitesse de déplacement en bataille (×) - la boue ralentit tout le monde */
   vitesse: number
   /** dégâts des projectiles (×) : une corde mouillée porte mal */
   tir: number
@@ -156,7 +156,7 @@ export const METEOS: Record<MeteoId, MeteoDef> = {
     id: 'orage',
     nom: 'Orage',
     emoji: '⛈️',
-    desc: 'Le ciel gronde — Zeus est proche, et sa foudre plus généreuse.',
+    desc: 'Le ciel gronde - Zeus est proche, et sa foudre plus généreuse.',
     prod: 0.85,
     portee: 0.85,
     vitesse: 0.9,
@@ -187,7 +187,7 @@ export const METEOS: Record<MeteoId, MeteoDef> = {
   },
 }
 
-/** l'orage double la générosité de Zeus — un clin d'œil au maître du tonnerre */
+/** l'orage double la générosité de Zeus - un clin d'œil au maître du tonnerre */
 export const BONUS_ORAGE_ZEUS = 1.35
 
 /** la météo tourne deux fois par journée de jeu (≈ 4 min réelles) */
@@ -201,7 +201,7 @@ export function saisonDe(jour: number): SaisonId {
   return SAISON_IDS[Math.floor(jour / JOURS_PAR_SAISON) % SAISON_IDS.length]
 }
 
-/** année de jeu (1, 2, 3…) — pour le journal et les hauts faits */
+/** année de jeu (1, 2, 3…) - pour le journal et les hauts faits */
 export function anneeDe(jour: number): number {
   return Math.floor(jour / (JOURS_PAR_SAISON * SAISON_IDS.length)) + 1
 }
@@ -239,5 +239,5 @@ export function modsBataille(meteo: MeteoId): ModsBataille {
 export function resumeCiel(saison: SaisonId, meteo: MeteoId): string {
   const s = SAISONS[saison]
   const m = METEOS[meteo]
-  return `${s.emoji} ${s.nom} · ${m.emoji} ${m.nom} — ${m.desc}`
+  return `${s.emoji} ${s.nom} · ${m.emoji} ${m.nom} - ${m.desc}`
 }

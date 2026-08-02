@@ -24,7 +24,7 @@ import { STORAGE_KEY } from './data'
 export const NB_EMPLACEMENTS = 3
 const CLE_ACTIF = 'palladion-emplacement'
 
-/** clé de stockage d'un emplacement — le premier garde la clé historique */
+/** clé de stockage d'un emplacement - le premier garde la clé historique */
 export function cleEmplacement(i: number): string {
   return i === 0 ? STORAGE_KEY : `${STORAGE_KEY}-${i + 1}`
 }
@@ -54,7 +54,7 @@ export interface ResumeEmplacement {
   /** jour de règne atteint, tel qu'on l'annonce au joueur */
   jour: number
   pop: number
-  /** somme des niveaux de bâtiments — une mesure honnête de l'avancement */
+  /** somme des niveaux de bâtiments - une mesure honnête de l'avancement */
   niveaux: number
   mode: 'bac-a-sable' | 'campagne' | null
   /** numéro d'acte (1 à 5) si la partie est une campagne */
@@ -135,7 +135,7 @@ export function copierEmplacement(depuis: number, vers: number): boolean {
 
 // ── Fichier ──────────────────────────────────────────────────────────────────
 
-/** enveloppe du fichier exporté — la version permettra de refuser un jour */
+/** enveloppe du fichier exporté - la version permettra de refuser un jour */
 interface Fichier {
   jeu: 'palladion'
   version: 1
@@ -165,7 +165,7 @@ export function exporterTexte(i: number): string | null {
 export type IssueImport = { ok: true } | { ok: false; raison: string }
 
 /**
- * Écrit un fichier dans un emplacement — après l'avoir CONTRÔLÉ. On refuse tout
+ * Écrit un fichier dans un emplacement - après l'avoir CONTRÔLÉ. On refuse tout
  * ce qui n'est pas manifestement une partie de PALLADION : remplacer un règne de
  * dix heures par le contenu d'un fichier au hasard serait la pire chose que ce
  * module puisse faire.

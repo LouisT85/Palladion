@@ -15,7 +15,7 @@ import type { BattleState, UnitId } from './types'
  *
  * Avant, chaque figurine se battait jusqu'à la mort : toutes les mêlées se
  * ressemblaient, on additionnait des points de vie. Une ligne doit pouvoir
- * CASSER — et un héros doit pouvoir la retenir. Ces deux promesses sont
+ * CASSER - et un héros doit pouvoir la retenir. Ces deux promesses sont
  * exactement ce que ce fichier surveille, parce qu'un seuil mal réglé ne se voit
  * pas : la bataille reste jolie, elle n'a simplement plus d'enjeu.
  */
@@ -87,7 +87,7 @@ describe('une ligne casse au lieu de fondre', () => {
   it('fait rompre les défenseurs sous le seuil, jamais au-dessus', () => {
     /*
      * Huit lanciers dont on abat cinq : le moral tombe à 0,375, sous le seuil de
-     * 0,45. Personne ne meurt pendant l'épreuve — les ruptures observées ne
+     * 0,45. Personne ne meurt pendant l'épreuve - les ruptures observées ne
      * peuvent donc venir que de la panique.
      */
     const b = bataille({ defenseurs: ARMEE(8, 0, 0), attaquants: [{ enemy: 'pillard', count: 2 }] })
@@ -161,7 +161,7 @@ describe('un héros retient la ligne', () => {
     expect(SEUIL_PANIQUE_HEROS).toBeLessThan(SEUIL_PANIQUE)
     /*
      * Même situation, à un héros près. Sans lui, trois hommes sur huit rompent ;
-     * avec lui, le seuil tombe à 0,2 et la ligne tient — c'est très exactement ce
+     * avec lui, le seuil tombe à 0,2 et la ligne tient - c'est très exactement ce
      * que promettent les fiches de héros, et cela ne se vérifiait nulle part.
      */
     const sans = bataille({ defenseurs: ARMEE(8, 0, 0), attaquants: [{ enemy: 'pillard', count: 2 }] })

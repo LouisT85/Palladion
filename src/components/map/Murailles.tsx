@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { MAP, TOUR_ANGLES } from '../../game/data'
 import { AOBase, MurPierre, PAL, alea } from './art'
 
@@ -672,7 +673,11 @@ interface Props {
   brechesAngles?: number[]
 }
 
-export function Murailles({
+/**
+ * L'enceinte. Mémoïsée : hors assaut, ni le niveau ni les points de structure ne
+ * bougent, et l'arc échantillonné coûte plusieurs centaines de nœuds par couche.
+ */
+export const Murailles = memo(function Murailles({
   niveau,
   hp,
   max,
@@ -909,4 +914,4 @@ export function Murailles({
       {layer === 'front' && span >= 1 && <Porte geo={geo} niveau={niveau} breche={breche} />}
     </g>
   )
-}
+})

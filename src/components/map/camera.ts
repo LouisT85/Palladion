@@ -217,6 +217,35 @@ const TAU_RATTRAPAGE = 260
 /** au-delà de cet écart (px de monde), on considère que la cible a sauté */
 const SAUT_PX = 90
 
+/**
+ * Le cadre du monde réellement visible, en unités de carte, ÉLARGI d'une marge.
+ * Il sert au culling : ce qui n'y est pas n'a pas besoin d'exister dans le DOM.
+ */
+export interface CadreVisible {
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+}
+
+/**
+ * Palier de détail. Il ne sert pas à dégrader ce que le joueur regarde de près,
+ * mais à savoir quand une figurine tombe sous le seuil où son détail ne se voit
+ * plus - et surtout à ne PAS recalculer le culling tant qu'on n'a pas changé de
+ * palier.
+ */
+export type PalierDetail = 'ensemble' | 'proche'
+
+/**
+ * Zoom à partir duquel le culling devient rentable. En dessous, la carte tient
+ * tout entière à l'écran : chercher ce qu'on peut retirer coûterait plus que de
+ * tout dessiner.
+ */
+export const ZOOM_CULLING = 1.35
+
+/** pas de quantification du cadre visible (unités de carte) */
+const PAS_CADRE = 120
+
 export interface Camera {
   /** true = le joueur conduit ; la caméra de bataille se tait */
   manuel: boolean
@@ -228,6 +257,17 @@ export interface Camera {
   aGlisse: () => boolean
   /** facteur de zoom courant, pour l'affichage */
   zoom: number
+  /**
+   * Cadre visible élargi, ou `null` quand toute la carte tient à l'écran.
+   *
+   * Il est QUANTIFIÉ au pas de 120 unités et ne change donc d'identité que
+   * lorsqu'on a franchi une case : la boucle d'animation tourne à 60 images par
+   * seconde, et rendre React à ce rythme coûterait bien plus que le culling ne
+   * fait gagner.
+   */
+  cadre: CadreVisible | null
+  /** palier de détail courant */
+  palier: PalierDetail
 }
 
 /**
@@ -242,6 +282,8 @@ export function useCamera(
 ): Camera {
   const [manuel, setManuel] = useState(false)
   const [zoom, setZoom] = useState(1)
+  const [cadre, setCadre] = useState<CadreVisible | null>(null)
+  const [palier, setPalier] = useState<PalierDetail>('ensemble')
   // toute la mécanique vit dans des refs : la boucle rAF ne doit rien re-rendre
   const vu = useRef<Cadrage>({ cx: vue.w / 2, cy: vue.h / 2, z: 1 })
   const but = useRef<Cadrage>({ cx: vue.w / 2, cy: vue.h / 2, z: 1 })
@@ -364,6 +406,38 @@ export function useCamera(
     window.addEventListener('pointerup', onPointerUp)
     svg.addEventListener('dblclick', onDoubleClick)
 
+    /*
+     * Publication du cadrage vers React. On arrondit au pas de la grille et l'on
+     * ne pose l'état QUE si la case a changé : sans cela, la carte se re-rendrait
+     * soixante fois par seconde pendant un glissement.
+     */
+    let dernierCadre = ''
+    const publier = (c: Cadrage) => {
+      if (c.z < ZOOM_CULLING) {
+        if (dernierCadre !== '') {
+          dernierCadre = ''
+          setCadre(null)
+          setPalier('ensemble')
+        }
+        return
+      }
+      const demiW = vue.w / (2 * c.z)
+      const demiH = vue.h / (2 * c.z)
+      // une marge d'un demi-écran : un bâtiment qui entre par le bord est déjà là
+      const q = (v: number) => Math.round(v / PAS_CADRE) * PAS_CADRE
+      const r: CadreVisible = {
+        x0: q(c.cx - demiW * 1.5),
+        y0: q(c.cy - demiH * 1.5),
+        x1: q(c.cx + demiW * 1.5),
+        y1: q(c.cy + demiH * 1.5),
+      }
+      const cle = `${r.x0},${r.y0},${r.x1},${r.y1}`
+      if (cle === dernierCadre) return
+      dernierCadre = cle
+      setCadre(r)
+      setPalier('proche')
+    }
+
     let precedent = performance.now()
     let calcul = 0
     let raf = requestAnimationFrame(function boucle(t: number) {
@@ -374,6 +448,7 @@ export function useCamera(
       if (mainMise.current) {
         // en manuel, la vue colle au geste : aucune inertie, aucun retard
         appliquer(sceneRef.current, vu.current, vue)
+        publier(vu.current)
         return
       }
       // la cible ne bouge qu'au rythme des ticks : inutile de la recalculer 60 fois/s
@@ -397,6 +472,7 @@ export function useCamera(
         z: vu.current.z + (b.z - vu.current.z) * k,
       }
       appliquer(sceneRef.current, vu.current, vue)
+      publier(vu.current)
     })
 
     return () => {
@@ -412,6 +488,8 @@ export function useCamera(
   return {
     manuel,
     zoom,
+    cadre,
+    palier,
     recentrer: () => commandes.current.recentrer(),
     zoomer: (f) => commandes.current.zoomer(f),
     aGlisse: vientDeGlisser,
@@ -419,14 +497,26 @@ export function useCamera(
 }
 
 /** écrit la transformation sur le groupe de scène, image par image */
+let derniereTransfo = ''
+
 function appliquer(el: SVGGElement | null, c: Cadrage, vue: VueScene): void {
   if (!el) return
   // retour à la vue d'ensemble : on retire l'attribut pour ne rien laisser traîner
   if (Math.abs(c.z - 1) < 0.0015 && Math.abs(c.cx - vue.w / 2) < 0.6 && Math.abs(c.cy - vue.h / 2) < 0.6) {
     if (el.hasAttribute('transform')) el.removeAttribute('transform')
+    derniereTransfo = ''
     return
   }
   const tx = vue.w / 2 - c.cx * c.z
   const ty = vue.h / 2 - c.cy * c.z
-  el.setAttribute('transform', `translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${c.z.toFixed(4)})`)
+  const t = `translate(${tx.toFixed(2)},${ty.toFixed(2)}) scale(${c.z.toFixed(4)})`
+  /*
+   * Ne RIEN écrire quand la valeur est identique. Réécrire le même attribut
+   * invalide tout de même la rastérisation du sous-arbre, et une scène grossie
+   * cinq fois porte des ombres et des flous que le navigateur recalcule alors
+   * soixante fois par seconde - pour une image qui n'a pas bougé d'un pixel.
+   */
+  if (t === derniereTransfo) return
+  derniereTransfo = t
+  el.setAttribute('transform', t)
 }

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { MAP } from '../../game/data'
 import type { SaisonId } from '../../game/saisons'
 import { PAL, alea } from './art'
@@ -494,7 +495,12 @@ const D_RIVE = 'M0,598 C110,608 185,651 225,725 C243,762 251,800 251,800'
  */
 export const D_TERRE = `M0,${HORIZON} L1200,${HORIZON} L1200,800 L272,800 C272,760 264,720 244,720 C200,642 120,594 0,584 Z`
 
-export function Terrain({
+/**
+ * Le paysage. **Mémoïsé sur une `phase` quantifiée** par l'appelant : le soleil
+ * n'a pas besoin d'avancer quatre fois par seconde, et sans cela les deux mille
+ * nœuds du terrain étaient rediffusés à chaque battement du jeu.
+ */
+export const Terrain = memo(function Terrain({
   phase,
   paisible = true,
   saison = 'printemps',
@@ -1061,7 +1067,7 @@ export function Terrain({
       <rect x={0} y={0} width={MAP.w} height={MAP.h} filter="url(#ter-grain)" opacity={0.85} />
     </g>
   )
-}
+})
 
 /** vignettage doux, posé au-dessus de la scène */
 export function Vignette() {

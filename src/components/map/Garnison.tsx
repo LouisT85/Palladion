@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { postesArchers } from '../../game/data'
 import type { UnitId } from '../../game/types'
 import { Bonhomme, Char, lookUnite } from './BatailleLayer'
@@ -75,7 +76,8 @@ function Rang({
   return <g>{figs}</g>
 }
 
-export function Garnison({
+/** La garnison au repos. Mémoïsée : elle ne change qu'à l'enrôlement. */
+export const Garnison = memo(function Garnison({
   army,
   wallLevel,
   visible,
@@ -129,4 +131,4 @@ export function Garnison({
       ))}
     </g>
   )
-}
+})

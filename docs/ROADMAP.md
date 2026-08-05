@@ -24,7 +24,7 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, 51 hauts faits, campagne en 5 actes |
 | Modes de jeu | ✅ **quatre** | bac à sable, campagne, **siège sans fin**, **défi hebdomadaire** - plus **Nouvelle Partie +** |
 | Tests | ✅ **758 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
-| Art | 🟡 très avancé | LOD au dézoom |
+| Art | ✅ complet | rien de bloquant - carte allégée, culling et palier de détail |
 | Accessibilité / mobile | ❌ non traité | tactile, contrastes, `prefers-reduced-motion` |
 | Multijoueur / serveur | ❌ non traité | hors périmètre pour l'instant |
 
@@ -37,10 +37,9 @@ désormais d'un autre ordre : le jeu est complet, il lui manque du polish et de 
 
 | # | Chantier | Effort | Impact | Pourquoi maintenant |
 |---|---|---|---|---|
-| 1 | **LOD de la carte** | M | ★★★ | Le seul point de performance qui reste. Au dézoom, la carte dessine tous ses nœuds SVG - une trentaine de milliers avec sept unités et les nouveaux ouvrages. Un culling hors écran et une version simplifiée des bâtiments lointains rendraient le zoom arrière franc. |
-| 2 | **Accessibilité** | M | ★★★ | Rien n'a été fait, et le jeu est désormais assez riche pour que ce soit gênant : palette daltonisme (les jauges de secteur et les tendances de cours reposent sur le vert/rouge), taille de texte, `prefers-reduced-motion` pour les animations SMIL, focus clavier sur les panneaux. |
-| 3 | **Équilibrage d'ensemble** | M | ★★★ | Huit systèmes se sont ajoutés en peu de temps. Personne n'a encore joué une partie entière avec commerce **et** technos **et** merveille **et** reliques : les multiplicateurs se cumulent et il faut vérifier qu'une cité optimisée ne devient pas invulnérable. Un banc d'essai de simulation (jouer mille minutes sans écran) serait le bon outil. |
-| 4 | **Support tactile / mobile** | L | ★★ | La carte s'y prête (pincer pour zoomer est déjà à moitié là dans la caméra), le HUD et les panneaux non. Le public potentiel est large. |
+| 1 | **Accessibilité** | M | ★★★ | Rien n'a été fait, et le jeu est désormais assez riche pour que ce soit gênant : palette daltonisme (les jauges de secteur et les tendances de cours reposent sur le vert/rouge), taille de texte, `prefers-reduced-motion` pour les animations SMIL, focus clavier sur les panneaux. |
+| 2 | **Équilibrage d'ensemble** | M | ★★★ | Huit systèmes se sont ajoutés en peu de temps. Personne n'a encore joué une partie entière avec commerce **et** technos **et** merveille **et** reliques : les multiplicateurs se cumulent et il faut vérifier qu'une cité optimisée ne devient pas invulnérable. Un banc d'essai de simulation (jouer mille minutes sans écran) serait le bon outil. |
+| 3 | **Support tactile / mobile** | L | ★★ | La carte s'y prête (pincer pour zoomer est déjà à moitié là dans la caméra), le HUD et les panneaux non. Le public potentiel est large. |
 
 ## 🎯 Priorité 2 - ce qui donnerait encore de la profondeur
 
@@ -93,6 +92,10 @@ Courte, et c'est voulu.
 - **Le mode défi pose un alea déterministe par un singleton de module** (`poserAlea` dans defi.ts).
   C'était la solution la moins invasive - le moteur appelle `Math.random()` en quarante endroits -
   mais c'est un état global : deux parties ouvertes dans deux onglets partageraient la graine.
+- **Cent quinze flous `a-flou1` et soixante-quatre `a-flou2` restent dans l'art.** Ce sont les ombres
+  peintes, sur des formes statiques : le navigateur les rastérise une fois et les garde. Ils ne
+  coûtaient rien dans la mesure, mais ils sont le plafond au-delà duquel une carte deux fois plus
+  peuplée redeviendrait chère.
 - **Les cinq ouvrages intérieurs n'ont pas de représentation sur la carte.** On les achète dans le
   panneau des remparts et l'on constate leurs effets, mais on ne voit ni la muraille d'acropole ni
   le bastion de la porte. C'est le seul système du jeu qui reste invisible.
@@ -104,7 +107,32 @@ Courte, et c'est voulu.
 Conservé pour mémoire. Le détail des choix de conception vit dans les commentaires du code - c'est
 là qu'il reste juste.
 
-### Lot 10 - la portée *(le plus récent)*
+### Lot 11 - la carte allégée *(le plus récent)*
+
+Un seul chantier, et un diagnostic qui a démenti l'énoncé. La feuille de route annonçait « une
+trentaine de milliers de nœuds SVG au dézoom » et prescrivait un niveau de détail dégradé. **La
+mesure en a compté 7 257** - le nombre n'était pas le problème. Ce qui l'était : **2 638 ms de
+tâches longues sur 5 secondes**, soit plus de la moitié du fil principal, avec des blocages de
+151 ms. Un observateur de mutations a tranché la question : **zéro nœud ajouté ou retiré** en
+quatre secondes. Le DOM ne bougeait pas ; React rediffusait 7 257 éléments quatre fois par seconde
+pour conclure chaque fois que rien n'avait changé.
+
+| Sujet | Ce qui a été fait |
+|---|---|
+| **Mémoïsation de l'art** | `BatimentArt`, `Terrain`, `Murailles`, `Garnison` et `Ouvriers` ne dépendent que de props stables - un niveau, une saison, un effectif. Ils sont mémoïsés. La carte se re-rendait quatre fois par seconde uniquement parce que l'heure du jour avançait. |
+| **Phase du jour quantifiée** | Le terrain est mémoïsé sur la phase, qui était un flottant continu : le mémo ne servait donc à rien. Arrondie au 1/240ᵉ de journée, l'astre avance toutes les deux secondes - imperceptible - et le terrain se reconstruit trente fois par journée de jeu au lieu de deux mille. |
+| **Culling** | La caméra publie son cadre visible, **quantifié au pas de 120 unités** : sans cette quantification elle aurait re-rendu React soixante fois par seconde et le culling aurait coûté plus qu'il ne rapporte. Un édifice hors champ ne rentre plus dans le DOM : 7 257 → 5 588 nœuds au zoom 5. |
+| **Palier de détail sur l'ombre portée** | Le vrai gouffre, trouvé en isolant les suspects un à un : les neuf filtres `feDropShadow` enveloppaient du contenu **animé** - feux, fumées, artisans au travail - et chaque image forçait la rastérisation du filtre entier. À la vue d'ensemble le coût mesuré est nul et l'ombre se voit : on la garde. Dès qu'on se rapproche, elle coûtait à elle seule 43 % du fil principal pour un halo d'un pixel et demi que les ombres peintes de l'art rendent déjà : on la retire, et le basculement se joue pendant le mouvement du zoom. |
+
+**Résultat mesuré**, à nombre de nœuds inchangé et sans qu'un pixel bouge en vue d'ensemble :
+
+| | avant | après |
+|---|---|---|
+| Vue d'ensemble, tâches longues / 5 s | 2 638 ms (25 blocages, pic 151 ms) | **56 ms** (1 blocage) |
+| Zoom 5, tâches longues / 5 s | 1 716 ms | **0 ms** |
+| Zoom 5, nœuds SVG | 7 257 | **5 588** |
+
+### Lot 10 - la portée
 
 Douze chantiers : les quatre priorités 1 restantes, les huit priorités 2 en entier. `+374` tests,
 **758 au total**, plus sept parcours de bout en bout.

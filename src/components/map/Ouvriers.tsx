@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { BuildingId } from '../../game/types'
 
 /*
@@ -367,7 +368,8 @@ function Artisan({ id, p }: { id: BuildingId; p: Poste }) {
  * l'exercice, marchande à l'étal) relèvent de la vie du village et suivent le
  * niveau, pas l'affectation.
  */
-export function Ouvriers({ id, level, ouvriers }: { id: BuildingId; level: number; ouvriers?: number }) {
+/** Les artisans d'un atelier. Mémoïsés : ils ne changent qu'à l'affectation. */
+export const Ouvriers = memo(function Ouvriers({ id, level, ouvriers }: { id: BuildingId; level: number; ouvriers?: number }) {
   if (level <= 0) return null
 
   if (id === 'caserne') {
@@ -401,7 +403,7 @@ export function Ouvriers({ id, level, ouvriers }: { id: BuildingId; level: numbe
       ))}
     </g>
   )
-}
+})
 
 // ── porteurs de ressources (sur la carte, coordonnées monde) ─────────────────
 function Porteur({

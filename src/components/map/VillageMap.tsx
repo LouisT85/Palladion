@@ -10,7 +10,15 @@ import { DecorActe } from './CadreActe'
 import { BatimentArt, Chantier, DefsBatiments } from './Batiments'
 import { Batisseur, Ouvriers, Porteurs } from './Ouvriers'
 import { BatailleLayer } from './BatailleLayer'
-import { useCamera, vientDeGlisser, ZOOM_MAX, ZOOM_MIN, type VueScene } from './camera'
+import {
+  useCamera,
+  vientDeGlisser,
+  ZOOM_MAX,
+  ZOOM_MIN,
+  type CadreVisible,
+  type PalierDetail,
+  type VueScene,
+} from './camera'
 import { Meteo, VoileSaison } from './Ciel'
 import { HerosVillage } from './HerosVillage'
 import { Garnison } from './Garnison'
@@ -95,7 +103,31 @@ function ManqueOuvriers({ id, manque, vide }: { id: BuildingId; manque: number; 
   )
 }
 
-function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisible?: boolean }) {
+/**
+ * Un bâtiment est-il dans le cadre visible ? `null` = toute la carte tient à
+ * l'écran, donc rien à retirer. On teste la boîte d'art entière (270 × 145 unités
+ * autour du pied) et non le seul point d'ancrage : sans quoi une ferme dont seuls
+ * les champs entrent dans le cadre disparaîtrait d'un coup.
+ */
+function dansLeCadre(id: BuildingId, cadre: CadreVisible | null): boolean {
+  if (!cadre) return true
+  const p = BUILDINGS[id].pos
+  return p.x + 135 >= cadre.x0 && p.x - 135 <= cadre.x1 && p.y + 40 >= cadre.y0 && p.y - 105 <= cadre.y1
+}
+
+function Emplacement({
+  id,
+  now,
+  paisible,
+  cadre,
+  palier = 'ensemble',
+}: {
+  id: BuildingId
+  now: number
+  paisible?: boolean
+  cadre?: CadreVisible | null
+  palier?: PalierDetail
+}) {
   const def = BUILDINGS[id]
   const b = useGame((s) => s.buildings[id])
   const selected = useGame((s) => s.selected)
@@ -107,6 +139,12 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
   const vide = useGame((s) => postesTotal(s, id) > 0 && postesPourvus(s, id) === 0)
   const [hover, setHover] = useState(false)
   if (id === 'remparts') return null
+  /*
+   * CULLING. Passé le zoom de travail, la moitié de la carte est hors champ : un
+   * édifice qu'on ne voit pas n'a aucune raison d'occuper cinq cents nœuds du DOM
+   * ni de se faire rediffuser par React à chaque battement du jeu.
+   */
+  if (!dansLeCadre(id, cadre ?? null)) return null
 
   const enChantier = b.targetLevel !== undefined && b.busyUntil !== undefined
   let progress = 0
@@ -114,6 +152,19 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
     const dur = def.times[b.targetLevel - 1] * 1000
     progress = Math.max(0, Math.min(1, 1 - (b.busyUntil - now) / dur))
   }
+  /*
+   * PALIER DE DÉTAIL - l'ombre portée des édifices.
+   *
+   * C'est un filtre SVG, et un filtre qui enveloppe du contenu ANIMÉ (les feux,
+   * les fumées, les artisans au travail) se fait rastériser à neuf soixante fois
+   * par seconde. À la vue d'ensemble le coût mesuré est nul et l'ombre se voit :
+   * on la garde. Dès qu'on se rapproche, cette même ombre coûtait à elle seule
+   * 43 % du fil principal - pour un halo d'un pixel et demi que les ombres
+   * PEINTES de l'art (OmbreVolume, AOBase) rendent déjà. On la retire donc, et le
+   * basculement se joue pendant le mouvement du zoom, là où l'œil ne le voit pas.
+   */
+  const ombre = palier === 'ensemble' ? 'url(#ombre-batiment)' : undefined
+
   const stade = stadeChantier(progress)
   const fracH = STADES_H[stade]
 
@@ -154,7 +205,7 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
       ) : (
         <g>
           {b.level > 0 && (
-            <g transform="scale(1.18)" filter="url(#ombre-batiment)">
+            <g transform="scale(1.18)" filter={ombre}>
               <BatimentArt id={id} level={b.level} />
               {paisible && !enChantier && <Ouvriers id={id} level={b.level} ouvriers={pourvus} />}
             </g>
@@ -164,7 +215,7 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
               {b.level === 0 && <ellipse cx={0} cy={2} rx={26} ry={9} fill="#c2a76f" opacity={0.8} />}
               {/* le bâtiment cible s'élève du sol par paliers (25 / 50 / 75 %) */}
               {fracH > 0 && b.targetLevel !== undefined && (
-                <g transform="scale(1.18)" filter="url(#ombre-batiment)">
+                <g transform="scale(1.18)" filter={ombre}>
                   <clipPath id={`chantier-${id}`}>
                     <rect x={-135} y={30 - 108 * fracH} width={270} height={108 * fracH + 4} />
                   </clipPath>
@@ -315,8 +366,8 @@ export function VillageMap() {
 
           <Porteurs scierie={scierieLvl > 0} ferme={fermeLvl > 0} carriere={carriereLvl > 0} actif={paisible} />
 
-          <Emplacement id="carriere" now={now} paisible={paisible} />
-          <Emplacement id="scierie" now={now} paisible={paisible} />
+          <Emplacement id="carriere" now={now} paisible={paisible} cadre={camera.cadre} palier={camera.palier} />
+          <Emplacement id="scierie" now={now} paisible={paisible} cadre={camera.cadre} palier={camera.palier} />
 
           <Murailles
             niveau={wallLevel}
@@ -332,7 +383,7 @@ export function VillageMap() {
           )}
 
           {dedans.map((b) => (
-            <Emplacement key={b} id={b} now={now} paisible={paisible} />
+            <Emplacement key={b} id={b} now={now} paisible={paisible} cadre={camera.cadre} palier={camera.palier} />
           ))}
 
           <Villageois pop={pop} morale={morale} now={now} enBataille={battle !== null} />
@@ -419,8 +470,8 @@ export function VillageMap() {
               )
             })}
 
-          <Emplacement id="ferme" now={now} paisible={paisible} />
-          <Emplacement id="port" now={now} paisible={paisible} />
+          <Emplacement id="ferme" now={now} paisible={paisible} cadre={camera.cadre} palier={camera.palier} />
+          <Emplacement id="port" now={now} paisible={paisible} cadre={camera.cadre} palier={camera.palier} />
 
           {battle && <BatailleLayer battle={battle} now={now} wallHp={wallHp} wallMax={wallMax} />}
           {/* la structure des édifices : elle ne paraît qu'une fois la brèche ouverte */}

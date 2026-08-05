@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { BuildingId } from '../../game/types'
 import { Caisse, Bloc } from './batiments/primitives'
 import { Agora } from './batiments/Agora'
@@ -13,7 +14,14 @@ import { Port } from './batiments/Port'
 export { DefsBatiments } from './batiments/primitives'
 
 // ── Sélecteur ────────────────────────────────────────────────────────────────
-export function BatimentArt({ id, level }: { id: BuildingId; level: number }) {
+/**
+ * L'art d'un bâtiment. **Mémoïsé, et c'est essentiel** : il ne dépend que de son
+ * identifiant et de son niveau, donc il ne change quasiment jamais - alors que la
+ * carte se re-rend quatre fois par seconde parce que l'heure du jour avance.
+ * Sans ce mémo, React rediffusait à vide les cinq mille nœuds des dix édifices à
+ * chaque battement, pour conclure chaque fois que rien n'avait bougé.
+ */
+export const BatimentArt = memo(function BatimentArt({ id, level }: { id: BuildingId; level: number }) {
   switch (id) {
     case 'agora':
       return <Agora n={level} />
@@ -36,7 +44,7 @@ export function BatimentArt({ id, level }: { id: BuildingId; level: number }) {
     case 'remparts':
       return null // dessinés par <Murailles/>
   }
-}
+})
 
 /** échafaudage affiché pendant un chantier */
 export function Chantier() {

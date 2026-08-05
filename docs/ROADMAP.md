@@ -1,6 +1,6 @@
 # PALLADION - feuille de route
 
-État au 2 août 2026.
+État au 5 août 2026.
 
 **Comment lire ce document.** Il est organisé par **priorité** puis par **domaine**, et non par
 ordre chronologique : ce qui est en haut est ce qu'il faut faire ensuite. Chaque entrée à venir
@@ -14,17 +14,17 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Domaine | État | Reste à faire |
 |---|---|---|
 | Boucle de gestion | ✅ complet | rien de bloquant |
-| Défense et batailles | ✅ complet | rien de bloquant - ordres, moral, six unités, champions nommés |
-| Offensive (8 places fortes) | ✅ complet | caravanes, espionnage |
-| Dieux et ferveur | ✅ complet | oracles, colère graduée |
+| Défense et batailles | ✅ complet | ordres, moral, **sept unités**, champions nommés, structure des bâtiments, cinq ouvrages intérieurs |
+| Offensive (8 places fortes) | ✅ complet | rien de bloquant - pillage/secours, alliances, tribut, **caravanes**, **espionnage** |
+| Économie | ✅ complet | rien de bloquant - **marché à cours flottants**, **arbre de vingt découvertes**, **six merveilles** |
+| Dieux et ferveur | ✅ complet | rien de bloquant - arbre de faveur, **oracles**, **colère graduée**, **reliques** |
 | Héros (8, arcs, entretien) | ✅ complet | rien de bloquant |
 | Diplomatie | ✅ complet | rien de bloquant - relations, présents, pactes, mariages, trahisons |
 | Village vivant | ✅ complet | âges, foyers, lignées, transmission des métiers |
 | Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, 51 hauts faits, campagne en 5 actes |
-| Campagne « La Chute » | ✅ complet | cinq actes, chacun avec son sol et ses repères |
+| Modes de jeu | ✅ **quatre** | bac à sable, campagne, **siège sans fin**, **défi hebdomadaire** - plus **Nouvelle Partie +** |
+| Tests | ✅ **758 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
 | Art | 🟡 très avancé | LOD au dézoom |
-| Tests | 🟡 314 tests de règles | aucun test de rendu ni de parcours e2e |
-| Modes de jeu | 🟡 deux (bac à sable, campagne) | siège sans fin, NG+, défi hebdomadaire |
 | Accessibilité / mobile | ❌ non traité | tactile, contrastes, `prefers-reduced-motion` |
 | Multijoueur / serveur | ❌ non traité | hors périmètre pour l'instant |
 
@@ -32,38 +32,37 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 
 ## 🎯 Priorité 1 - ce qui manque le plus au jeu
 
+Les priorités 1 et 2 précédentes ont été livrées en entier. Ce qui reste au sommet est
+désormais d'un autre ordre : le jeu est complet, il lui manque du polish et de la portée.
+
 | # | Chantier | Effort | Impact | Pourquoi maintenant |
 |---|---|---|---|---|
-| 1 | **Siège sans fin** | M | ★★★ | Vagues de difficulté croissante, sans répit, score local. Réutilise tout le moteur de bataille - et désormais les ordres, le moral, les six unités et les champions nommés. Les hauts faits sont déjà là pour le noter. |
-| 2 | **Tests de rendu (composants)** | M | ★★ | Les 314 tests couvrent les règles, pas l'écran. Le HUD, les panneaux et le placement de l'encart du tutoriel ne sont vérifiés qu'à l'œil et par des parcours Playwright joués à la main. |
-| 3 | **Nouvelle Partie +** | M | ★★ | Rejouer en gardant le prestige : bonus de départ, héros déjà connus, Troade qui se souvient de vos trahisons, difficulté accrue. Tout l'état nécessaire existe déjà. |
-| 4 | **LOD de la carte** | M | ★★ | Au dézoom, la carte dessine tous ses nœuds SVG. Un culling hors écran et une version simplifiée des bâtiments lointains rendraient le zoom arrière franc. |
+| 1 | **LOD de la carte** | M | ★★★ | Le seul point de performance qui reste. Au dézoom, la carte dessine tous ses nœuds SVG - une trentaine de milliers avec sept unités et les nouveaux ouvrages. Un culling hors écran et une version simplifiée des bâtiments lointains rendraient le zoom arrière franc. |
+| 2 | **Accessibilité** | M | ★★★ | Rien n'a été fait, et le jeu est désormais assez riche pour que ce soit gênant : palette daltonisme (les jauges de secteur et les tendances de cours reposent sur le vert/rouge), taille de texte, `prefers-reduced-motion` pour les animations SMIL, focus clavier sur les panneaux. |
+| 3 | **Équilibrage d'ensemble** | M | ★★★ | Huit systèmes se sont ajoutés en peu de temps. Personne n'a encore joué une partie entière avec commerce **et** technos **et** merveille **et** reliques : les multiplicateurs se cumulent et il faut vérifier qu'une cité optimisée ne devient pas invulnérable. Un banc d'essai de simulation (jouer mille minutes sans écran) serait le bon outil. |
+| 4 | **Support tactile / mobile** | L | ★★ | La carte s'y prête (pincer pour zoomer est déjà à moitié là dans la caméra), le HUD et les panneaux non. Le public potentiel est large. |
 
-## 🎯 Priorité 2 - ce qui donnerait de la profondeur
+## 🎯 Priorité 2 - ce qui donnerait encore de la profondeur
 
 | Chantier | Effort | Impact | Domaine |
 |---|---|---|---|
-| **Commerce vivant** : caravanes, prix qui fluctuent, routes coupées par les hostiles | M | ★★★ | économie |
-| **Espionnage** : un éclaireur pour voir la vague et le champion, au risque de le perdre | S | ★★ | militaire |
-| **Oracles payants** : acheter une information vraie sur les 10 minutes à venir | S | ★★ | divin |
-| **Colère divine graduée** : un dieu maudit envoie ses propres calamités | M | ★★ | divin |
-| **Reliques** rapportées d'expédition, à placer au temple | M | ★★ | divin |
-| **Merveilles** : un bâtiment unique par partie, à effet massif | M | ★★ | économie |
-| **Technologies de l'âge du bronze** (arbre de recherche) | L | ★★ | économie |
-| **Chars** : la quatrième unité qui manque, rapide et chère | M | ★★ | militaire |
+| **Mode Fer** : sauvegarde unique, mort définitive, aucun retour | S | ★★ | mode |
+| **Hécatombe** : sacrifice majeur pour un effet de saison entière | S | ★★ | divin |
+| **Flotte** : des navires à bâtir au port, pour escorter les caravanes et porter les expéditions maritimes | M | ★★ | militaire |
+| **Sièges de places fortes** : assiéger au lieu de razzier - couper l'eau, attendre, négocier une reddition | M | ★★★ | militaire |
+| **Successions** : à la mort du chef, un héritier choisi parmi les lignées, avec ses traits | M | ★★★ | village |
+| **Épidémies et médecine** : la peste comme système et non comme dilemme | M | ★★ | village |
+| **Colonies** : fonder un second village qu'on gère de loin | L | ★★★ | économie |
+| **Mode Historique** : sans dieux, économie plus dure, textes documentaires | M | ★ | mode |
+| **Localisation EN** | L | ★ | confort |
 
 ## 🎯 Priorité 3 - bon à prendre
 
 | Chantier | Effort | Impact | Domaine |
 |---|---|---|---|
-| Défi de la semaine (graine fixe partagée, score comparable) | M | ★★ | mode |
-| Mode Fer (sauvegarde unique, mort définitive) | S | ★★ | mode |
-| Hécatombe : sacrifice majeur pour un effet de saison | S | ★ | divin |
 | PWA installable et hors-ligne | S | ★★ | technique |
-| Accessibilité : palette daltonisme, taille de texte, `prefers-reduced-motion` | M | ★★ | confort |
-| Support tactile / mobile (la carte s'y prête, le HUD non) | L | ★★ | confort |
-| Localisation EN | L | ★ | confort |
-| Mode Historique (sans dieux, économie plus dure, textes documentaires) | M | ★ | mode |
+| Rejouer une bataille passée (les annales gardent déjà de quoi) | M | ★ | confort |
+| Éditeur de défis à partager par lien | M | ★ | mode |
 | Comptes et sauvegarde serveur | L | ★ | technique |
 | Multijoueur asynchrone (raider le village d'un autre joueur) | XL | ★★★ | technique |
 
@@ -88,7 +87,15 @@ Courte, et c'est voulu.
 - **Les habitants n'ont pas de genre.** Les noms mêlent masculins et féminins, les foyers se font
   entre adultes sans distinction, et le recensement dit « enfant de X et Y ». Simplification
   assumée : le genre ne changerait aucune règle, et il faudrait genrer les six métiers.
-- **Aucun test de rendu** : voir priorité 1.
+- **Les multiplicateurs se cumulent sans plafond commun.** Reliques, découvertes, merveille, grâces
+  divines et passifs de héros s'additionnent chacun dans son coin. Aucun ne dépasse seul, mais leur
+  somme n'a jamais été mesurée sur une partie entière : voir l'équilibrage en priorité 1.
+- **Le mode défi pose un alea déterministe par un singleton de module** (`poserAlea` dans defi.ts).
+  C'était la solution la moins invasive - le moteur appelle `Math.random()` en quarante endroits -
+  mais c'est un état global : deux parties ouvertes dans deux onglets partageraient la graine.
+- **Les cinq ouvrages intérieurs n'ont pas de représentation sur la carte.** On les achète dans le
+  panneau des remparts et l'on constate leurs effets, mais on ne voit ni la muraille d'acropole ni
+  le bastion de la porte. C'est le seul système du jeu qui reste invisible.
 
 ---
 
@@ -97,7 +104,27 @@ Courte, et c'est voulu.
 Conservé pour mémoire. Le détail des choix de conception vit dans les commentaires du code - c'est
 là qu'il reste juste.
 
-### Lot 8 - la profondeur *(le plus récent)*
+### Lot 10 - la portée *(le plus récent)*
+
+Douze chantiers : les quatre priorités 1 restantes, les huit priorités 2 en entier. `+374` tests,
+**758 au total**, plus sept parcours de bout en bout.
+
+| Sujet | Ce qui a été fait |
+|---|---|
+| **Char de guerre** | La septième unité. Dans l'Iliade le char ne charge pas la ligne : il porte le champion, le dépose, l'attend. D'où sa conception - deux fois plus rapide que l'infanterie, il fond sur les tireurs **et les béliers** avant qu'ils aient servi trois fois, mais coûte plus cher que tout fantassin et ne fait rien à un mur. Sa silhouette est la seule **couchée** du champ : c'est ce qui le rend lisible en pleine mêlée. |
+| **Tests de rendu** | 50 tests sur ce que le joueur VOIT, sept familles de composants, sans dépendance nouvelle (`react-dom/client` et l'`act` que React 18.3 expose). Deux pièges de l'environnement documentés à l'endroit où ils mordent : `MODE_TEST` rend `peutPayer()` toujours vrai, donc le refus se teste sur les marques visibles ; et jsdom n'a pas `matchMedia`, dont le suivi des missions se sert. |
+| **Parcours e2e** | Sept parcours en Playwright Python - la technologie déjà au dépôt plutôt qu'une dépendance de plus. Chacun **affirme** au lieu de cliquer : la première partie mène du choix du mode à une mission réclamée, l'économie vérifie qu'affecter un paysan fait passer la ferme de 0 à 100 % et efface l'écriteau de la carte, la sauvegarde survit à un vrai rechargement. La moindre erreur JS fait échouer le parcours. |
+| **Siège sans fin** | Le troisième mode, et le meilleur rapport plaisir/effort : il réemploie tout le moteur sans rien y ajouter. Vagues quadratiques douces, fronts de un à trois, un champion toutes les cinq vagues, répit qui se resserre sans jamais s'annuler. Production doublée car la reconstruction est la seule manœuvre qui reste ; ni dilemme ni expédition car on ne délibère pas et l'on ne sort pas. Le record vit à la racine de l'état et **survit au reset**. |
+| **Oracles payants** | Six questions de prix croissant, le pendant honnête du murmure d'Athéna : ici on paie et l'on sait. Contrat verrouillé par les tests - l'oracle ne mentit jamais (sa réponse LIT l'état) et **ne facture jamais du vide**. |
+| **Colère divine graduée** | Quatre paliers, et des calamités qui ressemblent à leur dieu : la foudre de Zeus et les serments rompus, le séisme de Poséidon et la mer fermée, Athéna qui retire l'adresse aux artisans, Arès qui souffle la panique. Toujours réparable dans le même battement par un sacrifice, et jamais deux fois d'affilée sur le même toit. |
+| **Reliques** | Douze reliques rapportées d'expédition, qui ne font RIEN au magasin : le temple compte moins de niches (2/3/4/6) qu'on n'en ramène, donc il faut choisir. Un temple en ruine perd ses niches. |
+| **Commerce vivant** | Le port n'est plus un distributeur. Les cours dérivent vers ce que le monde impose - rareté lue dans la table des saisons elle-même, ciel du jour, mer fermée, ruines à rebâtir - lentement et sans tirage : guetter un bon cours est une décision. Les caravanes touchent le prix plein majoré contre du temps et un risque calculé sur la relation ; risque et gain **figés au départ**. Les routes se ferment sur trois motifs nommés, et le tribut d'un allié voyage par la même route. |
+| **Découvertes et merveilles** | Vingt technologies de l'âge du bronze avec leurs prérequis, une seule recherche à la fois. Et six merveilles dont **une seule** se bâtira par partie : chacune change la façon de jouer plutôt que d'ajouter cinq pour cent. |
+| **Espionnage** | Le moyen payant et risqué d'en savoir plus sans Ulysse ni Cassandre. On envoie un villageois - un bras de moins tant qu'il est dehors - ou l'on paie un homme de métier. Le rapport est vrai ; s'il n'y a rien à voir, on ne facture rien. |
+| **Nouvelle Partie +** | Le prestige d'un règne achevé se convertit en héritage : murs debout, découverte acquise, héros déjà connu qui vient sur un mot. La difficulté monte en regard, et **la Troade se souvient** - un règne de pillard recommence entouré d'ennemis. L'archive traverse les règnes, hors sauvegarde de partie. |
+| **Défi de la semaine** | Une graine dérivée de la semaine ISO : même Troade, mêmes vagues, mêmes dilemmes pour tous, donc des scores comparables. Contraintes tirées de la graine, objectif, classement local. |
+
+### Lot 8 - la profondeur
 
 Le plus gros lot du projet : huit chantiers, tous sous test (`+133` tests, 314 au total).
 

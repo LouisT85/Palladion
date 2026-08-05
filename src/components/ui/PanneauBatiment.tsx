@@ -566,6 +566,48 @@ export function PanneauBatiment() {
       {id === 'remparts' && <BlocDefenses />}
       {id === 'caserne' && b.level > 0 && <BlocCaserne onVoirHabitants={voirHabitants} />}
       {id === 'port' && <BlocPort />}
+      {/* le port ouvre le marché : cours, caravanes, routes */}
+      {id === 'port' && b.level > 0 && (
+        <div className="bloc">
+          <h3>🐫 Le marché</h3>
+          <div className="desc" style={{ fontSize: 12 }}>
+            Les cours dérivent avec la saison, le ciel et ce qu’il faut rebâtir. Vendre au bon moment, ou lever un
+            convoi vers une place forte : meilleur prix, mais du temps et du risque.
+          </div>
+          <button className="principal" style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('commerce')}>
+            Ouvrir le comptoir
+          </button>
+        </div>
+      )}
+      {/* l'agora tient le conseil : c'est là qu'on cherche et qu'on rêve grand */}
+      {id === 'agora' && b.level >= 2 && (
+        <div className="bloc">
+          <h3>📜 Le conseil</h3>
+          <div className="desc" style={{ fontSize: 12 }}>
+            Une découverte à la fois - c’est un arbitrage, pas une liste de courses. Et un seul grand chantier par
+            règne : la merveille qui définira votre nom.
+          </div>
+          <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('technologies')}>
+            📜 Arbre des découvertes
+          </button>
+          <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('merveilles')}>
+            🏛️ Merveille du règne
+          </button>
+        </div>
+      )}
+      {/* la caserne envoie aussi des hommes qui ne se battent pas */}
+      {id === 'caserne' && b.level > 0 && (
+        <div className="bloc">
+          <h3>🔍 Éclaireurs</h3>
+          <div className="desc" style={{ fontSize: 12 }}>
+            Voir la vague avant qu’elle arrive, ou la garnison d’une place forte avant d’y marcher. L’homme qu’on
+            envoie peut ne pas revenir.
+          </div>
+          <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('espions')}>
+            Envoyer un éclaireur
+          </button>
+        </div>
+      )}
       {id === 'temple' && b.level > 0 && (
         <div className="bloc">
           <h3>Culte</h3>

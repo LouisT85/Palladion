@@ -7,6 +7,10 @@ import { VillageMap } from './components/map/VillageMap'
 import { BandeauAlerte, BarreRessources, BoutonPleinEcran, JetonsEtat, Toasts } from './components/ui/Hud'
 import { BandeauSiege, ModaleFinSiege } from './components/ui/Siege'
 import { AlerteColere, PanneauOracles, PanneauReliques } from './components/ui/Divin'
+import { PanneauCommerce } from './components/ui/Commerce'
+import { PanneauMerveilles, PanneauTechnologies } from './components/ui/Progres'
+import { PanneauEspions } from './components/ui/Espions'
+import { BandeauDefi, PanneauDefi, PanneauHeritage } from './components/ui/Recommencer'
 import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker, PanneauMissions } from './components/ui/Missions'
@@ -208,6 +212,8 @@ export default function App() {
         <BandeauSiege />
         {/* un dieu courroucé s'annonce avant de frapper : la colère doit se voir */}
         <AlerteColere />
+        {/* le défi de la semaine annonce sa graine et son objectif */}
+        <BandeauDefi />
         {/* en campagne, l'acte remplace le fil rouge : c'est lui qui dit pourquoi on joue */}
         {campagne ? <SuiviActe /> : <MissionsTracker />}
         <PanneauBatiment />
@@ -225,6 +231,12 @@ export default function App() {
       {panel === 'annales' && <PanneauAnnales />}
       {panel === 'oracles' && <PanneauOracles onFermer={() => openPanel(null)} />}
       {panel === 'reliques' && <PanneauReliques onFermer={() => openPanel(null)} />}
+      {panel === 'commerce' && <PanneauCommerce onFermer={() => openPanel(null)} />}
+      {panel === 'technologies' && <PanneauTechnologies onFermer={() => openPanel(null)} />}
+      {panel === 'merveilles' && <PanneauMerveilles onFermer={() => openPanel(null)} />}
+      {panel === 'espions' && <PanneauEspions onFermer={() => openPanel(null)} />}
+      {panel === 'heritage' && <PanneauHeritage onFermer={() => openPanel(null)} />}
+      {panel === 'defi' && <PanneauDefi onFermer={() => openPanel(null)} />}
       {panel === 'expeditions' && !expedition && <PanneauExpeditions />}
       {expedition && <ExpeditionScene />}
       <ModaleHorsLigne />

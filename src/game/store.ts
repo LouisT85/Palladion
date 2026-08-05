@@ -43,6 +43,7 @@ import {
   STORAGE_KEY,
   coutEchange,
   LOT_ECHANGE,
+  MARGE_PORT,
   TOURS_MAX,
   TOUR_COUTS,
   UNITS,
@@ -152,7 +153,44 @@ import {
 } from './lignees'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives, rangMission } from './missions'
+import {
+  LOT_VENTE,
+  caravanesEchues,
+  caravanesMax,
+  chargeCaravane,
+  coursInitiaux,
+  creerCaravane,
+  deriverCours,
+  prixAchat,
+  prixVente,
+  raisonRouteFermee,
+  resoudreCaravane,
+  routeOuverte,
+  type Caravane,
+  type Cours,
+  type SnapCommerce,
+} from './commerce'
+import { creerAlea, defiDeLaSemaine, poserAlea } from './defi'
+import {
+  CIBLES,
+  missionsRentrees,
+  preparerMission,
+  resoudreEspion,
+  snapEspion,
+  type CibleEspion,
+  type MissionEspion,
+} from './espionnage'
+import {
+  appliquerHeritage,
+  ecrireArchive,
+  lireArchive,
+  lireHeritageEnAttente,
+  oublierHeritageEnAttente,
+  reportRelations,
+} from './ngplus'
+import { MERVEILLE_PAR_ID, coutMerveille, dureeMerveille, effetEnVigueur, peutBatirMerveille } from './merveilles'
 import { ORACLES, consulterOracle, type OracleId } from './oracles'
+import { TECHNO_PAR_ID, coutTechno, dureeTechno, effetsTechnos, manquePourTechno } from './technologies'
 import {
   delaiProchaineCalamite,
   paliersColere,
@@ -405,6 +443,31 @@ export interface GameState {
     paniquePart: number
     merFermeeJusqua: number
   }
+  /**
+   * Héros que l'héritage d'un règne précédent rend recrutables sans conditions :
+   * on les a déjà connus, ils viennent sur un mot.
+   */
+  herosConnus: HeroId[]
+  /**
+   * Le défi de la semaine en cours, s'il y en a un. La graine est partagée : tout
+   * le monde a la même Troade, donc des scores comparables.
+   */
+  defi: { graine: number; numero: number; contraintes: string[] } | null
+  /** éclaireurs en mission - ils rentrent, ou ne rentrent pas */
+  espions: MissionEspion[]
+  /** découvertes acquises, par id */
+  technos: string[]
+  /** recherche en cours - une seule à la fois, c'est un arbitrage */
+  recherche: { id: string; finAt: number } | null
+  /**
+   * La merveille du règne. Une SEULE par partie : c'est le choix qui définit un
+   * règne, et il ne se reprend pas.
+   */
+  merveille: { id: string; finAt: number; faite: boolean } | null
+  /** cours des marchandises, en lingots la charretée - ils dérivent lentement */
+  cours: Cours
+  /** convois en route vers la Troade */
+  caravanes: Caravane[]
   /** reliques rapportées de Troade */
   reliques: string[]
   /** celles qui occupent une niche du temple - les seules qui agissent */
@@ -449,6 +512,12 @@ export interface GameState {
     | 'annales'
     | 'oracles'
     | 'reliques'
+    | 'commerce'
+    | 'technologies'
+    | 'merveilles'
+    | 'espions'
+    | 'heritage'
+    | 'defi'
     | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
@@ -467,6 +536,17 @@ export interface GameState {
   /** bâtit un des cinq ouvrages de l'intérieur */
   construireDefense: (id: DefenseId) => void
   /** consulte un oracle : il ne facture jamais du vide */
+  /** envoie un éclaireur : un villageois, ou un homme de métier qu'on paie */
+  envoyerEspion: (mission: CibleEspion, villageois: string | null, villageId?: string) => void
+  /** met le conseil à l'étude d'une découverte - une seule à la fois */
+  chercher: (id: string) => void
+  /** ouvre le grand chantier du règne - une seule merveille par partie */
+  batirMerveille: (id: string) => void
+  /** vend des charretées au comptoir, au cours du jour */
+  vendre: (res: ResourceId, lots: number) => void
+  acheter: (res: ResourceId, lots: number) => void
+  /** lève un convoi vers une place forte : meilleur prix, mais du temps et du risque */
+  envoyerCaravane: (villageId: string, res: ResourceId, lots: number) => void
   poserQuestion: (q: OracleId, cible?: string | null) => void
   exposerRelique: (id: string) => void
   retirerRelique: (id: string) => void
@@ -781,8 +861,10 @@ export function productionParMinute(s: GameState, now: number): Record<ResourceI
   const port = PROD.port[s.buildings.port.level] * rd('port') * (merFermee(s) ? PORT_HIVER : 1)
   // Zeus Xenios veille sur les greniers : sa grâce grossit toutes les récoltes
   const zx = 1 + bonusFaveurs(s).recoltePct
-  // les reliques exposées au temple, chacune sur sa ressource
+  // les reliques exposées au temple, les découvertes du conseil, et la merveille
   const rel = bonusReliques(s)
+  const tec = bonusTechnos(s)
+  const mer = bonusMerveille(s)
   /*
    * Athéna offensée retire son adresse aux artisans : tout l'atelier travaille
    * moins bien, le temps que la déesse s'apaise. C'est le seul malus divin qui
@@ -792,10 +874,25 @@ export function productionParMinute(s: GameState, now: number): Record<ResourceI
   const g = (base: number, atelier: number, pct: number, r: ResourceId) =>
     (base + atelier) * m * ciel(r) * zx * (1 + pct) * maladresse
   return {
-    bois: g(BASE_PROD.bois, PROD.scierie[s.buildings.scierie.level] * rd('scierie'), rel.boisPct, 'bois'),
-    pierre: g(BASE_PROD.pierre, PROD.carriere[s.buildings.carriere.level] * rd('carriere'), rel.pierrePct, 'pierre'),
-    grain: g(BASE_PROD.grain, PROD.ferme[s.buildings.ferme.level] * rd('ferme') * drought, rel.grainPct, 'grain'),
-    bronze: g(BASE_PROD.bronze, PROD.forge[s.buildings.forge.level] * rd('forge') + port, rel.bronzePct, 'bronze'),
+    bois: g(BASE_PROD.bois, PROD.scierie[s.buildings.scierie.level] * rd('scierie'), rel.boisPct + tec.boisPct, 'bois'),
+    pierre: g(
+      BASE_PROD.pierre,
+      PROD.carriere[s.buildings.carriere.level] * rd('carriere'),
+      rel.pierrePct + tec.pierrePct,
+      'pierre',
+    ),
+    grain: g(
+      BASE_PROD.grain,
+      PROD.ferme[s.buildings.ferme.level] * rd('ferme') * drought,
+      rel.grainPct + tec.grainPct + (mer.grainPct ?? 0),
+      'grain',
+    ),
+    bronze: g(
+      BASE_PROD.bronze,
+      PROD.forge[s.buildings.forge.level] * rd('forge') + port,
+      rel.bronzePct + tec.bronzePct + (mer.bronzePct ?? 0),
+      'bronze',
+    ),
   }
 }
 
@@ -818,8 +915,10 @@ export function murMax(
   s: Pick<GameState, 'buildings' | 'heros' | 'graces'> & Partial<Pick<GameState, 'reliquesExposees'>>,
 ): number {
   const rel = s.reliquesExposees ? bonusReliques(s as Pick<GameState, 'reliquesExposees' | 'buildings'>).murPct : 0
+  const tec = effetsTechnos((s as Partial<GameState>).technos).murPct
+  const mer = effetEnVigueur((s as Partial<GameState>).merveille).murPct ?? 0
   return Math.round(
-    WALL_HP[s.buildings.remparts.level] * (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct + rel),
+    WALL_HP[s.buildings.remparts.level] * (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct + rel + tec + mer),
   )
 }
 
@@ -866,6 +965,11 @@ export function conditionsHeros(s: GameState, h: HeroId): ConditionHero[] {
 }
 
 export function herosDisponible(s: GameState, h: HeroId): boolean {
+  // un héros hérité vient sur un mot : on l'a déjà connu au règne précédent
+  if ((s.herosConnus ?? []).includes(h)) {
+    const e = s.heros[h]
+    return !!e && !e.recrute && !e.mort
+  }
   const e = s.heros[h]
   return !!e && !e.recrute && !e.mort && conditionsHeros(s, h).every((c) => c.ok)
 }
@@ -897,6 +1001,16 @@ let cacheGraces: { cle: string[]; val: BonusFaveurs } | null = null
  */
 export function bonusReliques(s: Pick<GameState, 'reliquesExposees' | 'buildings'>): EffetsReliques {
   return effetsCumules(vitrineEffective(s.reliquesExposees ?? [], s.buildings.temple.level))
+}
+
+/** ce que les découvertes acquises apportent, cumulé */
+export function bonusTechnos(s: Pick<GameState, 'technos'>) {
+  return effetsTechnos(s.technos)
+}
+
+/** l'effet de la merveille, s'il y en a une et qu'elle est achevée */
+export function bonusMerveille(s: Pick<GameState, 'merveille'>) {
+  return effetEnVigueur(s.merveille)
 }
 
 export function bonusFaveurs(s: { graces?: string[] }): BonusFaveurs {
@@ -1284,6 +1398,14 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
       paniquePart: 0,
       merFermeeJusqua: 0,
     },
+    herosConnus: [],
+    defi: null,
+    espions: [],
+    technos: [],
+    recherche: null,
+    merveille: null,
+    cours: coursInitiaux(),
+    caravanes: [],
     reliques: [],
     reliquesExposees: [],
     oracleReponse: null,
@@ -1310,6 +1432,12 @@ type ActionsOnly = {
   reparerRemparts: unknown
   construireTour: unknown
   construireDefense: unknown
+  envoyerEspion: unknown
+  chercher: unknown
+  batirMerveille: unknown
+  vendre: unknown
+  acheter: unknown
+  envoyerCaravane: unknown
   poserQuestion: unknown
   exposerRelique: unknown
   retirerRelique: unknown
@@ -1423,6 +1551,14 @@ const CHAMPS_SAUVES = [
   'colere',
   'derniereCibleColere',
   'malusDivins',
+  'herosConnus',
+  'defi',
+  'espions',
+  'technos',
+  'recherche',
+  'merveille',
+  'cours',
+  'caravanes',
   'reliques',
   'reliquesExposees',
   'graces',
@@ -1902,11 +2038,24 @@ function expirerAppel(s: GameState, now: number): void {
 
 /** les alliés paient tribut, régulièrement et sans qu'on le demande */
 function verserTributs(s: GameState, now: number): void {
+  const snapM = snapCommerce(s, now)
   for (const [id, a] of Object.entries(s.alliances)) {
     if (now < a.tributAt) continue
     a.tributAt = now + TRIBUT_MS
     const v = VILLAGES_PAR_ID[id]
     if (!v) continue
+    /*
+     * Un tribut voyage par la route, comme une caravane. Route coupée - mer
+     * fermée par l'hiver, menace trop haute sur un long chemin - et il n'arrive
+     * pas : on le dit une fois, sans répéter à chaque échéance.
+     */
+    if (!routeOuverte(id, snapM)) {
+      pushReport(s, '🚧', `Le tribut de ${v.nom} n’est pas passé`, [
+        raisonRouteFermee(id, snapM) ?? 'La route est coupée.',
+        'Rien n’a été perdu : le prochain versement reprendra dès la route rouverte.',
+      ])
+      continue
+    }
     const parts: string[] = []
     // un village lié par le sang verse le double : c'est ce qu'on a acheté
     const mult = a.mariage ? MULT_TRIBUT_MARIAGE : 1
@@ -2080,6 +2229,51 @@ function lancerAssaut(s: GameState, now: number): void {
  * offensé punit, il n'efface pas la partie - d'où les planchers à 1 point de
  * structure. Ce qui doit faire mal, c'est la répétition, pas le coup unique.
  */
+/**
+ * L'instantané que le marché lit. Il vit dans le store et non dans commerce.ts
+ * parce qu'il dépend de `merFermee`, qui dépend des grâces et de la saison :
+ * l'importer là-bas nous rendrait le cycle.
+ */
+/** l'instantané que lisent les éclaireurs : leur rapport doit être VRAI */
+function snapEspions(s: GameState, now: number) {
+  return snapEspion({
+    now,
+    threat: s.threat,
+    saison: s.saison,
+    meteo: s.meteo,
+    incomingWave: s.incomingWave,
+    incomingFronts: s.incomingFronts,
+    incomingChampion: s.incomingChampion,
+    nextAttackAt: s.nextAttackAt,
+    oisifs: oisifs(s).map((v) => ({ id: v.id, nom: v.nom })),
+    herosActifs: HERO_IDS.filter((h) => s.heros[h]?.recrute && !s.heros[h]?.mort),
+    graces: s.graces ?? [],
+    reliques: vitrineEffective(s.reliquesExposees ?? [], s.buildings.temple.level),
+    expeditions: s.expeditions,
+    relations: s.relations ?? {},
+    alliances: s.alliances ?? {},
+    espions: s.espions ?? [],
+    resources: s.resources,
+  })
+}
+
+function snapCommerce(s: GameState, now: number): SnapCommerce {
+  return {
+    now,
+    saison: s.saison,
+    meteo: s.meteo,
+    merFermee: merFermee(s),
+    menace: s.threat ?? 0,
+    secheresse: now < (s.droughtUntil ?? 0),
+    // ce qu'il faut rebâtir fait monter la pierre : ruines et pans effondrés
+    ruines: BUILDING_IDS.filter((b) => s.buildings[b].ruine).length + (s.brechesMur?.length ?? 0),
+    port: s.buildings.port.level,
+    relations: s.relations ?? {},
+    alliances: s.alliances ?? {},
+    cours: s.cours ?? coursInitiaux(),
+  }
+}
+
 function appliquerCalamite(s: GameState, e: EffetCalamite, now: number): void {
   switch (e.type) {
     case 'foudre': {
@@ -2816,6 +3010,76 @@ export const useGame = create<GameState>()(
           pushToast(s, cal.emoji, cal.nom)
         }
 
+        /*
+         * LES ÉCLAIREURS RENTRENT - ou ne rentrent pas. Un homme pris est un
+         * villageois perdu, et l'ennemi apprend qu'on l'observait.
+         */
+        if (!s.espions) s.espions = []
+        const rentres = missionsRentrees(s.espions, now)
+        if (rentres.length > 0) {
+          const snapE = snapEspions(s, now)
+          for (const m of rentres) {
+            const issue = resoudreEspion(m, snapE, Math.random())
+            if (issue.pris) {
+              if (m.villageois) {
+                s.villageois = s.villageois.filter((v) => v.id !== m.villageois)
+                s.pop = s.villageois.length
+              }
+              s.threatMod += issue.menacePlus ?? 4
+              pushToast(s, '💀', `${m.nom} ne rentrera pas.`)
+            } else {
+              pushToast(s, '🔍', `${m.nom} est rentré.`)
+            }
+            pushReport(s, issue.pris ? '💀' : '🔍', `Éclaireur : ${CIBLES[m.type].nom}`, issue.rapport)
+          }
+          s.espions = s.espions.filter((m) => now < m.rentreA)
+        }
+
+        /*
+         * RECHERCHE ET GRAND CHANTIER. Les deux s'achèvent en silence : c'est le
+         * rapport qui les annonce, pour qu'on puisse lire ce qu'on vient de gagner.
+         */
+        if (s.recherche && now >= s.recherche.finAt) {
+          const id = s.recherche.id
+          s.recherche = null
+          if (!s.technos.includes(id)) s.technos.push(id)
+          const def = TECHNO_PAR_ID[id]
+          if (def) {
+            pushToast(s, def.emoji, `Découverte : ${def.nom}`)
+            pushReport(s, def.emoji, `Découverte : ${def.nom}`, [def.desc, def.effet])
+          }
+        }
+        if (s.merveille && !s.merveille.faite && now >= s.merveille.finAt) {
+          s.merveille.faite = true
+          const def = MERVEILLE_PAR_ID[s.merveille.id]
+          if (def) {
+            pushToast(s, def.emoji, `${def.nom} est achevée !`)
+            pushReport(s, def.emoji, def.nom, [def.desc, def.promesse, ...def.effets])
+            s.moraleMods.push({ id: uid('m'), label: def.nom, delta: 12, expiresAt: null })
+          }
+        }
+        /*
+         * LE MARCHÉ. Les cours dérivent vers ce que le monde impose - saison,
+         * ciel, mer fermée, ruines à rebâtir - lentement et sans tirage au sort,
+         * pour qu'attendre un bon cours soit une décision et non un pari.
+         */
+        if (!s.cours) s.cours = coursInitiaux()
+        if (!s.caravanes) s.caravanes = []
+        s.cours = deriverCours(s.cours, snapCommerce(s, now), dtMs * vitesse)
+        const echues = caravanesEchues(s.caravanes, now)
+        if (echues.length > 0) {
+          const snapMarche = snapCommerce(s, now)
+          for (const car of echues) {
+            const r = resoudreCaravane(car, snapMarche, Math.random())
+            if (!r.perdue && r.gain.bronze) {
+              s.resources.bronze = clampRes(s, 'bronze', s.resources.bronze + r.gain.bronze)
+            }
+            pushReport(s, r.perdue ? '💀' : '🐫', r.perdue ? 'Caravane perdue' : 'Caravane rentrée', r.recit)
+            pushToast(s, r.perdue ? '💀' : '🐫', r.recit[0])
+          }
+          s.caravanes = s.caravanes.filter((c) => now < c.retourA)
+        }
+
         // le calendrier tourne : printemps → été → automne → hiver, et le ciel avec
         tournerCiel(s, now)
         // les héros mangent et exigent des honneurs, même en temps de paix
@@ -3274,6 +3538,153 @@ export const useGame = create<GameState>()(
       get().save()
     },
 
+    envoyerEspion: (mission, villageois, villageId) => {
+      set((s) => {
+        const now = Date.now()
+        const snap = snapEspions(s, now)
+        if ((s.espions ?? []).some((m) => m.type === mission)) {
+          pushToast(s, '🔍', 'Un éclaireur est déjà parti pour cette mission.')
+          return
+        }
+        const def = CIBLES[mission]
+        if (!payer(s, def.cout)) {
+          pushToast(s, '❌', 'Ressources insuffisantes pour équiper l’éclaireur.')
+          return
+        }
+        // un villageois part vraiment : c'est un bras de moins tant qu'il est dehors
+        const v = villageois ? s.villageois.find((x) => x.id === villageois) : null
+        const m = preparerMission(mission, snap, {
+          id: uid('esp'),
+          villageois: v ? v.id : null,
+          nom: v ? v.nom : 'Un éclaireur de métier',
+          villageId,
+        })
+        if (v) v.poste = null
+        s.espions.push(m)
+        pushToast(s, '🔍', `${m.nom} part en reconnaissance.`)
+      })
+      get().save()
+    },
+
+    chercher: (id) => {
+      set((s) => {
+        if (s.recherche) {
+          pushToast(s, '📜', 'Le conseil ne mène qu’une recherche à la fois.')
+          return
+        }
+        if (s.technos.includes(id)) return
+        const snap = { buildings: s.buildings, resources: s.resources, technos: s.technos }
+        const manque = manquePourTechno(id, s.technos, snap)
+        if (manque.length > 0) {
+          pushToast(s, '📜', manque[0])
+          return
+        }
+        if (!payer(s, coutTechno(id))) {
+          pushToast(s, '❌', 'Ressources insuffisantes.')
+          return
+        }
+        s.recherche = { id, finAt: Date.now() + dureeTechno(id, snap) }
+        pushToast(s, '📜', 'Le conseil se met à l’étude.')
+      })
+      get().save()
+    },
+
+    batirMerveille: (id) => {
+      set((s) => {
+        // une seule par règne : entamée ou achevée, la place est prise
+        if (s.merveille) {
+          pushToast(s, '🏛️', 'Votre règne a déjà choisi sa merveille.')
+          return
+        }
+        const verdict = peutBatirMerveille(
+          id,
+          { buildings: s.buildings, resources: s.resources, merveille: s.merveille },
+          s.technos,
+        )
+        if (!verdict.ok) {
+          pushToast(s, '🏛️', verdict.manques[0] ?? 'Ce projet n’est pas à votre portée.')
+          return
+        }
+        if (!payer(s, coutMerveille(id))) {
+          pushToast(s, '❌', 'Ressources insuffisantes.')
+          return
+        }
+        s.merveille = { id, finAt: Date.now() + dureeMerveille(id, s.technos), faite: false }
+        pushToast(s, '🏛️', 'Le grand chantier du règne est ouvert.')
+      })
+      get().save()
+    },
+
+    vendre: (res, lots) => {
+      set((s) => {
+        const marge = MARGE_PORT[s.buildings.port.level]
+        if (marge <= 0 || res === 'bronze') return
+        const charretees = Math.max(1, Math.min(4, Math.round(lots)))
+        const quantite = charretees * LOT_VENTE
+        /*
+         * Débit DIRECT et non par `payer()` : sous MODE_TEST celui-ci renvoie vrai
+         * sans rien prélever, et le marché deviendrait une machine à lingots.
+         */
+        if (s.resources[res] < quantite) {
+          pushToast(s, '⚓', 'Pas assez de marchandise à charger.')
+          return
+        }
+        s.resources[res] -= quantite
+        const paye = charretees * prixVente(res, s.cours, marge)
+        s.resources.bronze = clampRes(s, 'bronze', s.resources.bronze + paye)
+        pushToast(s, '⚓', `${quantite} ${RES[res].emoji} vendus pour ${paye} 🪙.`)
+      })
+      get().save()
+    },
+
+    acheter: (res, lots) => {
+      set((s) => {
+        const marge = MARGE_PORT[s.buildings.port.level]
+        if (marge <= 0 || res === 'bronze') return
+        const charretees = Math.max(1, Math.min(4, Math.round(lots)))
+        const prix = charretees * prixAchat(res, s.cours, marge)
+        if (s.resources.bronze < prix) {
+          pushToast(s, '⚓', `Il faut ${prix} 🪙 pour cet achat.`)
+          return
+        }
+        s.resources.bronze -= prix
+        s.resources[res] = clampRes(s, res, s.resources[res] + charretees * LOT_VENTE)
+        pushToast(s, '⚓', `${charretees * LOT_VENTE} ${RES[res].emoji} achetés pour ${prix} 🪙.`)
+      })
+      get().save()
+    },
+
+    envoyerCaravane: (villageId, res, lots) => {
+      set((s) => {
+        const now = Date.now()
+        const snap = snapCommerce(s, now)
+        if (s.buildings.port.level <= 0) {
+          pushToast(s, '🐫', 'Il faut un port pour lever une caravane.')
+          return
+        }
+        const motif = raisonRouteFermee(villageId, snap)
+        if (motif) {
+          pushToast(s, '🚧', motif)
+          return
+        }
+        if (s.caravanes.length >= caravanesMax(s.buildings.port.level)) {
+          pushToast(s, '🐫', 'Tous vos convois sont déjà en route - agrandissez le port.')
+          return
+        }
+        const charretees = Math.max(1, Math.min(4, Math.round(lots)))
+        const charge = chargeCaravane(res, charretees)
+        const quantite = charge[res] ?? 0
+        if (s.resources[res] < quantite) {
+          pushToast(s, '🐫', 'Pas assez de marchandise pour charger ce convoi.')
+          return
+        }
+        s.resources[res] -= quantite
+        s.caravanes.push(creerCaravane(uid('car'), villageId, charge, snap))
+        pushToast(s, '🐫', `Convoi parti pour ${VILLAGES_PAR_ID[villageId]?.nom ?? 'la Troade'}.`)
+      })
+      get().save()
+    },
+
     poserQuestion: (q, cible) => {
       set((s) => {
         const now = Date.now()
@@ -3721,7 +4132,7 @@ export const useGame = create<GameState>()(
         const def = HEROS[h]
         const e = s.heros[h]
         if (!e || e.recrute || e.mort) return
-        if (!conditionsHeros(s, h).every((c) => c.ok)) {
+        if (!(s.herosConnus ?? []).includes(h) && !conditionsHeros(s, h).every((c) => c.ok)) {
           pushToast(s, def.emoji, `${def.nom} ne se met pas au service de n’importe quelle bourgade.`)
           return
         }
@@ -4057,11 +4468,68 @@ export const useGame = create<GameState>()(
     choisirMode: (m) => {
       set((s) => {
         s.mode = m
+        /*
+         * L'HÉRITAGE d'un règne précédent, s'il en reste un en attente. Il se pose
+         * AVANT le mode : la campagne comme le bac à sable en profitent, et le
+         * malus de difficulté qui l'accompagne s'ajoute à ce que le mode impose.
+         */
+        const enAttente = lireHeritageEnAttente()
+        const modifs = appliquerHeritage(enAttente)
+        if (modifs.pointsDepenses > 0) {
+          for (const [r, n] of Object.entries(modifs.res) as [ResourceId, number][]) {
+            s.resources[r] = clampRes(s, r, s.resources[r] + n)
+          }
+          s.pop += modifs.pop
+          s.faveur = Math.min(FAVEUR_MAX, s.faveur + modifs.faveur)
+          if (modifs.remparts > 0) {
+            s.buildings.remparts.level = Math.max(s.buildings.remparts.level, modifs.remparts)
+            s.wallHp = murMax(s)
+          }
+          s.tours = Math.max(s.tours, modifs.tours)
+          for (const [b, niv] of Object.entries(modifs.batiments) as [BuildingId, number][]) {
+            s.buildings[b].level = Math.max(s.buildings[b].level, niv)
+          }
+          for (const d of modifs.defenses) {
+            if (d === 'acropole') s.defenses.acropole = Math.max(s.defenses.acropole, 1)
+            else s.defenses[d] = true
+          }
+          for (const h of modifs.herosConnus) s.herosConnus.push(h)
+          for (const g of modifs.graces) if (!s.graces.includes(g)) s.graces.push(g)
+          for (const [g, v] of Object.entries(modifs.relations) as [GodId, number][]) {
+            s.gods[g].relation = Math.max(-100, Math.min(100, s.gods[g].relation + v))
+          }
+          // la Troade se souvient : amitiés et rancunes reportées, atténuées
+          const arch = lireArchive()
+          if (arch.dernier?.relations) {
+            s.relations = { ...s.relations, ...reportRelations(arch.dernier.relations) }
+          }
+          s.threatMod += modifs.malus.threatMod
+          s.nextAttackAt = Date.now() + modifs.malus.premierAssautMs
+          oublierHeritageEnAttente()
+          pushReport(s, '👑', 'L’héritage du règne précédent', [
+            `${modifs.pointsDepenses} points d’héritage dépensés.`,
+            `La Troade s’en souvient : la menace démarre plus haut (+${modifs.malus.threatMod}) et le premier assaut vient plus tôt.`,
+          ])
+        }
         if (m === 'campagne') {
           // l'acte I enseigne en jouant : la leçon de Zeus n'a pas sa place ici
           s.tutoriel = null
           s.tutorialDone = true
           appliquerActe(s, 0, Date.now())
+        } else if (m === 'defi') {
+          /*
+           * LE DÉFI DE LA SEMAINE. Une graine partagée : la même Troade, les mêmes
+           * vagues, les mêmes dilemmes pour tout le monde - c'est ce qui rend les
+           * scores comparables. On pose l'alea déterministe AVANT toute chose,
+           * sinon la première vague serait déjà tirée au hasard.
+           */
+          const d = defiDeLaSemaine()
+          poserAlea(creerAlea(d.graine))
+          s.defi = { graine: d.graine, numero: d.numero, contraintes: d.contraintes.map((c) => c.id) }
+          s.tutoriel = null
+          s.tutorialDone = true
+          s.campagne = null
+          s.siege = null
         } else if (m === 'siege') {
           /*
            * Le siège ne s'apprend pas, il se subit : pas de leçon, pas d'acte, et
@@ -4178,6 +4646,21 @@ export const useGame = create<GameState>()(
           `${score} points de prestige, ${s.hautsFaits.length}/${HAUTS_FAITS.length} hauts faits.`,
           t.desc,
         ])
+        /*
+         * Le règne entre aux archives : c'est SON prestige qui paiera l'héritage
+         * de la partie suivante, et ses relations que la Troade se rappellera.
+         * L'archive vit hors de la sauvegarde de partie - elle traverse les règnes.
+         */
+        ecrireArchive({
+          prestige: score,
+          titre: t.titre,
+          jours: jourDe(s),
+          pop: s.pop,
+          repousses: s.stats.repousses,
+          hautsFaits: s.hautsFaits.length,
+          relations: s.relations ?? {},
+          finiLe: Date.now(),
+        })
       })
     },
 

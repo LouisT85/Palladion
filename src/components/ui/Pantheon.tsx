@@ -228,10 +228,12 @@ export function Pantheon() {
                 {!verrouille && (
                   <Astuce
                     titre={`${dieu.emoji} Le bras de ${dieu.nom}`}
-                    resume={`Voici à quoi ressemble sa manifestation à votre ferveur actuelle (${nomFerveur(relationEffective(s, g))}). Elle enfle ou pâlit avec la relation - on voit ce qu’on paie avant de le payer.`}
+                    resume={`Voici à quoi ressemble sa manifestation à votre ferveur actuelle (${nomFerveur(rel)}). Elle enfle ou pâlit avec la relation - on voit ce qu’on paie avant de le payer.`}
+                    note="La vignette joue la vraie manifestation en boucle, à l’échelle de la scène : un dieu offensé y avorte visiblement."
                   >
                     <div className="apercu-divin">
-                      <ApercuDivin dieu={g} palier={palierFerveur(etat.relation)} taille={74} />
+                      {/* c'est la ferveur EFFECTIVE qu'on montre : celle qui frappera */}
+                      <ApercuDivin dieu={g} palier={palierFerveur(rel)} />
                     </div>
                   </Astuce>
                 )}

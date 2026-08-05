@@ -2,7 +2,7 @@ import { BatimentArt, DefsBatiments } from './components/map/Batiments'
 import { DefsArt } from './components/map/art'
 import { Murailles } from './components/map/Murailles'
 import { Terrain } from './components/map/Terrain'
-import { Belier, Bonhomme, lookUnite } from './components/map/BatailleLayer'
+import { Belier, Char, Bonhomme, lookUnite } from './components/map/BatailleLayer'
 import { Ouvriers } from './components/map/Ouvriers'
 import { AttributPose, SilhouetteHeros } from './components/map/SilhouettesHeros'
 import { HEROS, HERO_IDS } from './game/heros'
@@ -82,12 +82,14 @@ export function PreviewArt() {
      * au double : c'est là qu'on tranche. Si deux silhouettes se confondent dans
      * la colonne « ×1 », le travail n'est pas fait, quel que soit le détail.
      */
-    const unites: UnitId[] = ['lancier', 'archer', 'hoplite', 'frondeur', 'peltaste', 'belier']
+    const unites: UnitId[] = ['lancier', 'archer', 'hoplite', 'frondeur', 'peltaste', 'belier', 'char']
     const anims = ['idle', 'marche', 'combat', 'tir'] as const
     const fig = (u: UnitId, a: (typeof anims)[number]) => {
       const look = lookUnite(u)
       return look === 'belier' ? (
         <Belier enMarche={a === 'marche'} />
+      ) : look === 'char' ? (
+        <Char enMarche={a === 'marche'} />
       ) : (
         <Bonhomme {...look} anim={a} seed={0.37} dur={a === 'tir' ? 2.6 : 2.1} />
       )
@@ -147,7 +149,7 @@ export function PreviewArt() {
     // le panneau des rôles, hors jeu : on juge le texte et les vignettes
     return (
       <div style={{ background: '#101b27', minHeight: '100vh', padding: 22 }}>
-        <RolesGarnison army={{ lancier: 12, archer: 6, hoplite: 3, frondeur: 9, peltaste: 4, belier: 1 }} />
+        <RolesGarnison army={{ lancier: 12, archer: 6, hoplite: 3, frondeur: 9, peltaste: 4, belier: 1, char: 2 }} />
       </div>
     )
   }

@@ -1,6 +1,6 @@
 import { postesArchers } from '../../game/data'
 import type { UnitId } from '../../game/types'
-import { Bonhomme, lookUnite } from './BatailleLayer'
+import { Bonhomme, Char, lookUnite } from './BatailleLayer'
 
 /*
  * La garnison en temps de paix : vos troupes recrutées, visibles sur la carte.
@@ -22,7 +22,16 @@ import { Bonhomme, lookUnite } from './BatailleLayer'
  * Combien de figurines par unité au repos. Le bélier n'y figure pas : une machine
  * de siège ne monte pas la garde, elle attend au dépôt qu'on parte en expédition.
  */
-const MONTRES: Record<UnitId, number> = { lancier: 6, archer: 4, hoplite: 4, frondeur: 4, peltaste: 3, belier: 0 }
+const MONTRES: Record<UnitId, number> = {
+  lancier: 6,
+  archer: 4,
+  hoplite: 4,
+  frondeur: 4,
+  peltaste: 3,
+  belier: 0,
+  // l'attelage tient de la place : deux suffisent à dire qu'on en a
+  char: 2,
+}
 
 /** une figurine de garnison : l'allure du champ de bataille, rentrée d'un cran */
 function Figurine({ type, echelle = 0.9 }: { type: UnitId; echelle?: number }) {
@@ -31,7 +40,7 @@ function Figurine({ type, echelle = 0.9 }: { type: UnitId; echelle?: number }) {
   if (look === 'belier') return null
   return (
     <g transform={`scale(${echelle})`}>
-      <Bonhomme {...look} />
+      {look === 'char' ? <Char /> : <Bonhomme {...look} />}
     </g>
   )
 }

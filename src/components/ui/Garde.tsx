@@ -2,7 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { UNITS, UNIT_IDS } from '../../game/data'
 import { cleEmplacement, emplacementActif, exporterTexte } from '../../game/sauvegardes'
 import type { ResourceId, UnitId } from '../../game/types'
-import { Belier, Bonhomme, lookUnite } from '../map/BatailleLayer'
+import { Belier, Bonhomme, Char, lookUnite } from '../map/BatailleLayer'
 import { Montant } from './Icones'
 
 /*
@@ -160,6 +160,13 @@ const ROLES: Record<UnitId, RoleUnite> = {
     quoi: 'Abat les murailles à la place de vos hommes. Inutile en défense : on ne défend pas un village avec un bélier.',
     marque: 'ce n’est pas un homme - charpente sous peaux et tête de bronze',
   },
+  char: {
+    role: 'Attelage',
+    ton: '#c9a441',
+    quoi:
+      'Le plus rapide de la Troade : il traverse la plaine et fond sur les tireurs et les machines avant qu’ils n’aient tiré deux fois. Cher, fragile sous les flèches, et sans effet sur une muraille.',
+    marque: 'la seule silhouette couchée du champ - deux chevaux, une roue haute, la lance dressée',
+  },
 }
 
 /**
@@ -168,7 +175,8 @@ const ROLES: Record<UnitId, RoleUnite> = {
  */
 function Vignette({ type }: { type: UnitId }) {
   const look = lookUnite(type)
-  const machine = look === 'belier'
+  // bélier et char sont larges et bas là où un homme est haut et étroit
+  const machine = look === 'belier' || look === 'char'
   return (
     <svg
       width={machine ? 74 : 54}
@@ -179,7 +187,7 @@ function Vignette({ type }: { type: UnitId }) {
       style={{ flex: '0 0 auto', overflow: 'visible' }}
     >
       <title>{UNITS[type].nom}</title>
-      {look === 'belier' ? <Belier /> : <Bonhomme {...look} anim="idle" seed={0.42} />}
+      {look === 'belier' ? <Belier /> : look === 'char' ? <Char /> : <Bonhomme {...look} anim="idle" seed={0.42} />}
     </svg>
   )
 }

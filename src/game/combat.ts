@@ -30,7 +30,13 @@ function statsDe(type: EnemyId | UnitId): { atk: number; hp: number; speed: numb
   if (e) return { atk: e.atk, hp: e.hp, speed: e.speed, wallDps: e.wallDps }
   const u = UNITS[type as UnitId]
   // le peltaste court : c'est la moitié de ce qu'on achète en le levant
-  return { atk: u.atk, hp: u.hp, speed: type === 'peltaste' ? 58 : 38, wallDps: u.wallDps }
+  /*
+   * Le char double la vitesse de l'infanterie : c'est SA raison d'être. Il traverse
+   * la plaine avant que les tireurs aient rechargé, là où le peltaste ne fait que
+   * courir plus vite qu'un hoplite.
+   */
+  const speed = type === 'char' ? 84 : type === 'peltaste' ? 58 : 38
+  return { atk: u.atk, hp: u.hp, speed, wallDps: u.wallDps }
 }
 
 /** ce qui tire de loin, dans les deux camps - la proie du peltaste */
@@ -524,7 +530,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
   const engages: Partial<Record<UnitId, number>> = {}
   // un compteur commun à toute l'infanterie : la ligne de mêlée est unique
   let placeDef = 0
-  for (const u of ['lancier', 'peltaste', 'hoplite'] as UnitId[]) {
+  for (const u of ['lancier', 'peltaste', 'char', 'hoplite'] as UnitId[]) {
     const n = defenseurs[u] ?? 0
     if (n <= 0) continue
     engages[u] = n
@@ -1306,7 +1312,18 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
      * sa raison d'être - un javelot rattrape un archer, une lance de milice ne
      * rattrape rien. Sans ce tri, il n'était qu'un lancier un peu plus cher.
      */
-    const tireurs = f.type === 'peltaste' ? aPortee.filter((a) => estTireur(a.type)) : []
+    /*
+     * Le peltaste va aux TIREURS. Le char, lui, va aux tireurs ET aux machines :
+     * un attelage qui fond sur un bélier avant qu'il ait cogné trois fois vaut
+     * mieux que dix lanciers qui l'atteignent quand le mur est déjà percé.
+     */
+    const proies =
+      f.type === 'char'
+        ? aPortee.filter((a) => estTireur(a.type) || a.type === 'belier')
+        : f.type === 'peltaste'
+          ? aPortee.filter((a) => estTireur(a.type))
+          : []
+    const tireurs = proies
     const cible = choisirCible(f, tireurs.length > 0 ? tireurs : aPortee)
     if (!cible) {
       f.tx = ancre.x

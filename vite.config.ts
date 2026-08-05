@@ -46,7 +46,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.ts'],
+    // .tsx admis : les tests de RENDU montent de vrais composants React
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     // le store écrit dans localStorage : jsdom en fournit un, et chaque fichier
     // de test part d'un environnement neuf
     restoreMocks: true,

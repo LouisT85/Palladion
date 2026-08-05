@@ -185,7 +185,7 @@ describe('le village vivant, dans le store', () => {
         v.neLe = jour
         v.poste = null
       }
-      s.army = { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }
+      s.army = { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 }
       s.recruitQueue = []
       return s
     })

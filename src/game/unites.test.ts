@@ -26,8 +26,8 @@ function bataille(reglages: Partial<Parameters<typeof creerBataille>[0]> = {}): 
 }
 
 describe('la table des unités', () => {
-  it('compte six unités, chacune indexée par son propre identifiant', () => {
-    expect(UNIT_IDS).toEqual(['lancier', 'archer', 'hoplite', 'frondeur', 'peltaste', 'belier'])
+  it('compte sept unités, chacune indexée par son propre identifiant', () => {
+    expect(UNIT_IDS).toEqual(['lancier', 'archer', 'hoplite', 'frondeur', 'peltaste', 'char', 'belier'])
     for (const u of UNIT_IDS) expect(UNITS[u].id, u).toBe(u)
     // deux unités de même emoji seraient indiscernables dans la caserne
     expect(new Set(UNIT_IDS.map((u) => UNITS[u].emoji)).size).toBe(UNIT_IDS.length)
@@ -67,6 +67,69 @@ describe('la table des unités', () => {
     const vitesse = (t: UnitId) => b.fighters.find((f) => f.type === t)!.speed
     expect(vitesse('peltaste')).toBeGreaterThan(vitesse('lancier'))
     expect(vitesse('peltaste')).toBeGreaterThan(vitesse('hoplite'))
+  })
+})
+
+describe('le char de guerre', () => {
+  it('est le plus rapide de la Troade, et de loin', () => {
+    const b = creerBataille({
+      attaquants: [{ enemy: 'pillard', count: 1 }],
+      defenseurs: troupes({ lancier: 1, peltaste: 1, hoplite: 1, char: 1 }),
+      wallLevel: 0,
+      now: 0,
+      geo: GEO_VILLAGE,
+      campJoueur: 'defense',
+      wallHpTotal: 0,
+    })
+    const vitesse = (t: UnitId) => b.fighters.find((f) => f.type === t)!.speed
+    for (const autre of ['lancier', 'hoplite', 'peltaste'] as UnitId[]) {
+      expect(vitesse('char'), autre).toBeGreaterThan(vitesse(autre))
+    }
+  })
+
+  it('coûte cher et ne fait rien à une muraille : ce n’est pas une machine de siège', () => {
+    const prix = (u: UnitId) => Object.values(UNITS[u].cost).reduce((a, n) => a + n, 0)
+    // plus cher que toute l'infanterie - c'est le prix de la vitesse
+    for (const autre of ['lancier', 'archer', 'hoplite', 'frondeur', 'peltaste'] as UnitId[]) {
+      expect(prix('char'), autre).toBeGreaterThan(prix(autre))
+    }
+    // et sans effet sur un mur : le bélier reste seul à cela
+    expect(UNITS.char.wallDps).toBeLessThan(UNITS.belier.wallDps / 10)
+  })
+
+  it('fond sur les machines de siège, ce qu’aucune autre unité ne fait', () => {
+    /*
+     * Un bélier ennemi LOIN, un pillard TOUT PRÈS. Le char doit traverser pour la
+     * machine : c'est ce qui le distingue du peltaste, qui ne voit que les tireurs.
+     */
+    const b = creerBataille({
+      attaquants: [
+        { enemy: 'pillard', count: 1 },
+        { enemy: 'belier', count: 1 },
+      ],
+      defenseurs: troupes({ char: 1, lancier: 1 }),
+      wallLevel: 0,
+      now: 0,
+      geo: GEO_VILLAGE,
+      campJoueur: 'defense',
+      wallHpTotal: 0,
+    })
+    const pillard = b.fighters.find((f) => f.camp === 'attaque' && f.type === 'pillard')!
+    const belier = b.fighters.find((f) => f.camp === 'attaque' && f.type === 'belier')!
+    const char = b.fighters.find((f) => f.type === 'char')!
+    for (const [f, dx] of [
+      [pillard, 30],
+      [belier, 95],
+    ] as const) {
+      f.x = char.x + dx
+      f.y = char.y
+      f.tx = f.x
+      f.ty = f.y
+      f.etat = 'melee'
+    }
+    tickBataille(b, { now: 1000, dt: TICK_MS / 1000, wallHp: 0, wallLevel: 0 })
+    // il part vers la machine, donc au-delà du pillard qui lui barre la route
+    expect(char.tx).toBeGreaterThan(pillard.x)
   })
 })
 

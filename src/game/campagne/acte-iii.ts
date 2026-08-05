@@ -67,7 +67,7 @@ export const ACTE_III: ActeCampagne = {
       // et le comptoir change le bois excédentaire en pierre à bâtir
       port: 1,
     },
-    army: troupes({ lancier: 5, archer: 3, hoplite: 1, frondeur: 0, peltaste: 0, belier: 0 }),
+    army: troupes({ lancier: 5, archer: 3, hoplite: 1, frondeur: 0, peltaste: 0, belier: 0, char: 0 }),
     morale: 58,
     faveur: 40,
     tours: 1,

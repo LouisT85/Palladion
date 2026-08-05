@@ -617,6 +617,69 @@ export function Bonhomme({
 }
 
 /** la machine de siège - elle n'est pas un homme : elle n'a ni tunique ni casque */
+/**
+ * Le char de guerre : deux chevaux, une caisse à roue haute, un cocher penché sur
+ * les rênes et le combattant debout derrière lui.
+ *
+ * Ce n'est pas un fantassin agrandi : sa silhouette est HORIZONTALE là où toutes
+ * les autres sont verticales, et c'est ce qui le rend reconnaissable au premier
+ * coup d'œil dans une mêlée, même à quatorze pixels de haut.
+ */
+export function Char({ enMarche }: { enMarche?: boolean }) {
+  return (
+    <g>
+      <OmbreSol rx={14} ry={3} />
+      {/* les deux chevaux, le second décalé pour qu'on lise l'attelage */}
+      {[
+        { dx: 9, dy: -1, c: '#8a6a44', cc: '#6f5334' },
+        { dx: 12.5, dy: -3.4, c: '#7a5c3a', cc: '#5f462a' },
+      ].map((h, i) => (
+        <g key={i} transform={`translate(${h.dx},${h.dy})`}>
+          <ellipse cx={0} cy={-7} rx={6.2} ry={3.4} fill={h.c} />
+          <path d={`M-5.4,-4 L-4.6,0 M-1,-4 L-0.4,0 M3,-4.2 L3.6,-0.2 M5.6,-4 L6.2,0`} stroke={h.cc} strokeWidth={1.3}>
+            {enMarche && (
+              <animateTransform attributeName="transform" type="rotate" values="12 0 -5;-12 0 -5;12 0 -5" dur="0.42s" begin={`${i * 0.13}s`} repeatCount="indefinite" />
+            )}
+          </path>
+          {/* encolure, tête et crinière */}
+          <path d="M4.4,-8.6 L7.6,-12.4 L9.6,-11.6 L6.4,-7.6 Z" fill={h.c} />
+          <ellipse cx={9.4} cy={-12.6} rx={2.5} ry={1.7} fill={h.cc} />
+          <path d="M5.2,-9.6 L7.4,-12.6" stroke="#4a3620" strokeWidth={1.5} />
+          <path d="M-6,-8 L-8.4,-5.6" stroke={h.cc} strokeWidth={1.6} />
+        </g>
+      ))}
+      {/* timon et joug */}
+      <path d="M2,-6 L8.6,-8.6" stroke="#6b4c2a" strokeWidth={1.4} />
+      {/* caisse du char : flanc éclairé à l'ouest, garde-corps cintré */}
+      <path d="M-7,-4 L-7,-11 Q-7,-13 -4.6,-13 L1.6,-13 Q3,-13 3,-11 L3,-4 Z" fill="#9a7b4c" />
+      <path d="M-7,-11 Q-7,-13 -4.6,-13 L-3.4,-13 L-3.4,-4 L-7,-4 Z" fill="#b39262" />
+      <path d="M-7,-11.4 Q-2,-13.6 3,-11.4" stroke="#c9a441" strokeWidth={1.2} fill="none" />
+      {/* la roue, haute et à rayons */}
+      <g transform="translate(-3.4,-4)">
+        <circle r={4.4} fill="none" stroke="#6b4c2a" strokeWidth={1.5} />
+        <g stroke="#8a6a44" strokeWidth={0.9}>
+          <path d="M-4.4,0 L4.4,0 M0,-4.4 L0,4.4 M-3.1,-3.1 L3.1,3.1 M-3.1,3.1 L3.1,-3.1" />
+          {enMarche && <animateTransform attributeName="transform" type="rotate" from="0" to="-360" dur="0.8s" repeatCount="indefinite" />}
+        </g>
+      </g>
+      {/* cocher penché sur les rênes, puis le combattant debout */}
+      <g transform="translate(0,-13)">
+        <path d="M-1.6,0 L-1,-5.4 L1.6,-5.4 L2.2,0 Z" fill="#c9a06c" />
+        <circle cx={0.6} cy={-7} r={1.9} fill="#d9a97c" />
+        <path d="M2,-4.6 L6.4,-7.4" stroke="#5d4a33" strokeWidth={0.8} />
+      </g>
+      <g transform="translate(-4.6,-13)">
+        <path d="M-1.8,0 L-1.2,-6.4 L1.8,-6.4 L2.4,0 Z" fill="#3e5a7a" />
+        <circle cx={0.4} cy={-8.4} r={2.1} fill="#d9a97c" />
+        <path d="M-1.7,-8.9 A2.1,2.1 0 0 1 2.5,-8.9" fill="#8a7845" />
+        {/* la lance dressée : c'est elle qui signale l'attelage de loin */}
+        <path d="M2,-6 L4.4,-19" stroke="#7a5a35" strokeWidth={1.1} />
+        <path d="M4.4,-19 l0.8,-2.6 l1.2,2.3 Z" fill="#c9a441" />
+      </g>
+    </g>
+  )
+}
+
 export function Belier({ enMarche }: { enMarche?: boolean }) {
   return (
     <g>
@@ -741,7 +804,7 @@ const TUNIQUE_ALLIEE: Record<'lancier' | 'archer' | 'hoplite', string> = {
   hoplite: '#415c32',
 }
 
-function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' {
+function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' | 'char' {
   if (f.heros) return lookHeros(f.heros)
   return lookCombattant(f.type, estJoueur, f.allie)
 }
@@ -751,7 +814,7 @@ function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' {
  * bataille - garnison au repos, vignettes de la caserne : l'icône d'un panneau
  * doit montrer EXACTEMENT l'homme qu'on verra courir, sinon elle n'apprend rien.
  */
-export function lookCombattant(type: Fighter['type'], estJoueur: boolean, allie?: boolean): Look | 'belier' {
+export function lookCombattant(type: Fighter['type'], estJoueur: boolean, allie?: boolean): Look | 'belier' | 'char' {
   switch (type) {
     case 'belier':
       return 'belier'
@@ -785,6 +848,13 @@ export function lookCombattant(type: Fighter['type'], estJoueur: boolean, allie?
     case 'peltaste':
       // svelte et versé en avant - il court là où l'hoplite avance
       return { tunique: allie ? '#4d6b3a' : estJoueur ? '#8a6a2f' : '#8a5636', arme: 'javelots', taille: 1 }
+    /*
+     * Le char n'est pas un homme mais un attelage : il emprunte donc la voie de
+     * la machine, comme le bélier, plutôt qu'une silhouette de fantassin qu'on
+     * confondrait avec la milice.
+     */
+    case 'char':
+      return 'char'
   }
 }
 
@@ -792,7 +862,7 @@ export function lookCombattant(type: Fighter['type'], estJoueur: boolean, allie?
  * L'allure d'une unité du joueur, hors bataille. Les panneaux s'en servent pour
  * afficher la même figurine que la carte, à la même échelle relative.
  */
-export function lookUnite(type: UnitId): Look | 'belier' {
+export function lookUnite(type: UnitId): Look | 'belier' | 'char' {
   return lookCombattant(type, true)
 }
 
@@ -803,7 +873,7 @@ export const DUREE_DEPOUILLE = 5200
 function Depouille({ f, campJoueur, now }: { f: Fighter; campJoueur: 'attaque' | 'defense'; now: number }) {
   const t = (now - (f.mortAt ?? now)) / DUREE_DEPOUILLE
   const look = lookDe(f, f.camp === campJoueur)
-  const contenu = look === 'belier' ? <Belier /> : <Bonhomme {...look} />
+  const contenu = look === 'belier' ? <Belier /> : look === 'char' ? <Char /> : <Bonhomme {...look} />
   const sens = f.camp === 'attaque' ? 82 : -82
   return (
     <g transform={`translate(${f.x},${f.y})`} opacity={Math.max(0, 0.75 * (1 - t))}>
@@ -858,6 +928,8 @@ function FigurineCombattant({
   const contenu =
     look === 'belier' ? (
       <Belier enMarche={f.etat === 'marche'} />
+    ) : look === 'char' ? (
+      <Char enMarche={f.etat === 'marche'} />
     ) : look.silhouette ? (
       look.silhouette({ anim, seed: f.seed, dur })
     ) : (

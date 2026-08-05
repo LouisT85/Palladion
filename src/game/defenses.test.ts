@@ -21,7 +21,7 @@ const RIEN: DefensesInterieures = {
 function batailleOuverte(tours = 0) {
   const b = creerBataille({
     attaquants: [{ enemy: 'pillard', count: 6 }],
-    defenseurs: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
+    defenseurs: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 },
     wallLevel: 2,
     now: 0,
     geo: GEO_VILLAGE,
@@ -160,7 +160,7 @@ describe('les ouvrages de l’intérieur', () => {
   it('le bastion saigne les assaillants de la porte tant que le pan tient', () => {
     const b = creerBataille({
       attaquants: [{ enemy: 'pillard', count: 4 }],
-      defenseurs: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
+      defenseurs: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 },
       wallLevel: 3,
       now: 0,
       geo: GEO_VILLAGE,

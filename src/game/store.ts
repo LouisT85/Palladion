@@ -175,6 +175,7 @@ import type {
   Alliance,
   BattleState,
   DefensesInterieures,
+  ModeJeu,
   BuildingId,
   BuildingState,
   EnemyId,
@@ -351,7 +352,7 @@ export interface GameState {
    * Comment on joue. `null` = on ne le sait pas encore, l'écran de choix s'ouvre.
    * Une sauvegarde antérieure à la campagne est forcément un bac à sable.
    */
-  mode: 'bac-a-sable' | 'campagne' | null
+  mode: ModeJeu | null
   /** avancement dans « La Chute » - null hors campagne */
   campagne: EtatCampagne | null
   /**
@@ -440,7 +441,7 @@ export interface GameState {
   /** conduit le joueur là où la mission se joue : bâtiment, recensement, panneau */
   allerAMission: (id: string) => void
   /** choisit le mode de jeu au premier lancement */
-  choisirMode: (m: 'bac-a-sable' | 'campagne') => void
+  choisirMode: (m: ModeJeu) => void
   /** le prologue est lu : le compte à rebours du premier assaut démarre */
   commencerActe: () => void
   /** l'épilogue est lu : on enchaîne sur l'acte suivant, ou l'on clôt la campagne */
@@ -1125,7 +1126,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     tours: 0,
     defenses: { acropole: 0, bastion: false, galeries: false, poterne: false, citerne: false },
     brechesMur: [],
-    army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
+    army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 },
     recruitQueue: [],
     moraleMods: [],
     morale: 52,
@@ -1801,7 +1802,7 @@ function verserTributs(s: GameState, now: number): void {
 
 /** renforts alliés dépêchés sur vos remparts quand l'assaut sonne */
 function renfortsAllies(s: GameState): Record<UnitId, number> {
-  const out: Record<UnitId, number> = { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 }
+  const out: Record<UnitId, number> = { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 }
   for (const id of Object.keys(s.alliances)) {
     const v = VILLAGES_PAR_ID[id]
     if (!v) continue

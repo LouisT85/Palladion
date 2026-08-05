@@ -28,7 +28,7 @@ import type { BuildingId, UnitId } from './types'
  * fichier existe pour qu'aucun ne revienne en silence.
  */
 
-const ARMEE = (l: number, a: number, h: number): Record<UnitId, number> => ({ lancier: l, archer: a, hoplite: h, frondeur: 0, peltaste: 0, belier: 0 })
+const ARMEE = (l: number, a: number, h: number): Record<UnitId, number> => ({ lancier: l, archer: a, hoplite: h, frondeur: 0, peltaste: 0, belier: 0, char: 0 })
 const VAGUE = (n: number) => [{ enemy: 'pillard' as const, count: n }]
 
 /**
@@ -261,7 +261,7 @@ describe('un sac coûte des habitants, et pas seulement des réserves', () => {
         tutorialDone: true,
         lastSeen: t0 - 40_000,
         // une garnison nulle et une enceinte à terre : l'assaut est perdu d'avance
-        army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
+        army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 },
         buildings: batiments({ agora: 2, remparts: 2 }),
         wallHp: 20,
         nextAttackAt: t0 - 5_000,
@@ -288,7 +288,7 @@ describe('un sac coûte des habitants, et pas seulement des réserves', () => {
         pop: 2,
         tutorialDone: true,
         lastSeen: t0 - 40_000,
-        army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
+        army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 },
         buildings: batiments({ agora: 1, remparts: 1 }),
         wallHp: 10,
         nextAttackAt: t0 - 5_000,

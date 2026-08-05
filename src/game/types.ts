@@ -11,7 +11,7 @@ export type BuildingId =
   | 'caserne'
   | 'temple'
   | 'port'
-export type UnitId = 'lancier' | 'archer' | 'hoplite' | 'frondeur' | 'peltaste' | 'belier'
+export type UnitId = 'lancier' | 'archer' | 'hoplite' | 'frondeur' | 'peltaste' | 'belier' | 'char'
 /** les héros de la matière troyenne - leurs fiches vivent dans heros.ts */
 export type HeroId =
   | 'hector'
@@ -141,6 +141,15 @@ export interface DefensesInterieures {
    */
   citerne: boolean
 }
+
+/**
+ * Comment on joue. Quatre modes, un seul moteur :
+ *  · `bac-a-sable` : le village libre, sans fin écrite ;
+ *  · `campagne` : « La Chute », cinq actes et leurs objectifs ;
+ *  · `siege` : les vagues s'enchaînent sans répit, on compte combien on en tient ;
+ *  · `defi` : une graine partagée, la même Troade pour tous, un score comparable.
+ */
+export type ModeJeu = 'bac-a-sable' | 'campagne' | 'siege' | 'defi'
 
 /** un habitant du village, avec un nom et éventuellement un métier */
 export interface Villageois {

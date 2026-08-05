@@ -684,6 +684,26 @@ export const UNITS: Record<UnitId, UnitDef> = {
     wallDps: 6,
     caserne: 2,
   },
+  /*
+   * Le char de guerre. Dans l'Iliade il ne charge pas la ligne : il PORTE le
+   * champion au combat, le dépose, et l'attend pour le tirer d'affaire. D'où sa
+   * conception ici - il traverse la plaine plus vite que tout le reste, frappe
+   * dur au premier choc, mais il est cher, fragile aux tireurs, et absolument
+   * inutile contre un mur. C'est l'unité qui prend un flanc, pas qui l'enfonce.
+   */
+  char: {
+    id: 'char',
+    nom: 'Char de guerre',
+    emoji: '🛞',
+    desc:
+      'Deux chevaux, un cocher, un combattant. Le plus rapide de la Troade : il fond sur les tireurs et les machines avant qu’ils n’aient tiré deux fois. Mais il coûte cher, se brise vite, et ne fait rien à une muraille.',
+    cost: { bois: 60, bronze: 45, grain: 40 },
+    time: 52,
+    atk: 26,
+    hp: 78,
+    wallDps: 2,
+    caserne: 4,
+  },
   belier: {
     id: 'belier',
     nom: 'Bélier de siège',
@@ -705,7 +725,7 @@ export const UNITS: Record<UnitId, UnitDef> = {
  * d'écrire trois zéros à chaque fois qu'on décrit une garnison.
  */
 export function troupes(p: Partial<Record<UnitId, number>>): Record<UnitId, number> {
-  return { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, ...p }
+  return { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0, ...p }
 }
 export const UNIT_IDS = Object.keys(UNITS) as UnitId[]
 

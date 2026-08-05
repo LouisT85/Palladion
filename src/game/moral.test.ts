@@ -20,7 +20,7 @@ import type { BattleState, UnitId } from './types'
  * pas : la bataille reste jolie, elle n'a simplement plus d'enjeu.
  */
 
-const ARMEE = (l: number, a: number, h: number): Record<UnitId, number> => ({ lancier: l, archer: a, hoplite: h, frondeur: 0, peltaste: 0, belier: 0 })
+const ARMEE = (l: number, a: number, h: number): Record<UnitId, number> => ({ lancier: l, archer: a, hoplite: h, frondeur: 0, peltaste: 0, belier: 0, char: 0 })
 
 function bataille(reglages: Partial<OptionsBataille> = {}): BattleState {
   return creerBataille({

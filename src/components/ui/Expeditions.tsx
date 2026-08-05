@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { GEO_EXPEDITION } from '../../game/combat'
-import { BUILDINGS, MODE_TEST, UNITS, UNIT_IDS, WALL_HP } from '../../game/data'
+import { BUILDINGS, MODE_TEST, UNITS, UNIT_IDS, WALL_HP, troupes as troupes0 } from '../../game/data'
 import {
   MAX_TROUPES,
   RAID_COOLDOWN_MS,
@@ -207,7 +207,7 @@ export function PanneauExpeditions() {
   const s = useGame()
   const [cibleId, setCibleId] = useState<string | null>(null)
   const [intention, setIntention] = useState<Intention>('pillage')
-  const [troupes, setTroupes] = useState<Record<UnitId, number>>({ lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 })
+  const [troupes, setTroupes] = useState<Record<UnitId, number>>(troupes0({}))
   const now = s.lastSeen
   const cooldown = RAID_COOLDOWN_MS / (MODE_TEST ? 10 : 1)
 
@@ -216,7 +216,7 @@ export function PanneauExpeditions() {
   const appel = s.appelSecours ? VILLAGES_PAR_ID[s.appelSecours.villageId] : null
 
   const ouvrir = (id: string, quoi: Intention) => {
-    setTroupes({ lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 })
+    setTroupes(troupes0({}))
     setIntention(quoi)
     setCibleId(id)
   }

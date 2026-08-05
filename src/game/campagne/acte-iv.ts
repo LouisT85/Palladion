@@ -68,7 +68,7 @@ export const ACTE_IV: ActeCampagne = {
       forge: 2,
       port: 1,
     },
-    army: troupes({ lancier: 7, archer: 5, hoplite: 2, frondeur: 0, peltaste: 0, belier: 0 }),
+    army: troupes({ lancier: 7, archer: 5, hoplite: 2, frondeur: 0, peltaste: 0, belier: 0, char: 0 }),
     // le premier matin, avant que l'agora et le temple ne remettent le village d'aplomb
     morale: 44,
     faveur: 58,

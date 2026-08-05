@@ -71,7 +71,7 @@ function village(modif: Partial<SnapHautFait> = {}): SnapHautFait {
   return {
     resources: { bois: 0, pierre: 0, grain: 0, bronze: 0 },
     faveur: 0,
-    army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
+    army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 },
     pop: 0,
     morale: 0,
     tours: 0,
@@ -103,7 +103,7 @@ function regneTotal(modif: Partial<SnapHautFait> = {}): SnapHautFait {
   return village({
     resources: { bois: cap, pierre: cap, grain: cap, bronze: cap },
     faveur: 100,
-    army: { lancier: 40, archer: 40, hoplite: 40, frondeur: 0, peltaste: 0, belier: 0 },
+    army: { lancier: 40, archer: 40, hoplite: 40, frondeur: 0, peltaste: 0, belier: 0, char: 0 },
     pop: Math.max(...POP_CAP),
     morale: 100,
     tours: Math.max(...TOURS_MAX),
@@ -272,8 +272,8 @@ describe('les conditions', () => {
       ['quatre-tours', { tours: 3 }, { tours: 4 }],
       ['village-exalte', { morale: 89 }, { morale: 90 }],
       ['cinquante-ames', { pop: 49 }, { pop: 50 }],
-      ['petite-armee', { army: { lancier: 7, archer: 7, hoplite: 5, frondeur: 0, peltaste: 0, belier: 0 } }, { army: { lancier: 7, archer: 7, hoplite: 6, frondeur: 0, peltaste: 0, belier: 0 } }],
-      ['phalange', { army: { lancier: 40, archer: 40, hoplite: 7, frondeur: 0, peltaste: 0, belier: 0 } }, { army: { lancier: 0, archer: 0, hoplite: 8, frondeur: 0, peltaste: 0, belier: 0 } }],
+      ['petite-armee', { army: { lancier: 7, archer: 7, hoplite: 5, frondeur: 0, peltaste: 0, belier: 0, char: 0 } }, { army: { lancier: 7, archer: 7, hoplite: 6, frondeur: 0, peltaste: 0, belier: 0, char: 0 } }],
+      ['phalange', { army: { lancier: 40, archer: 40, hoplite: 7, frondeur: 0, peltaste: 0, belier: 0, char: 0 } }, { army: { lancier: 0, archer: 0, hoplite: 8, frondeur: 0, peltaste: 0, belier: 0, char: 0 } }],
       ['agora-marbre', { buildings: batiments(3) }, { buildings: batiments(3, { agora: 4 }) }],
       ['murs-poseidon', { buildings: batiments(3) }, { buildings: batiments(3, { remparts: 4 }) }],
       ['forge-hephaistos', { buildings: batiments(3) }, { buildings: batiments(3, { forge: 4 }) }],
@@ -649,7 +649,7 @@ describe('la couture avec le store', () => {
       s.morale = 88
       s.tours = 3
       s.faveur = 66
-      s.army = { lancier: 5, archer: 3, hoplite: 12, frondeur: 0, peltaste: 0, belier: 0 }
+      s.army = { lancier: 5, archer: 3, hoplite: 12, frondeur: 0, peltaste: 0, belier: 0, char: 0 }
       s.buildings.forge.level = 2
       s.gods.ares.relation = -73
       s.stats = { repousses: 7, perdus: 2, evenements: 19 }
@@ -664,7 +664,7 @@ describe('la couture avec le store', () => {
     expect(vu.morale).toBe(88)
     expect(vu.tours).toBe(3)
     expect(vu.faveur).toBe(66)
-    expect(vu.army).toEqual({ lancier: 5, archer: 3, hoplite: 12, frondeur: 0, peltaste: 0, belier: 0 })
+    expect(vu.army).toEqual({ lancier: 5, archer: 3, hoplite: 12, frondeur: 0, peltaste: 0, belier: 0, char: 0 })
     expect(vu.buildings.forge.level).toBe(2)
     expect(vu.gods.ares.relation).toBe(-73)
     expect(vu.stats).toEqual({ repousses: 7, perdus: 2, evenements: 19 })

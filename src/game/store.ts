@@ -152,6 +152,15 @@ import {
 } from './lignees'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives, rangMission } from './missions'
+import {
+  REGLES_SIEGE,
+  apresVague,
+  cloreSiege,
+  demarrerSiege,
+  lancerVague,
+  vagueSiege,
+  type EtatSiege,
+} from './siege'
 import { ACTES_CAMPAGNE, NB_ACTES, acteAccompli, type EtatActe } from './campagne'
 import { cleEmplacement, emplacementActif, poserEmplacementActif } from './sauvegardes'
 import { NB_ETAPES, type SnapTuto } from './tutoriel'
@@ -355,6 +364,14 @@ export interface GameState {
   mode: ModeJeu | null
   /** avancement dans « La Chute » - null hors campagne */
   campagne: EtatCampagne | null
+  /** siège sans fin en cours - null dans les autres modes */
+  siege: EtatSiege | null
+  /**
+   * Meilleur nombre de vagues tenues, tous sièges confondus. Il vit à la racine
+   * et NON dans `siege` : un record qui mourrait avec la cité ne serait pas un
+   * record.
+   */
+  recordSiege: number
   /**
    * Grâces achetées dans l'arbre de faveur, par id. Elles sont ACQUISES : le prix
    * a été versé en points de relation, la relation peut retomber, le don reste.
@@ -1177,6 +1194,8 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     finDePartie: null,
     tutoriel: null,
     mode: null,
+    siege: null,
+    recordSiege: 0,
     campagne: null,
     graces: [],
     missionsNotifiees: [],
@@ -1304,6 +1323,8 @@ const CHAMPS_SAUVES = [
   'tutoriel',
   'mode',
   'campagne',
+  'siege',
+  'recordSiege',
   'graces',
 ] as const
 
@@ -1902,6 +1923,58 @@ function encaisserBatiments(s: GameState, cibles: CibleBatiment[], now: number):
   }
 }
 
+/**
+ * Met sur pied l'assaut annoncé : renforts alliés, garnison, fronts, champion,
+ * héros et bénédictions en cours.
+ *
+ * Extrait du tick parce que DEUX calendriers y mènent désormais - celui du bac à
+ * sable, qui laisse une fenêtre d'alerte, et celui du siège sans fin, qui envoie
+ * la vague suivante dès que le répit s'achève. La bataille doit être la même dans
+ * les deux cas, sinon le mode siège serait un autre jeu.
+ */
+function lancerAssaut(s: GameState, now: number): void {
+      const bh = bonusHeros(s)
+      // les alliés dépêchent des hommes : ils tomberont avant les vôtres
+      const renf = renfortsAllies(s)
+      const totalRenf = UNIT_IDS.reduce((a, u) => a + renf[u], 0)
+      s.renfortsEngages = totalRenf > 0 ? renf : null
+      if (totalRenf > 0) {
+        pushToast(s, '🤝', `${totalRenf} combattant${totalRenf > 1 ? 's' : ''} envoyé${totalRenf > 1 ? 's' : ''} par vos alliés prennent place sur les remparts.`)
+      }
+      s.battle = creerBataille({
+        attaquants: s.incomingWave!,
+        // votre garnison ET les renforts alliés, unité par unité : les
+        // six types y passent, y compris ceux qu'un allié n'envoie jamais
+        defenseurs: troupes(
+          Object.fromEntries(UNIT_IDS.map((u) => [u, s.army[u] + (renf[u] ?? 0)])) as Record<UnitId, number>,
+        ),
+        wallLevel: s.buildings.remparts.level,
+        now,
+        geo: GEO_VILLAGE,
+        campJoueur: 'defense',
+        tours: s.tours,
+        fronts: frontsAnnonces(s),
+        wallHpTotal: s.wallHp,
+        // les alliés ferment la ligne, à leurs couleurs : on doit voir
+        // qui est venu mourir pour vos murs
+        renforts: totalRenf > 0 ? renf : undefined,
+        // la fureur d'Arès s'ajoute aux passifs des héros
+        bonusAtkJoueur: 1 + bh.degatsMeleePct + bonusFaveurs(s).degatsPct,
+        // `gardeDuCorpsPct` porte désormais la valeur ANNONCÉE au joueur :
+        // plus de division cachée par deux entre la fiche et l'usage
+        reducJoueur: 1 - bh.gardeDuCorpsPct,
+        // l'Ébranleur du sol allonge le tir des tours
+        porteeTours: 1 + bonusFaveurs(s).porteePct,
+        // le nom annoncé par les éclaireurs marche bien en tête de colonne
+        champion: s.incomingChampion ? CHAMPION_PAR_ID[s.incomingChampion] : undefined,
+        // les héros ne regardent pas depuis les murs : ils descendent
+        herosPresents: herosAuCombat(s, now),
+      })
+      if (s.buildings.ferme.level > 0) {
+        s.resources.grain = Math.max(0, s.resources.grain * 0.97) // champs piétinés
+      }
+}
+
 function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: number): void {
   const b = s.battle
   if (!b) return
@@ -1941,6 +2014,17 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
   if (victoire) {
     s.stats.repousses++
     s.threatMod -= 5
+    /*
+     * En siège, une vague repoussée compte les points et ouvre le répit suivant.
+     * C'est ici et nulle part ailleurs que le score s'écrit : la durée mesurée est
+     * celle de la bataille, pas celle du répit.
+     */
+    if (s.mode === 'siege' && s.siege && !s.siege.fini) {
+      const tombes = Object.values(pertes).reduce((a, n) => a + (n ?? 0), 0)
+      Object.assign(s.siege, apresVague(s.siege, tombes, now - b.startedAt, now))
+      s.nextAttackAt = s.siege.prochaineAt
+      s.recordSiege = Math.max(s.recordSiege ?? 0, s.siege.tenues)
+    }
     // ce que le compteur d'assauts ne dit pas : la manière
     const sansPerte = Object.keys(pertes).length === 0
     const murIntact = b.secteurs.every((sec) => !sec.breche)
@@ -1970,6 +2054,11 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
   } else {
     s.stats.perdus++
     s.threatMod -= 15
+    // le Palladion est tombé : le siège se clôt sur son bilan, et le record reste
+    if (s.mode === 'siege' && s.siege) {
+      Object.assign(s.siege, cloreSiege(s.siege))
+      s.recordSiege = Math.max(s.recordSiege ?? 0, s.siege.tenues)
+    }
     const vol = volerPct(s, 0.3)
     s.moraleMods.push({ id: uid('m'), label: 'Village pillé', delta: -14, expiresAt: now + 10 * 60_000 })
     const r = pushReport(s, '💀', 'Le village a été pillé', [
@@ -2564,8 +2653,14 @@ export const useGame = create<GameState>()(
         } else {
           // production - chaque atelier ne rend qu'au prorata de ses postes tenus
           const parMin = productionParMinute(s, now)
+          /*
+           * En siège, la reconstruction est la seule manœuvre qui reste entre deux
+           * vagues : sans production doublée, on ne relève pas un pan avant que le
+           * suivant n'arrive, et le mode se réduit à regarder venir la fin.
+           */
+          const multMode = s.mode === 'siege' ? REGLES_SIEGE.productionMult : 1
           for (const r of Object.keys(parMin) as ResourceId[]) {
-            s.resources[r] = clampRes(s, r, s.resources[r] + (parMin[r] / 60) * dtJeu)
+            s.resources[r] = clampRes(s, r, s.resources[r] + ((parMin[r] * multMode) / 60) * dtJeu)
           }
           const conso = (s.pop * CONSO_POP + armeeTotale(s.army) * CONSO_SOLDAT) / 60
           s.resources.grain = Math.max(0, s.resources.grain - conso * dtJeu)
@@ -2676,7 +2771,25 @@ export const useGame = create<GameState>()(
         }
 
         // ── attaques sur le village ──
-        if (!s.battle) {
+        if (!s.battle && s.mode === 'siege' && s.siege && !s.siege.fini) {
+          /*
+           * Le siège tient son propre calendrier : pas d'alerte anticipée (le
+           * bandeau EST le compte à rebours), pas de récompense de défense, et la
+           * vague suivante part dès que le répit s'achève. On court-circuite donc
+           * entièrement la logique d'assaut du bac à sable.
+           */
+          if (now >= s.siege.prochaineAt) {
+            const n = s.siege.vague + 1
+            const v = vagueSiege(n)
+            Object.assign(s.siege, lancerVague(s.siege))
+            s.incomingWave = v.wave
+            s.incomingChampion = v.champion
+            s.incomingFronts = SECTEURS.slice(0, v.fronts).map((f) => f.id)
+            s.warned = true
+            lancerAssaut(s, now)
+            pushToast(s, '⚔️', v.annonce)
+          }
+        } else if (!s.battle) {
           // par la brume, les éclaireurs voient trop tard ; Ulysse et Cassandre
           // rendent au contraire de précieuses minutes
           const fenetre =
@@ -2693,46 +2806,7 @@ export const useGame = create<GameState>()(
             } else {
               armerAlerte(s)
               // la vague se scinde entre les fronts tirés dès l'alerte
-              const bh = bonusHeros(s)
-              // les alliés dépêchent des hommes : ils tomberont avant les vôtres
-              const renf = renfortsAllies(s)
-              const totalRenf = UNIT_IDS.reduce((a, u) => a + renf[u], 0)
-              s.renfortsEngages = totalRenf > 0 ? renf : null
-              if (totalRenf > 0) {
-                pushToast(s, '🤝', `${totalRenf} combattant${totalRenf > 1 ? 's' : ''} envoyé${totalRenf > 1 ? 's' : ''} par vos alliés prennent place sur les remparts.`)
-              }
-              s.battle = creerBataille({
-                attaquants: s.incomingWave!,
-                // votre garnison ET les renforts alliés, unité par unité : les
-                // six types y passent, y compris ceux qu'un allié n'envoie jamais
-                defenseurs: troupes(
-                  Object.fromEntries(UNIT_IDS.map((u) => [u, s.army[u] + (renf[u] ?? 0)])) as Record<UnitId, number>,
-                ),
-                wallLevel: s.buildings.remparts.level,
-                now,
-                geo: GEO_VILLAGE,
-                campJoueur: 'defense',
-                tours: s.tours,
-                fronts: frontsAnnonces(s),
-                wallHpTotal: s.wallHp,
-                // les alliés ferment la ligne, à leurs couleurs : on doit voir
-                // qui est venu mourir pour vos murs
-                renforts: totalRenf > 0 ? renf : undefined,
-                // la fureur d'Arès s'ajoute aux passifs des héros
-                bonusAtkJoueur: 1 + bh.degatsMeleePct + bonusFaveurs(s).degatsPct,
-                // `gardeDuCorpsPct` porte désormais la valeur ANNONCÉE au joueur :
-                // plus de division cachée par deux entre la fiche et l'usage
-                reducJoueur: 1 - bh.gardeDuCorpsPct,
-                // l'Ébranleur du sol allonge le tir des tours
-                porteeTours: 1 + bonusFaveurs(s).porteePct,
-                // le nom annoncé par les éclaireurs marche bien en tête de colonne
-                champion: s.incomingChampion ? CHAMPION_PAR_ID[s.incomingChampion] : undefined,
-                // les héros ne regardent pas depuis les murs : ils descendent
-                herosPresents: herosAuCombat(s, now),
-              })
-              if (s.buildings.ferme.level > 0) {
-                s.resources.grain = Math.max(0, s.resources.grain * 0.97) // champs piétinés
-              }
+              lancerAssaut(s, now)
               pushToast(s, '⚔️', 'À L’ASSAUT ! Défendez le village !')
             }
           }
@@ -2789,6 +2863,8 @@ export const useGame = create<GameState>()(
           !s.arcHeros &&
           !s.battle &&
           !s.expedition &&
+          // on ne délibère pas entre deux assauts : le siège ne laisse pas le temps
+          s.mode !== 'siege' &&
           s.tutoriel === null &&
           s.tutorialDone &&
           now - s.lastEventAt > 60_000
@@ -3635,6 +3711,11 @@ export const useGame = create<GameState>()(
     lancerExpedition: (villageId, troupes, intention = 'pillage') => {
       set((s) => {
         if (s.expedition || s.battle) return
+        // assiégé, on ne fait pas sortir la garnison courir la Troade
+        if (s.mode === 'siege') {
+          pushToast(s, '⚔️', 'Le village est assiégé : personne ne sort.')
+          return
+        }
         const v = VILLAGES_PAR_ID[villageId]
         if (!v) return
         if (v.maritime && SAISONS[s.saison].merFermee) {
@@ -3721,8 +3802,28 @@ export const useGame = create<GameState>()(
           s.tutoriel = null
           s.tutorialDone = true
           appliquerActe(s, 0, Date.now())
+        } else if (m === 'siege') {
+          /*
+           * Le siège ne s'apprend pas, il se subit : pas de leçon, pas d'acte, et
+           * des coffres déjà garnis - on n'a pas le loisir d'attendre la première
+           * récolte quand la première vague est annoncée.
+           */
+          s.tutoriel = null
+          s.tutorialDone = true
+          s.campagne = null
+          const maintenant = Date.now()
+          s.siege = demarrerSiege(maintenant, s.recordSiege ?? 0)
+          s.resources = { ...REGLES_SIEGE.ressourcesDepart }
+          s.faveur = REGLES_SIEGE.faveurDepart
+          s.pop = REGLES_SIEGE.popDepart
+          s.nextAttackAt = s.siege.prochaineAt
+          s.warned = false
+          s.incomingWave = null
+          s.incomingFronts = null
+          s.incomingChampion = null
         } else {
           s.campagne = null
+          s.siege = null
           s.tutoriel = 0
         }
       })
@@ -3996,7 +4097,11 @@ export const useGame = create<GameState>()(
          * Ce code datait d'avant la campagne, quand « partie neuve » ne pouvait
          * vouloir dire qu'une seule chose.
          */
+        // le record de siège n'est pas un bien de la cité mais du joueur : il
+        // traverse les règnes, sinon ce ne serait pas un record
+        const record = s.recordSiege ?? 0
         Object.assign(s, etatInitial(Date.now()))
+        s.recordSiege = record
         pushToast(s, '🏛️', 'Une nouvelle cité s’élève - tout est à rebâtir.')
       })
       try {

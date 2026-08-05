@@ -61,7 +61,7 @@ export function ModaleChoixMode() {
         </div>
         <h2>🏛️ PALLADION</h2>
         <p className="choix-intro">
-          Un village de la Troade, sur la route des armées. Deux façons d’y régner - et l’on peut changer d’avis plus
+          Un village de la Troade, sur la route des armées. Trois façons d’y régner - et l’on peut changer d’avis plus
           tard, dans l’aide.
         </p>
         <div className="choix-cartes">
@@ -79,6 +79,14 @@ export function ModaleChoixMode() {
             <span className="cc-desc">
               Cinq actes qui suivent l’Iliade, du débarquement achéen à la nuit du cheval. Objectifs imposés, situation
               héritée d’un acte à l’autre, héros qui s’imposent à vous. <i>On peut y perdre.</i>
+            </span>
+          </button>
+          <button className="choix-carte" onClick={() => choisir('siege')}>
+            <span className="cc-emoji">⚔️</span>
+            <b>Siège sans fin</b>
+            <span className="cc-desc">
+              Les vagues s’enchaînent sans répit et sans fin heureuse : on compte combien on en tient. Ni dilemme ni
+              expédition - la reconstruction entre deux assauts est la seule manœuvre. <i>On y perd toujours.</i>
             </span>
           </button>
         </div>

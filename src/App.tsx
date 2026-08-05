@@ -5,6 +5,7 @@ import { missionsActives } from './game/missions'
 import { herosDisponible, totalEtoiles, useGame } from './game/store'
 import { VillageMap } from './components/map/VillageMap'
 import { BandeauAlerte, BarreRessources, BoutonPleinEcran, JetonsEtat, Toasts } from './components/ui/Hud'
+import { BandeauSiege, ModaleFinSiege } from './components/ui/Siege'
 import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker, PanneauMissions } from './components/ui/Missions'
@@ -202,6 +203,8 @@ export default function App() {
       <main className="scene">
         <VillageMap />
         <BandeauAlerte />
+        {/* le siège tient son propre compte à rebours : il rend null hors du mode */}
+        <BandeauSiege />
         {/* en campagne, l'acte remplace le fil rouge : c'est lui qui dit pourquoi on joue */}
         {campagne ? <SuiviActe /> : <MissionsTracker />}
         <PanneauBatiment />
@@ -224,6 +227,14 @@ export default function App() {
       <ModaleArcHeros />
       <ModaleRapportBataille />
       <ModaleFinPartie />
+      {/* en siège, c'est ce bilan qui clôt la partie, pas l'écran de fin ordinaire */}
+      <ModaleFinSiege
+        onFermer={() => {
+          const jeu = useGame.getState()
+          jeu.reset()
+          jeu.choisirMode('siege')
+        }}
+      />
       <AnimationVictoire />
       {/* la campagne encadre la partie : choix du mode, prologue, épilogue, échec */}
       <ModaleChoixMode />

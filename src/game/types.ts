@@ -99,6 +99,47 @@ export interface BuildingState {
   /** amélioration en cours */
   targetLevel?: number
   busyUntil?: number
+  /**
+   * Points de structure. Une fois l'enceinte percée, les assaillants s'en
+   * prennent aux bâtiments : chacun tient un moment, brûle, et retombe d'un
+   * niveau. Sans cela, la chute des remparts valait la fin de la partie et l'on
+   * perdait tout l'intérêt du dernier quart d'heure d'un siège.
+   * `undefined` = intact (les sauvegardes d'avant n'en ont pas).
+   */
+  hp?: number
+  /** en ruine : niveau perdu, à relever avant de produire à nouveau */
+  ruine?: boolean
+}
+
+/**
+ * Les cinq ouvrages de l'intérieur, tous attestés dans les citadelles de l'âge
+ * du bronze égéen (Mycènes, Tirynthe, Troie VI). Ils ne servent qu'après la
+ * brèche — c'est leur raison d'être : donner au joueur de quoi se battre encore
+ * quand le mur est tombé, au lieu de regarder l'inévitable.
+ */
+export interface DefensesInterieures {
+  /**
+   * Le « mur dans le mur » qui ceignait le mégaron au sommet de Mycènes :
+   * une seconde enceinte autour du cœur, à franchir avant d'atteindre l'agora.
+   */
+  acropole: number
+  /**
+   * Le bastion de la porte des Lionnes : sept mètres de saillant qui prenaient
+   * l'assaillant par son flanc découvert, celui que le bouclier ne couvre pas.
+   */
+  bastion: boolean
+  /**
+   * Les galeries voûtées de Tirynthe, creusées dans l'épaisseur du rempart :
+   * casernement à l'abri, d'où les hommes sortent frais.
+   */
+  galeries: boolean
+  /** La poterne du nord de Mycènes : porte dérobée pour une sortie à revers. */
+  poterne: boolean
+  /**
+   * L'escalier corbellé de quatre-vingt-dix-neuf marches vers la citerne
+   * taillée dans le roc : de l'eau, donc un siège qui ne brise pas les nerfs.
+   */
+  citerne: boolean
 }
 
 /** un habitant du village, avec un nom et éventuellement un métier */
@@ -205,6 +246,16 @@ export interface Fighter {
   etat: FighterState
   /** index du secteur assailli (assaillants uniquement) */
   secteur?: number
+  /**
+   * L'adversaire que cet homme a choisi, et qu'il garde.
+   *
+   * Sans mémoire de cible, chaque tick réélisait « le plus proche » : deux
+   * ennemis presque à égale distance faisaient donc osciller le combattant
+   * entre eux, et l'on voyait les colonnes d'expédition foncer, dépasser leur
+   * proie, revenir. Un homme s'engage sur un adversaire et ne le lâche que s'il
+   * tombe, s'enfuit, ou s'éloigne franchement.
+   */
+  cibleId?: string
   /** prochain coup autorisé (timestamp) */
   nextHit: number
   /** décalage d'animation */

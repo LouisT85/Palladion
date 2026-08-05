@@ -152,9 +152,15 @@ describe('le peltaste chasse les tireurs', () => {
       f.etat = 'melee'
     }
     tickBataille(b, { now: 1000, dt: TICK_MS / 1000, wallHp: 0, wallLevel: 0 })
-    // le peltaste vise l'archer lointain, le lancier le pillard voisin
-    expect(Math.round(peltaste.tx)).toBe(Math.round(archer.x))
-    expect(Math.round(lancier.tx)).toBe(Math.round(pillard.x))
+    /*
+     * On vise le point de CONTACT, pas les pieds de l'adversaire (sans quoi les
+     * corps se traversaient). On vérifie donc vers QUI chacun se dirige, à la
+     * longueur de lance près : le peltaste vers l'archer lointain, le lancier
+     * vers le pillard voisin.
+     */
+    expect(Math.abs(peltaste.tx - archer.x)).toBeLessThan(20)
+    expect(peltaste.tx).toBeGreaterThan(pillard.x)
+    expect(Math.abs(lancier.tx - pillard.x)).toBeLessThan(20)
   })
 })
 

@@ -1,9 +1,11 @@
 import { CHAMPION_PAR_ID, ficheChampion, type ChampionDef } from './champions'
-import { ENEMIES, MAP, TOUR_ANGLES, TOUR_CADENCE_MS, TOUR_DMG, TOUR_PORTEE, UNITS, WALL_HP } from './data'
+import { DPS_BATIMENT, ENEMIES, MAP, TOUR_ANGLES, TOUR_CADENCE_MS, TOUR_DMG, TOUR_PORTEE, UNITS, WALL_HP } from './data'
 import { statsCombatHeros } from './heros'
 import type {
   BattleGeo,
   BattleState,
+  BuildingId,
+  DefensesInterieures,
   EnemyId,
   EtatChampion,
   Fighter,
@@ -756,6 +758,67 @@ function plusProche(f: { x: number; y: number }, cibles: Fighter[]): Fighter | n
   return best
 }
 
+/**
+ * Au-delà de ce rapport, un homme lâche sa proie pour une autre : il faut que la
+ * nouvelle soit DEUX FOIS plus près pour que le changement d'avis se justifie.
+ * C'est l'hystérésis qui empêche l'oscillation entre deux adversaires voisins.
+ */
+const TENACITE = 2
+
+/**
+ * Choisit un adversaire et s'y tient.
+ *
+ * Un combattant garde la cible qu'il s'est donnée tant qu'elle reste valide et
+ * qu'aucune autre n'est franchement plus accessible. C'est ce qui donne des
+ * engagements lisibles : sans cela, on voyait les colonnes courir vers un
+ * ennemi, le dépasser, faire demi-tour, et repartir — un ballet absurde qui
+ * venait uniquement de ce que « le plus proche » changeait d'un tick à l'autre.
+ */
+/** distance à laquelle on croise le fer : au-delà, on avance ; en deçà, on frappe */
+const CONTACT = 15
+
+/**
+ * Vise le point de contact avec un adversaire, et non ses pieds.
+ *
+ * Marcher sur les coordonnées exactes de l'ennemi faisait littéralement traverser
+ * les corps : la figurine dépassait sa proie, se retrouvait derrière elle, puis
+ * revenait — le va-et-vient que l'on voyait dans les expéditions. On s'arrête
+ * désormais à longueur de lance.
+ */
+function approcher(f: Fighter, cible: Fighter): void {
+  const dx = cible.x - f.x
+  const dy = cible.y - f.y
+  const d = Math.hypot(dx, dy)
+  if (d <= CONTACT) {
+    f.tx = f.x
+    f.ty = f.y
+    return
+  }
+  /*
+   * On vise FRANCHEMENT à l'intérieur de la portée de frappe, pas à sa limite.
+   * Viser la limite exacte faisait converger la distance par le dessus et la
+   * laissait se stabiliser à un cheveu au-dessus du seuil : les hommes se
+   * plantaient à seize pas d'un adversaire qu'ils pouvaient toucher à quinze,
+   * et le combat n'avait jamais lieu.
+   */
+  const vise = CONTACT * 0.7
+  const k = (d - vise) / d
+  f.tx = f.x + dx * k
+  f.ty = f.y + dy * k
+}
+
+function choisirCible(f: Fighter, candidats: Fighter[]): Fighter | null {
+  if (candidats.length === 0) {
+    f.cibleId = undefined
+    return null
+  }
+  const tenue = f.cibleId ? candidats.find((c) => c.id === f.cibleId) : undefined
+  const proche = plusProche(f, candidats)
+  if (tenue && proche && dist(f, tenue) <= dist(f, proche) * TENACITE) return tenue
+  f.cibleId = proche?.id
+  return proche
+}
+
 /** applique des dégâts, marque la mort (dépouille) et fait jaillir un impact */
 function frapper(b: BattleState, cible: Fighter, dmg: number, now: number): void {
   cible.hp -= dmg
@@ -773,6 +836,20 @@ function frapper(b: BattleState, cible: Fighter, dmg: number, now: number): void
   }
 }
 
+/**
+ * Un bâtiment que les assaillants peuvent abattre. Le store en fournit la liste
+ * (position, structure restante), la bataille y porte les coups, le store en
+ * tire les conséquences — ruines, pillage, défaite si le cœur tombe.
+ */
+export interface CibleBatiment {
+  id: BuildingId
+  x: number
+  y: number
+  hp: number
+  /** l'agora : le Palladion y repose, sa chute décide de la partie */
+  coeur?: boolean
+}
+
 export interface TickBatailleCtx {
   now: number
   dt: number
@@ -780,6 +857,10 @@ export interface TickBatailleCtx {
   wallLevel: number
   /** ce que le ciel impose ce jour-là : portée, allure, force des tirs */
   mods?: { portee: number; vitesse: number; tir: number }
+  /** bâtiments encore debout, dans l'ordre où les assaillants les trouveront */
+  cibles?: CibleBatiment[]
+  /** les cinq ouvrages de l'intérieur, s'ils sont bâtis */
+  defenses?: DefensesInterieures
 }
 
 const CIEL_CLAIR = { portee: 1, vitesse: 1, tir: 1 }
@@ -855,15 +936,30 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     const c = b.champion
     return c && !c.abattu && f.camp === 'attaque' && now < c.reducUntil ? 1 - c.reduc : 1
   }
+  const ouvrages = ctx.defenses
+  /*
+   * La poterne dérobée : on ne sort pas par la grande porte, on tombe dans le dos
+   * de l'assaillant occupé à cogner. La charge y gagne le tiers de sa force.
+   */
+  const bonusSortie = ouvrages?.poterne && ligne.sortie ? 1.3 : 1
   const multDegats = (attaquant: Fighter): number =>
     (attaquant.camp === enrage ? forceAtk : 1) *
     (attaquant.camp === b.campJoueur ? bonusHeros : 1) *
     (enLigne(attaquant) ? ligne.degats : 1) *
+    (attaquant.camp === 'defense' ? bonusSortie : 1) *
     champAtk(attaquant)
+  /**
+   * Les galeries casematées de Tirynthe : un homme posté sur le rempart s'abrite
+   * dans l'épaisseur du mur entre deux volées. Elles ne protègent QUE là — au
+   * sol, dans la mêlée, elles ne servent à rien.
+   */
+  const abriGaleries = (cible: Fighter): number =>
+    ouvrages?.galeries && cible.camp === 'defense' && cible.etat === 'siege' ? 0.65 : 1
   const multRecus = (cible: Fighter): number =>
     (cible.camp === protege ? forceDef : 1) *
     (cible.camp === b.campJoueur ? reducHeros : 1) *
     (enLigne(cible) ? ligne.recus : 1) *
+    abriGaleries(cible) *
     champReduc(cible)
   /** pas de déplacement de cet homme, posture comprise */
   const pas = (f: Fighter): number => dt * (enLigne(f) ? ligne.vitesse : 1)
@@ -1072,7 +1168,40 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
         continue
       }
       // mêlée : franchir la brèche de son secteur puis chercher un défenseur
-      const cible = plusProche(f, defVivants)
+      const cible = choisirCible(f, defVivants)
+      if (!cible && ctx.cibles && ctx.cibles.length > 0) {
+        /*
+         * Plus personne pour les arrêter : ils s'en prennent aux bâtiments.
+         * Le cœur est visé en dernier — les assaillants pillent ce qui est à
+         * portée avant de s'attaquer au Palladion, ce qui laisse au joueur le
+         * temps d'une contre-attaque plutôt qu'une défaite immédiate.
+         */
+        const libres = ctx.cibles.filter((c) => c.hp > 0 && (!c.coeur || ctx.cibles!.every((o) => o.coeur || o.hp <= 0)))
+        const bat = libres.length > 0 ? libres : ctx.cibles.filter((c) => c.hp > 0)
+        let proche = bat[0]
+        let bd = Infinity
+        for (const c of bat) {
+          const d = Math.hypot(c.x - f.x, c.y - f.y)
+          if (d < bd) {
+            bd = d
+            proche = c
+          }
+        }
+        if (proche) {
+          f.tx = proche.x
+          f.ty = proche.y
+          if (bd > 26) {
+            versCible(f, pas(f))
+          } else if (now >= f.nextHit) {
+            f.nextHit = now + CADENCE_MELEE
+            proche.hp = Math.max(0, proche.hp - DPS_BATIMENT * (CADENCE_MELEE / 1000) * multDegats(f))
+            if (b.effects.length < 40) {
+              b.effects.push({ id: uid('fx'), type: 'poussiere', x: proche.x, y: proche.y - 8, until: now + 700 })
+            }
+          }
+          continue
+        }
+      }
       if (!cible) {
         // plus de défenseurs : cap sur la place (pillage)
         f.tx = geo.place.x
@@ -1080,9 +1209,8 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
         versCible(f, pas(f))
         continue
       }
-      f.tx = cible.x
-      f.ty = cible.y
-      if (dist(f, cible) > 16) {
+      approcher(f, cible)
+      if (dist(f, cible) > CONTACT + 1) {
         versCible(f, pas(f))
       } else if (now >= f.nextHit) {
         f.nextHit = now + CADENCE_MELEE
@@ -1179,20 +1307,37 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
      * rattrape rien. Sans ce tri, il n'était qu'un lancier un peu plus cher.
      */
     const tireurs = f.type === 'peltaste' ? aPortee.filter((a) => estTireur(a.type)) : []
-    const cible = plusProche(f, tireurs.length > 0 ? tireurs : aPortee)
+    const cible = choisirCible(f, tireurs.length > 0 ? tireurs : aPortee)
     if (!cible) {
       f.tx = ancre.x
       f.ty = ancre.y + (f.seed - 0.5) * 60
       versCible(f, pas(f))
       continue
     }
-    f.tx = cible.x
-    f.ty = cible.y
-    if (dist(f, cible) > 16) {
+    approcher(f, cible)
+    if (dist(f, cible) > CONTACT + 1) {
       versCible(f, pas(f))
     } else if (now >= f.nextHit) {
       f.nextHit = now + CADENCE_MELEE
       frapper(b, cible, f.atk * multDegats(f) * multRecus(cible), now)
+    }
+  }
+
+  /*
+   * Le bastion de la porte. Il ne tire pas : il place les hommes du rempart en
+   * surplomb du flanc que le bouclier ne couvre pas. Tout assaillant qui cogne
+   * le pan de la porte y laisse du sang, sans qu'on ait rien à ordonner — mais
+   * seulement tant que ce pan tient, car un bastion sur une brèche ne surplombe
+   * plus rien.
+   */
+  if (ouvrages?.bastion && b.secteurs.length > 0) {
+    const porte = b.secteurs[0]
+    if (!porte.breche && porte.hp > 0) {
+      for (const f of atkVivants) {
+        if (f.etat !== 'siege') continue
+        if (Math.min(f.secteur ?? 0, b.secteurs.length - 1) !== 0) continue
+        frapper(b, f, 6 * dt, now)
+      }
     }
   }
 
@@ -1253,10 +1398,25 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
   let fuite = false
   let pillage = false
 
+  /*
+   * La défaite ne se joue plus à « un assaillant a touché la place ». Tant qu'un
+   * bâtiment tient, la partie continue : les assaillants doivent abattre le cœur.
+   * C'est là tout l'intérêt des ouvrages intérieurs — sans eux la chute du mur
+   * valait la fin, et l'on n'avait plus rien à décider.
+   */
+  const coeur = ctx.cibles?.find((c) => c.coeur)
+  const coeurTombe = coeur ? coeur.hp <= 0 : false
   if (atkRestants.length === 0 && !enFuite) {
     finie = true
     victoireDefense = true
+  } else if (coeur) {
+    if (coeurTombe) {
+      finie = true
+      victoireDefense = false
+      pillage = true
+    }
   } else if (defRestants.length === 0 && atkRestants.some((f) => dist(f, geo.place) < 30)) {
+    // expéditions et parties d'avant la structure des bâtiments : ancienne règle
     finie = true
     victoireDefense = false
     pillage = true

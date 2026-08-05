@@ -6,6 +6,7 @@ import { herosDisponible, totalEtoiles, useGame } from './game/store'
 import { VillageMap } from './components/map/VillageMap'
 import { BandeauAlerte, BarreRessources, BoutonPleinEcran, JetonsEtat, Toasts } from './components/ui/Hud'
 import { BandeauSiege, ModaleFinSiege } from './components/ui/Siege'
+import { AlerteColere, PanneauOracles, PanneauReliques } from './components/ui/Divin'
 import { ModaleFinPartie, PanneauHautsFaits } from './components/ui/HautsFaits'
 import { ModaleArcHeros, PanneauHeros } from './components/ui/Heros'
 import { MissionsTracker, PanneauMissions } from './components/ui/Missions'
@@ -205,6 +206,8 @@ export default function App() {
         <BandeauAlerte />
         {/* le siège tient son propre compte à rebours : il rend null hors du mode */}
         <BandeauSiege />
+        {/* un dieu courroucé s'annonce avant de frapper : la colère doit se voir */}
+        <AlerteColere />
         {/* en campagne, l'acte remplace le fil rouge : c'est lui qui dit pourquoi on joue */}
         {campagne ? <SuiviActe /> : <MissionsTracker />}
         <PanneauBatiment />
@@ -220,6 +223,8 @@ export default function App() {
       {panel === 'hauts-faits' && <PanneauHautsFaits />}
       {panel === 'journal' && <ModaleJournal />}
       {panel === 'annales' && <PanneauAnnales />}
+      {panel === 'oracles' && <PanneauOracles onFermer={() => openPanel(null)} />}
+      {panel === 'reliques' && <PanneauReliques onFermer={() => openPanel(null)} />}
       {panel === 'expeditions' && !expedition && <PanneauExpeditions />}
       {expedition && <ExpeditionScene />}
       <ModaleHorsLigne />

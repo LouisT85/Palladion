@@ -152,6 +152,21 @@ import {
 } from './lignees'
 import { HAUTS_FAITS, detailPrestige, prestige, titrePrestige, type SnapHautFait } from './hautsfaits'
 import { MISSIONS_PAR_ID, missionsActives, rangMission } from './missions'
+import { ORACLES, consulterOracle, type OracleId } from './oracles'
+import {
+  delaiProchaineCalamite,
+  paliersColere,
+  tirerCalamite,
+  type EffetCalamite,
+} from './colere'
+import {
+  RELIQUE_PAR_ID,
+  butinRelique,
+  effetsCumules,
+  peutExposer,
+  vitrineEffective,
+  type EffetsReliques,
+} from './reliques'
 import {
   REGLES_SIEGE,
   apresVague,
@@ -366,6 +381,36 @@ export interface GameState {
   campagne: EtatCampagne | null
   /** siège sans fin en cours - null dans les autres modes */
   siege: EtatSiege | null
+  /** date de la prochaine consultation autorisée, par question d'oracle */
+  oracles: Record<string, number>
+  /** date de la prochaine calamité de chaque dieu courroucé (0 = désarmé) */
+  colere: Record<GodId, number>
+  /**
+   * Dernier bâtiment frappé par une colère, tous dieux confondus. C'est ce champ
+   * qui empêche deux calamités d'affilée sur le même toit : sans lui, un dieu
+   * offensé rasait une ferme et rien d'autre.
+   */
+  derniereCibleColere: string | null
+  /**
+   * Ce que les dieux ont retiré, et jusqu'à quand. Regroupé en un objet plutôt
+   * qu'éparpillé en huit champs : la surface de l'état compte.
+   */
+  malusDivins: {
+    sagesseJusqua: number
+    maladresseJusqua: number
+    maladressePart: number
+    toursJusqua: number
+    toursPart: number
+    paniqueJusqua: number
+    paniquePart: number
+    merFermeeJusqua: number
+  }
+  /** reliques rapportées de Troade */
+  reliques: string[]
+  /** celles qui occupent une niche du temple - les seules qui agissent */
+  reliquesExposees: string[]
+  /** dernière réponse d'oracle, pour le panneau (runtime) */
+  oracleReponse: { question: OracleId; lignes: string[]; at: number } | null
   /**
    * Meilleur nombre de vagues tenues, tous sièges confondus. Il vit à la racine
    * et NON dans `siege` : un record qui mourrait avec la cité ne serait pas un
@@ -402,6 +447,8 @@ export interface GameState {
     | 'campagne'
     | 'sauvegardes'
     | 'annales'
+    | 'oracles'
+    | 'reliques'
     | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
@@ -419,6 +466,10 @@ export interface GameState {
   construireTour: () => void
   /** bâtit un des cinq ouvrages de l'intérieur */
   construireDefense: (id: DefenseId) => void
+  /** consulte un oracle : il ne facture jamais du vide */
+  poserQuestion: (q: OracleId, cible?: string | null) => void
+  exposerRelique: (id: string) => void
+  retirerRelique: (id: string) => void
   affecter: (villageoisId: string, poste: BuildingId | null) => void
   /** pourvoit d'un coup tous les postes libres avec les villageois oisifs */
   echanger: (donner: ResourceId, recevoir: ResourceId) => void
@@ -730,11 +781,21 @@ export function productionParMinute(s: GameState, now: number): Record<ResourceI
   const port = PROD.port[s.buildings.port.level] * rd('port') * (merFermee(s) ? PORT_HIVER : 1)
   // Zeus Xenios veille sur les greniers : sa grâce grossit toutes les récoltes
   const zx = 1 + bonusFaveurs(s).recoltePct
+  // les reliques exposées au temple, chacune sur sa ressource
+  const rel = bonusReliques(s)
+  /*
+   * Athéna offensée retire son adresse aux artisans : tout l'atelier travaille
+   * moins bien, le temps que la déesse s'apaise. C'est le seul malus divin qui
+   * touche l'économie, et il se voit tout de suite dans le HUD.
+   */
+  const maladresse = now < (s.malusDivins?.maladresseJusqua ?? 0) ? 1 - (s.malusDivins?.maladressePart ?? 0) : 1
+  const g = (base: number, atelier: number, pct: number, r: ResourceId) =>
+    (base + atelier) * m * ciel(r) * zx * (1 + pct) * maladresse
   return {
-    bois: (BASE_PROD.bois + PROD.scierie[s.buildings.scierie.level] * rd('scierie')) * m * ciel('bois') * zx,
-    pierre: (BASE_PROD.pierre + PROD.carriere[s.buildings.carriere.level] * rd('carriere')) * m * ciel('pierre') * zx,
-    grain: (BASE_PROD.grain + PROD.ferme[s.buildings.ferme.level] * rd('ferme') * drought) * m * ciel('grain') * zx,
-    bronze: (BASE_PROD.bronze + PROD.forge[s.buildings.forge.level] * rd('forge') + port) * m * ciel('bronze') * zx,
+    bois: g(BASE_PROD.bois, PROD.scierie[s.buildings.scierie.level] * rd('scierie'), rel.boisPct, 'bois'),
+    pierre: g(BASE_PROD.pierre, PROD.carriere[s.buildings.carriere.level] * rd('carriere'), rel.pierrePct, 'pierre'),
+    grain: g(BASE_PROD.grain, PROD.ferme[s.buildings.ferme.level] * rd('ferme') * drought, rel.grainPct, 'grain'),
+    bronze: g(BASE_PROD.bronze, PROD.forge[s.buildings.forge.level] * rd('forge') + port, rel.bronzePct, 'bronze'),
   }
 }
 
@@ -753,8 +814,13 @@ export function bonusHeros(s: Pick<GameState, 'heros'>): BonusHeros {
 }
 
 /** points de structure maximaux de l'enceinte - Hector l'épaissit, Poséidon aussi */
-export function murMax(s: Pick<GameState, 'buildings' | 'heros' | 'graces'>): number {
-  return Math.round(WALL_HP[s.buildings.remparts.level] * (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct))
+export function murMax(
+  s: Pick<GameState, 'buildings' | 'heros' | 'graces'> & Partial<Pick<GameState, 'reliquesExposees'>>,
+): number {
+  const rel = s.reliquesExposees ? bonusReliques(s as Pick<GameState, 'reliquesExposees' | 'buildings'>).murPct : 0
+  return Math.round(
+    WALL_HP[s.buildings.remparts.level] * (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct + rel),
+  )
 }
 
 /**
@@ -824,6 +890,15 @@ export function entretienHeros(s: Pick<GameState, 'heros' | 'graces'>): { grain:
  */
 const SANS_GRACE: string[] = []
 let cacheGraces: { cle: string[]; val: BonusFaveurs } | null = null
+/**
+ * Ce que les reliques EXPOSÉES apportent. On passe toujours par
+ * `vitrineEffective` : un temple retombé en ruine perd ses niches, et il serait
+ * absurde qu'il continue d'en faire rayonner six.
+ */
+export function bonusReliques(s: Pick<GameState, 'reliquesExposees' | 'buildings'>): EffetsReliques {
+  return effetsCumules(vitrineEffective(s.reliquesExposees ?? [], s.buildings.temple.level))
+}
+
 export function bonusFaveurs(s: { graces?: string[] }): BonusFaveurs {
   const g = s.graces ?? SANS_GRACE
   if (cacheGraces && cacheGraces.cle === g) return cacheGraces.val
@@ -1196,6 +1271,22 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     mode: null,
     siege: null,
     recordSiege: 0,
+    oracles: {},
+    colere: { zeus: 0, poseidon: 0, athena: 0, ares: 0 },
+    derniereCibleColere: null,
+    malusDivins: {
+      sagesseJusqua: 0,
+      maladresseJusqua: 0,
+      maladressePart: 0,
+      toursJusqua: 0,
+      toursPart: 0,
+      paniqueJusqua: 0,
+      paniquePart: 0,
+      merFermeeJusqua: 0,
+    },
+    reliques: [],
+    reliquesExposees: [],
+    oracleReponse: null,
     campagne: null,
     graces: [],
     missionsNotifiees: [],
@@ -1219,6 +1310,9 @@ type ActionsOnly = {
   reparerRemparts: unknown
   construireTour: unknown
   construireDefense: unknown
+  poserQuestion: unknown
+  exposerRelique: unknown
+  retirerRelique: unknown
   affecter: unknown
   echanger: unknown
   sacrifier: unknown
@@ -1325,6 +1419,12 @@ const CHAMPS_SAUVES = [
   'campagne',
   'siege',
   'recordSiege',
+  'oracles',
+  'colere',
+  'derniereCibleColere',
+  'malusDivins',
+  'reliques',
+  'reliquesExposees',
   'graces',
 ] as const
 
@@ -1975,6 +2075,66 @@ function lancerAssaut(s: GameState, now: number): void {
       }
 }
 
+/**
+ * Exécute une calamité divine. Elle ne détruit jamais complètement : un dieu
+ * offensé punit, il n'efface pas la partie - d'où les planchers à 1 point de
+ * structure. Ce qui doit faire mal, c'est la répétition, pas le coup unique.
+ */
+function appliquerCalamite(s: GameState, e: EffetCalamite, now: number): void {
+  switch (e.type) {
+    case 'foudre': {
+      const b = s.buildings[e.batiment]
+      const max = structureMax(e.batiment, b.level)
+      b.hp = Math.max(1, (b.hp ?? max) - e.degats)
+      break
+    }
+    case 'ruine': {
+      const b = s.buildings[e.batiment]
+      b.level = Math.max(0, b.level - 1)
+      b.ruine = true
+      b.hp = structureMax(e.batiment, b.level)
+      for (const v of s.villageois) if (v.poste === e.batiment) v.poste = null
+      break
+    }
+    case 'seisme':
+      s.wallHp = Math.max(1, Math.round(s.wallHp * (1 - e.part)))
+      break
+    case 'serment-rompu': {
+      // on ne rompt jamais une parenté scellée par mariage : elle est irréversible
+      const rompable = Object.keys(s.alliances ?? {}).find((id) => !s.alliances?.[id]?.mariage)
+      if (rompable) {
+        delete s.alliances[rompable]
+        s.relations[rompable] = Math.max(-100, (s.relations[rompable] ?? 0) - 45)
+      }
+      break
+    }
+    case 'mer-fermee':
+      s.malusDivins.merFermeeJusqua = e.jusqua
+      break
+    case 'sagesse-retiree':
+      s.malusDivins.sagesseJusqua = e.jusqua
+      break
+    case 'maladresse':
+      s.malusDivins.maladresseJusqua = e.jusqua
+      s.malusDivins.maladressePart = e.part
+      break
+    case 'tours-aveugles':
+      s.malusDivins.toursJusqua = e.jusqua
+      s.malusDivins.toursPart = e.part
+      break
+    case 'desertion':
+      s.army[e.unite] = Math.max(0, s.army[e.unite] - e.nombre)
+      break
+    case 'panique':
+      s.malusDivins.paniqueJusqua = e.jusqua
+      s.malusDivins.paniquePart = e.part
+      break
+    case 'rixe':
+      s.moraleMods.push({ id: uid('m'), label: 'Rixe', delta: e.delta, expiresAt: now + 6 * 60_000 })
+      break
+  }
+}
+
 function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: number): void {
   const b = s.battle
   if (!b) return
@@ -2207,6 +2367,21 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     s.threatMod += 4
     s.moraleMods.push({ id: uid('m'), label: 'Raid victorieux', delta: 6, expiresAt: now + 8 * 60_000 })
     s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now, pillages: pillages + 1 }
+    /*
+     * Une relique, parfois. Elle ne fait RIEN tant qu'elle dort au magasin : il
+     * faut lui donner une niche du temple, et le temple en compte moins qu'on
+     * n'en rapporte. C'est là tout l'intérêt - choisir ce qu'on expose.
+     */
+    const trouvee = butinRelique(v.id, etoiles, Math.random(), s.reliques)
+    if (trouvee) {
+      s.reliques.push(trouvee)
+      const def = RELIQUE_PAR_ID[trouvee]
+      pushReport(s, def.emoji, `Relique : ${def.nom}`, [
+        def.desc,
+        'Elle ne rayonnera qu’exposée dans une niche du temple.',
+      ])
+      pushToast(s, def.emoji, `Relique rapportée : ${def.nom}`)
+    }
     /*
      * Piller un allié rompt l'alliance sur-le-champ - et cela se retient. Un
      * mariage ne protège pas de cela : on peut trahir sa propre parenté, cela
@@ -2599,6 +2774,47 @@ export const useGame = create<GameState>()(
         s.morale = calcMorale(s, now)
         s.threatMod = s.threatMod < 0 ? Math.min(0, s.threatMod + dtJeu / 60) : s.threatMod
         s.threat = calcThreat(s, now)
+
+        /*
+         * LA COLÈRE DES DIEUX. Un Olympien bafoué ne se contentait plus de frapper
+         * mou : il envoie désormais ses propres calamités, à un rythme qui se
+         * resserre avec l'offense. Elle est toujours réparable — un sacrifice
+         * remonte la relation et désarme le compte à rebours dans le même tick.
+         */
+        for (const g of GOD_IDS) {
+          const palier = paliersColere(relationEffective(s, g))
+          if (palier === 0) {
+            s.colere[g] = 0
+            continue
+          }
+          if (!s.colere[g]) {
+            s.colere[g] = now + delaiProchaineCalamite(palier, Math.random())
+            continue
+          }
+          if (now < s.colere[g]) continue
+          const cal = tirerCalamite(
+            g,
+            palier,
+            {
+              now,
+              buildings: s.buildings,
+              wallHp: s.wallHp,
+              wallMax: murMax(s),
+              army: s.army,
+              alliances: Object.keys(s.alliances ?? {}),
+              morale: s.morale,
+              tours: s.tours,
+              derniereCible: s.derniereCibleColere,
+            },
+            Math.random(),
+          )
+          s.colere[g] = now + delaiProchaineCalamite(palier, Math.random())
+          if (!cal) continue
+          s.derniereCibleColere = cal.cibleId ?? null
+          appliquerCalamite(s, cal.effet, now)
+          pushReport(s, cal.emoji, `${GODS[g].nom} : ${cal.nom}`, cal.recit)
+          pushToast(s, cal.emoji, cal.nom)
+        }
 
         // le calendrier tourne : printemps → été → automne → hiver, et le ciel avec
         tournerCiel(s, now)
@@ -3054,6 +3270,50 @@ export const useGame = create<GameState>()(
         }
         s.tours++
         pushToast(s, '🏹', `Tour d’archers dressée (${s.tours}/${max}). Sa silhouette attire l’œil des pillards…`)
+      })
+      get().save()
+    },
+
+    poserQuestion: (q, cible) => {
+      set((s) => {
+        const now = Date.now()
+        const c = consulterOracle(
+          q,
+          { ...s, now, jour: jourDe(s), etoilesTotal: totalEtoiles(s.expeditions), cible: cible ?? null },
+          { faveur: s.faveur, grain: s.resources.grain, cooldowns: s.oracles },
+        )
+        s.oracleReponse = { question: q, lignes: c.lignes, at: now }
+        /*
+         * Le contrat de l'oracle : il ne facture jamais du vide. S'il ne voit
+         * rien, on ne prélève ni faveur ni grain et le cooldown ne part pas -
+         * sans quoi le seul mécanisme d'information fiable du jeu deviendrait
+         * une loterie.
+         */
+        if (!c.ok) return
+        s.faveur -= c.coutFaveur
+        s.resources.grain = Math.max(0, s.resources.grain - c.coutGrain)
+        s.oracles[q] = c.prochainAt
+        pushReport(s, ORACLES[q].emoji, `Oracle : ${ORACLES[q].nom}`, c.lignes)
+      })
+      get().save()
+    },
+
+    exposerRelique: (id) => {
+      set((s) => {
+        if (!s.reliques.includes(id)) return
+        if (!peutExposer(id, s.reliquesExposees, s.buildings.temple.level)) {
+          pushToast(s, '🏺', 'Aucune niche libre au temple - retirez d’abord une relique.')
+          return
+        }
+        s.reliquesExposees.push(id)
+        pushToast(s, RELIQUE_PAR_ID[id].emoji, `${RELIQUE_PAR_ID[id].nom} prend sa niche.`)
+      })
+      get().save()
+    },
+
+    retirerRelique: (id) => {
+      set((s) => {
+        s.reliquesExposees = s.reliquesExposees.filter((x) => x !== id)
       })
       get().save()
     },

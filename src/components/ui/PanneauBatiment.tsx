@@ -4,6 +4,7 @@ import { candidatsPour, fmtDuree, metierDe, murMax, oisifs, peutPayer, popCap, p
 import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
 import { Astuce } from './Infobulle'
+import { nichesTemple } from '../../game/reliques'
 import { couleurRendement } from './Population'
 
 function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, number>>; resources: Record<ResourceId, number> }) {
@@ -571,6 +572,13 @@ export function PanneauBatiment() {
           <div className="desc">La faveur s’accumule ici. Honorez les Olympiens et invoquez leurs bénédictions.</div>
           <button className="principal" style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('pantheon')}>
             ⚡ Ouvrir le panthéon
+          </button>
+          {/* les deux autres usages du temple : interroger l'avenir, exposer le passé */}
+          <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('oracles')}>
+            🔮 Consulter un oracle
+          </button>
+          <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('reliques')}>
+            🏺 Reliques et niches ({(s.reliquesExposees ?? []).length}/{nichesTemple(b.level)})
           </button>
         </div>
       )}

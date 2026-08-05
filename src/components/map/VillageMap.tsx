@@ -15,6 +15,7 @@ import { Meteo, VoileSaison } from './Ciel'
 import { HerosVillage } from './HerosVillage'
 import { Garnison } from './Garnison'
 import { Murailles } from './Murailles'
+import { SanteBatiments } from './SanteBatiments'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
 import { Villageois } from './Villageois'
 
@@ -100,6 +101,8 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
   const selected = useGame((s) => s.selected)
   const select = useGame((s) => s.select)
   // postes ouverts mais non tenus : le joueur doit le voir sans rien ouvrir
+  // le nombre d'artisans DESSINÉS suit l'affectation, pas le niveau du bâtiment
+  const pourvus = useGame((s) => postesPourvus(s, id))
   const manque = useGame((s) => Math.max(0, postesTotal(s, id) - postesPourvus(s, id)))
   const vide = useGame((s) => postesTotal(s, id) > 0 && postesPourvus(s, id) === 0)
   const [hover, setHover] = useState(false)
@@ -153,7 +156,7 @@ function Emplacement({ id, now, paisible }: { id: BuildingId; now: number; paisi
           {b.level > 0 && (
             <g transform="scale(1.18)" filter="url(#ombre-batiment)">
               <BatimentArt id={id} level={b.level} />
-              {paisible && !enChantier && <Ouvriers id={id} level={b.level} />}
+              {paisible && !enChantier && <Ouvriers id={id} level={b.level} ouvriers={pourvus} />}
             </g>
           )}
           {enChantier && (
@@ -420,6 +423,8 @@ export function VillageMap() {
           <Emplacement id="port" now={now} paisible={paisible} />
 
           {battle && <BatailleLayer battle={battle} now={now} wallHp={wallHp} wallMax={wallMax} />}
+          {/* la structure des édifices : elle ne paraît qu'une fois la brèche ouverte */}
+          <SanteBatiments />
         </g>
 
         {/* le ciel du jour : teinte de la saison, puis ce qui en tombe. Posé hors

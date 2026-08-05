@@ -281,66 +281,126 @@ function Docker({ x, y, flip, begin = '0s' }: { x: number; y: number; flip?: boo
 }
 
 // ── affectation par bâtiment ─────────────────────────────────────────────────
-export function Ouvriers({ id, level }: { id: BuildingId; level: number }) {
-  if (level <= 0) return null
-  const deux = level >= 3
+
+/** un poste de travail : où l'artisan se tient, et le décalage de son geste */
+interface Poste {
+  x: number
+  y: number
+  flip?: boolean
+  begin?: string
+}
+
+/**
+ * Places de travail par bâtiment, dans l'ordre où elles se remplissent — quatre
+ * au maximum, comme le nombre de postes qu'un atelier peut offrir au niveau 4.
+ *
+ * Ces emplacements sont solidaires du dessin de chaque bâtiment : ils tombent
+ * sur l'aire dégagée que l'art réserve (le champ pour la ferme, le front de
+ * taille pour la carrière…). Les déplacer sans regarder la carte, c'est poser
+ * un faucheur sur un toit.
+ */
+const POSTES_ATELIER: Partial<Record<BuildingId, Poste[]>> = {
+  scierie: [
+    { x: 24, y: 4, flip: true },
+    { x: -8, y: 13, begin: '0.8s' },
+    { x: 44, y: 16, flip: true, begin: '1.5s' },
+    { x: -30, y: 2, begin: '0.4s' },
+  ],
+  carriere: [
+    { x: 12, y: 9, flip: true },
+    { x: -22, y: 13, flip: true, begin: '0.9s' },
+    { x: 30, y: 2, begin: '1.7s' },
+    { x: -6, y: 20, flip: true, begin: '0.5s' },
+  ],
+  forge: [
+    { x: 12, y: 6, flip: true },
+    { x: -22, y: 13, begin: '0.6s' },
+    { x: 30, y: 16, flip: true, begin: '1.2s' },
+  ],
+  // la ferme travaille vers l'est, dans les parcelles
+  ferme: [
+    { x: 34, y: 10 },
+    { x: 58, y: -14, begin: '1.2s' },
+    { x: 80, y: 12, begin: '0.6s' },
+    { x: 50, y: 24, begin: '1.8s' },
+  ],
+  temple: [
+    { x: 0, y: 15 },
+    { x: -20, y: 10, begin: '1.4s' },
+  ],
+  port: [
+    { x: 18, y: 7, flip: true },
+    { x: 40, y: -2, flip: true, begin: '0.5s' },
+  ],
+}
+
+/** l'artisan correspondant au métier du bâtiment */
+function Artisan({ id, p }: { id: BuildingId; p: Poste }) {
   switch (id) {
     case 'scierie':
-      return (
-        <g>
-          <Bucheron x={24} y={4} flip />
-          {deux && <Bucheron x={-8} y={13} begin="0.8s" />}
-        </g>
-      )
+      return <Bucheron x={p.x} y={p.y} flip={p.flip} begin={p.begin} />
     case 'carriere':
-      return (
-        <g>
-          <Tailleur x={12} y={9} flip />
-          {deux && <Tailleur x={-22} y={13} begin="0.9s" flip />}
-        </g>
-      )
+      return <Tailleur x={p.x} y={p.y} flip={p.flip} begin={p.begin} />
     case 'forge':
-      return (
-        <g>
-          <Forgeron x={12} y={6} flip />
-          {level >= 4 && <Forgeron x={-22} y={13} begin="0.6s" />}
-        </g>
-      )
+      return <Forgeron x={p.x} y={p.y} flip={p.flip} begin={p.begin} />
     case 'ferme':
-      return (
-        <g>
-          <Faucheur x={34} y={10} />
-          {deux && <Faucheur x={58} y={-14} begin="1.2s" />}
-        </g>
-      )
+      return <Faucheur x={p.x} y={p.y} flip={p.flip} begin={p.begin} />
     case 'temple':
-      return <Pretre x={level === 1 ? -8 : 0} y={level === 1 ? 12 : 15} />
-    case 'caserne':
-      return (
-        <g>
-          <Recrue x={-19} y={5} />
-          {deux && <Recrue x={-7} y={11} begin="0.7s" />}
-        </g>
-      )
-    case 'agora':
-      return level >= 2 ? (
-        <g>
-          <Marchande x={-30} y={-3} />
-          {deux && <Marchande x={30} y={0} begin="1.6s" />}
-        </g>
-      ) : (
-        <Marchande x={18} y={4} />
-      )
+      return <Pretre x={p.x} y={p.y} begin={p.begin} />
     case 'port':
-      return (
-        <g>
-          <Docker x={18} y={7} flip />
-          {deux && <Docker x={40} y={-2} begin="0.5s" flip />}
-        </g>
-      )
+      return <Docker x={p.x} y={p.y} flip={p.flip} begin={p.begin} />
     default:
       return null
   }
+}
+
+/**
+ * Les artisans visibles sur un bâtiment.
+ *
+ * `ouvriers` = le nombre de villageois RÉELLEMENT affectés à ce poste. C'est le
+ * seul compte qui vaille : le dessin doit être le reflet fidèle de l'affectation.
+ * Auparavant on en déduisait le nombre du NIVEAU du bâtiment, si bien qu'une
+ * ferme de niveau 2 avec deux paysans n'en montrait qu'un — l'affectation était
+ * invisible, donc incompréhensible.
+ *
+ * La caserne et l'agora n'ont pas de poste de travail : leurs figures (recrue à
+ * l'exercice, marchande à l'étal) relèvent de la vie du village et suivent le
+ * niveau, pas l'affectation.
+ */
+export function Ouvriers({ id, level, ouvriers }: { id: BuildingId; level: number; ouvriers?: number }) {
+  if (level <= 0) return null
+
+  if (id === 'caserne') {
+    return (
+      <g>
+        <Recrue x={-19} y={5} />
+        {level >= 3 && <Recrue x={-7} y={11} begin="0.7s" />}
+      </g>
+    )
+  }
+  if (id === 'agora') {
+    return level >= 2 ? (
+      <g>
+        <Marchande x={-30} y={-3} />
+        {level >= 3 && <Marchande x={30} y={0} begin="1.6s" />}
+      </g>
+    ) : (
+      <Marchande x={18} y={4} />
+    )
+  }
+
+  const postes = POSTES_ATELIER[id]
+  if (!postes) return null
+  // sans consigne, on retombe sur l'ancien comportement plutôt que de vider la carte
+  const n = Math.min(postes.length, ouvriers ?? (level >= 3 ? 2 : 1))
+  if (n <= 0) return null
+  return (
+    <g>
+      {postes.slice(0, n).map((p, i) => (
+        <Artisan key={i} id={id} p={p} />
+      ))}
+    </g>
+  )
 }
 
 // ── porteurs de ressources (sur la carte, coordonnées monde) ─────────────────

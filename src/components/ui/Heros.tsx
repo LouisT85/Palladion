@@ -8,6 +8,7 @@ import {
   xpRequise,
   type HeroId,
 } from '../../game/heros'
+import { RES } from '../../game/data'
 import { conditionsHeros, entretienHeros, fmtDuree, herosDisponible, peutPayer, useGame } from '../../game/store'
 import type { Cost, ResourceId } from '../../game/types'
 import { Montant } from './Icones'
@@ -27,6 +28,37 @@ function Cout({ c, taille = 14 }: { c: Cost; taille?: number }) {
       {(Object.entries(c) as [ResourceId, number][]).map(([r, n]) => (
         <Montant key={r} n={n} id={r} taille={taille} />
       ))}
+    </>
+  )
+}
+
+/*
+ * Un coût de recrutement se lisait en gris, comme une simple étiquette : deux
+ * conditions cochées en vert au-dessus, un bouton éteint en dessous, et rien
+ * qui dise POURQUOI. On reprend ici la convention des chantiers - chaque
+ * ressource en vert ou en rouge, et l'infobulle qui chiffre ce qui manque.
+ */
+function CoutExigeant({ c, resources }: { c: Cost; resources: Record<ResourceId, number> }) {
+  return (
+    <>
+      {(Object.entries(c) as [ResourceId, number][]).map(([r, n]) => {
+        const manque = n - Math.floor(resources[r])
+        return (
+          <Astuce
+            key={r}
+            titre={`${RES[r].emoji} ${RES[r].nom}`}
+            lignes={[
+              { label: 'Présents exigés', valeur: n, fort: true },
+              { label: 'En réserve', valeur: Math.floor(resources[r]), couleur: manque > 0 ? '#e0715a' : '#8fbf5a' },
+            ]}
+            note={manque > 0 ? `Il en manque ${manque}.` : undefined}
+          >
+            <span className={`montant ${manque > 0 ? 'ko' : 'okk'}`}>
+              <Montant n={n} id={r} taille={14} />
+            </span>
+          </Astuce>
+        )
+      })}
     </>
   )
 }
@@ -133,6 +165,8 @@ export function PanneauHeros() {
     const e = s.heros[h]
     const dispo = herosDisponible(s, h)
     const conds = conditionsHeros(s, h)
+    // conditions remplies mais coffres trop maigres : le bouton doit le DIRE
+    const assezPourLui = peutPayer(s.resources, def.coutRecrutement)
     const cd = Math.max(0, e.cooldownUntil - now)
     const boude = e.boudeJusqua > now
     const seuil = xpRequise(def, e.niveau)
@@ -258,14 +292,20 @@ export function PanneauHeros() {
                 ))}
               </div>
               <div className="heros-pied">
-                <span className="heros-entretien">🎁 <Cout c={def.coutRecrutement} /></span>
+                <span className="heros-entretien">
+                  🎁 <CoutExigeant c={def.coutRecrutement} resources={s.resources} />
+                </span>
                 <span className="heros-entretien">🍖 <Entretien h={h} /></span>
                 <button
                   className="principal"
-                  disabled={!dispo || !peutPayer(s.resources, def.coutRecrutement)}
+                  disabled={!dispo || !assezPourLui}
                   onClick={() => s.recruterHeros(h)}
                 >
-                  {dispo ? 'Le prendre à son service' : 'Il ne viendra pas encore'}
+                  {!dispo
+                    ? 'Il ne viendra pas encore'
+                    : assezPourLui
+                      ? 'Le prendre à son service'
+                      : 'Les présents manquent'}
                 </button>
               </div>
             </>

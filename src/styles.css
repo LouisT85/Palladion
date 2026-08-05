@@ -343,6 +343,17 @@ main.scene {
   background: radial-gradient(ellipse at 50% 34%, #1a3040 0%, var(--bg) 78%);
 }
 
+/*
+   Une expédition recouvre la carte du village en entier. Tant qu'elle dure, la
+   carte n'a pas à être mise en page ni peinte : ~4900 nœuds animés et deux
+   cents filtres gaussiens, pour rien, sous un voile opaque. On la retire du
+   rendu - l'état React, lui, reste intact, et le règne retrouve son décor à
+   l'identique au retour du raid.
+*/
+main.scene.scene-derriere > svg.carte {
+  display: none;
+}
+
 /* la carte occupe tout le conteneur : le viewBox 1200×800 se met à l'échelle seul */
 svg.carte {
   position: absolute;

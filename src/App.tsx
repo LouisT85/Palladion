@@ -205,7 +205,16 @@ export default function App() {
         </div>
       </header>
 
-      <main className="scene">
+      {/*
+       * Pendant une expédition, la scène du raid occupe tout l'écran et la carte
+       * du village est INTÉGRALEMENT masquée par elle. Mesuré : la carte gardait
+       * pourtant ses ~4900 nœuds montés, ses animations en marche et ses filtres
+       * rastérisés derrière le voile - la scène du raid, elle, n'en compte que
+       * 714. On payait le village entier pour regarder un champ de bataille. Un
+       * `display:none` suffit : plus de mise en page, plus de peinture, et les
+       * horloges reprennent où elles étaient au retour.
+       */}
+      <main className={`scene${expedition ? ' scene-derriere' : ''}`}>
         <VillageMap />
         <BandeauAlerte />
         {/* le siège tient son propre compte à rebours : il rend null hors du mode */}

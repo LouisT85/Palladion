@@ -143,13 +143,13 @@ export function DefsArt() {
         <stop offset="100%" stopColor="#1d1408" stopOpacity="0" />
       </radialGradient>
       {/* flous : ombres portées et halos */}
-      <filter id="a-flou1" x="-40%" y="-40%" width="180%" height="180%">
+      <filter id="a-flou1" colorInterpolationFilters="sRGB" x="-40%" y="-40%" width="180%" height="180%">
         <feGaussianBlur stdDeviation="0.8" />
       </filter>
-      <filter id="a-flou2" x="-60%" y="-60%" width="220%" height="220%">
+      <filter id="a-flou2" colorInterpolationFilters="sRGB" x="-60%" y="-60%" width="220%" height="220%">
         <feGaussianBlur stdDeviation="2.2" />
       </filter>
-      <filter id="a-flou4" x="-80%" y="-80%" width="260%" height="260%">
+      <filter id="a-flou4" colorInterpolationFilters="sRGB" x="-80%" y="-80%" width="260%" height="260%">
         <feGaussianBlur stdDeviation="4.5" />
       </filter>
     </>

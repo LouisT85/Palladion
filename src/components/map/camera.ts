@@ -87,10 +87,49 @@ export function indexSecteurChaud(b: BattleState, parSecteur: number[]): number 
 }
 
 /**
- * Où poser la caméra : barycentre des combattants, tiré vers le front chaud et
- * ancré sur son pan de mur, avec un zoom déduit de l'étendue de la mêlée.
- * Dès que plusieurs pans sont assaillis, le centre de l'enceinte pèse dans la
- * balance : les trois fronts doivent tenir ensemble dans le cadre.
+ * Un foyer de bataille : là où ça se passe VRAIMENT sur un pan donné. Tant que
+ * la colonne marche encore, c'est le pan de mur qu'elle vise ; dès qu'elle est
+ * au contact, c'est le barycentre des assaillants.
+ */
+interface Foyer {
+  x: number
+  y: number
+  /** combien d'hommes s'y trouvent - sert à pondérer le cadrage */
+  poids: number
+  /** 0 = pan intact, 1 = pan tombé : l'urgence attire l'œil */
+  urgence: number
+}
+
+/** les foyers actifs de la bataille, un par pan réellement assailli */
+export function foyersBataille(b: BattleState, vivants: Fighter[]): Foyer[] {
+  const foyers: Foyer[] = []
+  b.secteurs.forEach((s, i) => {
+    const siens = vivants.filter((f) => f.camp === 'attaque' && Math.min(f.secteur ?? 0, b.secteurs.length - 1) === i)
+    if (siens.length === 0) return
+    // barycentre de la colonne, ramené vers son pan : on veut voir les DEUX
+    const mx = siens.reduce((a, f) => a + f.x, 0) / siens.length
+    const my = siens.reduce((a, f) => a + f.y, 0) / siens.length
+    const entame = s.max > 0 ? 1 - s.hp / s.max : 1
+    foyers.push({
+      x: (mx + s.x) / 2,
+      y: (my + s.y) / 2,
+      poids: siens.length,
+      urgence: s.breche ? 1 : entame,
+    })
+  })
+  return foyers
+}
+
+/**
+ * Où poser la caméra.
+ *
+ * Le principe : on cadre **tous les foyers actifs**, pas seulement le plus
+ * chaud. Auparavant la vue s'ancrait sur un unique « pan chaud » que le poids
+ * des béliers plaçait presque toujours à la porte de l'est : un assaut sur
+ * trois fronts se jouait donc hors de l'écran des deux tiers. Désormais on
+ * calcule la boîte englobante des foyers, on la cadre entièrement, et l'on ne
+ * resserre sur un seul pan que lorsqu'il n'y en a qu'un — ou qu'un seul est
+ * en train de céder, cas où l'urgence mérite le gros plan.
  */
 function cadrageBataille(b: BattleState | null, vue: VueScene): Cadrage {
   const large: Cadrage = { cx: vue.w / 2, cy: vue.h / 2, z: 1 }
@@ -98,48 +137,85 @@ function cadrageBataille(b: BattleState | null, vue: VueScene): Cadrage {
   const vivants = b.fighters.filter((f) => f.etat !== 'mort')
   if (vivants.length === 0) return large
 
-  const parSecteur = assaillantsParSecteur(b, vivants)
-  const idx = indexSecteurChaud(b, parSecteur)
-  const chaud = idx >= 0 ? b.secteurs[idx] : { x: b.geo.porte.x, y: b.geo.porte.y }
-  const frontsActifs = parSecteur.filter((n) => n > 0).length
+  const foyers = foyersBataille(b, vivants)
+  if (foyers.length === 0) {
+    // plus d'assaillant assigné : on suit ce qui bouge encore
+    const mx = vivants.reduce((a, f) => a + f.x, 0) / vivants.length
+    const my = vivants.reduce((a, f) => a + f.y, 0) / vivants.length
+    return recadrer({ cx: mx, cy: my, z: borne(2, vue.zMin, vue.zMax) }, vue)
+  }
 
+  /*
+   * Un pan qui va tomber vole la vedette : si un seul foyer est vraiment
+   * critique (pan entamé aux trois quarts ou déjà percé) alors qu'un autre
+   * n'est qu'escarmouche, on lui donne le gros plan. C'est le moment où le
+   * joueur doit voir précisément ce qui se passe pour y jeter ses hommes.
+   */
+  const critiques = foyers.filter((f) => f.urgence > 0.72)
+  const retenus = critiques.length === 1 && foyers.length > 1 ? critiques : foyers
+
+  // boîte englobante des foyers retenus, élargie par les hommes qui y sont
+  let x0 = Infinity
+  let x1 = -Infinity
+  let y0 = Infinity
+  let y1 = -Infinity
   let sx = 0
   let sy = 0
   let sp = 0
-  const poser = (x: number, y: number, p: number) => {
-    sx += x * p
-    sy += y * p
+  for (const f of retenus) {
+    const p = f.poids + 4 + f.urgence * 6
+    sx += f.x * p
+    sy += f.y * p
     sp += p
-  }
-  for (const f of vivants) poser(f.x, f.y, f.camp === 'attaque' && (f.secteur ?? 0) === idx ? 2.2 : 0.8)
-  const combattants = sp
-  // le pan assailli reste dans le cadre même quand la colonne est encore loin
-  poser(chaud.x, chaud.y, Math.max(5, combattants * (frontsActifs > 1 ? 0.2 : 0.42)))
-  if (frontsActifs > 1) poser(b.geo.cx, b.geo.cy, combattants * 0.35)
-  const cx = sx / sp
-  const cy = sy / sp
-
-  // étendue à cadrer - les traînards très à l'écart ne dictent pas le zoom
-  let x0 = chaud.x
-  let x1 = chaud.x
-  let y0 = chaud.y
-  let y1 = chaud.y
-  for (const f of vivants) {
-    if (Math.hypot(f.x - cx, f.y - cy) > vue.w * 0.4) continue
     x0 = Math.min(x0, f.x)
     x1 = Math.max(x1, f.x)
     y0 = Math.min(y0, f.y)
     y1 = Math.max(y1, f.y)
   }
-  const z = borne(Math.min(vue.w / ((x1 - x0) * 1.25 + 150), vue.h / ((y1 - y0) * 1.25 + 130)), vue.zMin, vue.zMax)
+  const cx = sx / sp
+  const cy = sy / sp
+
+  /*
+   * Les combattants proches du cadrage l'élargissent ; les traînards partis à
+   * l'autre bout de la carte, non — sans quoi un unique fuyard ferait dézoomer
+   * toute la scène.
+   */
+  const rayonUtile = vue.w * 0.34
+  for (const f of vivants) {
+    if (Math.hypot(f.x - cx, f.y - cy) > rayonUtile) continue
+    x0 = Math.min(x0, f.x)
+    x1 = Math.max(x1, f.x)
+    y0 = Math.min(y0, f.y)
+    y1 = Math.max(y1, f.y)
+  }
+
+  // marge : généreuse sur un seul front (on peut se serrer), plus fine à trois
+  const marge = retenus.length > 1 ? 110 : 160
+  const z = borne(
+    Math.min(vue.w / ((x1 - x0) * 1.18 + marge), vue.h / ((y1 - y0) * 1.18 + marge * 0.85)),
+    vue.zMin,
+    vue.zMax,
+  )
 
   // le bandeau « assaut en cours » mange le haut de la scène : on descend un peu
   // le cadrage pour ne pas jouer le front nord derrière lui
   return recadrer({ cx, cy: cy - 34 / z, z }, vue)
 }
 
-/** constante de temps de la caméra automatique (ms) - elle doit s'oublier */
-const TAU_CAMERA = 1150
+/**
+ * Constantes de temps de la caméra automatique (ms).
+ *
+ * Une seule valeur ne suffit pas : à 1150 ms le mouvement était si mou que le
+ * commanditaire l'a jugé « lent », mais une caméra vive sur chaque frémissement
+ * de la mêlée donnerait le mal de mer. On sépare donc les deux régimes — la
+ * caméra RATTRAPE vite quand la cible saute (un nouveau front s'ouvre, un pan
+ * cède), et FLOTTE doucement quand elle ne fait que suivre des hommes qui
+ * marchent.
+ */
+const TAU_SUIVI = 900
+const TAU_RATTRAPAGE = 260
+/** au-delà de cet écart (px de monde), on considère que la cible a sauté */
+const SAUT_PX = 90
 
 export interface Camera {
   /** true = le joueur conduit ; la caméra de bataille se tait */
@@ -305,8 +381,16 @@ export function useCamera(
         calcul = t
         but.current = cadrageBataille(lireBataille(), vue)
       }
-      const k = 1 - Math.exp(-dt / TAU_CAMERA)
       const b = but.current
+      /*
+       * Deux régimes : on rattrape vif un but qui a sauté (front qui s'ouvre,
+       * pan qui cède), on flotte doucement derrière des hommes qui marchent.
+       * L'interpolation reste exponentielle, donc sans à-coup à la bascule.
+       */
+      const ecart = Math.hypot(b.cx - vu.current.cx, b.cy - vu.current.cy) * vu.current.z
+      const ecartZ = Math.abs(b.z - vu.current.z) / Math.max(0.2, vu.current.z)
+      const rattrape = ecart > SAUT_PX || ecartZ > 0.35
+      const k = 1 - Math.exp(-dt / (rattrape ? TAU_RATTRAPAGE : TAU_SUIVI))
       vu.current = {
         cx: vu.current.cx + (b.cx - vu.current.cx) * k,
         cy: vu.current.cy + (b.cy - vu.current.cy) * k,

@@ -2,6 +2,7 @@ import { GODS } from '../../game/data'
 import { HEROS, type HeroId } from '../../game/heros'
 import type { BattleEffect, GodId } from '../../game/types'
 import { PAL, alea } from './art'
+import { Anim, AnimM, AnimT } from './smil'
 
 /*
  * ═══════════════ LA MAIN DES DIEUX, À LA MESURE DE LA FERVEUR ═══════════════
@@ -79,7 +80,7 @@ function A({
   tp: Tempo
 }) {
   return (
-    <animate
+    <Anim
       attributeName={a}
       {...cadrage(v, t0, t1)}
       dur={`${tp.P}ms`}
@@ -104,7 +105,7 @@ function AT({
   tp: Tempo
 }) {
   return (
-    <animateTransform
+    <AnimT
       attributeName="transform"
       type={type}
       {...cadrage(v, t0, t1)}
@@ -132,7 +133,7 @@ function AM({ d, t0 = 0, t1 = 1, tp }: { d: string; t0?: number; t1?: number; tp
     kt.push('1')
   }
   return (
-    <animateMotion
+    <AnimM
       path={d}
       keyPoints={kp.join(';')}
       keyTimes={kt.join(';')}

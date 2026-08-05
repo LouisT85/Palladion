@@ -2,6 +2,7 @@ import { HEROS } from '../../game/heros'
 import type { BattleState, Fighter, HeroId, SecteurBataille, UnitId } from '../../game/types'
 import { assaillantsParSecteur, indexSecteurChaud } from './camera'
 import { EffetDivin, EffetHeros } from './EffetsDivins'
+import { Anim, AnimM, AnimT } from './smil'
 import { SilhouetteHeros } from './SilhouettesHeros'
 
 /*
@@ -879,7 +880,7 @@ function Depouille({ f, campJoueur, now }: { f: Fighter; campJoueur: 'attaque' |
     <g transform={`translate(${f.x},${f.y})`} opacity={Math.max(0, 0.75 * (1 - t))}>
       <g transform={`rotate(${sens})`}>
         {/* la chute : jouée une fois au montage, figée ensuite */}
-        <animateTransform
+        <AnimT
           attributeName="transform"
           type="rotate"
           values={`0;${sens}`}
@@ -1118,7 +1119,7 @@ export function BatailleLayer({
         return (
           <g key={p.id}>
             <g>
-              <animateMotion dur={`${p.dur}ms`} path={`M${p.x0},${p.y0} Q${mx},${my} ${p.x1},${p.y1}`} fill="freeze" rotate="auto" />
+              <AnimM dur={`${p.dur}ms`} path={`M${p.x0},${p.y0} Q${mx},${my} ${p.x1},${p.y1}`} fill="freeze" rotate="auto" />
               <line x1={-4.5} y1={0} x2={4} y2={0} stroke="#5d4a33" strokeWidth={1.3} />
               <path d="M4.5,0 l-2.2,-1.3 l0,2.6 Z" fill="#9aa0a8" />
               <path d="M-4.5,0 l-1.8,-1.5 M-4.5,0 l-1.8,1.5 M-3.2,0 l-1.8,-1.5 M-3.2,0 l-1.8,1.5" stroke="#e0d9c8" strokeWidth={0.7} />
@@ -1147,7 +1148,7 @@ export function BatailleLayer({
         if (e.type === 'benediction') {
           return (
             <circle key={e.id} cx={e.x} cy={e.y} r={20} fill="none" stroke="#4fa3a5" strokeWidth={3} opacity={Math.max(0, (e.until - now) / 2000)}>
-              <animate attributeName="r" values="8;42" dur="2s" fill="freeze" />
+              <Anim attributeName="r" values="8;42" dur="2s" fill="freeze" />
             </circle>
           )
         }
@@ -1176,15 +1177,15 @@ export function BatailleLayer({
         return (
           <g key={e.id} opacity={Math.max(0, (e.until - now) / 4000)}>
             <g>
-              <animateTransform attributeName="transform" type="translate" values="0,0;0,-9" dur="4s" fill="freeze" />
+              <AnimT attributeName="transform" type="translate" values="0,0;0,-9" dur="4s" fill="freeze" />
               <circle cx={e.x - 9} cy={e.y - 4} r={8} fill="#c7bda4" opacity={0.55}>
-                <animate attributeName="r" values="6;16" dur="2.5s" fill="freeze" />
+                <Anim attributeName="r" values="6;16" dur="2.5s" fill="freeze" />
               </circle>
               <circle cx={e.x + 7} cy={e.y - 9} r={6} fill="#b5ab93" opacity={0.5}>
-                <animate attributeName="r" values="5;13" dur="2.5s" fill="freeze" />
+                <Anim attributeName="r" values="5;13" dur="2.5s" fill="freeze" />
               </circle>
               <circle cx={e.x - 1} cy={e.y - 15} r={4} fill="#d8d0b8" opacity={0.4}>
-                <animate attributeName="r" values="3;11" dur="2.8s" fill="freeze" />
+                <Anim attributeName="r" values="3;11" dur="2.8s" fill="freeze" />
               </circle>
             </g>
           </g>

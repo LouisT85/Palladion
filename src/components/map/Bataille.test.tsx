@@ -144,6 +144,47 @@ describe('jauges de secteur', () => {
   })
 })
 
+describe('horloge des effets', () => {
+  /*
+   * L'horloge SMIL est celle du DOCUMENT. Un effet né en cours de partie dont
+   * l'animation démarre au temps 0 a son intervalle dans le passé : le navigateur
+   * la gèle sur sa dernière image et on ne la voit JAMAIS. C'est ce qui a rendu
+   * l'éclair de Zeus invisible et téléporté les flèches sur leur cible. Toute
+   * animation « une passe » doit donc partir de `indefinite`, puis être armée à
+   * l'insertion du nœud. Ce test l'exige de tout ce qui naît pendant la bataille.
+   */
+  function animationsUnePasse(m: Montage) {
+    return m.qq('animate, animateTransform, animateMotion').filter((n) => {
+      const rc = n.getAttribute('repeatCount')
+      return rc !== 'indefinite'
+    })
+  }
+
+  it('arme à l’insertion chaque animation de la bataille, effets divins compris', () => {
+    const b = bataille({
+      breche: true,
+      fighters: [assaillant(1), assaillant(2, true)],
+      projectiles: [
+        { id: 'p1', x0: 900, y0: 400, x1: 820, y1: 450, start: 900, dur: 250, targetId: 'a1', dmg: 5 },
+      ],
+      effects: [
+        { id: 'f1', type: 'foudre', x: 800, y: 450, until: 2000 },
+        { id: 'f2', type: 'benediction', x: 700, y: 450, until: 3000 },
+        { id: 'f3', type: 'breche', x: 900, y: 445, until: 5000 },
+        { id: 'f4', type: 'divin', dieu: 'zeus', palier: 6, x: 800, y: 450, debut: 900, until: 3500 },
+        { id: 'f5', type: 'divin', dieu: 'poseidon', palier: 2, x: 800, y: 450, debut: 900, until: 3500 },
+        { id: 'f6', type: 'heros', heros: 'achille', x: 800, y: 450, debut: 900, until: 2700 },
+      ],
+    })
+    m = monterSvg(<BatailleLayer battle={b} now={1000} wallHp={300} wallMax={2000} />)
+    const unePasse = animationsUnePasse(m)
+    // le décor est immobile dans ce montage : ce sont bien les effets qu'on compte
+    expect(unePasse.length).toBeGreaterThan(10)
+    const sansAmorce = unePasse.filter((n) => n.getAttribute('begin') !== 'indefinite')
+    expect(sansAmorce.map((n) => `${n.nodeName}[${n.getAttribute('attributeName') ?? 'motion'}]`)).toEqual([])
+  })
+})
+
 describe('santé des bâtiments', () => {
   it('reste muette hors de la brèche', () => {
     poser({ battle: bataille({ breche: false }) })

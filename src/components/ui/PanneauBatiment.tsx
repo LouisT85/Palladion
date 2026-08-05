@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
+import { BUILDINGS, BUILDING_IDS, DEFENSES_DEFS, DEFENSE_IDS, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
 import { candidatsPour, fmtDuree, metierDe, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
 import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
@@ -421,6 +421,66 @@ function BlocRemparts() {
   )
 }
 
+/**
+ * Les cinq ouvrages de l'intérieur. Ils ne servent QU'APRÈS la brèche, et c'est
+ * exactement ce que le bloc doit faire comprendre : ce ne sont pas des remparts
+ * de plus, c'est de quoi se battre encore quand les remparts ont cédé.
+ */
+function BlocDefenses() {
+  const s = useGame()
+  const niveau = s.buildings.remparts.level
+  if (niveau === 0) return null
+  const d = s.defenses ?? { acropole: 0, bastion: false, galeries: false, poterne: false, citerne: false }
+  return (
+    <div className="bloc">
+      <h3>🏯 Ouvrages de l’intérieur</h3>
+      <div className="desc" style={{ fontSize: 12 }}>
+        Ce qui reste quand le mur est tombé. Les assaillants doivent désormais abattre vos bâtiments un à un, et le
+        Palladion en dernier : ces cinq ouvrages — tous attestés à Mycènes, Tirynthe et Troie — décident de ce
+        dernier quart d’heure.
+      </div>
+      {DEFENSE_IDS.map((id) => {
+        const def = DEFENSES_DEFS[id]
+        const n = id === 'acropole' ? d.acropole : d[id] ? 1 : 0
+        const complet = n >= def.max
+        const cout = complet ? null : def.couts[n]
+        const verrou = niveau < def.rempartsRequis
+        return (
+          <div key={id} className="bloc" style={{ marginTop: 8, background: '#0f1c28' }}>
+            <div className="ligne">
+              <span style={{ fontWeight: 700, fontSize: 13 }}>
+                {def.emoji} {def.nom}
+                {def.max > 1 ? ` ${n}/${def.max}` : ''}
+              </span>
+              {complet && <span style={{ color: '#5fae7d', fontSize: 12 }}>✓ bâti</span>}
+            </div>
+            <div style={{ fontSize: 11.5, color: '#93a7b4', margin: '3px 0' }}>{def.desc}</div>
+            <div style={{ fontSize: 12, color: '#e8c04a' }}>{def.effet(Math.max(1, n))}</div>
+            {verrou ? (
+              <div style={{ fontSize: 11.5, color: '#d98a4e', marginTop: 4 }}>
+                🧱 Remparts de niveau {def.rempartsRequis} requis.
+              </div>
+            ) : (
+              cout && (
+                <>
+                  <LigneCout cout={cout} resources={s.resources} />
+                  <button
+                    style={{ width: '100%', marginTop: 5 }}
+                    disabled={!peutPayer(s.resources, cout) || s.battle !== null}
+                    onClick={() => s.construireDefense(id)}
+                  >
+                    {n === 0 ? 'Bâtir' : 'Renforcer'}
+                  </button>
+                </>
+              )
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function BlocTours() {
   const s = useGame()
   const niveau = s.buildings.remparts.level
@@ -502,6 +562,7 @@ export function PanneauBatiment() {
       {id === 'maisons' && <BlocHabitants onVoirHabitants={voirHabitants} />}
       {id === 'remparts' && <BlocRemparts />}
       {id === 'remparts' && <BlocTours />}
+      {id === 'remparts' && <BlocDefenses />}
       {id === 'caserne' && b.level > 0 && <BlocCaserne onVoirHabitants={voirHabitants} />}
       {id === 'port' && <BlocPort />}
       {id === 'temple' && b.level > 0 && (

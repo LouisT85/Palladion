@@ -36,6 +36,93 @@ export const TOUR_COUTS: Cost[] = [
   { pierre: 380, bronze: 35 },
   { pierre: 560, bronze: 60 },
 ]
+// ── Structure des bâtiments et défenses de l'intérieur ───────────────────────
+
+/**
+ * Points de structure d'un bâtiment selon son niveau. L'agora abrite le
+ * Palladion : c'est le cœur, et c'est sa chute qui décide de la partie — elle
+ * tient donc bien plus longtemps que le reste.
+ */
+export function structureMax(id: BuildingId, level: number): number {
+  if (level <= 0) return 0
+  if (id === 'agora') return 240 * level
+  if (id === 'remparts') return 0 // les remparts ont leurs propres secteurs
+  return 65 * level
+}
+
+/** dégâts qu'un assaillant porte à un bâtiment, par seconde */
+export const DPS_BATIMENT = 9
+
+/**
+ * Les cinq ouvrages intérieurs et ce qu'ils coûtent. Ils ne se débloquent qu'une
+ * fois l'enceinte digne de ce nom : on ne creuse pas une poterne dans une
+ * palissade.
+ */
+export const DEFENSES_DEFS = {
+  acropole: {
+    nom: 'Muraille d’acropole',
+    emoji: '🏯',
+    desc:
+      'Le « mur dans le mur » de Mycènes : une seconde enceinte autour du cœur. Les assaillants doivent la percer avant de toucher à l’agora.',
+    effet: (n: number) => `+${n * 420} points de structure autour du cœur`,
+    rempartsRequis: 2,
+    /** deux niveaux : muret puis vraie muraille cyclopéenne */
+    max: 2,
+    couts: [
+      { pierre: 320, bois: 120 },
+      { pierre: 620, bronze: 60 },
+    ] as Cost[],
+  },
+  bastion: {
+    nom: 'Bastion de la porte',
+    emoji: '🗼',
+    desc:
+      'Le saillant de la porte des Lionnes : sept mètres de mur qui prennent l’assaillant par son flanc découvert, celui que le bouclier ne protège pas.',
+    effet: () => 'Les assaillants de la porte perdent 6 PV/s tant que le pan tient',
+    rempartsRequis: 3,
+    max: 1,
+    couts: [{ pierre: 400, bronze: 45 }] as Cost[],
+  },
+  galeries: {
+    nom: 'Galeries casematées',
+    emoji: '🕳️',
+    desc:
+      'Les couloirs voûtés de Tirynthe, creusés dans l’épaisseur du rempart : vos hommes s’y abritent et en sortent frais.',
+    effet: () => 'Les défenseurs sur les murs subissent 35 % de dégâts en moins',
+    rempartsRequis: 3,
+    max: 1,
+    couts: [{ pierre: 480, bois: 160 }] as Cost[],
+  },
+  poterne: {
+    nom: 'Poterne dérobée',
+    emoji: '🚪',
+    desc:
+      'La porte du nord de Mycènes, invisible de la plaine : on en sort à revers sur l’assaillant occupé à cogner.',
+    effet: () => 'La charge de vos hommes porte 30 % plus fort',
+    rempartsRequis: 2,
+    max: 1,
+    couts: [{ pierre: 260, bois: 140 }] as Cost[],
+  },
+  citerne: {
+    nom: 'Citerne secrète',
+    emoji: '💧',
+    desc:
+      'Quatre-vingt-dix-neuf marches corbellées jusqu’à l’eau taillée dans le roc. Un village qui boit ne se mutine pas.',
+    effet: () => 'L’ambiance ne descend plus sous 30 pendant un siège',
+    rempartsRequis: 2,
+    max: 1,
+    couts: [{ pierre: 300, bois: 90 }] as Cost[],
+  },
+} as const
+
+export type DefenseId = keyof typeof DEFENSES_DEFS
+export const DEFENSE_IDS = Object.keys(DEFENSES_DEFS) as DefenseId[]
+
+/** structure apportée au cœur par la muraille d'acropole */
+export function hpAcropole(n: number): number {
+  return n * 420
+}
+
 /** portée de tir d'une tour (px carte) */
 export const TOUR_PORTEE = 240
 export const TOUR_DMG = 11

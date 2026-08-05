@@ -11,6 +11,10 @@ import {
   BASE_PROD,
   BUILDINGS,
   BUILDING_IDS,
+  DEFENSES_DEFS,
+  hpAcropole,
+  structureMax,
+  type DefenseId,
   CONSO_POP,
   CONSO_SOLDAT,
   DAY_MS,
@@ -68,6 +72,7 @@ import {
   sonnerRetraite,
   tailleVague,
   tickBataille,
+  type CibleBatiment,
   uid,
 } from './combat'
 import { EVENTS, EVENTS_BY_ID, type EffectCtx, type GameSnap } from './events'
@@ -169,6 +174,7 @@ import type {
   ActiveEvent,
   Alliance,
   BattleState,
+  DefensesInterieures,
   BuildingId,
   BuildingState,
   EnemyId,
@@ -251,6 +257,8 @@ export interface GameState {
   wallHp: number
   /** tours d'archers bâties sur l'enceinte */
   tours: number
+  /** les cinq ouvrages de l'intérieur : ce qui reste quand le mur est tombé */
+  defenses: DefensesInterieures
   /** angles des pans effondrés lors du dernier assaut - visibles jusqu'à réparation */
   brechesMur: number[]
   army: Record<UnitId, number>
@@ -391,6 +399,8 @@ export interface GameState {
   recruter: (u: UnitId, n: number) => void
   reparerRemparts: () => void
   construireTour: () => void
+  /** bâtit un des cinq ouvrages de l'intérieur */
+  construireDefense: (id: DefenseId) => void
   affecter: (villageoisId: string, poste: BuildingId | null) => void
   /** pourvoit d'un coup tous les postes libres avec les villageois oisifs */
   echanger: (donner: ResourceId, recevoir: ResourceId) => void
@@ -836,6 +846,13 @@ function calcMorale(s: GameState, now: number): number {
   let m = 50 + s.buildings.agora.level * 2 + s.buildings.temple.level
   for (const mod of s.moraleMods) if (mod.expiresAt === null || mod.expiresAt > now) m += mod.delta
   if (s.resources.grain <= 0) m -= 20 // famine
+  /*
+   * La citerne secrète. Ce qui brise les nerfs d'une cité assiégée, c'est la
+   * soif : une réserve d'eau taillée dans le roc pose un plancher au moral tant
+   * que l'ennemi est sous les murs. Hors siège, elle ne change rien — on ne se
+   * réconforte pas d'une citerne par beau temps.
+   */
+  if (s.defenses?.citerne && s.battle) m = Math.max(m, 30)
   return Math.max(0, Math.min(100, m))
 }
 
@@ -1106,6 +1123,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     villageois: [],
     wallHp: 0,
     tours: 0,
+    defenses: { acropole: 0, bastion: false, galeries: false, poterne: false, citerne: false },
     brechesMur: [],
     army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0 },
     recruitQueue: [],
@@ -1180,6 +1198,7 @@ type ActionsOnly = {
   recruter: unknown
   reparerRemparts: unknown
   construireTour: unknown
+  construireDefense: unknown
   affecter: unknown
   echanger: unknown
   sacrifier: unknown
@@ -1236,6 +1255,7 @@ const CHAMPS_SAUVES = [
   'villageois',
   'wallHp',
   'tours',
+  'defenses',
   'brechesMur',
   'army',
   'recruitQueue',
@@ -1836,6 +1856,51 @@ function appliquerEffetDiffere(s: GameState, eff: PendingEffect, now: number): v
 }
 
 // ── Fin de bataille défensive ─────────────────────────────────────────────────
+/**
+ * Les bâtiments encore debout, tels que la bataille les verra.
+ *
+ * L'agora porte la structure de la **muraille d'acropole** en plus de la sienne :
+ * plutôt que de simuler une seconde enceinte avec ses propres pans, on considère
+ * que le mur dans le mur et le cœur qu'il ceint tombent ensemble. C'est le même
+ * effet pour le joueur — il faut percer les deux — pour un dixième du code.
+ */
+function ciblesBatiments(s: GameState): CibleBatiment[] {
+  const out: CibleBatiment[] = []
+  for (const id of BUILDING_IDS) {
+    const b = s.buildings[id]
+    if (id === 'remparts' || b.level <= 0 || b.ruine) continue
+    const max = structureMax(id, b.level) + (id === 'agora' ? hpAcropole(s.defenses.acropole) : 0)
+    if (max <= 0) continue
+    if (b.hp === undefined) b.hp = max
+    if (b.hp <= 0) continue
+    out.push({ id, x: BUILDINGS[id].pos.x, y: BUILDINGS[id].pos.y, hp: b.hp, coeur: id === 'agora' })
+  }
+  return out
+}
+
+/**
+ * Reporte dans l'état les coups portés aux bâtiments, et tire les conséquences
+ * d'un édifice abattu : il tombe en ruine, perd un niveau, et les assaillants
+ * emportent ce qu'il contenait. Ses artisans se retrouvent sans poste.
+ */
+function encaisserBatiments(s: GameState, cibles: CibleBatiment[], now: number): void {
+  for (const c of cibles) {
+    const b = s.buildings[c.id]
+    if (b.hp === undefined || c.hp >= b.hp) continue
+    b.hp = c.hp
+    if (c.hp > 0 || c.id === 'agora') continue
+    // l'édifice s'effondre : un niveau perdu, les ouvriers à la rue
+    b.ruine = true
+    const perdu = BUILDINGS[c.id].nom
+    b.level = Math.max(0, b.level - 1)
+    b.hp = structureMax(c.id, b.level)
+    for (const v of s.villageois) if (v.poste === c.id) v.poste = null
+    const vol = volerPct(s, 0.06)
+    s.moraleMods.push({ id: uid('m'), label: `${perdu} en ruine`, delta: -6, expiresAt: now + 8 * 60_000 })
+    pushToast(s, '🔥', `${perdu} s’effondre ! Les pillards emportent ${vol}.`)
+  }
+}
+
 function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: number): void {
   const b = s.battle
   if (!b) return
@@ -2672,14 +2737,23 @@ export const useGame = create<GameState>()(
           }
         } else {
           // bataille en cours
+          /*
+           * Les bâtiments comme cibles. On ne les expose qu'une fois l'enceinte
+           * percée : avant cela, les assaillants n'ont rien à y faire, et leur
+           * donner des cibles à l'intérieur les ferait traverser le mur.
+           */
+          const cibles = s.battle.breche ? ciblesBatiments(s) : undefined
           const out = tickBataille(s.battle, {
             now,
             dt,
             wallHp: s.wallHp,
             wallLevel: s.buildings.remparts.level,
             mods: modsBataille(s.meteo),
+            cibles,
+            defenses: s.defenses,
           })
           s.wallHp = out.wallHp
+          if (cibles) encaisserBatiments(s, cibles, now)
           if (out.brecheOuverte) pushToast(s, '💥', 'BRÈCHE ! Les remparts ont cédé !')
           /*
            * Le champion lance sa manœuvre, ou tombe. Les deux se disent : l'une
@@ -2903,6 +2977,36 @@ export const useGame = create<GameState>()(
         }
         s.tours++
         pushToast(s, '🏹', `Tour d’archers dressée (${s.tours}/${max}). Sa silhouette attire l’œil des pillards…`)
+      })
+      get().save()
+    },
+
+    construireDefense: (id) => {
+      set((s) => {
+        if (s.battle) {
+          pushToast(s, '⚔️', 'On ne creuse pas une poterne sous les flèches.')
+          return
+        }
+        const def = DEFENSES_DEFS[id]
+        const niveau = id === 'acropole' ? s.defenses.acropole : s.defenses[id] ? 1 : 0
+        if (niveau >= def.max) return
+        if (s.buildings.remparts.level < def.rempartsRequis) {
+          pushToast(s, def.emoji, `Il faut des remparts de niveau ${def.rempartsRequis} pour cet ouvrage.`)
+          return
+        }
+        if (!payer(s, def.couts[niveau])) {
+          pushToast(s, '❌', 'Ressources insuffisantes.')
+          return
+        }
+        if (id === 'acropole') s.defenses.acropole++
+        else s.defenses[id] = true
+        // l'acropole ceint le cœur : l'agora encaisse aussitôt la structure gagnée
+        if (id === 'acropole') {
+          const a = s.buildings.agora
+          a.hp = structureMax('agora', a.level) + hpAcropole(s.defenses.acropole)
+        }
+        pushToast(s, def.emoji, `${def.nom} achevée.`)
+        pushReport(s, def.emoji, def.nom, [def.desc, `Effet : ${def.effet(id === 'acropole' ? s.defenses.acropole : 1)}.`])
       })
       get().save()
     },

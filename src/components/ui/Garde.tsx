@@ -1,5 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { UNITS, UNIT_IDS } from '../../game/data'
 import { cleEmplacement, emplacementActif, exporterTexte } from '../../game/sauvegardes'
+import type { ResourceId, UnitId } from '../../game/types'
+import { Belier, Bonhomme, lookUnite } from '../map/BatailleLayer'
+import { Montant } from './Icones'
 
 /*
  * ═══════════════════ LE GARDE-FOU ═══════════════════
@@ -88,4 +92,165 @@ export class GardeFou extends Component<{ children: ReactNode }, Etat> {
       </div>
     )
   }
+}
+
+/*
+ * ═══════════════ QUI SERT À QUOI - LA GARNISON EN UN COUP D'ŒIL ═══════════════
+ *
+ * Trois unités sont arrivées après les autres, moins chères, et personne ne
+ * savait ce qu'elles apportaient : la caserne affiche des chiffres (⚔ 5 ❤ 22),
+ * or un chiffre ne dit pas un RÔLE. Un frondeur à 5 d'attaque n'est pas « un
+ * mauvais lancier », c'est un tirailleur qu'on lève à neuf quand on n'a pas de
+ * bronze - et cela, aucune statistique ne le raconte.
+ *
+ * Ce panneau donne à chaque unité trois choses, dans cet ordre de lecture :
+ *
+ *  · SA FIGURINE, celle-là même qu'on verra courir sur le champ de bataille
+ *    (`lookUnite`) - l'icône enseigne la silhouette, pas l'inverse ;
+ *  · SON RÔLE en deux mots, sur une étiquette de couleur ;
+ *  · CE QU'ON REGARDE pour la reconnaître dans la mêlée - la fronde qui tourne,
+ *    le croissant du peltê - parce que reconnaître, c'est jouer.
+ */
+
+interface RoleUnite {
+  /** deux mots, jamais plus : c'est une étiquette, pas une phrase */
+  role: string
+  /** la couleur de l'étiquette - même famille pour les rôles voisins */
+  ton: string
+  /** ce qu'elle fait, et ce qu'elle ne fait pas */
+  quoi: string
+  /** à quoi on la reconnaît sur le champ de bataille */
+  marque: string
+}
+
+const ROLES: Record<UnitId, RoleUnite> = {
+  lancier: {
+    role: 'Milice',
+    ton: '#5f86b5',
+    quoi: 'Le rang de base. Tient la ligne, se lève en nombre, ne décide rien seul.',
+    marque: 'longue lance et bouclier rond, casque simple',
+  },
+  archer: {
+    role: 'Tireur de rempart',
+    ton: '#6f9a52',
+    quoi: 'Tire du haut du mur, hors d’atteinte tant qu’il tient. Sans mur, il ne vaut presque rien.',
+    marque: 'arc bandé devant lui, carquois dans le dos, aucun bouclier',
+  },
+  hoplite: {
+    role: 'Mur de boucliers',
+    ton: '#e0bc5c',
+    quoi: 'L’élite. Le grand aspis couvre l’homme entier : il encaisse et il tient. Il coûte le bronze de six frondeurs.',
+    marque: 'un bloc - grand bouclier, cimier de crin, cnémides de bronze',
+  },
+  frondeur: {
+    role: 'Tirailleur',
+    ton: '#9ab06a',
+    quoi: 'Le moins cher, et pas un gramme de bronze : le soldat d’un village pauvre. Tire du rempart aux deux tiers d’un arc, et tombe vite.',
+    marque: 'la fronde qui tourne au-dessus de sa tête, bonnet de feutre, besace de pierres',
+  },
+  peltaste: {
+    role: 'Éclaireur',
+    ton: '#d98a4e',
+    quoi: 'Court deux fois plus vite qu’un hoplite et fond droit sur les tireurs adverses. La meilleure troupe hors des murs.',
+    marque: 'le peltê échancré en croissant de lune, javelots en faisceau, jambes nues',
+  },
+  belier: {
+    role: 'Machine',
+    ton: '#c0563f',
+    quoi: 'Abat les murailles à la place de vos hommes. Inutile en défense : on ne défend pas un village avec un bélier.',
+    marque: 'ce n’est pas un homme - charpente sous peaux et tête de bronze',
+  },
+}
+
+/**
+ * La figurine de l'unité, telle quelle. Le cadrage diffère pour la machine :
+ * un bélier est large et bas là où un homme est haut et étroit.
+ */
+function Vignette({ type }: { type: UnitId }) {
+  const look = lookUnite(type)
+  const machine = look === 'belier'
+  return (
+    <svg
+      width={machine ? 74 : 54}
+      height={machine ? 42 : 54}
+      viewBox={machine ? '-22 -20 40 23' : '-13.5 -24 29 27'}
+      role="img"
+      aria-label={UNITS[type].nom}
+      style={{ flex: '0 0 auto', overflow: 'visible' }}
+    >
+      <title>{UNITS[type].nom}</title>
+      {look === 'belier' ? <Belier /> : <Bonhomme {...look} anim="idle" seed={0.42} />}
+    </svg>
+  )
+}
+
+/**
+ * Le tableau des rôles. `army` est facultatif : le panneau sert aussi bien à
+ * lire sa garnison qu'à choisir ce qu'on va lever.
+ */
+export function RolesGarnison({ army }: { army?: Record<UnitId, number> }): ReactNode {
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {UNIT_IDS.map((u) => {
+        const def = UNITS[u]
+        const r = ROLES[u]
+        return (
+          <div
+            key={u}
+            style={{
+              display: 'flex',
+              gap: 10,
+              alignItems: 'flex-start',
+              padding: '8px 10px',
+              borderRadius: 8,
+              background: '#16232f',
+              border: '1px solid #2c3d4d',
+              borderLeft: `3px solid ${r.ton}`,
+            }}
+          >
+            <Vignette type={u} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                <b style={{ color: '#f0e8d8', fontSize: 13 }}>{def.nom}</b>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    letterSpacing: 0.3,
+                    color: r.ton,
+                    border: `1px solid ${r.ton}66`,
+                    borderRadius: 999,
+                    padding: '1px 7px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {r.role}
+                </span>
+                {army && (
+                  <span style={{ fontSize: 11.5, color: '#93a7b4' }}>
+                    ×{army[u]} sous les armes
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 11.5, color: '#cfc4a8', marginTop: 3, lineHeight: 1.35 }}>{r.quoi}</div>
+              <div style={{ fontSize: 11, color: '#8fa3b0', marginTop: 3, lineHeight: 1.3 }}>
+                <span style={{ color: r.ton }}>On la reconnaît à</span> {r.marque}.
+              </div>
+              <div style={{ fontSize: 11, color: '#93a7b4', marginTop: 3, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span>
+                  ⚔{def.atk} ❤{def.hp}
+                  {def.wallDps >= 20 ? ' 🧱' + def.wallDps : ''}
+                </span>
+                <span style={{ display: 'inline-flex', gap: 6 }}>
+                  {(Object.entries(def.cost) as [ResourceId, number][]).map(([res, n]) => (
+                    <Montant key={res} n={n} id={res} taille={12} />
+                  ))}
+                </span>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
 }

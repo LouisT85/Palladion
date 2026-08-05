@@ -1,20 +1,40 @@
 import { HEROS } from '../../game/heros'
-import type { BattleState, Fighter, HeroId, SecteurBataille } from '../../game/types'
+import type { BattleState, Fighter, HeroId, SecteurBataille, UnitId } from '../../game/types'
 import { assaillantsParSecteur, indexSecteurChaud } from './camera'
 import { EffetDivin, EffetHeros } from './EffetsDivins'
+import { SilhouetteHeros } from './SilhouettesHeros'
 
 /*
  * Figurines de bataille - animées en SMIL (aucun coût JS par frame) :
  *  - marche : jambes en ciseaux, balancement du corps, cape d'ombre qui suit
  *  - mêlée / siège : coup d'arme porté en boucle - jab de lance, taillade de
  *    dague, estoc d'épée - désynchronisé par figurine via `seed`
- *  - tir : l'archer bande son arc au rythme réel de sa cadence
+ *  - tir : l'archer bande son arc au rythme réel de sa cadence, et la fronde du
+ *    frondeur prend son élan au-dessus de sa tête (giration accélérée au tir)
+ *  - jet : le peltaste arme son javelot par-dessus l'épaule et le lâche
  *  - mort : la figurine bascule au sol puis se dissout dans la poussière
  * Les durées de cycle collent aux cadences de combat.ts pour que le geste
  * et le coup restent crédibles l'un envers l'autre.
  */
 
 type Anim = 'idle' | 'marche' | 'combat' | 'tir'
+
+/**
+ * L'arme ne fait pas que trancher : elle emporte tout l'attirail de l'homme qui
+ * la porte, et c'est l'attirail qui donne la SILHOUETTE. Une figurine fait
+ * quatorze pixels de haut en jeu - à cette taille on ne lit ni un visage ni une
+ * tunique, on lit une forme. Chaque valeur ci-dessous vaut donc une forme :
+ *
+ *  · `lance`          hampe longue + disque du bouclier rond (la milice)
+ *  · `arc`            l'arc bandé en croissant devant lui, carquois au dos
+ *  · `bouclier-lourd` le grand aspis qui mange l'homme + cimier + cnémides
+ *  · `dague`          bras court, calot de cuir (les pillards)
+ *  · `fronde`         RIEN dans les mains, mais une boucle qui tourne AU-DESSUS
+ *                     de la tête, bonnet de feutre, besace de pierres
+ *  · `javelots`       le peltê échancré en croissant de lune + faisceau de
+ *                     javelots, bonnet thrace à rabats, jambes nues
+ */
+export type Arme = 'lance' | 'arc' | 'dague' | 'bouclier-lourd' | 'fronde' | 'javelots'
 
 const PEAU = '#d9a97c'
 /** ombre propre de la peau (flanc est du visage, bras au second plan) */
@@ -33,6 +53,14 @@ function mix(a: string, b: string, t: number): string {
 /** flanc éclairé (soleil NW) et creux des plis d'une étoffe */
 const drapLit = (c: string) => mix(c, '#ffe9c2', 0.34)
 const drapOmbre = (c: string) => mix(c, '#221408', 0.34)
+
+/**
+ * Contour du peltê : un disque d'osier de rayon 4,4 dans lequel on a mordu un
+ * second cercle par le haut - il en reste un croissant de lune à deux cornes.
+ * Le tracé est écrit une fois et réemployé rentré (rive, champ, éclat) : le
+ * bombé se fait par copies concentriques, comme pour les boucliers ronds.
+ */
+const PELTE = 'M-7.77,-11.18 A3.5,3.5 0 1 0 -2.64,-11.18 A2.6,2.6 0 0 1 -7.77,-11.18 Z'
 
 /** ombre au sol commune : trois ellipses terre superposées, bord fondu sans filtre */
 function OmbreSol({ rx = 5, ry = 1.8 }: { rx?: number; ry?: number }) {
@@ -81,6 +109,52 @@ function CalotCuir() {
   )
 }
 
+/**
+ * Bonnet de feutre du berger (pilos) : un cône de laine foulée, sans un gramme
+ * de métal. C'est la coiffe du frondeur - le seul soldat qui n'a rien coûté de
+ * bronze, et cela doit se voir sur sa tête avant tout le reste.
+ */
+function BonnetFeutre() {
+  return (
+    <g>
+      {/* cône de feutre, apex versé vers l'avant */}
+      <path d="M-2.6,-14 Q-2.45,-17 0.45,-18.5 Q2.05,-16.6 2.6,-14 Z" fill="#b3a486" />
+      <path d="M0.45,-18.5 Q2.05,-16.6 2.6,-14 L0.9,-14 Q1.2,-16.6 0.45,-18.5 Z" fill="#8a7c60" />
+      {/* laine frappée par le soleil au NW, et le grain du feutre */}
+      <path d="M-1.95,-15 Q-1.75,-16.9 -0.4,-17.9" stroke="#d8cbab" strokeWidth={0.65} fill="none" strokeLinecap="round" />
+      <path d="M-1.45,-14.6 Q-1.15,-16.1 -0.15,-17" stroke="#c3b493" strokeWidth={0.38} fill="none" opacity={0.8} />
+      {/* bord retroussé : ombre dessous, filet clair dessus - le bonnet se pose */}
+      <path d="M-2.7,-13.95 L2.7,-13.95" stroke="#796c52" strokeWidth={0.8} />
+      <path d="M-2.6,-14.35 L2.5,-14.35" stroke="#c6b899" strokeWidth={0.4} opacity={0.75} />
+    </g>
+  )
+}
+
+/**
+ * Bonnet thrace du peltaste : calotte de peau de renard, pointe versée en avant
+ * et deux longs rabats qui pendent sur la joue et la nuque. Aucun casque de
+ * bronze - la vitesse se paie en protection.
+ */
+function BonnetThrace() {
+  return (
+    <g>
+      {/* rabats : celui de nuque à l'ombre (à gauche), celui de joue en demi-teinte */}
+      <path d="M-2.7,-13.6 L-3.35,-9.9 L-2.05,-9.75 L-1.85,-13.5 Z" fill="#5f452a" />
+      <path d="M-2.7,-13.6 L-3.05,-11.7 L-1.95,-11.6 L-1.85,-13.5 Z" fill="#7c5c38" />
+      <path d="M2.1,-13.6 L2.6,-10.7 L1.5,-10.55 L1.35,-13.5 Z" fill="#6d5030" />
+      {/* calotte de fourrure, flanc est éteint */}
+      <path d="M-2.7,-13.5 Q-2.7,-16.2 0,-16.2 Q2.7,-16.2 2.7,-13.5 Z" fill="#ad8353" />
+      <path d="M0.6,-16.15 Q2.7,-15.65 2.7,-13.5 L0.9,-13.5 Q1.9,-14.85 0.6,-16.15 Z" fill="#7d5c37" />
+      {/* la pointe versée en avant : c'est ELLE qu'on reconnaît de loin */}
+      <path d="M1.15,-15.95 Q3.5,-16.85 4.35,-15 Q2.7,-14.8 1.65,-15.45 Z" fill="#bc9058" />
+      <path d="M1.15,-15.95 Q3.5,-16.85 4.35,-15 Q3.1,-15.85 1.45,-15.8 Z" fill="#dcb279" />
+      {/* poil au soleil, bourrelet du bord */}
+      <path d="M-2.05,-14.5 Q-1.5,-15.6 -0.4,-15.85" stroke="#c99a62" strokeWidth={0.65} fill="none" strokeLinecap="round" />
+      <path d="M-2.7,-13.5 L2.7,-13.5" stroke="#4f3823" strokeWidth={0.7} />
+    </g>
+  )
+}
+
 /** crête d'officier : brosse fournie, racine sombre, mèche avant au soleil */
 function Crete() {
   return (
@@ -109,7 +183,7 @@ export function Bonhomme({
   dur = 2.1,
 }: {
   tunique: string
-  arme: 'lance' | 'arc' | 'dague' | 'bouclier-lourd'
+  arme: Arme
   taille?: number
   crete?: boolean
   anim?: Anim
@@ -124,25 +198,44 @@ export function Bonhomme({
   const decal = `-${(seed * 3.1).toFixed(2)}s`
   const durS = `${dur}s`
 
+  /*
+   * Deux corps, pas un seul repeint. Le berger et le coureur ont la cuisse nue et
+   * l'étoffe courte : leur jambe part plus haut, leur tunique s'arrête au-dessus
+   * du genou. L'infanterie lourde, à l'inverse, marche dans des cnémides - sa
+   * jambe est en bronze, pas en peau. Deux réglages, trois silhouettes.
+   */
+  const leger = arme === 'fronde' || arme === 'javelots'
+  const lourd = arme === 'bouclier-lourd'
+  const jHaut = leger ? -6 : -4
+  const jambeLit = lourd ? '#8f7c48' : PEAU
+  const jambeOmbre = lourd ? '#5f5432' : PEAU_OMBRE
+  // le peltaste court : tout son corps est versé en avant, les pieds restent au sol
+  const penche = arme === 'javelots' ? ' skewX(-5)' : ''
+
   return (
-    <g transform={`scale(${taille})`}>
+    <g transform={`scale(${taille})${penche}`}>
       <OmbreSol rx={5} ry={1.8} />
 
       {/* jambes - un petit pied tourné vers l'avant ancre la silhouette au sol */}
       {marche ? (
         <>
-          <path d="M-1.6,-4 L-1.6,-0.5 L-0.55,-0.35" stroke={PEAU} strokeWidth={1.6} fill="none" strokeLinecap="round">
-            <animateTransform attributeName="transform" type="rotate" values="22 0 -4;-22 0 -4;22 0 -4" dur="0.6s" begin={decal} repeatCount="indefinite" />
+          <path d={`M-1.6,${jHaut} L-1.6,-0.5 L-0.55,-0.35`} stroke={jambeLit} strokeWidth={1.6} fill="none" strokeLinecap="round">
+            <animateTransform attributeName="transform" type="rotate" values={`22 0 ${jHaut};-22 0 ${jHaut};22 0 ${jHaut}`} dur="0.6s" begin={decal} repeatCount="indefinite" />
           </path>
-          <path d="M1.6,-4 L1.6,-0.5 L2.65,-0.35" stroke={PEAU_OMBRE} strokeWidth={1.6} fill="none" strokeLinecap="round">
-            <animateTransform attributeName="transform" type="rotate" values="-22 0 -4;22 0 -4;-22 0 -4" dur="0.6s" begin={decal} repeatCount="indefinite" />
+          <path d={`M1.6,${jHaut} L1.6,-0.5 L2.65,-0.35`} stroke={jambeOmbre} strokeWidth={1.6} fill="none" strokeLinecap="round">
+            <animateTransform attributeName="transform" type="rotate" values={`-22 0 ${jHaut};22 0 ${jHaut};-22 0 ${jHaut}`} dur="0.6s" begin={decal} repeatCount="indefinite" />
           </path>
         </>
       ) : (
         <>
-          <path d="M-1.6,-4 L-1.6,-0.5 L-0.55,-0.35" stroke={PEAU} strokeWidth={1.6} fill="none" strokeLinecap="round" />
-          <path d="M1.6,-4 L1.6,-0.5 L2.65,-0.35" stroke={PEAU_OMBRE} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+          <path d={`M-1.6,${jHaut} L-1.6,-0.5 L-0.55,-0.35`} stroke={jambeLit} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+          <path d={`M1.6,${jHaut} L1.6,-0.5 L2.65,-0.35`} stroke={jambeOmbre} strokeWidth={1.6} fill="none" strokeLinecap="round" />
         </>
+      )}
+      {/* cnémides : arête de bronze qui accroche la lumière sur le tibia ouest
+          (à l'arrêt seulement : un reflet ne suit pas une jambe qui bat) */}
+      {lourd && !marche && (
+        <path d="M-2.1,-3.6 L-2.1,-1.2" stroke="#c9b878" strokeWidth={0.45} opacity={0.75} strokeLinecap="round" />
       )}
 
       {/* corps, tête et arme - le buste porte le geste */}
@@ -170,25 +263,54 @@ export function Bonhomme({
             <path d="M1.1,-4.3 L1.3,-2.7 L2.1,-2.8 L2.2,-4.4 Z" fill="#5d4230" />
           </g>
         )}
-        {/* tunique : flanc gauche au soleil, plis creusés dans la teinte sombre, ceinture */}
-        <path d="M-3,-4 L-2.2,-11 L2.2,-11 L3,-4 Z" fill={tunique} />
-        <path d="M-3,-4 L-2.2,-11 L-0.7,-11 L-1.1,-4 Z" fill={mix(tunique, '#ffe9c2', 0.22)} />
-        <path d="M2.2,-11 L3,-4 L2,-4 L1.6,-11 Z" fill={drapOmbre(tunique)} opacity={0.8} />
-        <path d="M0.7,-4.4 L0.5,-6.2" stroke={drapOmbre(tunique)} strokeWidth={0.8} opacity={0.85} />
-        {/* ourlet assombri qui assoit l'étoffe */}
-        <path d="M-2.9,-4.3 L2.9,-4.3" stroke={drapOmbre(tunique)} strokeWidth={0.7} opacity={0.7} />
-        {/* baudrier de l'épée en travers du buste */}
-        {arme === 'bouclier-lourd' && <path d="M1.9,-10.8 L-2.2,-7.4" stroke="#4a3319" strokeWidth={0.7} opacity={0.85} />}
-        <path d="M-2.68,-6.5 L2.68,-6.5 L2.76,-7.5 L-2.76,-7.5 Z" fill="#5d4230" />
-        <path d="M-2.76,-7.5 L-0.3,-7.5 L-0.3,-6.5 L-2.68,-6.5 Z" fill="#7a5a3e" opacity={0.75} />
-        {/* épaules : ourlet clair côté lumière */}
-        <path d="M-2.2,-11 L0.4,-11" stroke={drapLit(tunique)} strokeWidth={0.9} opacity={0.8} />
+        {leger ? (
+          /*
+           * Exomide : l'étoffe courte du berger et du coureur, prise dans une simple
+           * ceinture de corde et fendue au-dessus du genou. Elle est plus étroite que
+           * la tunique de la milice - c'est ce qui rend ces deux-là SVELTES à l'œil.
+           */
+          <>
+            <path d="M-2.5,-5.5 L-2.05,-10.9 L2.05,-10.9 L2.5,-6.1 Z" fill={tunique} />
+            <path d="M-2.5,-5.5 L-2.05,-10.9 L-0.75,-10.9 L-1,-5.7 Z" fill={mix(tunique, '#ffe9c2', 0.24)} />
+            <path d="M2.05,-10.9 L2.5,-6.1 L1.6,-6.2 L1.5,-10.9 Z" fill={drapOmbre(tunique)} opacity={0.8} />
+            {/* ourlet en biais : la fente qui découvre la cuisse */}
+            <path d="M-2.45,-5.8 L2.45,-6.35" stroke={drapOmbre(tunique)} strokeWidth={0.6} opacity={0.7} />
+            {/* ceinture de corde tressée */}
+            <path d="M-2.35,-7.5 L2.35,-7.5" stroke="#6b563a" strokeWidth={0.8} />
+            <path d="M-2.3,-7.75 L0.2,-7.75" stroke="#9a8158" strokeWidth={0.4} opacity={0.8} />
+            <path d="M-2.15,-10.9 L0.4,-10.9" stroke={drapLit(tunique)} strokeWidth={0.85} opacity={0.8} />
+          </>
+        ) : (
+          <>
+            {/* tunique : flanc gauche au soleil, plis creusés dans la teinte sombre, ceinture */}
+            <path d="M-3,-4 L-2.2,-11 L2.2,-11 L3,-4 Z" fill={tunique} />
+            <path d="M-3,-4 L-2.2,-11 L-0.7,-11 L-1.1,-4 Z" fill={mix(tunique, '#ffe9c2', 0.22)} />
+            <path d="M2.2,-11 L3,-4 L2,-4 L1.6,-11 Z" fill={drapOmbre(tunique)} opacity={0.8} />
+            <path d="M0.7,-4.4 L0.5,-6.2" stroke={drapOmbre(tunique)} strokeWidth={0.8} opacity={0.85} />
+            {/* ourlet assombri qui assoit l'étoffe */}
+            <path d="M-2.9,-4.3 L2.9,-4.3" stroke={drapOmbre(tunique)} strokeWidth={0.7} opacity={0.7} />
+            {/* baudrier de l'épée en travers du buste */}
+            {lourd && <path d="M1.9,-10.8 L-2.2,-7.4" stroke="#4a3319" strokeWidth={0.7} opacity={0.85} />}
+            <path d="M-2.68,-6.5 L2.68,-6.5 L2.76,-7.5 L-2.76,-7.5 Z" fill="#5d4230" />
+            <path d="M-2.76,-7.5 L-0.3,-7.5 L-0.3,-6.5 L-2.68,-6.5 Z" fill="#7a5a3e" opacity={0.75} />
+            {/* épaules : ourlet clair côté lumière */}
+            <path d="M-2.2,-11 L0.4,-11" stroke={drapLit(tunique)} strokeWidth={0.9} opacity={0.8} />
+          </>
+        )}
         {/* creux d'ombre sous le menton - assoit la tête sur les épaules */}
         <path d="M-1.5,-10.9 Q0,-10.2 1.5,-10.9" stroke={drapOmbre(tunique)} strokeWidth={0.7} fill="none" opacity={0.5} />
         {/* tête : face au soleil, joue est dans l'ombre */}
         <circle cx={0} cy={-13} r={2.7} fill={PEAU} />
         <path d="M0.9,-15.55 A2.7,2.7 0 0 1 0.9,-10.45 A3.9,3.9 0 0 0 0.9,-15.55 Z" fill={PEAU_OMBRE} />
-        {arme === 'dague' ? <CalotCuir /> : <Casque />}
+        {arme === 'dague' ? (
+          <CalotCuir />
+        ) : arme === 'fronde' ? (
+          <BonnetFeutre />
+        ) : arme === 'javelots' ? (
+          <BonnetThrace />
+        ) : (
+          <Casque />
+        )}
         {crete && <Crete />}
 
         {/* carquois en biais dans le dos des archers, deux flèches qui dépassent */}
@@ -318,6 +440,81 @@ export function Bonhomme({
           </g>
         )}
 
+        {/*
+          ── FRONDE ──────────────────────────────────────────────────────────
+          Le frondeur n'a rien dans les mains : il a une boucle qui TOURNE
+          au-dessus de sa tête. C'est la seule silhouette du jeu qui dépasse sa
+          propre coiffe, et on la reconnaît même à quatorze pixels. La giration
+          s'accélère quand il tire, comme un homme qui prend son élan.
+        */}
+        {arme === 'fronde' && (
+          <g>
+            {/* besace de peau, ballante à la hanche, deux galets de rivière visibles */}
+            <path d="M-4.7,-7.5 Q-2.4,-8 -2,-6.2 Q-2.2,-4.1 -3.5,-3.9 Q-4.9,-4.3 -4.9,-6.1 Z" fill="#6b563a" />
+            <path d="M-4.7,-7.5 Q-3.3,-7.8 -3,-6.4 Q-3.1,-4.5 -3.6,-3.95 Q-4.8,-4.4 -4.85,-6.1 Z" fill="#987c52" />
+            <circle cx={-3.5} cy={-6.5} r={0.72} fill="#b9b3a4" />
+            <circle cx={-2.55} cy={-6.95} r={0.5} fill="#a29c8d" />
+            {/* bandoulière de la besace en travers du buste */}
+            <path d="M-2.5,-7.9 L1.1,-10.2" stroke="#4f3f28" strokeWidth={0.6} opacity={0.85} />
+            {/* bras levé, la fronde au poing */}
+            <line x1={1.5} y1={-10.1} x2={3.6} y2={-14.8} stroke={PEAU} strokeWidth={1.25} strokeLinecap="round" />
+            <circle cx={3.6} cy={-15} r={0.82} fill={PEAU} />
+            {/*
+              La TRACE de la giration : sans elle, la fronde ne se lisait pas - un
+              galet au bout d'un brin ressemblait à une massue. Cet arc pointillé
+              au-dessus du crâne dit « ça tourne » d'un seul coup d'œil, et c'est
+              lui qui survit à quatorze pixels de haut.
+            */}
+            <path
+              d="M0.24,-17.35 A4.1,4.1 0 0 1 6.96,-17.35"
+              stroke="#6b563a"
+              strokeWidth={0.4}
+              strokeDasharray="1.5 1.1"
+              opacity={0.45}
+              fill="none"
+            />
+            <g transform="translate(3.6,-15)">
+              <g>
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  values="0;360"
+                  dur={tir ? '0.5s' : '1.15s'}
+                  begin={decal}
+                  repeatCount="indefinite"
+                />
+                {/* deux brins de cuir tressé, la poche, et le galet qui luit */}
+                <line x1={-0.35} y1={-0.3} x2={-1.05} y2={-3.4} stroke="#6b563a" strokeWidth={0.42} />
+                <line x1={0.35} y1={-0.3} x2={0.9} y2={-3.4} stroke="#8f7551" strokeWidth={0.38} />
+                <path d="M-1.3,-3.35 L1.1,-3.35 L0.8,-4.6 L-1,-4.6 Z" fill="#7a5f3c" />
+                <path d="M-1.3,-3.35 L-0.15,-3.35 L-0.3,-4.6 L-1,-4.6 Z" fill="#9a7c50" />
+                <circle cx={-0.1} cy={-4.1} r={0.72} fill="#b0aa9a" />
+                <circle cx={-0.32} cy={-4.32} r={0.38} fill="#dcd7c9" />
+              </g>
+            </g>
+          </g>
+        )}
+
+        {/*
+          ── JAVELOTS ────────────────────────────────────────────────────────
+          Le peltaste porte trois hampes : deux en réserve, serrées au poing
+          gauche derrière le peltê, une en main haute prête à partir. Le faisceau
+          en éventail derrière l'épaule est sa deuxième marque, après le
+          croissant du bouclier.
+        */}
+        {arme === 'javelots' && (
+          <g>
+            {/* faisceau de réserve : deux hampes dressées le long du dos, fers au ciel.
+                Elles montent au-dessus du bouclier pour ne pas brouiller le croissant */}
+            <line x1={-2.4} y1={-6.4} x2={-3.7} y2={-17.3} stroke="#6b4c2a" strokeWidth={0.85} />
+            <line x1={-1.95} y1={-6.5} x2={-2.35} y2={-17.7} stroke="#8a6a45" strokeWidth={0.75} />
+            <path d="M-3.7,-17.3 L-4.15,-19.2 L-3.15,-17.55 Z" fill="#d6dce2" />
+            <path d="M-2.35,-17.7 L-2.6,-19.6 L-1.65,-17.9 Z" fill="#9aa2ab" />
+            {/* poing gauche refermé sur le faisceau et sur la poignée du peltê */}
+            <circle cx={-2.2} cy={-6.8} r={0.85} fill={PEAU_OMBRE} />
+          </g>
+        )}
+
         {/* bouclier (à gauche) - bombé : arcs concentriques décalés vers la lumière NW */}
         {arme === 'lance' && (
           <g>
@@ -336,16 +533,82 @@ export function Bonhomme({
         )}
         {arme === 'bouclier-lourd' && (
           <g>
-            {/* rive de bronze, champ aux couleurs du camp, umbo doré */}
-            <circle cx={-4} cy={-8} r={4.9} fill="#6e5526" />
-            <path d="M-8.3,-9.9 A4.9,4.9 0 0 1 -5.4,-12.6" stroke="#dcc36a" strokeWidth={0.8} fill="none" strokeLinecap="round" />
-            <circle cx={-4} cy={-8} r={4.15} fill={drapOmbre(tunique)} />
+            {/*
+             * L'aspis : un mètre de bois cerclé de bronze, qui couvre l'homme du
+             * menton au genou. C'est à cette MASSE qu'on reconnaît l'hoplite d'un
+             * bout à l'autre du champ - il ne se lit pas comme un homme portant un
+             * bouclier, il se lit comme un bloc qui avance.
+             */}
+            <circle cx={-3.9} cy={-8.2} r={5} fill="#6e5526" />
+            <path d="M-8.88,-8.64 A5,5 0 0 1 -6.4,-12.53" stroke="#dcc36a" strokeWidth={0.85} fill="none" strokeLinecap="round" />
+            <circle cx={-3.9} cy={-8.2} r={4.25} fill={drapOmbre(tunique)} />
             {/* ombre du champ contre la rive, côté SE */}
-            <path d="M-0.35,-6.4 A4.15,4.15 0 0 1 -3,-3.98" stroke="#241408" strokeWidth={0.8} fill="none" strokeLinecap="round" opacity={0.4} />
-            <circle cx={-4.7} cy={-8.7} r={3.3} fill={tunique} />
-            <circle cx={-5.4} cy={-9.4} r={2.2} fill={drapLit(tunique)} />
-            <circle cx={-4} cy={-8} r={1.4} fill="#8a6b2e" />
-            <circle cx={-4.3} cy={-8.3} r={0.9} fill="#ecd88f" />
+            <path d="M-0.05,-6.4 A4.25,4.25 0 0 1 -3.16,-4.01" stroke="#241408" strokeWidth={0.8} fill="none" strokeLinecap="round" opacity={0.4} />
+            <circle cx={-4.6} cy={-8.9} r={3.4} fill={tunique} />
+            <circle cx={-5.25} cy={-9.55} r={2.25} fill={drapLit(tunique)} />
+            <circle cx={-3.9} cy={-8.2} r={1.4} fill="#8a6b2e" />
+            <circle cx={-4.2} cy={-8.5} r={0.9} fill="#ecd88f" />
+          </g>
+        )}
+
+        {/*
+          ── LE PELTÊ ────────────────────────────────────────────────────────
+          Un croissant de lune en osier tendu de peau, échancré jusqu'au moyeu.
+          Aucun autre bouclier du jeu n'a de trou dans sa silhouette : c'est la
+          signature du peltaste, lisible avant sa tunique et avant ses jambes.
+        */}
+        {arme === 'javelots' && (
+          <g>
+            {/*
+             * Le bouclier est porté DÉBORDANT du corps, et son champ est en osier
+             * clair : l'échancrure taillée dans le disque ne se lisait pas quand le
+             * trou laissait voir une tunique de la même teinte. Contre le ciel, la
+             * lune se voit. C'est le seul bouclier troué du jeu.
+             */}
+            <path d={PELTE} fill="#5a4223" />
+            {/* rive accrochée par le soleil au NW */}
+            <path d="M-8.7,-8.8 A3.5,3.5 0 0 1 -7.88,-11.05" stroke="#e2c48a" strokeWidth={0.6} fill="none" strokeLinecap="round" />
+            {/* champ d'osier tressé, tendu de peau écrue */}
+            <g transform="translate(-5.5,-9.1) scale(0.82) translate(5.2,8.8)">
+              <path d={PELTE} fill="#c2a367" />
+            </g>
+            {/* le signe peint aux couleurs du camp, au creux du croissant */}
+            <g transform="translate(-5.8,-9.4) scale(0.5) translate(5.2,8.8)">
+              <path d={PELTE} fill={tunique} />
+            </g>
+            {/* claies d'osier, en travers du champ plein */}
+            <path d="M-7.6,-7.6 L-2.7,-7.6 M-7,-6.4 L-3.4,-6.4" stroke="#8a6a3e" strokeWidth={0.35} opacity={0.6} />
+            {/* ombre du champ contre la rive, côté SE - creuse le bombé */}
+            <path d="M-2.03,-7.32 A3.5,3.5 0 0 1 -4.59,-5.35" stroke="#241408" strokeWidth={0.6} fill="none" strokeLinecap="round" opacity={0.4} />
+            {/* les deux cornes du croissant : la pointe ouest au soleil, l'est éteinte */}
+            <circle cx={-7.7} cy={-11.05} r={0.42} fill="#e2c48a" opacity={0.85} />
+            <circle cx={-2.7} cy={-11.05} r={0.42} fill="#7a5c34" opacity={0.85} />
+          </g>
+        )}
+
+        {/* javelot de la main droite - armé au-dessus de l'épaule, il PART au coup */}
+        {arme === 'javelots' && (
+          <g>
+            {(combat || tir) && (
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                values="0 1.7 -10.1;-25 1.7 -10.1;36 1.7 -10.1;0 1.7 -10.1;0 1.7 -10.1"
+                keyTimes="0;0.09;0.17;0.34;1"
+                dur={durS}
+                begin={decal}
+                repeatCount="indefinite"
+              />
+            )}
+            <line x1={1.7} y1={-10.1} x2={4.4} y2={-16.5} stroke={PEAU} strokeWidth={1.25} strokeLinecap="round" />
+            {/* hampe : dessous dans l'ombre, dessus au soleil ; lanière de jet au poing */}
+            <line x1={-1.4} y1={-18.5} x2={9.8} y2={-15.1} stroke="#6b4c2a" strokeWidth={1.05} />
+            <line x1={0.8} y1={-18.05} x2={9.6} y2={-15.4} stroke="#a8845d" strokeWidth={0.6} />
+            <path d="M4.2,-17.1 L5.1,-15.6" stroke="#4f3f28" strokeWidth={0.55} />
+            <circle cx={4.45} cy={-16.6} r={0.8} fill={PEAU} />
+            {/* fer à deux facettes : éclat NW, revers éteint */}
+            <path d="M9.8,-15.1 L12.8,-14.7 L9.9,-14.2 Z" fill="#e4eaef" />
+            <path d="M9.8,-15.1 L12.8,-14.7 L10,-15.4 Z" fill="#87909a" />
           </g>
         )}
       </g>
@@ -353,7 +616,8 @@ export function Bonhomme({
   )
 }
 
-function Belier({ enMarche }: { enMarche?: boolean }) {
+/** la machine de siège - elle n'est pas un homme : elle n'a ni tunique ni casque */
+export function Belier({ enMarche }: { enMarche?: boolean }) {
   return (
     <g>
       <OmbreSol rx={16} ry={3.2} />
@@ -429,25 +693,39 @@ function Belier({ enMarche }: { enMarche?: boolean }) {
   )
 }
 
-interface Look {
+export interface Look {
   tunique: string
-  arme: 'lance' | 'arc' | 'dague' | 'bouclier-lourd'
+  arme: Arme
   taille: number
   crete?: boolean
+  /**
+   * Silhouette propre à la figurine, quand `Bonhomme` ne suffit pas : les héros
+   * ne sont pas des hoplites recolorés, chacun a la sienne (voir
+   * SilhouettesHeros.tsx).
+   */
+  silhouette?: (p: { anim: Anim; seed: number; dur: number }) => React.ReactNode
 }
 
 /**
- * Un héros ne ressemble pas à un hoplite de plus : il porte les couleurs de sa
- * maison, une crête, et il est plus grand que les autres. On doit le repérer
- * dans la mêlée sans lire son nom.
+ * Un héros ne ressemble pas à un hoplite de plus. La couleur de maison et le nom
+ * au-dessus de la tête ne suffisaient pas : les huit se ressemblaient tous. Chacun
+ * porte désormais l'attribut par lequel sa légende le désigne - pilos et grand arc
+ * pour Ulysse, bouclier de sept peaux pour Ajax, triple cimier pour Achille, son
+ * père sur les épaules pour Énée - taillé pour rester lisible à 14 px de haut.
+ * La tunique et l'arme restent renseignées : elles servent encore de repli
+ * (dépouilles) et gardent la couleur de maison comme dominante.
  */
 function lookHeros(h: HeroId): Look {
   const def = HEROS[h]
-  // l'arme suit sa légende : l'arc pour personne, le grand bouclier pour ceux
-  // qui tiennent le rang, la lance pour ceux qui chargent
   const arme: Look['arme'] =
     h === 'hector' || h === 'ajax' || h === 'agamemnon' ? 'bouclier-lourd' : h === 'cassandre' ? 'dague' : 'lance'
-  return { tunique: def.couleur, arme, taille: h === 'cassandre' ? 1.15 : 1.32, crete: h !== 'cassandre' }
+  return {
+    tunique: def.couleur,
+    arme,
+    taille: h === 'cassandre' ? 1.15 : 1.32,
+    crete: h !== 'cassandre',
+    silhouette: ({ anim, seed, dur }) => <SilhouetteHeros h={h} anim={anim} seed={seed} dur={dur} />,
+  }
 }
 
 /** allure par type - la couleur de tunique dépend du camp du joueur */
@@ -465,7 +743,16 @@ const TUNIQUE_ALLIEE: Record<'lancier' | 'archer' | 'hoplite', string> = {
 
 function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' {
   if (f.heros) return lookHeros(f.heros)
-  switch (f.type) {
+  return lookCombattant(f.type, estJoueur, f.allie)
+}
+
+/**
+ * L'allure d'un type de combattant. Sortie de `lookDe` pour être réemployée hors
+ * bataille - garnison au repos, vignettes de la caserne : l'icône d'un panneau
+ * doit montrer EXACTEMENT l'homme qu'on verra courir, sinon elle n'apprend rien.
+ */
+export function lookCombattant(type: Fighter['type'], estJoueur: boolean, allie?: boolean): Look | 'belier' {
+  switch (type) {
     case 'belier':
       return 'belier'
     case 'pillard':
@@ -475,26 +762,38 @@ function lookDe(f: Fighter, estJoueur: boolean): Look | 'belier' {
     case 'mercenaire':
       return { tunique: '#5a3140', arme: 'bouclier-lourd', taille: 1.2, crete: true }
     case 'lancier':
-      return { tunique: f.allie ? TUNIQUE_ALLIEE.lancier : estJoueur ? '#3e5a7a' : '#8a4636', arme: 'lance', taille: 1 }
+      return { tunique: allie ? TUNIQUE_ALLIEE.lancier : estJoueur ? '#3e5a7a' : '#8a4636', arme: 'lance', taille: 1 }
     case 'archer':
-      return { tunique: f.allie ? TUNIQUE_ALLIEE.archer : estJoueur ? '#4a6a5a' : '#7d5a44', arme: 'arc', taille: 0.95 }
+      return { tunique: allie ? TUNIQUE_ALLIEE.archer : estJoueur ? '#4a6a5a' : '#7d5a44', arme: 'arc', taille: 0.95 }
     case 'hoplite':
       return {
-        tunique: f.allie ? TUNIQUE_ALLIEE.hoplite : estJoueur ? '#31506e' : '#6e3348',
+        tunique: allie ? TUNIQUE_ALLIEE.hoplite : estJoueur ? '#31506e' : '#6e3348',
         arme: 'bouclier-lourd',
-        taille: 1.15,
+        // l'élite est la plus grosse masse du champ : grand aspis, cimier, cnémides
+        taille: 1.22,
         crete: true,
       }
     /*
-     * Les trois recrues. Le frondeur porte l'arc du tireur (la fronde tourne à la
-     * même cadence), le peltaste la lance et une tunique fauve qui le distingue de
-     * la milice, et le bélier n'est pas un homme : c'est la machine.
+     * Les trois recrues. Elles portaient la silhouette d'une autre, repeinte : le
+     * frondeur tendait un arc, le peltaste levait une lance, et personne ne voyait
+     * ce qu'il avait payé. Chacune a maintenant sa forme et rien qu'à elle -
+     * la fronde qui tourne, le croissant du peltê, la machine.
      */
     case 'frondeur':
-      return { tunique: f.allie ? '#6b7f4a' : estJoueur ? '#6b6a4a' : '#7d6a44', arme: 'arc', taille: 0.9 }
+      // le plus petit, le plus léger : pas un gramme de bronze sur lui
+      return { tunique: allie ? '#6b7f4a' : estJoueur ? '#7a7a54' : '#8a7550', arme: 'fronde', taille: 0.84 }
     case 'peltaste':
-      return { tunique: f.allie ? '#4d6b3a' : estJoueur ? '#8a6a2f' : '#8a5636', arme: 'lance', taille: 1.02 }
+      // svelte et versé en avant - il court là où l'hoplite avance
+      return { tunique: allie ? '#4d6b3a' : estJoueur ? '#8a6a2f' : '#8a5636', arme: 'javelots', taille: 1 }
   }
+}
+
+/**
+ * L'allure d'une unité du joueur, hors bataille. Les panneaux s'en servent pour
+ * afficher la même figurine que la carte, à la même échelle relative.
+ */
+export function lookUnite(type: UnitId): Look | 'belier' {
+  return lookCombattant(type, true)
 }
 
 /** durée de dissolution d'une dépouille (ms) */
@@ -546,7 +845,9 @@ function FigurineCombattant({
 
   let anim: Anim = 'idle'
   if (f.etat === 'marche' || f.etat === 'fuite') anim = 'marche'
-  else if (f.type === 'archer' && f.camp === 'defense') anim = bouge ? 'marche' : 'tir'
+  // tout ce qui tire du rempart joue son cycle de tir : l'arc se bande, la fronde
+  // prend son élan. Le frondeur n'avait droit qu'à la pose de l'archer.
+  else if ((f.type === 'archer' || f.type === 'frondeur') && f.camp === 'defense') anim = bouge ? 'marche' : 'tir'
   else if (f.etat === 'siege') anim = 'combat' // on frappe la muraille
   else if (bouge) anim = 'marche'
   else if (auContact) anim = 'combat'
@@ -557,6 +858,8 @@ function FigurineCombattant({
   const contenu =
     look === 'belier' ? (
       <Belier enMarche={f.etat === 'marche'} />
+    ) : look.silhouette ? (
+      look.silhouette({ anim, seed: f.seed, dur })
     ) : (
       <Bonhomme {...look} anim={anim} seed={f.seed} dur={dur} />
     )

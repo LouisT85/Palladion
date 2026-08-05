@@ -95,6 +95,7 @@ import {
   type Intention,
   type VillageCible,
 } from './expeditions'
+import { ouvragesDe, partAbattue, type Ouvrage } from './ouvrages'
 import {
   BONUS_NEUTRE,
   HEROS,
@@ -273,6 +274,16 @@ export interface ExpeditionEnCours {
   envoyes: Record<UnitId, number>
   wallHp: number
   battle: BattleState
+  /*
+   * Les ouvrages de la place visée - tente du chef, donjon, entrepôt. La cité
+   * assaillie n'était qu'un décor : on percait le mur, un homme touchait la
+   * place, c'était gagné. Elle a maintenant de la matière, elle s'abat sous les
+   * coups, et ses jauges se lisent comme celles de son propre village.
+   *
+   * Absent d'une expédition de SECOURS : on se bat en rase campagne, il n'y a
+   * pas de place à démolir.
+   */
+  ouvrages?: Ouvrage[]
   result: { victoire: boolean; etoiles: number; lignes: string[] } | null
 }
 
@@ -2150,12 +2161,50 @@ function ciblesBatiments(s: GameState): CibleBatiment[] {
 }
 
 /**
+ * Le pendant offensif : ce que la colonne abat chez l'autre. Pas de ruine à
+ * gérer ni d'ouvriers à reclasser - une place forte qu'on démolit n'a plus
+ * d'histoire - mais chaque ouvrage tombé doit se DIRE, sans quoi le joueur
+ * verrait des jauges descendre sans savoir ce qu'il vient de raser.
+ */
+function encaisserOuvrages(
+  s: GameState,
+  ouvrages: Ouvrage[],
+  cibles: CibleBatiment[],
+  nomPlace: string,
+  now: number,
+): void {
+  for (const c of cibles) {
+    const o = ouvrages.find((x) => x.id === c.id)
+    if (!o || c.hp >= o.hp) continue
+    const debout = o.hp > 0
+    o.hp = c.hp
+    if (o.hp > 0 || !debout) continue
+    if (o.coeur) {
+      pushToast(s, '🏴', `${o.nom} de ${nomPlace} s’effondre : la place est prise.`)
+    } else {
+      pushToast(s, '🔥', `${o.nom} livré aux flammes.`)
+    }
+    // la poussière du dessin suit la démolition, même sans plus personne à frapper
+    s.expedition?.battle.effects.push({
+      id: uid('fx'),
+      type: 'breche',
+      x: o.x,
+      y: o.y,
+      until: now + 4000,
+    })
+  }
+}
+
+/**
  * Reporte dans l'état les coups portés aux bâtiments, et tire les conséquences
  * d'un édifice abattu : il tombe en ruine, perd un niveau, et les assaillants
  * emportent ce qu'il contenait. Ses artisans se retrouvent sans poste.
  */
 function encaisserBatiments(s: GameState, cibles: CibleBatiment[], now: number): void {
-  for (const c of cibles) {
+  for (const cible of cibles) {
+    // `CibleBatiment.id` est libre depuis que les ouvrages ennemis empruntent la
+    // même mécanique : ici on ne traite QUE les édifices du village
+    const c = cible as CibleBatiment & { id: BuildingId }
     const b = s.buildings[c.id]
     if (b.hp === undefined || c.hp >= b.hp) continue
     b.hp = c.hp
@@ -2547,7 +2596,15 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   if (victoire) {
     const etoiles = etoilesPour(mortsTotal, envoyesTotal)
     // « Soif de bronze » : ce qu'on prend par la lance, Arès veut qu'on le prenne entier
-    const mult = (deja > 0 ? BUTIN_REPETE : 1) * (1 + bonusHeros(s).butinPct + bonusFaveurs(s).butinPct)
+    /*
+     * SAC EN RÈGLE. Percer et tuer suffisait au butin plein ; une place laissée
+     * debout rapportait autant qu'une place rasée, et les jauges des ouvrages
+     * n'auraient été qu'un ornement. Chaque ouvrage abattu ajoute donc sa part -
+     * jusqu'à un quart de butin en plus quand il ne reste rien à brûler.
+     */
+    const rase = partAbattue(exp.ouvrages ?? [])
+    const mult =
+      (deja > 0 ? BUTIN_REPETE : 1) * (1 + bonusHeros(s).butinPct + bonusFaveurs(s).butinPct + rase * 0.25)
     const butinTxt: string[] = []
     for (const [r, n] of Object.entries(v.butin) as [ResourceId, number][]) {
       const gain = Math.round(n * mult)
@@ -2594,6 +2651,11 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     lignes.push(
       `${v.nom} est tombé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
       `Butin : ${butinTxt.join(', ')}${deja > 0 ? ' (village déjà pillé : butin réduit)' : ''}.`,
+      ...(rase > 0
+        ? [
+            `🔥 ${Math.round(rase * 100)} % des ouvrages de la place ont été abattus : +${Math.round(rase * 25)} % de butin.`,
+          ]
+        : []),
       pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Aucune perte - un triomphe digne d’Achille.',
       `Arès +4, ambiance +6 - mais Zeus Xenios −5, et la région retient votre nom (menace +4).`,
       `Ils s’en souviendront : à votre prochaine visite, la garnison sera plus fournie (${pillages + 1} pillage${pillages > 0 ? 's' : ''} encaissé${pillages > 0 ? 's' : ''}).`,
@@ -3238,14 +3300,27 @@ export const useGame = create<GameState>()(
           const v = VILLAGES_PAR_ID[s.expedition.villageId]
           const b = s.expedition.battle
           if (now - b.startedAt > EXPEDITION_TIMEOUT_MS) sonnerRetraite(b)
+          /*
+           * Les ouvrages de la place ne s'offrent qu'une fois l'enceinte percée -
+           * même règle que chez soi : avant la brèche, viser l'intérieur ferait
+           * traverser le mur aux hommes. Le mur de valeur nulle (ruse d'Ulysse,
+           * place sans enceinte) compte pour percé d'emblée.
+           */
+          const ouvrages = s.expedition.ouvrages
+          const dansLaPlace = ouvrages && (b.breche || v.mur === 0 || s.expedition.wallHp <= 0)
+          const cibles = dansLaPlace
+            ? ouvrages.filter((o) => o.hp > 0).map((o) => ({ id: o.id, x: o.x, y: o.y, hp: o.hp, coeur: o.coeur }))
+            : undefined
           const out = tickBataille(b, {
             now,
             dt,
             wallHp: s.expedition.wallHp,
             wallLevel: v.mur,
             mods: modsBataille(s.meteo),
+            cibles,
           })
           s.expedition.wallHp = out.wallHp
+          if (cibles && ouvrages) encaisserOuvrages(s, ouvrages, cibles, v.nom, now)
           if (out.brecheOuverte) pushToast(s, '💥', `Brèche dans les murs de ${v.nom} !`)
           if (out.finie) finirExpedition(s, v, out.pillage, now)
         }
@@ -4438,6 +4513,8 @@ export const useGame = create<GameState>()(
             // ils marchent avec la colonne, en tête
             herosPresents: herosAuCombat(s, now),
           }),
+          // rien à démolir en rase campagne : le secours n'a pas de place à prendre
+          ouvrages: secours ? undefined : ouvragesDe(v, GEO_EXPEDITION.place),
           result: null,
         }
         if (ruse) {

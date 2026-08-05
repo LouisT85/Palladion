@@ -31,6 +31,7 @@ import type { VillageCible } from '../../game/expeditions'
 import { Montant } from './Icones'
 import { Modale } from './Modale'
 import { BatailleLayer } from '../map/BatailleLayer'
+import { SanteOuvrages } from '../map/SanteOuvrages'
 import { useCamera, type VueScene } from '../map/camera'
 import { DefsArt } from '../map/art'
 import { DefsBatiments } from '../map/Batiments'
@@ -515,6 +516,14 @@ export function ExpeditionScene() {
             <g transform={`translate(${geo.place.x},${geo.place.y})`}>
               <CoeurVillage decor={v.decor} />
             </g>
+
+            {/*
+              * Ce qu'on est en train de raser, et ce qu'il en reste. Posé AVANT
+              * les murs de devant pour que les gravats restent dans l'enceinte,
+              * et avant les combattants pour que personne ne disparaisse
+              * derrière une volute de fumée.
+              */}
+            <SanteOuvrages ouvrages={exp.ouvrages} actif={exp.battle.breche || v.mur === 0 || exp.wallHp <= 0} />
 
             <Murailles niveau={v.mur} hp={exp.wallHp} max={wallMax} breche={exp.battle.breche} layer="front" geo={geo} />
 

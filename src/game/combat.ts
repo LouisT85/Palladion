@@ -4,7 +4,6 @@ import { statsCombatHeros } from './heros'
 import type {
   BattleGeo,
   BattleState,
-  BuildingId,
   DefensesInterieures,
   EnemyId,
   EtatChampion,
@@ -848,11 +847,18 @@ function frapper(b: BattleState, cible: Fighter, dmg: number, now: number): void
  * tire les conséquences — ruines, pillage, défaite si le cœur tombe.
  */
 export interface CibleBatiment {
-  id: BuildingId
+  /*
+   * Un identifiant LIBRE, et non un `BuildingId`. La mécanique sert désormais
+   * les deux sens de la guerre : en défense ce sont les édifices du village
+   * (`agora`, `ferme`…), en expédition les ouvrages de la place assaillie
+   * (`donjon`, `tente-chef`…). Seul le camp change - le code des coups, lui, est
+   * exactement le même, et c'est bien ce qu'on voulait.
+   */
+  id: string
   x: number
   y: number
   hp: number
-  /** l'agora : le Palladion y repose, sa chute décide de la partie */
+  /** le cœur - agora chez soi, donjon chez l'autre : sa chute décide de tout */
   coeur?: boolean
 }
 

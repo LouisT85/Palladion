@@ -16,21 +16,28 @@ function couleur(part: number): string {
   return part > 0.6 ? '#8f9d5a' : part > 0.28 ? '#d9a03a' : '#c0563f'
 }
 
-function Jauge({
+export function Jauge({
   x,
   y,
   part,
   nom,
   coeur,
+  titre,
+  emoji,
 }: {
   x: number
   y: number
   part: number
   nom: string
   coeur?: boolean
+  /* chez soi le cœur seul se nomme ; en expédition on nomme tout ce qu'on abat */
+  titre?: boolean
+  /* le pictogramme du cœur : le Palladion chez soi, un étendard chez l'autre */
+  emoji?: string
 }) {
   const w = coeur ? 84 : 56
   const h = coeur ? 8 : 6
+  const nomme = coeur || titre
   return (
     <g transform={`translate(${x},${y})`} pointerEvents="none">
       <rect x={-w / 2 - 1} y={-1} width={w + 2} height={h + 2} rx={(h + 2) / 2} fill="#120d06" opacity={0.72} />
@@ -42,7 +49,7 @@ function Jauge({
         rx={h / 2}
         fill={couleur(part)}
       />
-      {coeur && (
+      {nomme && (
         <text
           x={0}
           y={-4}
@@ -54,7 +61,8 @@ function Jauge({
           stroke="#000000aa"
           strokeWidth={2.4}
         >
-          🏛️ {nom}
+          {coeur ? `${emoji ?? '🏛️'} ` : ''}
+          {nom}
         </text>
       )}
     </g>

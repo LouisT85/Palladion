@@ -1,0 +1,4 @@
+# Les captures sont des ARTEFACTS d'exécution : réécrites à chaque passage, elles
+# n'ont rien à faire dans l'historique. Le dossier, lui, doit exister.
+*.png
+!.gitignore

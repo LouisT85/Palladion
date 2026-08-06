@@ -1,4 +1,4 @@
-import { BUILDINGS, BUILDING_IDS, hpAcropole, structureMax } from '../../game/data'
+import { BUILDINGS, BUILDING_IDS, REDOUTE_POS, hpAcropole, redouteHp, structureMax } from '../../game/data'
 import { useGame } from '../../game/store'
 
 /*
@@ -73,10 +73,26 @@ export function SanteBatiments() {
   const enBataille = useGame((s) => s.battle !== null && s.battle.breche)
   const buildings = useGame((s) => s.buildings)
   const acropole = useGame((s) => s.defenses?.acropole ?? 0)
+  const redoute = useGame((s) => s.redoute ?? 0)
+  const redouteVie = useGame((s) => s.redouteHp ?? 0)
   if (!enBataille) return null
 
   return (
     <g>
+      {/*
+        La Redoute tire tant qu'elle tient : sa jauge est donc de celles qu'on
+        surveille, et elle reste à l'œil dès la brèche même intacte - c'est elle
+        qui dit s'il reste une arme dans l'enceinte.
+      */}
+      {redoute > 0 && (
+        <Jauge
+          x={REDOUTE_POS.x}
+          y={REDOUTE_POS.y - 62 - redoute * 6}
+          part={Math.max(0, Math.min(1, redouteVie / redouteHp(redoute)))}
+          nom="La Redoute"
+          titre
+        />
+      )}
       {BUILDING_IDS.map((id) => {
         const b = buildings[id]
         if (id === 'remparts' || b.level <= 0 || b.ruine) return null

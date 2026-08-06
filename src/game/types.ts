@@ -329,6 +329,17 @@ export interface TourDef {
 }
 
 /**
+ * Un poste de tir de la Redoute. Même forme qu'une tour - sinon que le tir part
+ * à la brèche et non avant, et que la structure de l'ouvrage est commune aux
+ * trois postes : abattre la Redoute les fait taire tous ensemble.
+ */
+export interface PosteRedoute {
+  x: number
+  y: number
+  nextHit: number
+}
+
+/**
  * Un front d'assaut : les assaillants se scindent en groupes qui attaquent
  * des secteurs distincts de l'enceinte. Chaque secteur a ses propres points
  * de structure et peut céder seul - c'est là que se joue la défense.
@@ -403,6 +414,8 @@ export interface BattleState {
   projectiles: Projectile[]
   /** tours d'archers du camp défenseur (muettes une fois la brèche ouverte) */
   toursDef: TourDef[]
+  /** scorpions de la Redoute (muets TANT QUE l'enceinte tient - l'exact inverse) */
+  redouteDef?: PosteRedoute[]
   /** fronts d'assaut - chaque secteur de mur cède indépendamment */
   secteurs: SecteurBataille[]
   effects: BattleEffect[]

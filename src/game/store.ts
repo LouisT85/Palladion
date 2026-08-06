@@ -13,6 +13,7 @@ import {
   BUILDING_IDS,
   DEFENSES_DEFS,
   hpAcropole,
+  redouteHp,
   structureMax,
   type DefenseId,
   CONSO_POP,
@@ -45,6 +46,10 @@ import {
   LOT_ECHANGE,
   MARGE_PORT,
   TOURS_MAX,
+  REDOUTE_COUTS,
+  REDOUTE_MAX,
+  REDOUTE_POS,
+  REDOUTE_REMPARTS_REQUIS,
   TOUR_COUTS,
   UNITS,
   UNIT_IDS,
@@ -333,6 +338,14 @@ export interface GameState {
   tours: number
   /** les cinq ouvrages de l'intérieur : ce qui reste quand le mur est tombé */
   defenses: DefensesInterieures
+  /**
+   * Niveau de la Redoute (0-3). Elle est la seule défense de l'intérieur qui se
+   * BATTE : ses scorpions ouvrent le feu à la brèche, quand les tours se taisent.
+   * Absente des sauvegardes d'avant - lue comme non bâtie.
+   */
+  redoute: number
+  /** structure restante de la Redoute ; abattue, elle ne tire plus */
+  redouteHp: number
   /** angles des pans effondrés lors du dernier assaut - visibles jusqu'à réparation */
   brechesMur: number[]
   army: Record<UnitId, number>
@@ -546,6 +559,10 @@ export interface GameState {
   construireTour: () => void
   /** bâtit un des cinq ouvrages de l'intérieur */
   construireDefense: (id: DefenseId) => void
+  /** élève ou rehausse la Redoute - la seule défense du dedans qui riposte */
+  construireRedoute: () => void
+  /** remonte les scorpions abattus, au tarif des maçons de l'enceinte */
+  reparerRedoute: () => void
   /** consulte un oracle : il ne facture jamais du vide */
   /** envoie un éclaireur : un villageois, ou un homme de métier qu'on paie */
   envoyerEspion: (mission: CibleEspion, villageois: string | null, villageId?: string) => void
@@ -1342,6 +1359,8 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     wallHp: 0,
     tours: 0,
     defenses: { acropole: 0, bastion: false, galeries: false, poterne: false, citerne: false },
+    redoute: 0,
+    redouteHp: 0,
     brechesMur: [],
     army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 },
     recruitQueue: [],
@@ -1443,6 +1462,8 @@ type ActionsOnly = {
   reparerRemparts: unknown
   construireTour: unknown
   construireDefense: unknown
+  construireRedoute: unknown
+  reparerRedoute: unknown
   envoyerEspion: unknown
   chercher: unknown
   batirMerveille: unknown
@@ -1509,6 +1530,8 @@ const CHAMPS_SAUVES = [
   'wallHp',
   'tours',
   'defenses',
+  'redoute',
+  'redouteHp',
   'brechesMur',
   'army',
   'recruitQueue',
@@ -2157,6 +2180,15 @@ function ciblesBatiments(s: GameState): CibleBatiment[] {
     if (b.hp <= 0) continue
     out.push({ id, x: BUILDINGS[id].pos.x, y: BUILDINGS[id].pos.y, hp: b.hp, coeur: id === 'agora' })
   }
+  /*
+   * La Redoute est une cible comme les autres, et il FAUT qu'elle le soit : une
+   * pièce qui tire sans pouvoir être réduite au silence ferait de la brèche une
+   * formalité. Les assaillants la prennent donc pour cible au même titre qu'une
+   * ferme - et tant qu'elle tient, elle leur coûte cher.
+   */
+  if ((s.redoute ?? 0) > 0 && (s.redouteHp ?? 0) > 0) {
+    out.push({ id: 'redoute', x: REDOUTE_POS.x, y: REDOUTE_POS.y, hp: s.redouteHp })
+  }
   return out
 }
 
@@ -2202,6 +2234,16 @@ function encaisserOuvrages(
  */
 function encaisserBatiments(s: GameState, cibles: CibleBatiment[], now: number): void {
   for (const cible of cibles) {
+    if (cible.id === 'redoute') {
+      if (cible.hp >= (s.redouteHp ?? 0)) continue
+      const debout = (s.redouteHp ?? 0) > 0
+      s.redouteHp = cible.hp
+      if (cible.hp <= 0 && debout) {
+        s.moraleMods.push({ id: uid('m'), label: 'Redoute réduite au silence', delta: -5, expiresAt: now + 8 * 60_000 })
+        pushToast(s, '🎯', 'La Redoute est réduite au silence : ses scorpions se taisent.')
+      }
+      continue
+    }
     // `CibleBatiment.id` est libre depuis que les ouvrages ennemis empruntent la
     // même mécanique : ici on ne traite QUE les édifices du village
     const c = cible as CibleBatiment & { id: BuildingId }
@@ -2251,6 +2293,7 @@ function lancerAssaut(s: GameState, now: number): void {
         geo: GEO_VILLAGE,
         campJoueur: 'defense',
         tours: s.tours,
+        redoute: s.redoute ?? 0,
         fronts: frontsAnnonces(s),
         wallHpTotal: s.wallHp,
         // les alliés ferment la ligne, à leurs couleurs : on doit voir
@@ -3381,6 +3424,7 @@ export const useGame = create<GameState>()(
             mods: modsBataille(s.meteo),
             cibles,
             defenses: s.defenses,
+            redouteHp: s.redouteHp ?? 0,
           })
           s.wallHp = out.wallHp
           if (cibles) encaisserBatiments(s, cibles, now)
@@ -3591,6 +3635,31 @@ export const useGame = create<GameState>()(
       })
     },
 
+    /*
+     * Remettre la Redoute en batterie. Ce sont les mêmes maçons qu'à l'enceinte,
+     * donc le même tarif - un huitième de la structure manquante, en pierre - et
+     * les charpentiers pour retendre les scorpions. Une Redoute réduite au
+     * silence n'est PAS perdue : le joueur qui a payé trois chantiers ne doit pas
+     * les payer deux fois, seulement remonter la machine.
+     */
+    reparerRedoute: () => {
+      set((s) => {
+        if (s.battle) return
+        const n = s.redoute ?? 0
+        if (n <= 0) return
+        const max = redouteHp(n)
+        const manque = max - (s.redouteHp ?? 0)
+        if (manque <= 0) return
+        const cout = { pierre: Math.ceil(manque / 8), bois: Math.ceil(manque / 14) }
+        if (!payer(s, cout)) {
+          pushToast(s, '❌', `Il faut ${cout.pierre} 🪨 et ${cout.bois} 🪵 pour remonter la Redoute.`)
+          return
+        }
+        s.redouteHp = max
+        pushToast(s, '🎯', 'La Redoute est remise en batterie : ses scorpions sont retendus.')
+      })
+    },
+
     construireTour: () => {
       set((s) => {
         const max = TOURS_MAX[s.buildings.remparts.level]
@@ -3609,6 +3678,41 @@ export const useGame = create<GameState>()(
         }
         s.tours++
         pushToast(s, '🏹', `Tour d’archers dressée (${s.tours}/${max}). Sa silhouette attire l’œil des pillards…`)
+      })
+      get().save()
+    },
+
+    /*
+     * La Redoute, seule défense du dedans qui riposte. Rehausser remet sa
+     * structure à neuf : c'est un chantier, pas un replâtrage - et cela donne au
+     * joueur une raison de la monter entre deux assauts plutôt qu'en pleine
+     * bataille, ce que le garde-fou `s.battle` interdit de toute façon.
+     */
+    construireRedoute: () => {
+      set((s) => {
+        if (s.battle) return
+        if (s.buildings.remparts.level < REDOUTE_REMPARTS_REQUIS) {
+          pushToast(s, '🎯', `Il faut des remparts de niveau ${REDOUTE_REMPARTS_REQUIS} : sans enceinte, pas de dedans à tenir.`)
+          return
+        }
+        const n = s.redoute ?? 0
+        if (n >= REDOUTE_MAX) {
+          pushToast(s, '🎯', 'La Redoute porte déjà ses trois scorpions.')
+          return
+        }
+        if (!payer(s, REDOUTE_COUTS[n])) {
+          pushToast(s, '❌', 'Ressources insuffisantes.')
+          return
+        }
+        s.redoute = n + 1
+        s.redouteHp = redouteHp(s.redoute)
+        pushToast(
+          s,
+          '🎯',
+          n === 0
+            ? 'La Redoute est élevée au sud de l’agora : son scorpion attend la brèche.'
+            : `La Redoute arme un ${s.redoute}ᵉ scorpion.`,
+        )
       })
       get().save()
     },

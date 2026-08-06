@@ -1,5 +1,21 @@
 import { CHAMPION_PAR_ID, ficheChampion, type ChampionDef } from './champions'
-import { DPS_BATIMENT, ENEMIES, MAP, TOUR_ANGLES, TOUR_CADENCE_MS, TOUR_DMG, TOUR_PORTEE, UNITS, WALL_HP } from './data'
+import {
+  DPS_BATIMENT,
+  ENEMIES,
+  MAP,
+  REDOUTE_CADENCE_MS,
+  REDOUTE_DMG,
+  REDOUTE_PORTEE,
+  REDOUTE_POS,
+  REDOUTE_POSTES,
+  REDOUTE_VITESSE,
+  TOUR_ANGLES,
+  TOUR_CADENCE_MS,
+  TOUR_DMG,
+  TOUR_PORTEE,
+  UNITS,
+  WALL_HP,
+} from './data'
 import { statsCombatHeros } from './heros'
 import type {
   BattleGeo,
@@ -434,6 +450,8 @@ export interface OptionsBataille {
   campJoueur: 'attaque' | 'defense'
   /** tours d'archers du camp défenseur */
   tours?: number
+  /** niveau de la Redoute du camp défenseur : ses scorpions tiennent le dedans */
+  redoute?: number
   /**
    * Fronts d'assaut : chaque entrée = un secteur de mur assailli.
    * Absent ou 1 seul → assaut classique sur la porte (expéditions).
@@ -689,11 +707,26 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     return { x: p.x, y: p.y - 32, nextHit: now + 600 + Math.random() * 900 }
   })
 
+  /*
+   * Scorpions de la Redoute. Elle n'existe que pour la défense du village : une
+   * expédition n'emporte pas son ouvrage de siège avec elle, et la géométrie
+   * d'un raid n'a pas de Redoute à sa place.
+   */
+  const redouteDef =
+    campJoueur === 'defense' && (opts.redoute ?? 0) > 0
+      ? REDOUTE_POSTES.slice(0, opts.redoute).map((p) => ({
+          x: REDOUTE_POS.x + p.dx,
+          y: REDOUTE_POS.y + p.dy,
+          nextHit: now,
+        }))
+      : undefined
+
   return {
     wave: attaquants,
     fighters,
     projectiles: [],
     toursDef,
+    redouteDef,
     secteurs,
     effects: [],
     phase: 'approche',
@@ -873,6 +906,8 @@ export interface TickBatailleCtx {
   cibles?: CibleBatiment[]
   /** les cinq ouvrages de l'intérieur, s'ils sont bâtis */
   defenses?: DefensesInterieures
+  /** structure restante de la Redoute : à zéro, ses scorpions se taisent */
+  redouteHp?: number
 }
 
 const CIEL_CLAIR = { portee: 1, vitesse: 1, tir: 1 }
@@ -1387,6 +1422,44 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
         dur: Math.max(260, (d / VITESSE_FLECHE) * 1000),
         targetId: cible.id,
         dmg: TOUR_DMG * enragees * ciel.tir,
+      })
+    }
+  }
+
+  /*
+   * ── La Redoute : elle ne parle qu'après la brèche ──
+   *
+   * L'exact inverse de la tour, et c'est tout son sens. Une tour se tait dès que
+   * SON pan tombe ; la Redoute reste muette tant que l'enceinte tient, puis
+   * ouvre le feu sur ce qui est entré. Elle ne tire que sur l'INTÉRIEUR : un
+   * assaillant encore devant le mur ne l'intéresse pas, sinon elle doublerait
+   * les tours au lieu de les relayer.
+   *
+   * `redouteHpRestant` vient du store : à zéro l'ouvrage est abattu et les trois
+   * scorpions se taisent ensemble.
+   */
+  if (b.breche && b.redouteDef && (ctx.redouteHp ?? 1) > 0) {
+    const enragees = enrage === 'defense' ? forceAtk : 1
+    const dedans = atkVivants.filter(
+      (a) => a.etat !== 'mort' && ((a.x - geo.cx) / geo.rx) ** 2 + ((a.y - geo.cy) / geo.ry) ** 2 <= 1,
+    )
+    for (const poste of b.redouteDef) {
+      if (now < poste.nextHit) continue
+      const aPortee = dedans.filter((a) => dist(poste, a) <= REDOUTE_PORTEE * ciel.portee)
+      const cible = plusProche(poste, aPortee)
+      if (!cible) continue
+      poste.nextHit = now + REDOUTE_CADENCE_MS
+      const d = dist(poste, cible)
+      b.projectiles.push({
+        id: uid('p'),
+        x0: poste.x,
+        y0: poste.y - 8,
+        x1: cible.x,
+        y1: cible.y - 6,
+        start: now,
+        dur: Math.max(160, (d / REDOUTE_VITESSE) * 1000),
+        targetId: cible.id,
+        dmg: REDOUTE_DMG * enragees * ciel.tir,
       })
     }
   }

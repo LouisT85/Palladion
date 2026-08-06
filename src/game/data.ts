@@ -134,6 +134,52 @@ export const TOUR_CADENCE_MS = 2800
  */
 export const TOUR_ANGLES = [0.42, -0.42, 1.55, -1.55]
 
+/*
+ * ═══════════════════ LA REDOUTE : LA GUERRE DU DEDANS ═══════════════════
+ *
+ * Les cinq ouvrages de `DEFENSES_DEFS` sont PASSIFS - de la structure, des
+ * modificateurs, des couloirs. Aucun ne se bat. Une fois le mur passé, il ne
+ * restait donc que la mêlée : la tour d'archers se taisait (son pan était
+ * tombé), et l'intérieur de l'enceinte n'avait pas une arme à opposer.
+ *
+ * La Redoute est le pendant EXACT de la tour, tourné vers le dedans. Elle est
+ * muette tant que l'enceinte tient - elle n'a rien à voir de la plaine - et
+ * n'ouvre le feu qu'à la brèche, sur ce qui entre. Ses scorpions percent bien
+ * plus fort qu'un arc mais se remontent lentement : deux ou trois assaillants
+ * cloués par salve, pas une pluie de flèches.
+ *
+ * ANACHRONISME ASSUMÉ. Le scorpion est une machine du IVᵉ siècle, sept cents ans
+ * après Troie. C'est le prix d'une défense intérieure qui COMBATTE vraiment -
+ * et il reste bien plus proche du monde d'Homère qu'un canon.
+ */
+/** trois niveaux : un scorpion, puis deux, puis trois */
+export const REDOUTE_MAX = 3
+export const REDOUTE_REMPARTS_REQUIS = 2
+export const REDOUTE_COUTS: Cost[] = [
+  { pierre: 220, bois: 120, bronze: 20 },
+  { pierre: 360, bois: 160, bronze: 55 },
+  { pierre: 540, bois: 200, bronze: 95 },
+]
+/** courte portée : elle tient la place, pas la plaine */
+export const REDOUTE_PORTEE = 210
+/** un trait de scorpion vaut trois flèches - mais il part trois fois moins souvent */
+export const REDOUTE_DMG = 30
+export const REDOUTE_CADENCE_MS = 3600
+/** vitesse du trait (px/s) : plus tendu qu'une flèche, presque à plat */
+export const REDOUTE_VITESSE = 420
+/** au sud de l'agora, à portée du cœur : c'est lui qu'elle couvre d'abord */
+export const REDOUTE_POS = { x: 570, y: 610 }
+/** structure de l'ouvrage : on peut la faire taire en l'abattant */
+export function redouteHp(n: number): number {
+  return n <= 0 ? 0 : 220 + (n - 1) * 160
+}
+/** postes de tir, un par niveau - décalés pour que les trois se voient */
+export const REDOUTE_POSTES = [
+  { dx: -2, dy: -44 },
+  { dx: -24, dy: -38 },
+  { dx: 21, dy: -38 },
+]
+
 /**
  * Secteurs assaillables de l'enceinte. Une vague se scinde entre ces fronts ;
  * chaque secteur encaisse ses propres dégâts et peut céder seul.

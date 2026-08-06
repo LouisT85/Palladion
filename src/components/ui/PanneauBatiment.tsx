@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, DEFENSES_DEFS, DEFENSE_IDS, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
+import { BUILDINGS, BUILDING_IDS, DEFENSES_DEFS, DEFENSE_IDS, REDOUTE_COUTS, REDOUTE_DMG, REDOUTE_MAX, REDOUTE_PORTEE, REDOUTE_REMPARTS_REQUIS, redouteHp, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
 import { candidatsPour, fmtDuree, metierDe, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
 import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
@@ -524,6 +524,86 @@ function BlocTours() {
   )
 }
 
+/*
+ * La Redoute a son propre bloc, sous celui des tours et pour cause : les deux se
+ * lisent ensemble. La tour tient le DEHORS et se tait à la brèche ; la Redoute
+ * tient le DEDANS et ne parle qu'à partir de là. Le panneau doit rendre cette
+ * symétrie évidente, sinon le joueur bâtira l'une en croyant doubler l'autre.
+ */
+function BlocRedoute() {
+  const s = useGame()
+  const niveau = s.buildings.remparts.level
+  if (niveau === 0) return null
+  const n = s.redoute ?? 0
+  const cout = n < REDOUTE_MAX ? REDOUTE_COUTS[n] : null
+  const max = redouteHp(n)
+  const vie = s.redouteHp ?? 0
+  const manque = max - vie
+  const coutRep = { pierre: Math.ceil(manque / 8), bois: Math.ceil(manque / 14) }
+  return (
+    <div className="bloc">
+      <h3>
+        🎯 La Redoute - {n}/{REDOUTE_MAX} scorpion{n > 1 ? 's' : ''}
+      </h3>
+      <div className="desc">
+        Une plateforme de tir dressée au sud de l’agora, armée de grandes arbalètes de rempart. Elle est{' '}
+        <b>muette tant que l’enceinte tient</b> - elle ne voit pas la plaine - et ouvre le feu dès la brèche sur tout
+        ce qui entre ({REDOUTE_PORTEE} pas, {REDOUTE_DMG} de dégâts par trait). C’est l’exact contraire d’une tour
+        d’archers, qui se tait au moment où celle-ci parle.
+      </div>
+      <div className="desc" style={{ marginTop: 4, fontStyle: 'italic', color: '#a8bac4' }}>
+        Le scorpion est une machine de sept siècles postérieure à Troie. On l’assume : il fallait une défense du
+        dedans qui se batte, et non un mur de plus.
+      </div>
+      {niveau < REDOUTE_REMPARTS_REQUIS ? (
+        <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
+          🧱 Des remparts de niveau {REDOUTE_REMPARTS_REQUIS} sont nécessaires : sans enceinte, il n’y a pas de dedans à
+          tenir.
+        </div>
+      ) : (
+        <>
+          {n > 0 && (
+            <div style={{ fontSize: 12, marginTop: 5, color: vie <= 0 ? '#e0715a' : '#93a7b4' }}>
+              {vie <= 0
+                ? '💥 Réduite au silence : ses scorpions ne tirent plus.'
+                : `🛠️ Structure : ${Math.round(vie)} / ${max}`}
+            </div>
+          )}
+          {n > 0 && manque > 0 && (
+            <>
+              <LigneCout cout={coutRep} resources={s.resources} />
+              <button
+                style={{ width: '100%', marginTop: 6 }}
+                disabled={!peutPayer(s.resources, coutRep) || s.battle !== null}
+                onClick={() => s.reparerRedoute()}
+              >
+                Remettre la Redoute en batterie
+              </button>
+            </>
+          )}
+          {cout ? (
+            <>
+              <LigneCout cout={cout} resources={s.resources} />
+              <button
+                className="principal"
+                style={{ width: '100%', marginTop: 6 }}
+                disabled={!peutPayer(s.resources, cout) || s.battle !== null}
+                onClick={() => s.construireRedoute()}
+              >
+                {n === 0 ? 'Élever la Redoute' : `Armer un ${n + 1}ᵉ scorpion`}
+              </button>
+            </>
+          ) : (
+            <div style={{ fontSize: 12, color: '#93a7b4', marginTop: 5 }}>
+              La plateforme porte ses trois pièces - elle ne peut en recevoir davantage.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 export function PanneauBatiment() {
   const s = useGame()
   const id = s.selected
@@ -563,6 +643,7 @@ export function PanneauBatiment() {
       {id === 'maisons' && <BlocHabitants onVoirHabitants={voirHabitants} />}
       {id === 'remparts' && <BlocRemparts />}
       {id === 'remparts' && <BlocTours />}
+      {id === 'remparts' && <BlocRedoute />}
       {id === 'remparts' && <BlocDefenses />}
       {id === 'caserne' && b.level > 0 && <BlocCaserne onVoirHabitants={voirHabitants} />}
       {id === 'port' && <BlocPort />}

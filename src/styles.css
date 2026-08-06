@@ -460,6 +460,113 @@ svg.carte-exp {
   font-size: 12.5px;
   font-weight: 700;
 }
+
+/* ── l'assaut : le panneau d'ordres passe à GAUCHE ─────────────────────────
+   Mesuré : centré en haut, ce bandeau posait 360 × 165 px (jusqu'à 195 avec un
+   champion) sur la bande haute de la scène et masquait 36 500 px² du pan Nord -
+   45 % de son arc, 22 de ses 41 points de crénelage, la moitié des assaillants
+   qui le montaient - dès qu'une vague ouvrait trois fronts. Ce n'était pas sa
+   taille, c'était sa PLACE : la caméra de bataille cadre tous les foyers mais son
+   zoom est borné à zMin = 1,7 ; à trois fronts elle ne peut plus reculer, le
+   barycentre redescend vers la porte, et le pan nord se retrouve plaqué tout en
+   haut de l'écran - juste sous le bandeau. Le `cy - 34/z` de `cadrageBataille` ne
+   rachetait que 20 unités de monde.
+
+   La bande laissée libre dans la colonne de gauche, entre le bas du pan nord et
+   le haut du pan sud, a été suivie sur toute la durée d'un assaut à trois fronts :
+   y 335 → 533 à 1100 × 800, y 351 → 652 à 1500 × 900. Le panneau s'y centre et il
+   y tient : 147 à 187 px de haut mesurés, et ZÉRO pixel du pan Nord comme des
+   trois jauges de secteur masqué, à 1100 × 800, 1280 × 720, 1500 × 900 et
+   1920 × 1080. La classe est ADDITIVE : `.bandeau` seul continue de servir le
+   siège, le défi, le secours et l'alerte, qui restent centrés en haut. */
+.bandeau.assaut {
+  top: 46%;
+  bottom: auto;
+  left: 10px;
+  right: auto;
+  transform: translateY(-50%);
+  margin: 0;
+  width: max-content;
+  min-width: 0;
+  max-width: min(330px, 40vw);
+  /* ceinture : la bande libre ne fait que 198 px à 1100 × 800. Si un rang de
+     héros ou un présage s'ajoute, le panneau DÉFILE au lieu de remonter sur le
+     crénelage - il ne peut pas reprendre ce qu'on vient de lui retirer. */
+  max-height: min(196px, 24vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 10px 7px;
+  text-align: left;
+}
+/* et il se serre : 90 des 165 px de hauteur étaient dans la barre d'ordres et le
+   rang des dieux, pour des jetons qui n'avaient pas besoin de tant d'air */
+.bandeau.assaut .gros {
+  font-size: 13.5px;
+}
+.bandeau.assaut .detail {
+  font-size: 11.5px;
+  margin-top: 1px;
+}
+.bandeau.assaut .moral-ligne {
+  justify-content: flex-start;
+  gap: 7px;
+  margin-top: 3px;
+}
+.bandeau.assaut .moral-jauge {
+  flex: 0 0 78px;
+  height: 6px;
+}
+.bandeau.assaut .champion-ligne {
+  margin-top: 4px;
+  padding: 3px 7px;
+  font-size: 11.5px;
+}
+.bandeau.assaut .ordres {
+  margin-top: 4px;
+  padding: 4px 5px;
+}
+.bandeau.assaut .ordres-rangee {
+  gap: 3px;
+}
+.bandeau.assaut .ordres-rangee + .ordres-rangee {
+  margin-top: 3px;
+}
+.bandeau.assaut .ordres-etiquette {
+  width: 38px;
+  flex: 0 0 38px;
+  font-size: 9.5px;
+}
+.bandeau.assaut .ordres button.ordre {
+  font-size: 11px;
+  padding: 2px 7px;
+}
+.bandeau.assaut .ordres-pans > summary {
+  font-size: 10.5px;
+  padding: 2px 7px;
+}
+/* l'assignation par pan tient en une colonne dans un panneau étroit, et défile
+   plutôt que de faire grandir le panneau hors de sa bande */
+.bandeau.assaut .ordres-grille {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  max-height: 74px;
+  overflow-y: auto;
+}
+.bandeau.assaut .dieux-rapides {
+  margin-top: 4px;
+  justify-content: flex-start;
+}
+.bandeau.assaut .dieux-rapides button {
+  font-size: 11.5px;
+  padding: 3px 7px;
+}
+
+/* Le tracker de missions occupe toute la colonne de gauche pendant un assaut
+   (mesuré : x 8→218, y 126→649 sur une scène de 682 px). Il lui rend la moitié
+   basse le temps de la bataille ; sa liste défile déjà à l'intérieur, donc aucune
+   ligne n'est perdue. */
+.scene:has(> .bandeau.assaut) .missions {
+  max-height: calc(46% - 116px);
+}
 /* le moral de la garnison, avec son seuil de rupture tracé dessus */
 .moral-ligne {
   display: flex;
@@ -798,7 +905,12 @@ svg.carte-exp {
   max-width: calc(100% - 20px);
   z-index: 15;
   background: linear-gradient(180deg, #16283aee, #101f2ef2);
-  backdrop-filter: blur(8px);
+  /*
+     Pas de `backdrop-filter` ici. Le fond du panneau est déjà presque opaque
+     (#16283aee sur #101f2ef2) : le flou coûtait 17 ms par image - panneau de
+     bâtiment ouvert, 100,0 ms contre 83,3 ms sans lui - pour 2,2 % des pixels du
+     cadre modifiés, d'un écart maximal de 10/255. Personne ne le voyait.
+  */
   border: 1px solid #35526d;
   border-radius: 14px;
   padding: 14px;
@@ -1303,21 +1415,28 @@ svg.carte-exp {
    alerte - une pulsation lente qu'on remarque sans en être dérangé */
 .hud-actions button.campagne-decouverte {
   border-color: var(--gold-sombre);
-  animation: cheval-respire 4.5s ease-in-out infinite;
-}
-@keyframes cheval-respire {
-  0%,
-  100% {
-    box-shadow: 0 0 0 #e8c04a00;
-  }
-  50% {
-    box-shadow: 0 0 11px #e8c04a44;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hud-actions button.campagne-decouverte {
-    animation: none;
-  }
+  /*
+     TROIS pulsations, pas l'infini. `box-shadow` n'est pas une propriété que
+     Chromium sait composer : tant que l'animation tourne, le fil principal refait
+     le cycle de peinture du document ENTIER à chaque image - la carte comprise,
+     avec ses ~4200 nœuds et ses ~180 filtres. Mesuré sur un build de production :
+     pulsation en cours 50 à 66 ms par image, pulsation terminée 16,7 ms, soit
+     59,9 i/s, la carte restant pleinement visible. DEUX BOUTONS DE HUD
+     plafonnaient tout le jeu à 12 i/s, et c'est ce qui rendait la navigation des
+     encarts pâteuse : le défaut n'était pas dans les encarts.
+
+     D'où la LUEUR STATIQUE. Trois battements au lieu de l'infini ne suffisaient
+     pas : mesuré carte gelée, une pulsation EN COURS tient encore l'image à
+     66,6 ms (15,0 i/s) contre 16,7 ms (59,9 i/s) une fois éteinte - donc un encart
+     ouvert dans les 13,5 premières secondes d'une partie, ou juste après qu'un
+     héros devient recrutable, retombait à 15 i/s. La lueur fixe ne coûte rien par
+     image, et elle a l'avantage de rester : l'appel ne s'éteint plus au bout de
+     trois respirations.
+     Écarté par la mesure : porter la lueur sur un `::after` et animer son
+     opacité ne rend rien (Chromium ne compose pas non plus cette animation de
+     pseudo-élément), pas plus que `will-change` ou `contain: paint`.
+  */
+  box-shadow: 0 0 11px #e8c04a44;
 }
 
 /* ── garde-fou : ce qu'on montre quand le rendu a échoué ───
@@ -1715,16 +1834,10 @@ svg.carte-exp {
 .hud-actions button.appelle {
   border-color: var(--gold);
   color: var(--gold);
-  animation: appel 2.2s ease-in-out infinite;
-}
-@keyframes appel {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 #e8c04a00;
-  }
-  50% {
-    box-shadow: 0 0 10px 1px #e8c04a55;
-  }
+  /* même raison qu'au cheval de la campagne, ci-dessus : `box-shadow` animé sans
+     fin tient tout le document en peinture. Trois appels, puis la bordure d'or
+     suffit à signaler le héros disponible. */
+  box-shadow: 0 0 10px 1px #e8c04a55;
 }
 
 .heros-section {
@@ -2158,7 +2271,14 @@ svg.carte-exp {
   flex: 1;
   text-align: left;
   background: #14273ae0;
-  backdrop-filter: blur(7px);
+  /*
+     Pas de flou d'arrière-plan sur le suivi de missions. Il est à l'écran EN
+     PERMANENCE, et `backdrop-filter` fait rastériser à neuf ce qu'il recouvre à
+     chaque image : trois éléments flous en coûtaient 10,4 ms par image, mesuré au
+     repos sur un build de production, A/B entrelacé sur trois tours (80,7 → 70,3 ms).
+     Pour rien : le fond est déjà quasi opaque, et l'A/B au pixel donne 0,00 % de
+     pixels écartés de plus de 1/20, écart maximal 7/255. Personne ne le voyait.
+  */
   border: 1px solid #35526d;
   border-radius: 10px;
   padding: 6px 11px;
@@ -2172,7 +2292,7 @@ svg.carte-exp {
 .missions-tout {
   flex: 0 0 auto;
   background: #14273ae0;
-  backdrop-filter: blur(7px);
+  /* idem : pas de flou d’arrière-plan, cf. .missions-titre ci-dessus */
   border: 1px solid #35526d;
   border-radius: 10px;
   padding: 4px 9px;
@@ -2202,7 +2322,7 @@ svg.carte-exp {
 }
 .mission {
   background: #14273ae0;
-  backdrop-filter: blur(7px);
+  /* idem : pas de flou d’arrière-plan, cf. .missions-titre ci-dessus */
   border: 1px solid #33506c;
   border-left: 3px solid #3a4a5a;
   border-radius: 10px;
@@ -3451,4 +3571,191 @@ svg.carte-exp {
     right: 306px;
     max-width: calc(100% - 512px);
   }
+}
+/* ═══════════ LE PLAN DE DÉFENSE : schéma de l'enceinte ═══════════
+   Bloc destiné à src/styles.css (câblage). Trois idées :
+    · la carte garde le RAPPORT de l'enceinte du jeu (viewBox 372 × 262, ellipse
+      104 × 62 comme `MAP.mur`) : les zones se posent en POURCENTAGE de la boîte,
+      donc elles restent sur leur pan à n'importe quelle largeur ;
+    · les jetons de troupe sont des boutons - clavier, glisser-déposer, tactile ;
+    · le gabarit `compact` sert sous les flèches, où la plaine doit rester vue. */
+.plan-carte {
+  margin-top: 4px;
+}
+/* Déplié, le schéma prend TOUTE la ligne. Sans cela il reste dans la rangée de
+   tir, dont il devient l'élément le plus haut : les jetons « Tendu / Cloche » se
+   retrouvent centrés au milieu de 300 px de vide, et la rangée est illisible. */
+.ordres-pans[open] {
+  flex: 1 0 100%;
+  margin-left: 0;
+  margin-top: 4px;
+}
+.plan-scene {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  aspect-ratio: 372 / 262;
+  margin: 0 auto;
+}
+.plan-carte.compact .plan-scene {
+  max-width: 330px;
+}
+.plan-fond {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* une zone où l'on pose des hommes : un pan, ou la réserve au centre */
+.plan-zone {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 62px;
+  max-width: 42%;
+  padding: 2px 5px 3px;
+  border-radius: 7px;
+  border: 1px dashed #6b3f2c;
+  background: #1b0d08cc;
+  text-align: center;
+}
+.plan-zone.assailli {
+  border-color: #e0715a;
+  box-shadow: 0 0 9px #e0715a33;
+}
+.plan-zone.perce {
+  border-style: solid;
+  border-color: #e0715a;
+}
+.plan-zone.reserve {
+  border-style: solid;
+  border-color: #5c4a32;
+  background: #17110acc;
+}
+.plan-zone-nom {
+  display: block;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c99b7d;
+  white-space: nowrap;
+}
+/* sous les flèches, tout se resserre : la plaine doit rester visible */
+.plan-carte.compact .plan-zone {
+  min-width: 52px;
+  padding: 1px 4px 2px;
+}
+.plan-carte.compact .plan-zone-nom {
+  font-size: 8.5px;
+}
+.plan-carte.compact button.plan-jeton {
+  font-size: 12.5px;
+  padding: 0 3px;
+}
+.plan-zone.reserve .plan-zone-nom {
+  color: #9d8a6a;
+}
+.plan-zone-jetons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  min-height: 20px;
+}
+.plan-zone-etat {
+  display: block;
+  font-size: 9.5px;
+  color: #7fae8a;
+  font-variant-numeric: tabular-nums;
+}
+.plan-zone-etat.perce {
+  color: #f0a292;
+}
+
+/* le jeton d'une troupe : emoji + effectif, dans le pan où il est posté */
+button.plan-jeton {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  padding: 1px 4px;
+  font-size: 14px;
+  line-height: 1.15;
+  border-radius: 6px;
+  border: 1px solid #6b3f2c;
+  background: #2a1a12;
+  color: #e0c3ab;
+  cursor: grab;
+}
+button.plan-jeton i {
+  font-style: normal;
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: #c99b7d;
+}
+button.plan-jeton:hover {
+  background: #3a251a;
+}
+button.plan-jeton.choisi {
+  background: #7a3f2c;
+  border-color: #f0d9a0;
+  color: #ffeeda;
+  box-shadow: 0 0 9px #e8c04a66;
+}
+/* aucun homme de ce type : l'ordre est gardé, mais le pan est nu */
+button.plan-jeton.vide {
+  opacity: 0.5;
+}
+button.plan-jeton.vide i {
+  color: #d98a4e;
+}
+/* l'ordre dort : son pan n'est pas assailli aujourd'hui */
+button.plan-jeton.dort {
+  border-style: dashed;
+  border-color: #d98a4e;
+}
+/* la cible accessible, qui n'apparaît qu'une troupe désignée */
+button.plan-poser {
+  padding: 1px 5px;
+  font-size: 10px;
+  border-radius: 6px;
+  border: 1px dashed #f0d9a0;
+  background: #3a251acc;
+  color: #f0d9a0;
+  white-space: nowrap;
+}
+button.plan-poser:hover {
+  background: #7a3f2c;
+}
+.plan-aide {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #b39a80;
+  text-align: center;
+}
+.plan-carte.compact .plan-aide {
+  font-size: 10.5px;
+}
+
+/* le panneau lui-même : un peu plus large que le châssis courant, le schéma en a besoin */
+.modale.plan-modale {
+  max-width: 600px;
+}
+
+/* l'accès au plan depuis le bandeau d'alerte. Il porte sa propre classe et non
+   `.ordre` : celle-là n'existe qu'à l'intérieur d'un `.ordres`, et le jeton vit
+   dans le bandeau, à côté du compte à rebours. */
+button.plan-lien {
+  font-size: 11.5px;
+  padding: 3px 9px;
+  background: #2a1a12;
+  border: 1px solid #6b3f2c;
+  color: #e0c3ab;
+  white-space: nowrap;
+}
+button.plan-lien:hover:not(:disabled) {
+  background: #3a251a;
+  border-color: #d79a6c;
 }

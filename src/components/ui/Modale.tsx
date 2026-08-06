@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Astuce } from './Infobulle'
 
@@ -52,10 +52,58 @@ export function Modale({
   }, [onFermer])
 
   /*
-   * Portail vers `body` : le recensement s'ouvre depuis le panneau de bâtiment,
-   * qui porte un `backdrop-filter`. Or un tel filtre crée un nouveau contexte de
-   * conteneur - un `position: fixed` à l'intérieur s'y trouve piégé dans les
-   * 330 px du panneau. Le châssis sort donc toujours du flux.
+   * PENDANT QU'ON DÉFILE, LES VIGNETTES SVG DU CORPS S'ARRÊTENT.
+   *
+   * Un `<svg>` dont l'horloge SMIL tourne réinvalide son calque à CHAQUE image,
+   * quoi qu'il anime. Tant qu'il est immobile, la note est petite ; mais dans un
+   * conteneur qui DÉFILE, Chromium ne peut plus réutiliser de tuile et repeint
+   * tout le corps à chaque image. Le panthéon monte trois de ces horloges - les
+   * aperçus de manifestation divine, 88 nœuds SMIL en tout - et les payait cher :
+   *
+   *   panthéon, défilement à la molette, carte du village déjà gelée
+   *     horloges des vignettes libres ... 66,6 ms/image = 15,0 i/s
+   *     horloges arrêtées ..............  16,7 ms/image = 59,9 i/s
+   *   (build de production, A/B entrelacé, 6 tours ; les hauts faits, qui n'ont
+   *    aucun SVG animé dans leur corps, défilaient déjà à 16,7 ms.)
+   *
+   * On ne les arrête donc que LE TEMPS DU GESTE, et on les rend 180 ms après le
+   * dernier cran de molette : la vignette joue toujours sa manifestation en
+   * boucle - promesse de son infobulle -, simplement pas pendant qu'elle file
+   * sous les yeux du joueur. Écarté, mesuré sans effet : `content-visibility:
+   * auto` sur les cartes de dieu (66,6 ms, inchangé).
+   */
+  const corps = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const el = corps.current
+    if (!el) return
+    let repos: number | undefined
+    // le filtre n'est pas de la coquetterie : jsdom, qui fait tourner les tests
+    // de rendu de ces mêmes panneaux, ne connaît pas l'horloge SMIL
+    const horloges = () => Array.from(el.querySelectorAll('svg')).filter((s) => typeof s.pauseAnimations === 'function')
+    const rendre = () => horloges().forEach((s) => s.unpauseAnimations())
+    const onDefile = () => {
+      // on requête à chaque cran : React peut remonter une vignette en cours de
+      // route, et une horloge neuve repartirait sans qu'on le sache
+      horloges().forEach((s) => {
+        if (!s.animationsPaused()) s.pauseAnimations()
+      })
+      window.clearTimeout(repos)
+      repos = window.setTimeout(rendre, 180)
+    }
+    el.addEventListener('scroll', onDefile, { passive: true })
+    return () => {
+      el.removeEventListener('scroll', onDefile)
+      window.clearTimeout(repos)
+      rendre()
+    }
+  }, [])
+
+  /*
+   * Portail vers `body`. Deux raisons, et le `backdrop-filter` du panneau de
+   * bâtiment - qu'on a retiré depuis - n'en était que la troisième : `.panneau`
+   * porte `overflow-y: auto` (il rognerait ce qui en sort) et, positionné avec
+   * `z-index: 15`, il ouvre son propre contexte d'empilement. Le recensement,
+   * qui s'ouvre depuis lui, doit donc sortir du flux quoi qu'il arrive.
    */
   return createPortal(
     <div className="voile" onClick={onFermer}>
@@ -75,7 +123,7 @@ export function Modale({
             </button>
           </Astuce>
         </div>
-        <div className="modale-corps">
+        <div className="modale-corps" ref={corps}>
           {children}
           {fermerTexte !== null && (
             <button style={{ width: '100%', marginTop: 14 }} onClick={onFermer}>

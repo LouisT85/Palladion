@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, REDOUTE_POS, TOUR_ANGLES, TOUR_PORTEE, pointMur } from '../../game/data'
 import { HERO_IDS } from '../../game/heros'
 import { ACTES_CAMPAGNE } from '../../game/campagne'
@@ -294,6 +294,57 @@ export function VillageMap() {
   const scierieLvl = useGame((s) => s.buildings.scierie.level)
   const fermeLvl = useGame((s) => s.buildings.ferme.level)
   const carriereLvl = useGame((s) => s.buildings.carriere.level)
+
+  /*
+   * L'HORLOGE DU VILLAGE S'ARRÊTE SOUS UN PANNEAU.
+   *
+   * Un SVG animé par SMIL est UN SEUL calque de peinture, et Chromium le
+   * réinvalide à chaque image tant que l'horloge SMIL du document tourne - quoi
+   * qu'elle anime, et même si tout le contenu animé est hors champ. Le village
+   * coûte alors son cycle de peinture entier (5 195 nœuds, 218 filtres) soixante
+   * fois par seconde, et rien à l'écran ne peut aller plus vite que ce fond :
+   * c'est ce qui rendait la navigation des encarts pâteuse, pas les encarts.
+   *
+   * Mesuré sur un build de production, A/B ENTRELACÉ dans la même page (les deux
+   * pulsations de `box-shadow` du HUD étant déjà rendues finies, cf. styles.css -
+   * sans elles, geler seul ne donne que 66,7 ms) :
+   *
+   *   panthéon ouvert ........... 83,3 ms/image (12,0 i/s)  →  16,7 ms (59,9 i/s)
+   *   hauts faits ouverts ....... 83,3 ms       (12,0 i/s)  →  16,7 ms (59,9 i/s)
+   *   panneau de bâtiment ....... 83,3 ms       (12,0 i/s)  →  16,7 ms (59,9 i/s)
+   *
+   * soit exactement ce qu'on obtient en retirant la carte du rendu
+   * (`display: none` : 16,7 ms aussi) - mais ici le village RESTE VISIBLE en
+   * filigrane, là où le retirer déplaçait 39,7 % des pixels du cadre. On ne perd
+   * que son mouvement, le temps qu'un panneau soit ouvert.
+   *
+   * Ce que la pause NE touche PAS : les transitions CSS de la caméra (zoom,
+   * glissé, recentrage), le rendu React (cliquer un autre bâtiment se voit), et
+   * les comptes à rebours, qui vivent dans le store.
+   *
+   * JAMAIS pendant une bataille ni une expédition : c'est cette horloge-là qui
+   * porte l'éclair de Zeus et le vol des flèches (cf. commit 3bd6fd7).
+   */
+  const panneauOuvert = useGame(
+    (s) =>
+      s.panel !== null ||
+      s.selected !== null ||
+      s.popOuvert ||
+      s.activeEvent !== null ||
+      s.battleReport !== null ||
+      s.offlineSummary !== null,
+  )
+  const enExpedition = useGame((s) => s.expedition !== null)
+  const geler = panneauOuvert && battle === null && !enExpedition
+  useEffect(() => {
+    const el = svg.current
+    // jsdom (les tests de rendu) ne connaît pas l'horloge SMIL
+    if (!el || typeof el.pauseAnimations !== 'function') return
+    if (geler) el.pauseAnimations()
+    else el.unpauseAnimations()
+    // au démontage, on rend l'horloge : un SVG laissé en pause resterait figé
+    return () => el.unpauseAnimations()
+  }, [geler])
 
   const now = lastSeen // rafraîchi par le tick
   const phase = phaseJour(now, createdAt, DAY_MS)

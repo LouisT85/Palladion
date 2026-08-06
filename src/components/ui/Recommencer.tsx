@@ -319,6 +319,15 @@ interface EtatDefi {
  * piège.
  */
 export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
+  /*
+   * Relever le défi EFFACE la cité en cours - il impose son propre village, sinon
+   * son score ne serait pas comparable d'un joueur à l'autre. Ce bouton le faisait
+   * sans un mot d'avertissement. On lui donne la confirmation en deux temps de
+   * l'entrée en campagne, y compris la porte de sortie qui met la cité à l'abri
+   * dans un autre emplacement : personne ne doit perdre dix heures de règne pour
+   * avoir cliqué une ligne trop bas.
+   */
+  const [confirmeDefi, setConfirmeDefi] = useState(false)
   const choisirMode = useGame((s) => s.choisirMode)
   const mode = useGame((s) => s.mode)
   const enCours = useGame((s) => (s as { defi?: EtatDefi | null }).defi ?? null)
@@ -424,22 +433,38 @@ export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
           ))}
         </div>
 
+        {confirmeDefi && !actif && (
+          <div className="ce-avertissement" style={{ marginTop: 14 }}>
+            ⚠️ Le défi impose <b>son propre village</b> - la même Troade et les mêmes vagues pour tout le monde, sans
+            quoi les scores ne se compareraient pas. <b>Votre cité actuelle sera remplacée.</b> Rangez-la d’abord dans
+            un autre emplacement si vous y tenez.
+            <div style={{ marginTop: 8 }}>
+              <button onClick={() => s.openPanel('sauvegardes')}>💾 Mettre ma cité à l’abri</button>
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-          <button style={{ flex: 1 }} onClick={onFermer}>
-            Fermer
+          <button style={{ flex: 1 }} onClick={confirmeDefi ? () => setConfirmeDefi(false) : onFermer}>
+            {confirmeDefi ? 'Garder ma cité' : 'Fermer'}
           </button>
-          {!actif && (
-            <button
-              className="principal"
-              style={{ flex: 2 }}
-              onClick={() => {
-                choisirMode('defi')
-                onFermer()
-              }}
-            >
-              🗓️ Relever le défi{fait ? ` (au mieux ${fait.points} pts)` : ''}
-            </button>
-          )}
+          {!actif &&
+            (confirmeDefi ? (
+              <button
+                className="danger"
+                style={{ flex: 2 }}
+                onClick={() => {
+                  setConfirmeDefi(false)
+                  choisirMode('defi')
+                  onFermer()
+                }}
+              >
+                🗓️ Oui, remplacer ma cité
+              </button>
+            ) : (
+              <button className="principal" style={{ flex: 2 }} onClick={() => setConfirmeDefi(true)}>
+                🗓️ Relever le défi{fait ? ` (au mieux ${fait.points} pts)` : ''}
+              </button>
+            ))}
         </div>
       </>
     </Modale>

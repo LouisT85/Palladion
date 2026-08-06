@@ -101,6 +101,7 @@ import {
   type VillageCible,
 } from './expeditions'
 import { ouvragesDe, partAbattue, type Ouvrage } from './ouvrages'
+import { ordresDefense, ordresExpedition, planParDefaut, planValide, type PlanDefense } from './plandefense'
 import {
   BONUS_NEUTRE,
   HEROS,
@@ -193,6 +194,7 @@ import {
   lireHeritageEnAttente,
   oublierHeritageEnAttente,
   reportRelations,
+  type ChoixHeritage,
 } from './ngplus'
 import { MERVEILLE_PAR_ID, coutMerveille, dureeMerveille, effetEnVigueur, peutBatirMerveille } from './merveilles'
 import { ORACLES, consulterOracle, type OracleId } from './oracles'
@@ -509,6 +511,12 @@ export interface GameState {
    * a été versé en points de relation, la relation peut retomber, le don reste.
    */
   graces: string[]
+  /**
+   * Le plan de défense : posture de la ligne, façon de tirer, et le pan de
+   * l'enceinte que tient chaque type d'unité - réglés en temps de PAIX. Chaque
+   * bataille l'adopte à son ouverture ; ses ordres en sont une copie.
+   */
+  planDefense: PlanDefense
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -542,6 +550,7 @@ export interface GameState {
     | 'espions'
     | 'heritage'
     | 'defi'
+    | 'plandefense'
     | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
@@ -589,6 +598,8 @@ export interface GameState {
   donnerOrdre: (quoi: 'ligne' | 'tir', valeur: OrdreLigne | OrdreTir) => void
   /** affecter un type d'unité à un secteur de l'enceinte (null = au plus pressé) */
   assignerSecteur: (u: UnitId, secteur: number | null) => void
+  /** régler le plan de défense - en temps de paix seulement */
+  reglerPlanDefense: (plan: PlanDefense) => void
   /** porter un présent à une place forte : cela rachète une rancune */
   offrirPresent: (villageId: string) => void
   /** acheter une alliance à qui vous voit déjà d'un bon œil */
@@ -1441,6 +1452,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     oracleReponse: null,
     campagne: null,
     graces: [],
+    planDefense: planParDefaut(),
     missionsNotifiees: [],
     battle: null,
     renfortsEngages: null,
@@ -1480,6 +1492,7 @@ type ActionsOnly = {
   acquerirGrace: unknown
   donnerOrdre: unknown
   assignerSecteur: unknown
+  reglerPlanDefense: unknown
   offrirPresent: unknown
   proposerPacte: unknown
   scellerMariage: unknown
@@ -1596,6 +1609,7 @@ const CHAMPS_SAUVES = [
   'reliques',
   'reliquesExposees',
   'graces',
+  'planDefense',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -2273,6 +2287,9 @@ function encaisserBatiments(s: GameState, cibles: CibleBatiment[], now: number):
  * les deux cas, sinon le mode siège serait un autre jeu.
  */
 function lancerAssaut(s: GameState, now: number): void {
+      // un assaut se joue en temps réel : on repose ×1 DANS l'état, pas seulement
+      // dans le calcul, pour que le règne ne bondisse pas au rapport de bataille
+      s.vitesse = 1
       const bh = bonusHeros(s)
       // les alliés dépêchent des hommes : ils tomberont avant les vôtres
       const renf = renfortsAllies(s)
@@ -2311,6 +2328,15 @@ function lancerAssaut(s: GameState, now: number): void {
         // les héros ne regardent pas depuis les murs : ils descendent
         herosPresents: herosAuCombat(s, now),
       })
+      /*
+       * LE PLAN DE DÉFENSE ENTRE EN VIGUEUR ICI, et nulle part ailleurs. Les pans
+       * sont NOMMÉS dans le plan ('nord') et NUMÉROTÉS dans la bataille : la
+       * traduction a besoin des secteurs réellement assaillis, donc de la bataille
+       * déjà construite. Un pan qui n'est pas assailli ce soir est laissé de côté -
+       * ces hommes reprennent la consigne ordinaire plutôt que d'aller tenir un
+       * autre mur, où ils manqueraient là où l'on cogne.
+       */
+      s.battle.ordres = ordresDefense(s.planDefense, s.battle.secteurs)
       if (s.buildings.ferme.level > 0) {
         s.resources.grain = Math.max(0, s.resources.grain * 0.97) // champs piétinés
       }
@@ -2845,6 +2871,22 @@ function simulerHorsLigne(s: GameState, now: number): void {
   s.offlineSummary = lignes
 }
 
+/*
+ * LE PANIER D'HÉRITAGE DÉJÀ CONSOMMÉ. `choisirMode` remet le monde à neuf, et
+ * `lireHeritageEnAttente()` ne rend qu'une fois : sans cette mémoire, un joueur
+ * qui choisit un mode puis un autre dans la même page - l'écran de choix, puis le
+ * bouton « 🐴 Jouer la campagne » - voyait s'évaporer le prestige qu'il venait de
+ * dépenser. Le prestige n'est pas remboursable.
+ *
+ * Le panier est une promesse faite à LA cité qu'on fonde, et l'on n'en a qu'une à
+ * la fois : cette mémoire vaut donc pour la fondation EN COURS, et se vide dès
+ * qu'on en ouvre une autre pour de bon (`init` charge une partie ou change
+ * d'emplacement, `reset` rase la cité). Sans ces deux bornes, le même don se
+ * reposait dans toutes les parties de la session - jusque dans un défi, dont le
+ * score cessait alors d'être comparable.
+ */
+let panierConsomme: ChoixHeritage | null = null
+
 // ─────────────────────────────────────────────────────────────────────────────
 export const useGame = create<GameState>()(
   immer((set, get) => ({
@@ -2857,6 +2899,8 @@ export const useGame = create<GameState>()(
        * elle a toujours été, et découvre seulement qu'il y a deux cases de plus.
        * La migration « ILION » ne vaut, elle, que pour ce premier emplacement.
        */
+      // la fondation précédente est close : son panier ne se repose plus
+      panierConsomme = null
       const cle = cleEmplacement(emplacementActif())
       const brut = localStorage.getItem(cle) ?? (cle === STORAGE_KEY ? localStorage.getItem(ANCIEN_STORAGE_KEY) : null)
       const now = Date.now()
@@ -2930,6 +2974,10 @@ export const useGame = create<GameState>()(
             s.morale = Math.max(0, Math.min(100, nombre(s.morale, 50)))
             s.relations = s.relations ?? {}
             s.graces = Array.isArray(s.graces) ? s.graces : []
+            // un plan illisible - sauvegarde d'avant le plan, fichier repris à la main,
+            // pan renommé depuis - vaut pas de plan : `planValide` recompose toujours
+            // un plan sain sans jeter ce qui est encore valable
+            s.planDefense = planValide(s.planDefense)
             /*
              * La campagne, ensuite. Une partie commencée avant le VERROUILLAGE des
              * objectifs n'a pas de liste `objectifsFaits` : le suivi d'acte lisait
@@ -4190,6 +4238,25 @@ export const useGame = create<GameState>()(
     },
 
     /*
+     * Régler le plan de défense. En PAIX : autant de fois qu'on veut, sans délai -
+     * c'est une décision de table, pas un ordre crié sous les flèches. C'était tout
+     * le défaut : la barre d'ordres n'existait qu'une fois les assaillants sur la
+     * ville, si bien qu'on ne pouvait préparer sa défense qu'au moment de la subir.
+     *
+     * En BATAILLE : refusé. La bataille a ses propres ordres, copiés du plan à son
+     * ouverture, et ceux-là obéissent à `DELAI_ORDRE_MS`. Laisser le plan écrire
+     * pendant l'assaut en ferait la porte de service du délai - trois postures à la
+     * seconde en pleine mêlée. Le panneau le dit et se met en lecture seule ; ce
+     * refus est la ceinture, la copie est la bretelle.
+     */
+    reglerPlanDefense: (plan) => {
+      set((s) => {
+        if (batailleDuJoueur(s)) return
+        s.planDefense = planValide(plan)
+      })
+    },
+
+    /*
      * ── Trois façons de traiter avec la Troade sans lever une lance ──
      *
      * Le jeu n'en offrait aucune : on pillait, on secourait, et c'était tout.
@@ -4621,6 +4688,11 @@ export const useGame = create<GameState>()(
           ouvrages: secours ? undefined : ouvragesDe(v, GEO_EXPEDITION.place),
           result: null,
         }
+        // le plan emporte la posture et le tir, jamais les pans : loin de chez soi
+        // il n'y a pas de pan à tenir
+        s.expedition.battle.ordres = ordresExpedition(s.planDefense)
+        // même règle qu'en défense : une expédition se regarde en temps réel
+        s.vitesse = 1
         if (ruse) {
           s.siegeGratuit = false
           pushToast(s, '🐎', 'La ruse d’Ulysse opère : vos hommes sont déjà dans la place.')
@@ -4648,13 +4720,53 @@ export const useGame = create<GameState>()(
     // ── Campagne « La Chute » ───────────────────────────────────────────────
     choisirMode: (m) => {
       set((s) => {
+        /*
+         * ═══════════ UN MODE NEUF, UN MONDE NEUF ═══════════
+         *
+         * C'était le bogue, et il ne se voyait pas dans les emplacements de
+         * sauvegarde - ceux-là sont propres, mesuré. `choisirMode` posait le mode
+         * sur l'état COURANT. Les branches qui suivent réécrivent bien le VILLAGE
+         * (`appliquerActe` pour la campagne, les coffres pour le siège) mais aucune
+         * ne touchait au MONDE : `expeditions` (les villages déjà pillés et leurs
+         * étoiles), `alliances` (le tribut et les combattants qu'un allié prête),
+         * `relations`, `technos`, `reliques`, `merveille`, `hautsFaits`, `stats`.
+         *
+         * Or la seule porte d'entrée de la campagne EN COURS DE PARTIE est le
+         * bouton « 🐴 Jouer la campagne » du bandeau : le joueur arrivait à l'acte I
+         * avec la côte déjà pillée et deux alliés au tribut. Le défi, lui, gardait
+         * la cité entière - son score de la semaine n'était donc pas comparable.
+         * Seul le siège s'en sortait, parce que son appelant faisait `reset()`
+         * d'abord : le défaut était contourné dehors, pas corrigé.
+         *
+         * On repart de l'état initial, comme `reset()`, à deux détails près : on ne
+         * touche pas au stockage - le `save()` de la fin de cette action écrit la
+         * partie neuve, et c'est le contrat annoncé au joueur, « votre cité actuelle
+         * sera remplacée » - et l'on garde ce qui appartient au JOUEUR plutôt qu'à
+         * la cité : son record de siège.
+         *
+         * L'HÉRITAGE NG+ N'EST PAS CONCERNÉ : il est lu juste en dessous, depuis
+         * localStorage, donc APRÈS cette remise à neuf. Un legs choisi traverse ;
+         * l'état du monde, jamais.
+         */
+        const record = s.recordSiege ?? 0
+        Object.assign(s, etatInitial(Date.now()))
+        s.recordSiege = record
+        /*
+         * Et l'on rend son hasard au défi qu'on quitte. `poserAlea(null)` n'était
+         * appelé NULLE PART : `source` est un état de module, il survit à tout ce
+         * que fait le store, si bien qu'une campagne lancée après un défi dans la
+         * même page rejouait la graine de la semaine. La branche `defi` ci-dessous
+         * repose la sienne.
+         */
+        poserAlea(null)
         s.mode = m
         /*
          * L'HÉRITAGE d'un règne précédent, s'il en reste un en attente. Il se pose
          * AVANT le mode : la campagne comme le bac à sable en profitent, et le
          * malus de difficulté qui l'accompagne s'ajoute à ce que le mode impose.
          */
-        const enAttente = lireHeritageEnAttente()
+        const lu = lireHeritageEnAttente()
+        const enAttente = Object.keys(lu).length > 0 ? lu : (panierConsomme ?? {})
         const modifs = appliquerHeritage(enAttente)
         if (modifs.pointsDepenses > 0) {
           for (const [r, n] of Object.entries(modifs.res) as [ResourceId, number][]) {
@@ -4686,6 +4798,7 @@ export const useGame = create<GameState>()(
           }
           s.threatMod += modifs.malus.threatMod
           s.nextAttackAt = Date.now() + modifs.malus.premierAssautMs
+          panierConsomme = enAttente
           oublierHeritageEnAttente()
           pushReport(s, '👑', 'L’héritage du règne précédent', [
             `${modifs.pointsDepenses} points d’héritage dépensés.`,
@@ -4925,9 +5038,30 @@ export const useGame = create<GameState>()(
       })
     },
 
+    /*
+     * LE TEMPS NE S'ACCÉLÈRE PAS PENDANT UN COMBAT, et il faut le dire deux fois.
+     *
+     * Le tick clampait déjà la vitesse à ×1 dès qu'une bataille ou une expédition
+     * était en cours : la SIMULATION était donc juste. Mais l'état, lui, restait
+     * libre - les boutons du bandeau sont désactivés en bataille, les RACCOURCIS
+     * CLAVIER (touches 1 à 4, cf. App.tsx) ne l'étaient pas. On pouvait poser ×8
+     * en pleine mêlée : rien n'accélérait sur l'instant, puis le règne bondissait
+     * de huit crans à la seconde où l'assaut se concluait.
+     *
+     * On refuse donc le changement à la source, et l'on repose ×1 dans l'état au
+     * moment où un combat s'ouvre : ce que le joueur lit correspond enfin à ce que
+     * le jeu calcule, et rien ne saute au rapport de bataille.
+     */
     setVitesse: (v) => {
       set((s) => {
         if (!VITESSES.includes(v as (typeof VITESSES)[number])) return
+        if (s.battle || (s.expedition && !s.expedition.result)) {
+          if (v !== 1) {
+            pushToast(s, '⏸', 'Un combat se joue en temps réel : le temps reste à ×1.')
+          }
+          s.vitesse = 1
+          return
+        }
         s.vitesse = v
       })
     },
@@ -5026,6 +5160,7 @@ export const useGame = create<GameState>()(
         const record = s.recordSiege ?? 0
         Object.assign(s, etatInitial(Date.now()))
         s.recordSiege = record
+        panierConsomme = null
         pushToast(s, '🏛️', 'Une nouvelle cité s’élève - tout est à rebâtir.')
       })
       try {

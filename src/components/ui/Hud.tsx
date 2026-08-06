@@ -23,6 +23,7 @@ import { HerosRapides } from './Heros'
 import { Icone, Montant } from './Icones'
 import { Astuce, Infobulle } from './Infobulle'
 import { BarreOrdres } from './Ordres'
+import { JetonPlanDefense } from './PlanDefense'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
 
@@ -568,7 +569,13 @@ export function BandeauAlerte() {
     const seuil = heroTient ? SEUIL_PANIQUE_HEROS : SEUIL_PANIQUE
     const rompt = moral < seuil
     return (
-      <div className="bandeau">
+      /*
+       * `assaut` est ADDITIVE : `.bandeau` continue de servir le siège, le défi, le
+       * secours et l'alerte, qui restent centrés en haut. Seul ce bandeau-ci descend
+       * dans la colonne de gauche - centré en haut, il posait 360 × 165 px sur le pan
+       * Nord dès qu'une vague ouvrait trois fronts (45 % de son arc masqué, mesuré).
+       */
+      <div className="bandeau assaut">
         <div className="gros">⚔️ ASSAUT EN COURS - {restants} assaillants</div>
         <div className="detail">{battle.breche ? '💥 Les remparts sont percés : mêlée dans le village !' : 'Vos remparts encaissent le choc.'}</div>
         <div className="detail moral-ligne">
@@ -670,6 +677,10 @@ export function BandeauAlerte() {
             <b><Montant n={defRecompense.faveur} id="faveur" taille={14} signe /></b> · ambiance +10
           </div>
         )}
+        {/* le moment où l'on pense à sa défense, c'est celui-ci : le plan est à un clic */}
+        <div className="detail">
+          <JetonPlanDefense />
+        </div>
         {expedition ? (
           <div className="detail">⏳ Vos troupes sont en expédition - l’ennemi attend leur retour…</div>
         ) : (

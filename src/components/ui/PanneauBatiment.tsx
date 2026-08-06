@@ -5,6 +5,7 @@ import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
 import { Astuce } from './Infobulle'
 import { nichesTemple } from '../../game/reliques'
+import { BlocPlanDefense } from './PlanDefense'
 import { couleurRendement } from './Population'
 
 function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, number>>; resources: Record<ResourceId, number> }) {
@@ -642,6 +643,7 @@ export function PanneauBatiment() {
       <BlocOuvriers id={id} onVoirHabitants={voirHabitants} />
       {id === 'maisons' && <BlocHabitants onVoirHabitants={voirHabitants} />}
       {id === 'remparts' && <BlocRemparts />}
+      {id === 'remparts' && <BlocPlanDefense />}
       {id === 'remparts' && <BlocTours />}
       {id === 'remparts' && <BlocRedoute />}
       {id === 'remparts' && <BlocDefenses />}

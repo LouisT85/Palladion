@@ -14,8 +14,8 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Domaine | État | Reste à faire |
 |---|---|---|
 | Boucle de gestion | ✅ complet | rien de bloquant |
-| Défense et batailles | ✅ complet | ordres, moral, **sept unités**, champions nommés, structure des bâtiments, cinq ouvrages intérieurs |
-| Offensive (8 places fortes) | ✅ complet | rien de bloquant - pillage/secours, alliances, tribut, **caravanes**, **espionnage** |
+| Défense et batailles | ✅ complet | ordres, moral, **sept unités**, champions nommés, structure des bâtiments, cinq ouvrages intérieurs **et la Redoute, qui riposte** |
+| Offensive (8 places fortes) | ✅ complet | rien de bloquant - pillage/secours, alliances, tribut, **caravanes**, **espionnage**, **ouvrages ennemis à abattre** |
 | Économie | ✅ complet | rien de bloquant - **marché à cours flottants**, **arbre de vingt découvertes**, **six merveilles** |
 | Dieux et ferveur | ✅ complet | rien de bloquant - arbre de faveur, **oracles**, **colère graduée**, **reliques** |
 | Héros (8, arcs, entretien) | ✅ complet | rien de bloquant |
@@ -23,8 +23,8 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Village vivant | ✅ complet | âges, foyers, lignées, transmission des métiers |
 | Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, 51 hauts faits, campagne en 5 actes |
 | Modes de jeu | ✅ **quatre** | bac à sable, campagne, **siège sans fin**, **défi hebdomadaire** - plus **Nouvelle Partie +** |
-| Tests | ✅ **758 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
-| Art | ✅ complet | rien de bloquant - carte allégée, culling et palier de détail |
+| Tests | ✅ **770 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
+| Art | ✅ complet | rien de bloquant - carte allégée, culling, palier de détail, **temple refait** |
 | Accessibilité / mobile | ❌ non traité | tactile, contrastes, `prefers-reduced-motion` |
 | Multijoueur / serveur | ❌ non traité | hors périmètre pour l'instant |
 
@@ -107,7 +107,32 @@ Courte, et c'est voulu.
 Conservé pour mémoire. Le détail des choix de conception vit dans les commentaires du code - c'est
 là qu'il reste juste.
 
-### Lot 11 - la carte allégée *(le plus récent)*
+### Lot 12 - l'horloge des dieux, la Redoute et le temple *(le plus récent)*
+
+Sept demandes, dont **deux régressions invisibles** que seule une mesure a pu nommer.
+
+L'éclair de Zeus ne se voyait plus. La cause n'était ni le dessin ni le déclenchement :
+**l'horloge SMIL est celle du DOCUMENT, pas celle de l'élément**. Un effet inséré trois minutes
+après le chargement a son intervalle entièrement dans le passé - le navigateur le déclare fini et
+gèle aussitôt la dernière image. Mesure faite sur Chromium : l'opacité d'un fondu « 1 → 0 » lue
+200 ms après l'insertion vaut **zéro**. Le même défaut faisait apparaître les flèches directement
+sur leur cible et couchait les morts avant leur chute : **79 animations gelées** sur une seule
+image de bataille.
+
+| Sujet | Ce qui a été fait |
+|---|---|
+| **Horloge des effets** | Trois enveloppes - `Anim`, `AnimT`, `AnimM` - posent `begin="indefinite"` puis arment l'animation quand le nœud entre dans le document. Après correction, le même fondu mesure 0,89 à 200 ms et 0 à 2,2 s. Un test de rendu l'exige désormais de toute animation « une passe » de la bataille : sans le correctif, il en dénonce 79. |
+| **Fluidité mesurée** | Les combats saccadaient pour deux raisons distinctes. Les **deux cents flous gaussiens** de la carte étaient calculés en `linearRGB` par défaut, ce qui impose une conversion d'espace colorimétrique de toute la région à chaque rastérisation : `colorInterpolationFilters="sRGB"` fait tomber le blocage du fil principal de **2 840 ms à 500 ms** par tranche de dix secondes d'assaut. Et pendant une expédition, la carte du village gardait **4 900 nœuds animés** rastérisés sous un voile opaque, quand la scène du raid n'en compte que 714 : un `display:none` porte l'expédition de **9 à 24 images par seconde** (p95 : 168 → 61 ms). |
+| **La Redoute** | Les cinq ouvrages intérieurs étaient tous PASSIFS - de la structure, des modificateurs, aucune arme. Une fois le mur passé, il ne restait que la mêlée. La Redoute est le pendant exact de la tour d'archers, à l'envers du temps : **muette tant que l'enceinte tient**, elle ouvre le feu à la brèche sur ce qui est ENTRÉ, et seulement sur lui. Trois scorpions, une structure propre - on peut la réduire au silence, sinon la brèche ne vaudrait plus rien. Le scorpion est de sept siècles postérieur à Troie : l'anachronisme est assumé et dit dans le panneau. |
+| **Les ouvrages ennemis** | Les jauges de structure n'existaient qu'en défense : on lisait la santé de ses propres bâtiments en se faisant piller, jamais celle des bâtiments qu'on pillait. Chaque archétype de place forte a désormais ses ouvrages - tente du chef, entrepôt, donjon, corps de garde - aux positions exactes du décor peint, avec un CŒUR dont la chute décide du raid. Un ouvrage abattu se couvre de gravats et de fumée plutôt que de disparaître, et le sac complet vaut **+25 % de butin**. |
+| **Le temple refait** | Écrit le premier comme référence, dépassé depuis par les neuf autres (246 lignes contre 900 à 1 200). Deux manques structurels : **pas de flanc** - un temple sans sa colonnade latérale qui fuit vers le fond n'a aucun volume en vue 3/4 - et **pas de sanctuaire** : il flottait seul au milieu de rien. Quatre âges désormais distincts : bois sacré, naïskos de brique crue, périptère de pierre, grand temple de marbre et d'or - avec péribole, autel des sacrifices, trépieds votifs, trésors et statue de culte devinée dans la pénombre. |
+| **Agamemnon** | Ses deux conditions cochées en vert, le bouton éteint, le coût en gris neutre : la fiche disait « tout est réuni » sans dire ce qui bloquait. Rien n'était en panne - il manquait du bronze. Le coût se colore comme celui d'un chantier, et le bouton distingue « il ne viendra pas encore » de « les présents manquent ». |
+
+**Reste connu et non traité** : les flous coûtent encore ~500 ms de blocage par dix secondes
+d'assaut. Les retirer n'est pas gratuit - l'A/B au pixel montre le disque du soleil qui se cerne
+d'anneaux durs. Il faudra peindre ces ombres au dégradé plutôt qu'au filtre, ouvrage par ouvrage.
+
+### Lot 11 - la carte allégée
 
 Un seul chantier, et un diagnostic qui a démenti l'énoncé. La feuille de route annonçait « une
 trentaine de milliers de nœuds SVG au dézoom » et prescrivait un niveau de détail dégradé. **La

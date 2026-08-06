@@ -14,7 +14,7 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Domaine | État | Reste à faire |
 |---|---|---|
 | Boucle de gestion | ✅ complet | rien de bloquant |
-| Défense et batailles | ✅ complet | ordres, moral, **sept unités**, champions nommés, structure des bâtiments, cinq ouvrages intérieurs **et la Redoute, qui riposte** |
+| Défense et batailles | ✅ complet | ordres, moral, **sept unités**, champions nommés, structure des bâtiments, cinq ouvrages intérieurs, la Redoute qui riposte, **et un plan de défense réglé en temps de paix** |
 | Offensive (8 places fortes) | ✅ complet | rien de bloquant - pillage/secours, alliances, tribut, **caravanes**, **espionnage**, **ouvrages ennemis à abattre** |
 | Économie | ✅ complet | rien de bloquant - **marché à cours flottants**, **arbre de vingt découvertes**, **six merveilles** |
 | Dieux et ferveur | ✅ complet | rien de bloquant - arbre de faveur, **oracles**, **colère graduée**, **reliques** |
@@ -23,8 +23,8 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Village vivant | ✅ complet | âges, foyers, lignées, transmission des métiers |
 | Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, 51 hauts faits, campagne en 5 actes |
 | Modes de jeu | ✅ **quatre** | bac à sable, campagne, **siège sans fin**, **défi hebdomadaire** - plus **Nouvelle Partie +** |
-| Tests | ✅ **770 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
-| Art | ✅ complet | rien de bloquant - carte allégée, culling, palier de détail, **temple refait** |
+| Tests | ✅ **835 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
+| Art | ✅ complet | rien de bloquant - carte allégée, culling, palier de détail, temple refait, **remparts et tours redessinés par niveau** |
 | Accessibilité / mobile | ❌ non traité | tactile, contrastes, `prefers-reduced-motion` |
 | Multijoueur / serveur | ❌ non traité | hors périmètre pour l'instant |
 
@@ -107,7 +107,35 @@ Courte, et c'est voulu.
 Conservé pour mémoire. Le détail des choix de conception vit dans les commentaires du code - c'est
 là qu'il reste juste.
 
-### Lot 12 - l'horloge des dieux, la Redoute et le temple *(le plus récent)*
+### Lot 13 - deux boutons qui plafonnaient le jeu, et un mur qui ne pouvait pas coller *(le plus récent)*
+
+Sept demandes. Deux d'entre elles ont demandé de **réfuter le premier diagnostic** avant de
+pouvoir être corrigées, et c'est là que le lot s'est joué.
+
+**La navigation des encarts n'était pas un défaut des encarts.** Le premier relevé accusait la
+carte du village, qui reste montée derrière les panneaux. Une passe adversariale l'a démenti :
+il y avait DEUX invalidateurs de peinture, indépendants, **et ils se masquaient l'un l'autre**.
+Couper les animations CSS seules ne donnait rien, parce que l'horloge SMIL de la carte saturait
+déjà l'image - d'où la conclusion, fausse, qu'elles étaient innocentes. `box-shadow` n'est pas une
+propriété que Chromium sait composer : deux boutons du HUD la faisaient battre **à l'infini**, et
+tenaient le document entier dans un cycle peinture-à-chaque-image. **Tout le jeu tournait à 12
+images par seconde, depuis toujours.**
+
+| Sujet | Ce qui a été fait |
+|---|---|
+| **Fluidité** | Les deux lueurs deviennent STATIQUES (trois pulsations ne suffisaient pas : une pulsation en cours tient encore l'image à 66,6 ms). Trois autres coupables mesurés puis retirés après A/B au pixel : le `backdrop-filter` du panneau de bâtiment (17 ms/image), les **trois** du suivi de missions - qui est à l'écran en permanence - (10,4 ms/image, 0,00 % de pixels écartés de plus de 1/20), et l'horloge de la carte, gelée tant qu'un encart occupe l'écran mais **jamais** pendant un combat. Relevé final : panthéon 54,6 → 17,2 ms (18,3 → 58,1 i/s), panneau de bâtiment 50,6 → 16,7 ms (19,8 → 59,9 i/s). |
+| **Isolation des parties** | La campagne héritait des villages pillés, des alliances et des relations de la partie qu'on quittait. Le trajet par les emplacements était propre : c'est `choisirMode` qui posait le mode sur l'état COURANT sans remettre le monde à neuf. Le défi gardait même la cité entière - son score n'était pas comparable - et `poserAlea(null)` n'était appelé nulle part, si bien qu'une campagne lancée après un défi rejouait la graine de la semaine. L'héritage NG+ reste intact : un legs choisi traverse, l'état du monde jamais. |
+| **Remparts et tours** | `TourArcher` ne recevait ni le niveau du mur ni la géométrie : un seul dessin pour les remparts 2, 3 et 4, dont le plancher culminait 23 à 28 px au-dessus du chemin de ronde. La tour n'a plus de cote propre - son plancher EST le chemin de ronde de son niveau - et elle chevauche la courtine au lieu d'être posée à côté. Trois défauts de fond réglés dans le mur : l'échantillonnage à pas d'angle qui empilait les créneaux à la verticale aux extrémités de l'ellipse, la face unique pour 360°, et la porte qui ne pouvait structurellement pas se raccorder aux deux bouts du mur. |
+| **Plan de défense** | La barre d'ordres n'existait qu'en bataille : on ne pouvait préparer sa défense qu'en la subissant. Le plan est permanent, réglable en paix, adopté à l'ouverture de chaque bataille - et il MONTRE l'enceinte, pans nommés et réserve, plutôt que d'offrir des menus déroulants. Un pan se désigne par son NOM, jamais par son rang : `choisirFronts` mêle les flancs d'un soir à l'autre. |
+| **Menu d'assaut** | Ce n'était pas sa taille mais sa PLACE : le zoom de la caméra de bataille est borné à 1,7, donc à trois fronts elle ne peut plus reculer et plaque le pan Nord juste sous le bandeau - 45 % de son arc masqué, 22 de ses 41 créneaux, mesuré. Il passe à gauche, à mi-hauteur, dans la bande libre entre les jauges nord et sud. Zéro pixel masqué, vérifié de 1100×800 à 1920×1080. |
+| **Combats en ×1** | La simulation l'était déjà ; `setVitesse` ne l'était pas, et les raccourcis clavier ne passent pas par les boutons désactivés. On posait ×8 en pleine mêlée : rien n'accélérait sur l'instant, puis le règne bondissait de huit crans à la fin de l'assaut. |
+
+**Reste ouvert, mesuré :** le village AU REPOS ne gagne rien (72,5 ms). Son horloge doit tourner
+pour qu'il vive, et sa rastérisation - environ 180 flous gaussiens - est désormais le seul
+invalidateur restant. C'est le chantier des ombres peintes au dégradé plutôt qu'au filtre, déjà
+noté au lot 12 et toujours à faire.
+
+### Lot 12 - l'horloge des dieux, la Redoute et le temple
 
 Sept demandes, dont **deux régressions invisibles** que seule une mesure a pu nommer.
 

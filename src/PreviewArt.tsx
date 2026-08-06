@@ -52,26 +52,59 @@ export function PreviewArt() {
   }
 
   if (cible === 'murailles') {
+    /*
+     * Six cas RÉELS selon TOURS_MAX = [0,0,1,2,4]. L'ancienne grille montrait
+     * « remparts 3 + 3 tours », une combinaison que le jeu ne produit jamais, et
+     * ne montrait JAMAIS les remparts 4 avec une ou deux tours. Chaque cas est
+     * doublé de trois vignettes grossies ×z recadrées sur la porte, sur une tour
+     * et sur un pan nu : c'est à cette échelle que se juge le raccord.
+     */
+    const CAS: [number, number][] = [[1, 0], [2, 1], [3, 2], [4, 1], [4, 2], [4, 4]]
+    const VUES = [
+      { nom: 'porte', a: 0 },
+      { nom: 'tour', a: 0.42 },
+      { nom: 'pan nu', a: 1.15 },
+    ]
+    const zoom = Number(q.get('z') ?? 3)
+    const geo = { cx: 300, cy: 210, rx: 250, ry: 120 }
+    const pm = (a: number) => ({ x: geo.cx + geo.rx * Math.cos(a), y: geo.cy + geo.ry * Math.sin(a) })
+    const paire = (n: number, t: number) => (
+      <>
+        <Murailles niveau={n} hp={1} max={1} breche={false} layer="back" geo={geo} tours={t} />
+        <Murailles niveau={n} hp={1} max={1} breche={false} layer="front" geo={geo} tours={t} />
+      </>
+    )
     return (
-      <svg viewBox="0 0 1600 900" style={{ width: '100vw', height: '100vh', background: SOL }}>
+      <svg viewBox={`0 0 1600 ${CAS.length * 340}`} style={{ width: '100vw', background: SOL }}>
         <defs>
           <DefsArt />
           <DefsBatiments />
+          <clipPath id="ap-vignette">
+            <rect x={0} y={0} width={300} height={300} />
+          </clipPath>
         </defs>
-        {[1, 2, 3, 4].map((n) => {
-          const geo = { cx: 400 + (n - 1 >= 2 ? 800 : 0) * ((n - 1) % 2 ? 1 : 0) + ((n - 1) % 2) * 800, cy: n <= 2 ? 240 : 660, rx: 300, ry: 140 }
-          const g2 = { cx: (n - 1) % 2 === 0 ? 400 : 1200, cy: n <= 2 ? 240 : 680, rx: 310, ry: 150 }
-          void geo
-          return (
-            <g key={n}>
-              <Murailles niveau={n} hp={1} max={1} breche={false} layer="back" geo={g2} tours={n >= 2 ? Math.min(4, n) : 0} />
-              <Murailles niveau={n} hp={1} max={1} breche={false} layer="front" geo={g2} tours={n >= 2 ? Math.min(4, n) : 0} />
-              <text x={g2.cx} y={g2.cy + 4} textAnchor="middle" fontSize={20} fill="#3d3a30" fontWeight={700}>
-                niveau {n}
-              </text>
-            </g>
-          )
-        })}
+        {CAS.map(([n, t], i) => (
+          <g key={`${n}-${t}`} transform={`translate(0,${i * 340})`}>
+            {paire(n, t)}
+            <text x={16} y={26} fontSize={17} fill="#3d3a30" fontWeight={700}>
+              remparts {n} · {t} tour{t > 1 ? 's' : ''}
+            </text>
+            {VUES.map((v, j) => {
+              const p = pm(v.a)
+              return (
+                <g key={v.nom} transform={`translate(${640 + j * 320},8)`}>
+                  <rect x={0} y={0} width={300} height={300} fill="#b5ac74" opacity={0.5} />
+                  <g clipPath="url(#ap-vignette)">
+                    <g transform={`translate(150,150) scale(${zoom}) translate(${-p.x},${-p.y})`}>{paire(n, t)}</g>
+                  </g>
+                  <text x={6} y={292} fontSize={13} fill="#3d3a30" fontWeight={700}>
+                    {v.nom} ×{zoom}
+                  </text>
+                </g>
+              )
+            })}
+          </g>
+        ))}
       </svg>
     )
   }

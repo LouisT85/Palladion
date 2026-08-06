@@ -1,4 +1,5 @@
 import { BatimentArt, DefsBatiments } from './components/map/Batiments'
+import { Redoute } from './components/map/batiments/Redoute'
 import { DefsArt } from './components/map/art'
 import { Murailles } from './components/map/Murailles'
 import { Terrain } from './components/map/Terrain'
@@ -274,6 +275,24 @@ export function PreviewArt() {
           </div>
         ))}
       </div>
+    )
+  }
+
+  if (cible === 'redoute') {
+    return (
+      <svg viewBox="0 0 1600 460" style={{ width: '100vw', height: '100vh', background: SOL }}>
+        <defs>
+          <DefsArt />
+          <DefsBatiments />
+        </defs>
+        {[1, 2, 3].map((niv, i) => (
+          <CadreNiveau key={niv} i={i}>
+            <g transform={`scale(${z})`}>
+              <Redoute n={niv} />
+            </g>
+          </CadreNiveau>
+        ))}
+      </svg>
     )
   }
 

@@ -14,7 +14,7 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Domaine | État | Reste à faire |
 |---|---|---|
 | Boucle de gestion | ✅ complet | rien de bloquant |
-| Défense et batailles | ✅ complet | ordres, moral, **sept unités**, champions nommés, structure des bâtiments, cinq ouvrages intérieurs, la Redoute qui riposte, **et un plan de défense réglé en temps de paix** |
+| Défense et batailles | ✅ complet | ordres, moral, **sept unités**, champions nommés, structure des bâtiments, cinq ouvrages intérieurs, **la Redoute, onzième bâtiment, qui riposte**, et un plan de défense réglé en temps de paix - héros compris |
 | Offensive (8 places fortes) | ✅ complet | rien de bloquant - pillage/secours, alliances, tribut, **caravanes**, **espionnage**, **ouvrages ennemis à abattre** |
 | Économie | ✅ complet | rien de bloquant - **marché à cours flottants**, **arbre de vingt découvertes**, **six merveilles** |
 | Dieux et ferveur | ✅ complet | rien de bloquant - arbre de faveur, **oracles**, **colère graduée**, **reliques** |
@@ -23,7 +23,7 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Village vivant | ✅ complet | âges, foyers, lignées, transmission des métiers |
 | Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, 51 hauts faits, campagne en 5 actes |
 | Modes de jeu | ✅ **quatre** | bac à sable, campagne, **siège sans fin**, **défi hebdomadaire** - plus **Nouvelle Partie +** |
-| Tests | ✅ **835 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
+| Tests | ✅ **911 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
 | Art | ✅ complet | rien de bloquant - carte allégée, culling, palier de détail, temple refait, **remparts et tours redessinés par niveau** |
 | Accessibilité / mobile | ❌ non traité | tactile, contrastes, `prefers-reduced-motion` |
 | Multijoueur / serveur | ❌ non traité | hors périmètre pour l'instant |
@@ -107,7 +107,26 @@ Courte, et c'est voulu.
 Conservé pour mémoire. Le détail des choix de conception vit dans les commentaires du code - c'est
 là qu'il reste juste.
 
-### Lot 13 - deux boutons qui plafonnaient le jeu, et un mur qui ne pouvait pas coller *(le plus récent)*
+### Lot 14 - ce qu'on croyait voir, et ce que la mesure disait *(le plus récent)*
+
+Sept demandes, et **trois diagnostics retournés** : à chaque fois, le défaut n'était pas là où le
+symptôme le désignait.
+
+| Sujet | Ce qui a été fait |
+|---|---|
+| **Les héros en expédition** | Le reproche était juste, la cause non. Ils MARCHENT et frappent - relevé à graine égale sur la forteresse mysienne, deux héros font passer la même colonne de 0 à 179 dégâts portés et de 0 à 8 hommes debout. C'est l'ESTIMATION du panneau qui sommait les unités et rien d'autre : elle annonçait 226 dans les deux cas. Corriger la participation aurait doublé des bras déjà comptés. Un héros est désormais pesé dans la même métrique que le reste du panneau, appliquée à ses statistiques réelles - son poids tombe de ses points de vie, il n'est pas décrété. Et ils se postent nommément sur un pan, ce qu'`ordres.secteurs` ne pouvait pas faire sans emmener les trente hoplites avec Hector. |
+| **La Redoute, onzième bâtiment** | Elle vivait comme un compteur greffé sur le panneau des remparts. La cascade redoutée était petite - tout itère `BUILDING_IDS` - mais un garde-fou a attrapé un mensonge que personne ne cherchait : deux hauts faits promettaient « les dix domaines du village ». Sa place a été choisie **sur capture après que la mesure a trompé** : 7 225 positions tiennent dans l'enceinte, aucune ne laisse la masse libre, et la « meilleure » au calcul posait une file d'arcs de scorpions - ajourée, donc gratuite au calcul - en travers de la forge. |
+| **Les expéditions** | Une place entière valait 162 points de structure quand cinq hoplites en portent 45 par seconde : elle tombait en une seconde et demie. La structure suit maintenant la puissance ET le matériau, jamais le nombre d'hommes envoyés - une jauge est une propriété de la chose mesurée, et amener du monde doit payer. Et les ruines : un ouvrage abattu gardait son dessin intact sous trois disques de fumée pâle, ce que le joueur a décrit comme « transparent ». Le décor sait désormais ce qui est tombé et le remplace par sa ruine. |
+| **La face interne des remparts** | L'appentis ne flottait ni par mauvaise cote ni du mauvais côté : par ABSENCE D'ÉPAISSEUR. Son seul indice de profondeur était un décalé en cosinus, qui tend vers zéro au nord de l'ellipse - exactement là où le joueur l'a photographié. Deux cotes partagées étaient fausses, donc le défaut existait aussi au niveau 4. Une cinquième règle rejoint l'en-tête du fichier : tout ouvrage du dedans a son pied 0,591 × sa profondeur plus bas à l'écran. |
+| **Le panneau d'assaut** | Quatre cadres imbriqués dans 300 px, et un schéma d'enceinte qui défilait sous son étiquette. La barre d'ordres devient une section plutôt qu'une boîte, et le panneau s'ouvre à 62 % de la hauteur utile le temps du réglage - le dépliage est un geste délibéré. Replié il tient à 305 × 170, bord haut à 417 px quand l'arc du pan Nord s'arrête à 317 : rien n'est repris de ce que le lot 13 avait dégagé. |
+| **Combats en ×1** | Traité au lot 13 pour la simulation ; ici c'est `setVitesse` qui n'était pas gardé - les raccourcis clavier ne passent pas par les boutons désactivés. |
+
+**Une leçon de méthode, la même trois fois :** le symptôme désigne un coupable, la mesure en
+désigne un autre. « Les héros ne comptent pas » → ils comptaient, c'est l'affichage qui mentait.
+« Le mur a un souci » → le souci était aussi au niveau au-dessus. « La meilleure place au calcul »
+→ la capture l'a réfutée.
+
+### Lot 13 - deux boutons qui plafonnaient le jeu, et un mur qui ne pouvait pas coller
 
 Sept demandes. Deux d'entre elles ont demandé de **réfuter le premier diagnostic** avant de
 pouvoir être corrigées, et c'est là que le lot s'est joué.

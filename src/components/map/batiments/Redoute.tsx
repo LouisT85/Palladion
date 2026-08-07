@@ -236,6 +236,109 @@ function Encorbellement({ larg, deb, y }: { larg: number; deb: number; y: number
   )
 }
 
+/*
+ * ═══════════════════ LE PIED DE L'OUVRAGE ═══════════════════
+ *
+ * « Le haut est génial mais on ne distingue pas bien le bas. » Le joueur avait
+ * raison, et la cause tenait en un mot : le tiers inférieur était d'un SEUL TON,
+ * sans rien qui dise où finit la maçonnerie et où commence la terre. Le parapet,
+ * les scorpions, les créneaux avaient chacun trois valeurs ; l'empattement en
+ * avait une, et se posait sur l'herbe comme une image découpée.
+ *
+ * Quatre choses font qu'un massif REPOSE au lieu de flotter, et ce sont les
+ * mêmes qu'aux remparts :
+ *  1. un EMPATTEMENT à ressauts - la pierre s'élargit par degrés en descendant,
+ *     chacun avec son dessus éclairé et sa face en demi-teinte. C'est ce ressaut
+ *     qui dit l'épaisseur, pas le contour ;
+ *  2. le BAS EST PLUS SOMBRE. Un mur est humide et sale à son pied : une bande
+ *     assombrie sur la dernière assise, et quelques blocs plus foncés ;
+ *  3. LE CONTACT AU SOL - la terre s'amoncelle contre l'empattement, en deux
+ *     tons, avec des touffes d'herbe et des éclats de taille tombés du chantier.
+ *     Sans cela l'ouvrage est POSÉ ; avec, il est ANCRÉ ;
+ *  4. LES TRACES DU SERVICE - ornières des charrois qui montent les traits,
+ *     jusqu'au pied de la rampe. Un ouvrage qui sert a un sol usé.
+ */
+function PiedRedoute({ larg, joue, pierre, seed }: { larg: number; joue: number; pierre: boolean; seed: number }) {
+  const rnd = alea(seed)
+  /*
+   * LES VALEURS FONT TOUT. Premier essai : l'empattement reprenait la palette du
+   * parement, si bien qu'il se lisait comme « encore du mur » et que le joueur ne
+   * distinguait toujours pas le bas. Un empattement est dans l'ombre portée de ce
+   * qu'il porte, et il est sale : il doit donc être franchement PLUS SOMBRE que
+   * la façade, avec un seul nez clair pour dire l'arête. C'est l'écart de valeur
+   * qui sépare, pas le contour.
+   */
+  const sombre = pierre ? '#645c4d' : '#43341f'
+  const mi = pierre ? '#8b8271' : '#634e30'
+  const lit = pierre ? '#c3baa4' : '#96784f'
+  return (
+    <g>
+      {/* ── 1. l'empattement, deux ressauts, et l'ombre de ce qu'il porte ── */}
+      {/* le premier ressaut : nez clair, face en demi-teinte, ombre du mur dessus */}
+      <path d={`M${-larg - 3},0 L${larg + 2},0 L${larg + 2},3.4 L${-larg - 3},3.4 Z`} fill={mi} />
+      <path d={`M${-larg - 3},0 L${larg + 2},0 L${larg + 2},1.1 L${-larg - 3},1.1 Z`} fill={lit} />
+      <path d={`M${-larg},0 L${larg},0 L${larg},1.1 L${-larg},1.1 Z`} fill={PAL.ombrePortee} opacity={0.3} />
+      <path d={`M${larg + 2},0 L${larg + 2 + joue * 0.7},${-joue * 0.3} L${larg + 2 + joue * 0.7},${-joue * 0.3 + 3.4} L${larg + 2},3.4 Z`} fill={sombre} />
+      {/* le second, plus large et plus sombre : c'est lui qui entre en terre */}
+      <path d={`M${-larg - 7},3.4 L${larg + 5},3.4 L${larg + 5},7 L${-larg - 7},7 Z`} fill={sombre} />
+      <path d={`M${-larg - 7},3.4 L${larg + 5},3.4 L${larg + 5},4.4 L${-larg - 7},4.4 Z`} fill={mi} />
+      <path d={`M${-larg - 3},3.4 L${larg + 2},3.4 L${larg + 2},4.4 L${-larg - 3},4.4 Z`} fill={PAL.ombrePortee} opacity={0.26} />
+      <path d={`M${larg + 5},3.4 L${larg + 5 + joue * 0.5},${-joue * 0.2 + 3.4} L${larg + 5 + joue * 0.5},${-joue * 0.2 + 7} L${larg + 5},7 Z`} fill={sombre} opacity={0.8} />
+      {/* joints de l'empattement : de gros blocs, pas un bandeau lisse */}
+      {pierre &&
+        Array.from({ length: 7 }, (_, i) => {
+          const jx = -larg - 5 + ((i + 1) * (larg * 2 + 10)) / 8
+          return <path key={`j${i}`} d={`M${jx},4.4 L${jx + 0.8},7`} stroke="#4e4739" strokeWidth={0.8} opacity={0.55} />
+        })}
+
+      {/* ── 3. la terre s'amoncelle contre l'empattement ── */}
+      <path
+        d={`M${-larg - 11},7.4 Q${-larg * 0.5},4.6 ${-larg * 0.05},6.6 Q${larg * 0.45},8.4 ${larg + 9},5.8 L${larg + 9},9.6 Q${larg * 0.4},11.8 ${-larg * 0.1},10 Q${-larg * 0.55},8.4 ${-larg - 11},11 Z`}
+        fill="#9d8a5e"
+      />
+      <path
+        d={`M${-larg - 11},7.4 Q${-larg * 0.5},4.6 ${-larg * 0.05},6.6 Q${larg * 0.45},8.4 ${larg + 9},5.8 L${larg + 9},7.2 Q${larg * 0.45},9.8 ${-larg * 0.05},8 Q${-larg * 0.5},6 ${-larg - 11},8.8 Z`}
+        fill="#bda878"
+      />
+      {/*
+        Éclats de taille tombés du chantier. Ils se posent DANS la bande de terre,
+        jamais sur l'herbe : dehors ils lisaient comme des points blancs semés au
+        hasard. Et ils empruntent les tons du SOL, pas ceux de la pierre neuve -
+        un éclat qui traîne depuis un mois n'est plus clair.
+      */}
+      {Array.from({ length: 8 }, (_, i) => {
+        const x = -larg - 4 + rnd() * (larg * 2 + 10)
+        const y = 6.4 + rnd() * 3.4
+        const r = 0.9 + rnd() * 1.5
+        return (
+          <g key={i}>
+            <ellipse cx={x} cy={y} rx={r} ry={r * 0.6} fill={i % 2 ? '#8b7d5e' : '#9c8e6c'} />
+            <ellipse cx={x - r * 0.25} cy={y - r * 0.2} rx={r * 0.55} ry={r * 0.3} fill="#ab9d78" />
+          </g>
+        )
+      })}
+      {/* touffes d'herbe : elles poussent où l'on ne marche pas, donc aux angles */}
+      {[-larg - 4, -larg + 7, larg - 5, larg + 6].map((x, i) => (
+        <g key={x} transform={`translate(${x},${7.4 + (i % 2) * 2})`}>
+          <path d="M0,0 q-1.2,-2.6 -2.2,-3.4 M0,0 q0.2,-3 -0.2,-4.2 M0,0 q1.4,-2.4 2.6,-3.2" stroke="#7d8c4e" strokeWidth={0.8} fill="none" />
+        </g>
+      ))}
+
+      {/*
+        ── 4. les ornières du charroi qui monte les traits, vers la rampe ──
+        Elles étaient invisibles à l'échelle de la carte - même ton que le sol,
+        opacité de moitié : des nœuds SVG payés pour rien. Une ornière est un
+        CREUX : elle se dit par un sillon sombre doublé d'un bourrelet clair sur
+        sa lèvre nord-ouest, comme tout le reste du relief de ce jeu.
+      */}
+      <path d={`M${-larg - 26},13.4 Q${-larg * 0.3},10.6 ${larg * 0.5},12.4`} stroke="#8a7a58" strokeWidth={1.8} fill="none" opacity={0.7} />
+      <path d={`M${-larg - 26},12.5 Q${-larg * 0.3},9.7 ${larg * 0.5},11.5`} stroke="#c6b68b" strokeWidth={0.9} fill="none" opacity={0.6} />
+      <path d={`M${-larg - 24},16 Q${-larg * 0.25},13.2 ${larg * 0.55},15`} stroke="#8a7a58" strokeWidth={1.5} fill="none" opacity={0.55} />
+      <path d={`M${-larg - 24},15.2 Q${-larg * 0.25},12.4 ${larg * 0.55},14.2`} stroke="#c6b68b" strokeWidth={0.8} fill="none" opacity={0.45} />
+    </g>
+  )
+}
+
 export function Redoute({ n }: { n: number }) {
   if (n <= 0) return null
   const niv = Math.max(1, Math.min(4, n))
@@ -319,25 +422,99 @@ export function Redoute({ n }: { n: number }) {
             const px = -larg + 4 + (i * (larg * 2 - 8)) / 10
             const w = 2.6 + rnd() * 2.2
             const tete = -haut + 1 + rnd() * 3
+            /*
+             * L'ÉCART DE VALEUR entre fûts voisins était trop faible : à la taille
+             * de la carte, onze cylindres du même brun se fondent en une dalle -
+             * c'est ce que le joueur voyait. On tire donc chaque fût dans une
+             * gamme large, et l'on n'alterne pas mécaniquement : deux clairs
+             * peuvent se suivre, comme dans un vrai rideau de bois abattu à la
+             * hâte.
+             */
+            const g = rnd()
+            const ame = g < 0.33 ? '#8d7048' : g < 0.66 ? '#7a6039' : '#6a5231'
+            const clair = g < 0.33 ? '#b09068' : g < 0.66 ? '#9d7f52' : '#8a6f47'
             return (
               <g key={i}>
-                <path d={`M${px - w / 2},-1 L${px - w / 2 + 0.8},${tete} L${px + w / 2 + 0.8},${tete} L${px + w / 2},-1 Z`} fill="#7f6540" />
-                <path d={`M${px - w / 2},-1 L${px - w / 2 + 0.8},${tete} L${px - w / 2 + 1.9},${tete} L${px - w / 2 + 1.1},-1 Z`} fill="#a08256" />
-                <path d={`M${px + w / 2 - 0.9},-1 L${px + w / 2 + 0.1},${tete} L${px + w / 2 + 0.8},${tete} L${px + w / 2},-1 Z`} fill="#5e4a2e" />
+                <path d={`M${px - w / 2},-1 L${px - w / 2 + 0.8},${tete} L${px + w / 2 + 0.8},${tete} L${px + w / 2},-1 Z`} fill={ame} />
+                <path d={`M${px - w / 2},-1 L${px - w / 2 + 0.8},${tete} L${px - w / 2 + 1.9},${tete} L${px - w / 2 + 1.1},-1 Z`} fill={clair} />
+                <path d={`M${px + w / 2 - 0.9},-1 L${px + w / 2 + 0.1},${tete} L${px + w / 2 + 0.8},${tete} L${px + w / 2},-1 Z`} fill="#4f3d24" />
                 {/* la tête du rondin, vue de dessus en raccourci */}
                 <ellipse cx={px + 0.4} cy={tete} rx={w / 2} ry={w / 5} fill="#b08f60" />
               </g>
             )
           })}
+          {/*
+            LES MOISES. Un rideau de rondins ne tient pas debout tout seul : deux
+            longrines horizontales le ceinturent, ligaturées à chaque troisième
+            fût. C'est la pièce qui manquait le plus - sans elle, onze verticales
+            parallèles n'ont aucune structure à lire, et l'œil ne voit qu'un aplat.
+            Elles donnent en prime les deux lignes horizontales qui découpent la
+            hauteur, et le bas cesse d'être un bloc.
+          */}
+          {[0.34, 0.68].map((f, k) => {
+            const my = -haut * f
+            return (
+              <g key={f}>
+                <path d={`M${-larg + 1},${my} L${larg - 1},${my - 0.6} L${larg - 1},${my + 2.6} L${-larg + 1},${my + 3.2} Z`} fill="#6b5433" />
+                <path d={`M${-larg + 1},${my} L${larg - 1},${my - 0.6} L${larg - 1},${my + 0.7} L${-larg + 1},${my + 1.3} Z`} fill="#9c7c4e" />
+                {/*
+                  Ligatures, un fût sur trois. Deux traits VERTICAUX et clairs
+                  lisaient comme des allumettes collées sur la longrine ; une
+                  corde tourne autour du bois, donc elle est OBLIQUE, sombre à
+                  l'ombre du tour précédent, et serrée - trois passes qui se
+                  touchent, pas deux bâtons espacés.
+                */}
+                {[0, 1, 2, 3].map((j) => {
+                  const lx = -larg + 8 + j * ((larg * 2 - 16) / 3) + (k ? 4 : 0)
+                  return (
+                    <g key={j}>
+                      <path
+                        d={`M${lx - 0.4},${my + 3.6} l1.5,-4.4 M${lx + 0.7},${my + 3.7} l1.5,-4.4 M${lx + 1.8},${my + 3.8} l1.5,-4.4`}
+                        stroke="#8a7346"
+                        strokeWidth={1.1}
+                        fill="none"
+                      />
+                      <path
+                        d={`M${lx - 0.1},${my + 3.2} l1.5,-4.4 M${lx + 1},${my + 3.3} l1.5,-4.4`}
+                        stroke="#b5a173"
+                        strokeWidth={0.6}
+                        fill="none"
+                      />
+                    </g>
+                  )
+                })}
+              </g>
+            )
+          })}
           {/* la terre du remblai déborde entre les rondins, au pied */}
+          {/*
+            LE PIED. Les rondins ne s'arrêtent pas en l'air : ils sont FICHÉS dans
+            un remblai, et c'est ce remblai qu'on ne voyait pas. Il monte contre
+            eux en deux tons, avale le bas de chaque fût, et se cale sur des
+            pierres de blocage - la façon dont on tient une palissade quand on n'a
+            ni chaux ni temps.
+          */}
           <path
-            d={`M${-larg + 2},0 Q${-larg * 0.3},${-4} ${larg * 0.2},${-2.4} Q${larg * 0.7},${-1} ${larg - 2},${-3} L${larg - 2},1 L${-larg + 2},1 Z`}
-            fill="#9d8a5e"
+            d={`M${-larg - 2},0 Q${-larg * 0.35},${-5.4} ${larg * 0.15},${-3.2} Q${larg * 0.65},${-1.4} ${larg + 1},${-3.6} L${larg + 1},2 L${-larg - 2},2 Z`}
+            fill="#8a7649"
           />
           <path
-            d={`M${-larg + 2},0 Q${-larg * 0.3},${-4} ${larg * 0.2},${-2.4} Q${larg * 0.7},${-1} ${larg - 2},${-3} L${larg - 2},${-1.6} Q${larg * 0.7},0.4 ${larg * 0.2},${-1} Q${-larg * 0.3},${-2.6} ${-larg + 2},1.4 Z`}
-            fill="#b8a476"
+            d={`M${-larg - 2},0 Q${-larg * 0.35},${-5.4} ${larg * 0.15},${-3.2} Q${larg * 0.65},${-1.4} ${larg + 1},${-3.6} L${larg + 1},${-2} Q${larg * 0.65},0.2 ${larg * 0.15},${-1.6} Q${-larg * 0.35},${-3.6} ${-larg - 2},1.6 Z`}
+            fill="#bda878"
           />
+          {/* pierres de blocage, coincées entre les fûts */}
+          {Array.from({ length: 7 }, (_, i) => {
+            const bx = -larg + 6 + (i * (larg * 2 - 12)) / 6 + (rnd() - 0.5) * 5
+            const by = -2.4 + rnd() * 3.4
+            const br = 1.6 + rnd() * 1.8
+            return (
+              <g key={`bl${i}`}>
+                <ellipse cx={bx} cy={by} rx={br} ry={br * 0.72} fill={i % 2 ? '#9a917c' : '#877e6a'} />
+                <ellipse cx={bx - br * 0.25} cy={by - br * 0.28} rx={br * 0.6} ry={br * 0.38} fill="#b0a68e" />
+              </g>
+            )
+          })}
+          <PiedRedoute larg={larg} joue={joue} pierre={false} seed={71 + niv} />
           {/* couronnement : plancher de madriers */}
           <path d={`M${-larg - 4},${-haut} L${larg + 3},${-haut} L${larg + joue},${pont} L${-larg},${pont} Z`} fill={PAL.boisMi} />
           <path d={`M${-larg},${pont} L${larg + joue},${pont}`} stroke={PAL.boisLit} strokeWidth={1.4} />
@@ -375,9 +552,18 @@ export function Redoute({ n }: { n: number }) {
           />
           {/* arête d'angle gauche : liseré clair côté lumière */}
           <path d={`M${-larg},0 L${-larg},${-haut}`} stroke={PAL.pierreLit} strokeWidth={1.6} opacity={0.75} />
-          {/* talus de base : la pierre s'évase, l'ouvrage s'ancre au sol */}
-          <path d={`M${-larg},0 L${-larg - 6},4 L${larg + 4},4 L${larg},0 Z`} fill={PAL.pierreOmbre} opacity={0.85} />
-          <path d={`M${-larg},0 L${-larg - 6},4 L${-larg * 0.2},4 L${-larg * 0.16},0 Z`} fill={PAL.pierreMi} />
+          {/*
+            LE PIED. Il n'était qu'un biseau d'un seul ton : l'ouvrage semblait
+            découpé et posé sur l'herbe. Cf. `PiedRedoute` - deux ressauts, la
+            dernière assise assombrie, la terre qui monte contre l'empattement.
+          */}
+          {/* la dernière assise est humide et sale : elle est plus sombre */}
+          <path d={`M${-larg},${-5.5} L${larg},${-5.5} L${larg},0 L${-larg},0 Z`} fill={PAL.ombrePortee} opacity={0.13} />
+          {Array.from({ length: 5 }, (_, i) => {
+            const bx = -larg + 4 + (i * (larg * 2 - 10)) / 4 + (rnd() - 0.5) * 6
+            return <rect key={`hu${i}`} x={bx} y={-5} width={7 + rnd() * 5} height={4.4} fill={PAL.pierreOmbre} opacity={0.22} />
+          })}
+          <PiedRedoute larg={larg} joue={joue} pierre seed={71 + niv} />
 
           {/*
             Les deux saillants du dernier niveau, PEINTS APRÈS la façade et avant

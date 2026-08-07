@@ -76,9 +76,24 @@ def abandonner_la_cite(sc: Scene) -> None:
         sc.page.locator(".tuto-carte").count() == 0,
         "la leçon de Zeus s’affiche par-dessus l’écran de choix du mode (régression connue)",
     )
+    """
+    LA PROMESSE EST « L'ANCIENNE PARTIE N'EXISTE PLUS », pas « la clé est absente à
+    cet instant précis ». `reset()` efface bien la clé, mais le jeu continue de
+    battre et la moindre action - comme le `save()` que l'écran de choix déclenche -
+    la réécrit aussitôt avec la cité NEUVE. Exiger l'absence de la clé, c'était donc
+    courir contre l'horloge : le parcours passait seul et tombait une fois sur dix
+    dans la suite complète. On vérifie maintenant ce qui compte vraiment - ou bien
+    il n'y a plus rien, ou bien ce qui reste est un village vierge.
+    """
     exige(
-        sc.page.evaluate("() => localStorage.getItem('palladion-save-v1') === null"),
-        "la sauvegarde de l’emplacement joué n’a pas été effacée",
+        sc.page.evaluate(
+            "() => { const b = localStorage.getItem('palladion-save-v1');"
+            "  if (b === null) return true;"
+            "  try { const d = JSON.parse(b);"
+            "    return Object.values(d.buildings ?? {}).every((x) => (x.level ?? 0) <= 1) && !d.mode }"
+            "  catch { return false } }"
+        ),
+        "la partie effacée survit dans la sauvegarde de l’emplacement joué",
     )
     sc.capture("retour-au-choix")
 

@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, DEFENSES_DEFS, DEFENSE_IDS, REDOUTE_CADENCE_MS, REDOUTE_MAX, REDOUTE_PORTEE, redouteDmg, structureMax, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
+import { BUILDINGS, DEFENSES_DEFS, DEFENSE_IDS, REDOUTE_CADENCE_MS, REDOUTE_MAX, REDOUTE_PORTEE, redouteDmg, structureMax, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
 import { candidatsPour, fmtDuree, metierDe, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
 import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
 import { Astuce } from './Infobulle'
+import { chantiersMenes } from '../../game/store'
 import { nichesTemple } from '../../game/reliques'
 import { BlocPlanDefense } from './PlanDefense'
 import { couleurRendement } from './Population'
@@ -584,7 +585,8 @@ export function PanneauBatiment() {
   const enChantier = b.targetLevel !== undefined && b.busyUntil !== undefined
   const auMax = b.level >= 4
   const agoraOk = id === 'agora' || cible <= s.buildings.agora.level
-  const chantiers = BUILDING_IDS.filter((x) => s.buildings[x].targetLevel !== undefined).length
+  // un relèvement d'après-assaut ne compte pas : cf. `chantiersMenes`
+  const chantiers = chantiersMenes(s)
 
   // le recensement vit dans le store : la leçon de Zeus et les missions doivent
   // pouvoir l'ouvrir et le refermer sans passer par ce panneau

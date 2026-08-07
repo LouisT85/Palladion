@@ -119,8 +119,18 @@ export interface BuildingState {
    * `undefined` = intact (les sauvegardes d'avant n'en ont pas).
    */
   hp?: number
-  /** en ruine : niveau perdu, à relever avant de produire à nouveau */
+  /**
+   * En ruine : l'édifice vient d'être abattu pendant un assaut. Il ne produit
+   * plus et ne se voit plus debout - mais ce n'est plus définitif : le village
+   * le RELÈVE de lui-même une fois l'assaut passé (voir `relevement`).
+   */
   ruine?: boolean
+  /**
+   * Le niveau qu'il avait avant d'être abattu, mémorisé le temps du relèvement.
+   * Sans lui, un édifice tombé deux fois dans le même assaut remonterait au
+   * niveau intermédiaire au lieu de celui d'avant l'attaque.
+   */
+  niveauAvant?: number
 }
 
 /**

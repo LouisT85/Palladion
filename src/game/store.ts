@@ -2241,12 +2241,27 @@ function encaisserBatiments(s: GameState, cibles: CibleBatiment[], now: number):
     if (b.hp === undefined || c.hp >= b.hp) continue
     b.hp = c.hp
     if (c.hp > 0 || c.id === 'agora') continue
-    // l'édifice s'effondre : un niveau perdu, les ouvriers à la rue
+    /*
+     * L'ÉDIFICE S'EFFONDRE - mais plus définitivement. Le joueur devait
+     * auparavant le rebâtir entièrement, en repayant le niveau perdu : une
+     * caserne abattue coûtait deux fois. Ce qu'un assaut prend désormais, c'est
+     * le butin emporté, le moral, et la production le temps du relèvement - pas
+     * un chantier à refaire.
+     *
+     * `niveauAvant` est posé une seule fois : un bâtiment abattu deux fois dans
+     * le même assaut - il retombe dès qu'il est relevé - doit remonter au niveau
+     * qu'il avait AVANT l'attaque, pas au niveau intermédiaire.
+     *
+     * Et l'on ne débauche plus ses artisans. Ils attendent sur les décombres :
+     * les renvoyer obligeait le joueur à refaire toutes ses affectations après
+     * chaque assaut, pour un village qui va se relever tout seul en cinq
+     * secondes. Un édifice en ruine ne produit rien de toute façon.
+     */
     b.ruine = true
+    if (b.niveauAvant === undefined) b.niveauAvant = b.level
     const perdu = BUILDINGS[c.id].nom
     b.level = Math.max(0, b.level - 1)
     b.hp = structureMax(c.id, b.level)
-    for (const v of s.villageois) if (v.poste === c.id) v.poste = null
     const vol = volerPct(s, 0.06)
     s.moraleMods.push({ id: uid('m'), label: `${perdu} en ruine`, delta: -6, expiresAt: now + 8 * 60_000 })
     pushToast(s, '🔥', `${perdu} s’effondre ! Les pillards emportent ${vol}.`)
@@ -2430,9 +2445,51 @@ function appliquerCalamite(s: GameState, e: EffetCalamite, now: number): void {
   }
 }
 
+/** cinq secondes de gravats déblayés, et le village se relève */
+export const RELEVEMENT_MS = 5000
+
+/**
+ * LE VILLAGE SE RELÈVE SEUL. Un édifice abattu pendant l'assaut n'est plus un
+ * chantier à repayer : dès que l'ennemi a tourné les talons, les habitants
+ * remontent ce qui est tombé et l'édifice retrouve le niveau qu'il avait avant
+ * l'attaque.
+ *
+ * On emprunte le CHANTIER ordinaire (`targetLevel` + `busyUntil`) plutôt que
+ * d'inventer un second mécanisme : le joueur voit alors l'échafaudage et la
+ * progression qu'il connaît déjà, la carte n'a rien de neuf à apprendre, et
+ * l'achèvement passe par le code qui pose `hp` et efface `ruine`. Cinq secondes,
+ * assez pour qu'on VOIE le village se relever, trop peu pour qu'on attende.
+ *
+ * Ce qu'un assaut coûte encore : le butin emporté, le moral, et la production
+ * pendant qu'il est à terre. C'est le chantier qu'on ne fait plus payer deux fois.
+ */
+function releverRuines(s: GameState, now: number): void {
+  for (const id of BUILDING_IDS) {
+    const b = s.buildings[id]
+    if (!b.ruine || b.niveauAvant === undefined) continue
+    // un chantier que le joueur avait lancé pendant l'assaut a la priorité : on
+    // ne va pas ramener un édifice au niveau d'hier alors qu'il monte au suivant
+    if (b.targetLevel !== undefined) continue
+    b.targetLevel = b.niveauAvant
+    b.busyUntil = now + RELEVEMENT_MS
+  }
+}
+
+/*
+ * Les chantiers qui comptent dans la limite de deux. Un RELÈVEMENT n'en est pas
+ * un : le village remonte tout seul ce que l'assaut a jeté à terre, sans qu'on
+ * y affecte d'ouvriers. Le compter interdirait au joueur de bâtir pendant les
+ * cinq secondes qui suivent chaque attaque - et davantage si trois édifices sont
+ * tombés, où il aurait lu « déjà 2 chantiers » sans en avoir lancé un seul.
+ */
+export function chantiersMenes(s: Pick<GameState, 'buildings'>): number {
+  return BUILDING_IDS.filter((x) => s.buildings[x].targetLevel !== undefined && !s.buildings[x].ruine).length
+}
+
 function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: number): void {
   const b = s.battle
   if (!b) return
+  releverRuines(s, now)
   const pertes = pertesDefense(b)
   const lignes: string[] = []
   // les héros tombés sont relevés blessés, jamais rayés de l'effectif
@@ -2757,9 +2814,17 @@ function simulerHorsLigne(s: GameState, now: number): void {
   for (const bId of BUILDING_IDS) {
     const b = s.buildings[bId]
     if (b.targetLevel !== undefined && b.busyUntil !== undefined && b.busyUntil <= now) {
+      const releve = b.ruine === true
       b.level = b.targetLevel
       if (bId === 'remparts') s.wallHp = murMax(s)
-      lignes.push(`🏗️ ${BUILDINGS[bId].nom} achevé(e) au niveau ${b.level}`)
+      b.hp = structureMax(bId, b.level)
+      delete b.ruine
+      delete b.niveauAvant
+      lignes.push(
+        releve
+          ? `🏗️ ${BUILDINGS[bId].nom} relevé(e) au niveau ${b.level}`
+          : `🏗️ ${BUILDINGS[bId].nom} achevé(e) au niveau ${b.level}`,
+      )
       delete b.targetLevel
       delete b.busyUntil
     }
@@ -3350,12 +3415,28 @@ export const useGame = create<GameState>()(
         for (const bId of BUILDING_IDS) {
           const b = s.buildings[bId]
           if (b.targetLevel !== undefined && b.busyUntil !== undefined && b.busyUntil <= now) {
+            const releve = b.ruine === true
             b.level = b.targetLevel
             if (bId === 'remparts') {
               s.wallHp = murMax(s)
               s.brechesMur = []
             }
-            pushToast(s, BUILDINGS[bId].emoji, `${BUILDINGS[bId].nom} : niveau ${b.level} achevé !`)
+            /*
+             * Un chantier achevé remet la structure à neuf et lève la ruine. Ce
+             * n'était fait NULLE PART : un édifice relevé gardait les points de
+             * vie de son niveau d'avant - bénin pour une ferme, fatal pour la
+             * Redoute dont les traits dépendent de `hp`, qui serait restée muette.
+             */
+            b.hp = structureMax(bId, b.level)
+            delete b.ruine
+            delete b.niveauAvant
+            pushToast(
+              s,
+              BUILDINGS[bId].emoji,
+              releve
+                ? `${BUILDINGS[bId].nom} relevé(e) : le village a déblayé les gravats.`
+                : `${BUILDINGS[bId].nom} : niveau ${b.level} achevé !`,
+            )
             delete b.targetLevel
             delete b.busyUntil
             /*
@@ -3613,7 +3694,7 @@ export const useGame = create<GameState>()(
           pushToast(s, '🏛️', `L’Agora doit d’abord atteindre le niveau ${cible}.`)
           return
         }
-        const chantiers = BUILDING_IDS.filter((x) => s.buildings[x].targetLevel !== undefined).length
+        const chantiers = chantiersMenes(s)
         if (chantiers >= 2) {
           pushToast(s, '🏗️', 'Vos ouvriers ne peuvent mener que 2 chantiers de front.')
           return

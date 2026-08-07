@@ -56,10 +56,18 @@ finition, ses valeurs et sa densité de détail.
 
 ## Processus OBLIGATOIRE (itération visuelle)
 
-Un serveur vite tourne sur le port **5197**. Après CHAQUE passe de dessin :
+Un serveur vite doit tourner. **Ne présume pas du port** : `pgrep -af vite` d'abord,
+et `curl -s -o /dev/null -w '%{http_code}' http://localhost:<port>/` pour confirmer.
+`npm run dev` prend 5173, `npm run dev:test` (mode test) 5199, et l'on lance parfois
+`--port 5197` à la main. Si DEUX serveurs répondent sur le MÊME port, tue-les tous et
+n'en relance qu'un : deux vite sur un port donnent des « Invalid hook call » et des
+`NaN` dans les tracés SVG qui n'ont rien à voir avec le code, et l'on perd une heure
+à chercher un défaut qui n'existe pas.
+
+Après CHAQUE passe de dessin :
 
 ```bash
-python3 scripts/apercu.py <cible> /tmp/claude-1002/-home-marketingdatascience-palladion/8ecf65d8-6ddc-41e7-bcfd-a264fa041dc6/scratchpad/<cible>-vN.png 5197
+python3 scripts/apercu.py <cible> <scratchpad>/<cible>-vN.png <port>
 ```
 
 puis REGARDER l'image (outil Read), critiquer (valeurs plates ? lumière

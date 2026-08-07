@@ -45,6 +45,20 @@ import { AOBase, PAL, alea } from './art'
  *   se dresser, ce qui descend la pente le peut - au nord, une coulée devient
  *   un piquet.
  *
+ * R7 — TOUT OUVRAGE POSÉ SUR LA CRÊTE SE MESURE EN PLAN, ET SE TERMINE. Deux
+ *   pièges se sont refermés au même endroit - les deux extrémités est et ouest,
+ *   là où la tangente se dresse - et sur deux ouvrages différents :
+ *     · une LONGUEUR d'écran constante met l'ouvrage EN TRAVERS de la crête au
+ *       lieu de l'y coucher : la longueur se cote en plan, `etire(geo, a)` la
+ *       projette (c'est à `saillie` ce que la longueur est à la profondeur) ;
+ *     · une section constante fait finir l'ouvrage sur une COUPE FRANCHE. Un
+ *       ouvrage de bois s'arrête sur un pignon, un poteau cornier, un about de
+ *       poutre ; un ouvrage de TERRE ne s'arrête pas du tout, il s'amortit -
+ *       `biseau` / `rubanMourant` l'éteignent sur une longueur d'arc.
+ *   Corollaire de R2 : quand une pièce perd sa lisibilité aux extrémités, une
+ *   AUTRE doit la reprendre - le bardage du hourd cède au plancher en
+ *   encorbellement et aux abouts de poutre, qui eux s'y ouvrent.
+ *
  * Et une règle de raccord : LA TOUR EST DESSINÉE POUR SON NIVEAU DE MUR. Son
  * plancher EST le chemin de ronde, son axe suit l'ellipse de MI-ÉPAISSEUR (elle
  * chevauche la courtine au lieu d'être posée dessus), et cinq pièces la
@@ -92,6 +106,20 @@ function tangente(geo: GeoMur, a: number): { tx: number; ty: number } {
  */
 function saillie(geo: GeoMur, a: number, d: number): { dx: number; dy: number } {
   return { dx: d * Math.cos(a), dy: d * (geo.ry / geo.rx) * Math.sin(a) }
+}
+
+/**
+ * ÉTIREMENT DE L'ARC : 1 px de PLAN mesuré LE LONG du mur vaut `etire` px
+ * d'écran le long de la tangente. C'est le pendant, POUR LES LONGUEURS, de ce
+ * que `saillie` est pour les profondeurs - il vaut 1 au nord et au sud, k à
+ * l'est et à l'ouest.
+ *
+ * Sans lui, un ouvrage POSÉ sur la crête garde sa longueur d'écran partout :
+ * l'échafaud de guet du niveau 1 restait un plancher horizontal de 15 px là où
+ * la crête se dresse, donc EN TRAVERS d'elle. Avec lui il se couche dessus.
+ */
+function etire(geo: GeoMur, a: number): number {
+  return Math.hypot(Math.sin(a), komp(geo) * Math.cos(a))
 }
 
 /** polyligne le long de l'arc : `dy` en hauteur, `dOut` vers le dehors */
@@ -192,6 +220,91 @@ function anglesArc(t: Abs, pasPx: number, phase = 0, marge = 0): number[] {
 /** nombre de segments pour approcher un arc de `L` px sans facettes visibles */
 function pasCourbe(L: number): number {
   return Math.max(6, Math.min(96, Math.round(L / 9)))
+}
+
+/** abscisse curviligne ÉCRAN d'un angle, lue dans la table de R1 */
+function absDe(t: Abs, a: number): number {
+  const n = t.as.length - 1
+  const d = t.as[n] - t.as[0]
+  if (Math.abs(d) < 1e-9) return 0
+  const f = Math.max(0, Math.min(n, ((a - t.as[0]) / d) * n))
+  const i = Math.min(n - 1, Math.floor(f))
+  return t.ss[i] + (t.ss[i + 1] - t.ss[i]) * (f - i)
+}
+
+/**
+ * BISEAU D'ABOUT : 0 à l'extrémité de l'arc, 1 au-delà de `px` px d'ARC ÉCRAN,
+ * raccord doux entre les deux - et mesuré en arc, jamais en angle (R1).
+ *
+ * Un arc de couche va du point ouest à la porte : il a donc DEUX bouts, et tout
+ * ouvrage à section constante s'y termine sur une coupe franche. C'est
+ * supportable pour un mur, qui a le droit de finir net sur une joue de pierre ;
+ * ça ne l'est pas pour un ouvrage de TERRE, qui n'a pas de tranche.
+ */
+function biseau(t: Abs, a: number, px: number): number {
+  if (px <= 0) return 1
+  const s = absDe(t, a)
+  const u = Math.max(0, Math.min(1, Math.min(s, t.L - s) / px))
+  return u * u * (3 - 2 * u)
+}
+
+/**
+ * Ruban dont la hauteur ET la profondeur MEURENT aux deux bouts, en se rabattant
+ * sur la ligne `dyFin` du nu. Le remblai était dessiné à section constante : au
+ * point ouest et à la porte, où sa profondeur ne se projette plus qu'en x, il se
+ * terminait sur une dalle brune de `profTal` px de large tranchée net dans
+ * l'herbe - la « fin plate » signalée par le joueur. Un talus, lui, s'amortit.
+ */
+function rubanMourant(
+  g: GeoMur,
+  t: Abs,
+  dyA: number,
+  dyB: number,
+  a0: number,
+  a1: number,
+  n: number,
+  outA: number,
+  outB: number,
+  dyFin: number,
+  fonduPx: number,
+): string {
+  let d = ''
+  for (let s = 0; s < 2; s++) {
+    const dy = s === 0 ? dyA : dyB
+    const out = s === 0 ? outA : outB
+    for (let j = 0; j <= n; j++) {
+      const i = s === 0 ? j : n - j
+      const a = a0 + ((a1 - a0) * i) / n
+      const f = biseau(t, a, fonduPx)
+      const p = pt(g, a)
+      const u = saillie(g, a, out * f)
+      d += `${d === '' ? 'M' : 'L'}${(p.x + u.dx).toFixed(1)},${(p.y + dyFin + (dy - dyFin) * f + u.dy).toFixed(1)}`
+    }
+  }
+  return d + 'Z'
+}
+
+/** la même extinction, pour une polyligne (crête du talus, pied, contact) */
+function ligneMourante(
+  g: GeoMur,
+  t: Abs,
+  a0: number,
+  a1: number,
+  n: number,
+  dy: number,
+  dOut: number,
+  dyFin: number,
+  fonduPx: number,
+): string {
+  let d = ''
+  for (let i = 0; i <= n; i++) {
+    const a = a0 + ((a1 - a0) * i) / n
+    const f = biseau(t, a, fonduPx)
+    const p = pt(g, a)
+    const u = saillie(g, a, dOut * f)
+    d += `${i === 0 ? 'M' : 'L'}${(p.x + u.dx).toFixed(1)},${(p.y + dyFin + (dy - dyFin) * f + u.dy).toFixed(1)}`
+  }
+  return d
 }
 
 /*
@@ -392,6 +505,238 @@ function pieuxPaths(
     pointe += `M${(p.x - w / 2 + 0.4).toFixed(1)},${(yT + 2.2).toFixed(1)}L${p.x.toFixed(1)},${yT.toFixed(1)}L${(p.x + w / 2 - 0.4).toFixed(1)},${(yT + 2.2).toFixed(1)}L${p.x.toFixed(1)},${(yT + 1.3).toFixed(1)}Z`
   }
   return { corps, arete, pointe }
+}
+
+/**
+ * ═══════════════ LES ÉCHAFAUDS DE GUET (niveau 1) ═══════════════
+ *
+ * Une palissade n'a pas de chemin de ronde : pour voir par-dessus, on monte des
+ * échafauds. Dessinés en ÉLÉVATION FRONTALE - un plancher de 15 px, deux
+ * montants qui montent, une traverse par-dessus -, ils se lisaient comme des
+ * TABLES posées sur les pointes : rien dessous, rien derrière, personne dessus.
+ * Le joueur a demandé ce que ça représentait, et il avait raison de ne pas
+ * comprendre. Quatre pièces le disent, et c'étaient les quatre qui manquaient :
+ *
+ *  · LE PLANCHER A UNE ÉPAISSEUR. Sa tranche ET son dessus, pris entre le nu de
+ *    la palissade et une ellipse `dP` px de plan en deçà : un anneau, qui se
+ *    pince au nord et au sud et S'OUVRE à l'est et à l'ouest (R3). La table
+ *    devient une caisse - et aux deux extrémités, là où la crête se dresse,
+ *    c'est le DESSUS du plancher qui porte à lui seul tout le volume. Sa
+ *    longueur, elle, est une longueur de PLAN (`etire`) : à longueur d'écran
+ *    constante il se mettait en travers de la crête au lieu de s'y coucher.
+ *
+ *  · LES POTEAUX DESCENDENT AU SOL, derrière le rideau de pieux, donc
+ *    `dP·k` px PLUS BAS à l'écran (R5) - contrefiche et échelle comprises. Ils
+ *    ne se voient QUE de la couche arrière : de dehors la palissade les cache,
+ *    et c'est justement ce qui est juste.
+ *
+ *  · L'ÉCHAFAUD EST DERRIÈRE LA PALISSADE, pas dessus. Sur la couche avant il
+ *    se peint donc AVANT les pieux : les pointes lui passent devant, et cette
+ *    seule occlusion dit d'où on regarde. Peint après, il redevenait un objet
+ *    posé sur le couronnement - la table.
+ *
+ *  · UN HOMME Y VEILLE, lance dressée. À vingt pixels de large c'est la
+ *    SILHOUETTE qui dit « on veille ici », pas la charpente : le fer de la
+ *    lance dépasse la ligne des pointes de 12 px, et c'est le seul accent
+ *    vertical d'un rideau de pieux long de 830.
+ *
+ * C'est la grammaire de `TourMur` - plancher, garde-corps, accès, homme de
+ * faction, ombre au pied - transposée au bois et à deux poteaux.
+ */
+function EchafaudsGuet({
+  geo,
+  angles,
+  crete,
+  arriere,
+  span,
+}: {
+  geo: GeoMur
+  angles: number[]
+  crete: number
+  arriere: boolean
+  span: number
+}) {
+  /** longueur du plancher et avancée dans la place, en px de PLAN */
+  const Lg = 17
+  const dP = 9
+  /**
+   * Dessus du plancher. Il se cale DANS la ligne des pointes (qui montent de
+   * −25 à −29) et non au-dessus : posé plus haut, la caisse flottait de deux px
+   * au-dessus des pieux vue du sud. Ici les plus hautes pointes la traversent,
+   * et c'est cette interpénétration qui l'assied.
+   */
+  const yPl = -crete - 2
+  const ePl = 3
+  const hG = 7.4
+  let ombre = ''
+  let poteau = ''
+  let poteauLum = ''
+  let jambes = ''
+  let echelle = ''
+  let barreaux = ''
+  let dessus = ''
+  let planches = ''
+  let tranche = ''
+  let trancheLit = ''
+  let montants = ''
+  let lisse = ''
+  let lisseLit = ''
+  let corps = ''
+  let tete = ''
+  let casque = ''
+  let hampe = ''
+  let fer = ''
+  angles.forEach((a, idx) => {
+    const p = pt(geo, a)
+    const { tx, ty } = tangente(geo, a)
+    const e = etire(geo, a)
+    const hx = (tx * Lg * e) / 2
+    const hy = (ty * Lg * e) / 2
+    // vers le DEDANS : plus bas à l'écran au nord, plus haut au sud (R5)
+    const o = saillie(geo, a, -dP)
+    // les quatre coins du plancher - deux sur la crête, deux en arrière
+    const ax = p.x - hx
+    const ay = p.y - hy + yPl
+    const bx = p.x + hx
+    const by = p.y + hy + yPl
+    const ySol = p.y + 2.5 + o.dy
+    // DESSUS du plancher : l'anneau entre les deux nus
+    dessus +=
+      `M${ax.toFixed(1)},${ay.toFixed(1)}L${bx.toFixed(1)},${by.toFixed(1)}` +
+      `L${(bx + o.dx).toFixed(1)},${(by + o.dy).toFixed(1)}L${(ax + o.dx).toFixed(1)},${(ay + o.dy).toFixed(1)}Z`
+    // les madriers : des lignes qui joignent l'avant à l'arrière (R6)
+    for (const f of [-0.34, 0.34]) {
+      const jx = p.x + hx * f
+      const jy = p.y + hy * f + yPl
+      planches +=
+        `M${jx.toFixed(1)},${jy.toFixed(1)}L${(jx + o.dx).toFixed(1)},${(jy + o.dy).toFixed(1)}` +
+        `L${(jx + o.dx + 0.7).toFixed(1)},${(jy + o.dy).toFixed(1)}L${(jx + 0.7).toFixed(1)},${jy.toFixed(1)}Z`
+    }
+    // TRANCHE du plancher : celle qu'on voit - l'arrière au nord, l'avant au
+    // sud (R4). C'est elle qui pose la caisse sur les pointes.
+    const sx = arriere ? o.dx : 0
+    const sy = arriere ? o.dy : 0
+    tranche +=
+      `M${(ax + sx).toFixed(1)},${(ay + sy).toFixed(1)}L${(bx + sx).toFixed(1)},${(by + sy).toFixed(1)}` +
+      `L${(bx + sx).toFixed(1)},${(by + sy + ePl).toFixed(1)}L${(ax + sx).toFixed(1)},${(ay + sy + ePl).toFixed(1)}Z`
+    trancheLit +=
+      `M${(ax + sx).toFixed(1)},${(ay + sy).toFixed(1)}L${(bx + sx).toFixed(1)},${(by + sy).toFixed(1)}` +
+      `L${(bx + sx).toFixed(1)},${(by + sy + 0.9).toFixed(1)}L${(ax + sx).toFixed(1)},${(ay + sy + 0.9).toFixed(1)}Z`
+    // GARDE-CORPS, au nu de la palissade : des montants FINS et une lisse
+    // continue - rien à voir avec un pieu de 5,4 px taillé en pointe
+    for (const f of [-0.86, 0, 0.86]) {
+      const mx = p.x + hx * f
+      const my = p.y + hy * f + yPl
+      montants += `M${(mx - 0.85).toFixed(1)},${(my - hG).toFixed(1)}h1.7v${(hG + 0.6).toFixed(1)}h-1.7Z`
+    }
+    lisse +=
+      `M${(ax - tx * 1.2).toFixed(1)},${(ay - ty * 1.2 - hG).toFixed(1)}L${(bx + tx * 1.2).toFixed(1)},${(by + ty * 1.2 - hG).toFixed(1)}` +
+      `L${(bx + tx * 1.2).toFixed(1)},${(by + ty * 1.2 - hG + 1.8).toFixed(1)}L${(ax - tx * 1.2).toFixed(1)},${(ay - ty * 1.2 - hG + 1.8).toFixed(1)}Z`
+    lisseLit +=
+      `M${(ax - tx * 1.2).toFixed(1)},${(ay - ty * 1.2 - hG).toFixed(1)}L${(bx + tx * 1.2).toFixed(1)},${(by + ty * 1.2 - hG).toFixed(1)}` +
+      `L${(bx + tx * 1.2).toFixed(1)},${(by + ty * 1.2 - hG + 0.7).toFixed(1)}L${(ax - tx * 1.2).toFixed(1)},${(ay - ty * 1.2 - hG + 0.7).toFixed(1)}Z`
+    /*
+     * LA CHARPENTE. Elle se peint sur LES DEUX couches, et non sur la seule
+     * couche arrière comme on l'avait d'abord posé : au sud franc la palissade
+     * la couvre entièrement (elle est peinte après, cf. plus bas), mais au
+     * sud-est et au sud-ouest le décalé de profondeur a une grosse composante
+     * en x - le plancher déborde la silhouette du rideau, et il y débordait
+     * SANS pieds. L'occlusion s'obtient par l'ordre de peinture, jamais par un
+     * drapeau : ce qui doit être caché, la palissade le cache.
+     */
+    {
+      // POTEAUX : du dessous du plancher jusqu'au sol de LEUR profondeur - le
+      // seul trait qui change la table en ouvrage
+      for (const f of [-0.72, 0.72]) {
+        const qx = p.x + hx * f + o.dx
+        const qy = p.y + hy * f + o.dy + yPl + ePl - 0.4
+        poteau += `M${(qx - 1.15).toFixed(1)},${qy.toFixed(1)}h2.3V${ySol.toFixed(1)}h-2.3Z`
+        poteauLum += `M${(qx - 1.15).toFixed(1)},${qy.toFixed(1)}h0.8V${ySol.toFixed(1)}h-0.8Z`
+        ombre +=
+          `M${(qx - 1.3).toFixed(1)},${ySol.toFixed(1)}L${(qx + 1.3).toFixed(1)},${ySol.toFixed(1)}` +
+          `L${(qx + 6.4).toFixed(1)},${(ySol + 2.2).toFixed(1)}L${(qx + 3.4).toFixed(1)},${(ySol + 2.2).toFixed(1)}Z`
+      }
+      // CONTREFICHE : la jambe de force qui l'empêche de se coucher
+      const jx0 = p.x - hx * 0.72 + o.dx
+      const jx1 = p.x + hx * 0.55 + o.dx
+      const jy1 = p.y + hy * 0.55 + o.dy + yPl + ePl
+      jambes +=
+        `M${jx0.toFixed(1)},${ySol.toFixed(1)}L${(jx0 + 1.6).toFixed(1)},${ySol.toFixed(1)}` +
+        `L${(jx1 + 1.6).toFixed(1)},${jy1.toFixed(1)}L${jx1.toFixed(1)},${jy1.toFixed(1)}Z`
+      // ÉCHELLE, appuyée contre l'about ouest du plancher : on monte par là,
+      // et ses montants le dépassent de 2 px comme toute échelle posée
+      const ex0 = ax + o.dx * 0.5
+      const ey0 = ay + o.dy * 0.5 - 2.2
+      const fx0 = ex0 - 3.6 + o.dx * 0.3
+      for (const s of [-1.7, 0.8]) {
+        echelle +=
+          `M${(ex0 + s).toFixed(1)},${ey0.toFixed(1)}L${(ex0 + s + 0.9).toFixed(1)},${ey0.toFixed(1)}` +
+          `L${(fx0 + s + 0.9).toFixed(1)},${ySol.toFixed(1)}L${(fx0 + s).toFixed(1)},${ySol.toFixed(1)}Z`
+      }
+      for (let i = 1; i <= 5; i++) {
+        const g = i / 6
+        const rx0 = ex0 + (fx0 - ex0) * g
+        const ry0 = ey0 + (ySol - ey0) * g
+        barreaux += `M${(rx0 - 1.7).toFixed(1)},${ry0.toFixed(1)}h3.4v0.85h-3.4Z`
+      }
+    }
+    /*
+     * L'HOMME DE FACTION. Campé au MILIEU du plancher, il tombait pile derrière
+     * le montant central du garde-corps - qui se peint après lui, puisque de
+     * dehors c'est son parapet : il n'en restait qu'une tête au-dessus de la
+     * lisse et une fente de tunique. Il se tient donc dans une TRAVÉE, entre
+     * deux montants, et alternativement d'un côté puis de l'autre.
+     */
+    if (span >= 1) {
+      const sg = idx % 2 ? -1 : 1
+      const wx = p.x + o.dx * 0.5 + hx * sg * 0.43
+      const wy = p.y + o.dy * 0.5 + hy * sg * 0.43 + yPl + 0.6
+      corps +=
+        `M${(wx - 2.1).toFixed(1)},${wy.toFixed(1)}L${(wx - 1.5).toFixed(1)},${(wy - 5.6).toFixed(1)}` +
+        `L${(wx + 1.5).toFixed(1)},${(wy - 5.6).toFixed(1)}L${(wx + 2.1).toFixed(1)},${wy.toFixed(1)}Z`
+      tete += `M${(wx - 1.8).toFixed(1)},${(wy - 7.4).toFixed(1)}a1.8,1.8 0 1,0 3.6,0a1.8,1.8 0 1,0 -3.6,0Z`
+      casque +=
+        `M${(wx - 1.9).toFixed(1)},${(wy - 7.7).toFixed(1)}A1.9,1.9 0 0 1 ${(wx + 1.9).toFixed(1)},${(wy - 7.7).toFixed(1)}` +
+        `L${(wx + 1.9).toFixed(1)},${(wy - 7.1).toFixed(1)}L${(wx - 1.9).toFixed(1)},${(wy - 7.1).toFixed(1)}Z`
+      const lx = wx + sg * 2.9
+      hampe += `M${(lx - 0.5).toFixed(1)},${(wy - 13.2).toFixed(1)}h1v13.8h-1Z`
+      fer += `M${(lx - 1.3).toFixed(1)},${(wy - 13).toFixed(1)}L${lx.toFixed(1)},${(wy - 16.6).toFixed(1)}L${(lx + 1.3).toFixed(1)},${(wy - 13).toFixed(1)}Z`
+    }
+  })
+  const gardeCorps = (
+    <>
+      <path d={montants} fill="#7d5e39" />
+      <path d={lisse} fill="#8b6a40" />
+      <path d={lisseLit} fill="#c1996a" opacity={0.9} />
+    </>
+  )
+  return (
+    <g>
+      {/* le pied des poteaux, dans la place */}
+      <path d={ombre} fill={PAL.ombrePortee} opacity={0.17} />
+      <path d={jambes} fill="#5c4227" />
+      <path d={poteau} fill="#6a4e2d" />
+      <path d={poteauLum} fill="#96713f" opacity={0.85} />
+      {/* le garde-corps du FOND passe derrière le plancher */}
+      {arriere && gardeCorps}
+      {/* du dedans le plancher prend le jour ; du dehors on ne l'aperçoit
+          qu'entre les montants, dans l'ombre du garde-corps */}
+      <path d={dessus} fill={arriere ? '#a8845d' : '#5f4830'} />
+      <path d={planches} fill={arriere ? '#6a4e2d' : '#4a3620'} opacity={0.7} />
+      <path d={tranche} fill="#5c4227" />
+      <path d={trancheLit} fill="#8b6a40" />
+      {/* l'échelle est appuyée SUR la tranche, elle la croise */}
+      <path d={echelle} fill="#8b6a40" />
+      <path d={barreaux} fill="#5c4227" />
+      <path d={corps} fill="#4a6a5a" />
+      <path d={hampe} fill="#5f462d" />
+      <path d={fer} fill="#cfc7b2" />
+      <path d={tete} fill={PAL.peau} />
+      <path d={casque} fill="#8f8a7c" />
+      {/* … et devant lui au sud : c'est son parapet */}
+      {!arriere && gardeCorps}
+    </g>
+  )
 }
 
 /**
@@ -1977,6 +2322,9 @@ export const Murailles = memo(function Murailles({
                   </>
                 )
               })()}
+              {/* l’échafaud de guet est DERRIÈRE le rideau : de dehors, les
+                  pointes doivent lui passer devant */}
+              {!arriere && <EchafaudsGuet geo={geo} angles={gardes} crete={crete} arriere={arriere} span={span} />}
               {/* pieux : 3 valeurs de bois, arête ouest éclairée, pointes claires */}
               <path d={px.corps[0]} fill="#7d5e39" />
               <path d={px.corps[1]} fill="#6a4e2d" />
@@ -1987,27 +2335,7 @@ export const Murailles = memo(function Murailles({
               <path d={trav} fill="#5c4227" />
               <path d={travLum} fill="#96713f" opacity={0.9} />
               <path d={liga} fill="#4a3519" opacity={0.85} />
-              {/* plates-formes de guet : la progression de silhouette du niveau 1 */}
-              {(() => {
-                let bois = ''
-                let lum = ''
-                let poteau = ''
-                for (const a of gardes) {
-                  const p = pt(geo, a)
-                  const y = p.y - crete - 1
-                  bois += `M${(p.x - 7.5).toFixed(1)},${y.toFixed(1)}h15v3.2h-15Z`
-                  lum += `M${(p.x - 7.5).toFixed(1)},${y.toFixed(1)}h15v1h-15Z`
-                  poteau += `M${(p.x - 6.6).toFixed(1)},${(y - 7.5).toFixed(1)}h1.5v7.5h-1.5ZM${(p.x + 5.1).toFixed(1)},${(y - 7.5).toFixed(1)}h1.5v7.5h-1.5Z`
-                  bois += `M${(p.x - 7.5).toFixed(1)},${(y - 8.6).toFixed(1)}h15v1.4h-15Z`
-                }
-                return (
-                  <>
-                    <path d={poteau} fill="#6a4e2d" />
-                    <path d={bois} fill={PAL.boisMi} />
-                    <path d={lum} fill={PAL.boisLit} />
-                  </>
-                )
-              })()}
+              {arriere && <EchafaudsGuet geo={geo} angles={gardes} crete={crete} arriere={arriere} span={span} />}
             </g>
           )
         })()}
@@ -2018,15 +2346,126 @@ export const Murailles = memo(function Murailles({
           const as = assisesArc(gFace, t, c.pasBloc, -H + 1.4, c.rangs, c.hAssise, 5, arriere ? 22 : 21, false)
           const poteaux = anglesArc(t, c.pas, 0, 1).filter((a) => !encoches.some((e) => Math.abs(a - e.a) < e.da))
           const cf = anglesArc(t, 52, 20)
-          // le HOURD : poteaux, bardage de planches, ligatures - en 4 chemins
+          /*
+           * ═════════════════════ LE HOURD ═════════════════════
+           *
+           * La galerie de bois posée sur le mur de pierre sèche. Elle était
+           * dessinée en ÉLÉVATION FRONTALE : un ruban de 5,5 px de haut suivant
+           * la crête, des poteaux de 2,4 px de large et un chapeau horizontal.
+           * Au nord, où la crête court à plat, cela se lit très bien. Aux deux
+           * extrémités est et ouest, où la tangente se dresse, un ruban à
+           * hauteur constante n'a plus AUCUNE largeur apparente : il ne restait
+           * que la file des poteaux et de leurs chapeaux, une fermeture éclair
+           * de petits « T » posée sur la tranche du mur. Le volume s'effondrait
+           * exactement là où le joueur l'a vu s'effondrer.
+           *
+           * Le remède est celui de R3 : un hourd a une PROFONDEUR - c'est même
+           * sa raison d'être militaire, on jette par le trou du plancher ce
+           * qu'on n'atteint pas du sommet. Cette profondeur se dessine comme
+           * l'épaisseur du chemin de ronde, par un ANNEAU entre deux ellipses,
+           * qui se pince au nord et au sud et s'ouvre à l'est et à l'ouest :
+           *
+           *   `gH` nu EXTÉRIEUR de la galerie, `dH` px de plan hors du parement
+           *   `gB` nu intérieur du bardage
+           *   `gR` / `gRi` les deux nus de la main courante, qui déborde des deux
+           *
+           * Trois pièces se relaient donc selon l'angle, sans réglage : au nord
+           * le BARDAGE (large, la crête est à plat), à l'est et à l'ouest le
+           * PLANCHER en encorbellement et les ABOUTS DE POUTRE (larges, la
+           * profondeur y est horizontale), la MAIN COURANTE partout.
+           *
+           * Et la galerie se TERMINE : à chaque bout de l'arc - la porte à
+           * l'est, le point ouest où les deux couches se rejoignent - un
+           * PIGNON ferme sa coupe, un poteau cornier le tient et l'about de la
+           * poutre de sole sort dessous. Une coupe franche n'est pas une fin.
+           */
+          const dH = 3.4
+          const eB = 1.5
+          const gH = dedans(geo, -dH)
+          const gB = dedans(geo, -dH + eB)
+          const gR = dedans(geo, -dH - 0.7)
+          const gRi = dedans(geo, -dH + eB + 1.2)
+          /** la face qu'on VOIT : l'extérieure au sud, l'intérieure au nord (R4) */
+          const gF = arriere ? gB : gH
+          const yC = -H - c.par
           let pot = ''
           let potLum = ''
-          let chapeau = ''
+          let corb = ''
+          let corbLit = ''
           for (const a of poteaux) {
-            const p = pt(geo, a)
-            pot += `M${(p.x - 1.2).toFixed(1)},${(p.y - H - c.par - 1).toFixed(1)}h2.4v${(c.par + 2).toFixed(1)}h-2.4Z`
-            potLum += `M${(p.x - 1.2).toFixed(1)},${(p.y - H - c.par - 1).toFixed(1)}h0.8v${(c.par + 2).toFixed(1)}h-0.8Z`
-            chapeau += `M${(p.x - 2).toFixed(1)},${(p.y - H - c.par - 2).toFixed(1)}h4v1.4h-4Z`
+            const p = pt(gF, a)
+            const { tx } = tangente(geo, a)
+            // le poteau s'AMINCIT là où on le prend de bout, et c'est le
+            // plancher qui prend le relais - le même passage de main que R2
+            const w = 2.7 * Math.max(0.44, Math.abs(tx))
+            pot += `M${(p.x - w / 2).toFixed(1)},${(p.y + yC).toFixed(1)}h${w.toFixed(1)}v${(c.par + 0.3).toFixed(1)}h-${w.toFixed(1)}Z`
+            potLum += `M${(p.x - w / 2).toFixed(1)},${(p.y + yC).toFixed(1)}h${(w * 0.34).toFixed(1)}v${(c.par + 0.3).toFixed(1)}h-${(w * 0.34).toFixed(1)}Z`
+            if (!arriere) {
+              /*
+               * ABOUT DE POUTRE : la sole qui sort du parement et porte la
+               * galerie. C'est par elle qu'on comprend que le bois SORT du mur.
+               * Elle doit être plus LARGE que le poteau qu'elle porte, sinon
+               * les deux s'enfilent en un seul bâtonnet sombre et le hourd
+               * gagne une rangée de clous.
+               */
+              const q = pt(geo, a)
+              const u = saillie(geo, a, dH)
+              const wc = 3.8 * Math.max(0.56, Math.abs(tx))
+              corb +=
+                `M${(q.x - wc / 2).toFixed(1)},${(q.y - H + 0.4).toFixed(1)}L${(q.x + wc / 2).toFixed(1)},${(q.y - H + 0.4).toFixed(1)}` +
+                `L${(q.x + wc / 2 + u.dx).toFixed(1)},${(q.y - H + 2.7 + u.dy).toFixed(1)}L${(q.x - wc / 2 + u.dx).toFixed(1)},${(q.y - H + 2.7 + u.dy).toFixed(1)}Z`
+              corbLit +=
+                `M${(q.x - wc / 2).toFixed(1)},${(q.y - H + 0.4).toFixed(1)}L${(q.x - wc / 2 + 1.1).toFixed(1)},${(q.y - H + 0.4).toFixed(1)}` +
+                `L${(q.x - wc / 2 + 1.1 + u.dx).toFixed(1)},${(q.y - H + 2.7 + u.dy).toFixed(1)}L${(q.x - wc / 2 + u.dx).toFixed(1)},${(q.y - H + 2.7 + u.dy).toFixed(1)}Z`
+            }
+          }
+          /*
+           * LES DEUX ABOUTS DE LA GALERIE. Ils ne sont pas de même nature, et
+           * les traiter pareil se voyait :
+           *  · à la PORTE (et à l'about d'un chantier) la galerie s'arrête pour
+           *    de bon : elle se ferme sur un PIGNON, la coupe pleine de sa
+           *    section, plus son poteau cornier ;
+           *  · au POINT OUEST les deux couches se rejoignent bout à bout - il
+           *    n'y a rien à fermer. Un pignon posé là faisait un pavé sombre
+           *    collé sur le flanc du hourd, à l'endroit même que le joueur
+           *    regarde. Il n'y reste que le poteau, qui tient le joint et
+           *    masque le pas de 1,5 px entre les deux faces vues (R4).
+           */
+          const bouts: { a: number; plein: boolean }[] = arriere
+            ? [{ a: a0, plein: false }, { a: a1, plein: true }]
+            : [{ a: a0, plein: true }, { a: a1, plein: span < 1 }]
+          let pignon = ''
+          let pignonLit = ''
+          let cornier = ''
+          let corniere = ''
+          let chapeau = ''
+          for (const { a: aE, plein } of bouts) {
+            const pm = pt(geo, aE)
+            const ph = pt(gH, aE)
+            if (plein) {
+              // le pignon : la COUPE de la galerie, du plancher à la courante
+              pignon +=
+                `M${pm.x.toFixed(1)},${(pm.y - H + 0.6).toFixed(1)}L${ph.x.toFixed(1)},${(ph.y - H + 0.6).toFixed(1)}` +
+                `L${ph.x.toFixed(1)},${(ph.y + yC).toFixed(1)}L${pm.x.toFixed(1)},${(pm.y + yC).toFixed(1)}Z`
+              pignonLit +=
+                `M${pm.x.toFixed(1)},${(pm.y + yC).toFixed(1)}L${ph.x.toFixed(1)},${(ph.y + yC).toFixed(1)}` +
+                `L${ph.x.toFixed(1)},${(ph.y + yC + 1).toFixed(1)}L${pm.x.toFixed(1)},${(pm.y + yC + 1).toFixed(1)}Z`
+            }
+            /*
+             * LE POTEAU CORNIER se dresse DANS le pignon, il n'en sort pas.
+             * Dessiné comme un rectangle d'axes écran de 3,4 px, il devenait au
+             * point ouest - où les deux couches aboutissent l'une contre
+             * l'autre - un pavé de 8 px collé sur le flanc de la galerie : une
+             * verrue, pas une fin. Il se cote comme les autres poteaux, au
+             * tiers près en plus fort, et c'est le PIGNON qui dit la coupe.
+             */
+            const pf = pt(gF, aE)
+            const { tx } = tangente(geo, aE)
+            const w = 3.4 * Math.max(0.46, Math.abs(tx))
+            cornier += `M${(pf.x - w / 2).toFixed(1)},${(pf.y + yC - 0.8).toFixed(1)}h${w.toFixed(1)}v${(c.par + 2.4).toFixed(1)}h-${w.toFixed(1)}Z`
+            corniere += `M${(pf.x - w / 2).toFixed(1)},${(pf.y + yC - 0.8).toFixed(1)}h${(w * 0.34).toFixed(1)}v${(c.par + 2.4).toFixed(1)}h-${(w * 0.34).toFixed(1)}Z`
+            // le chapeau du poteau : ce qui distingue un about d'une coupure
+            chapeau += `M${(pf.x - w / 2 - 0.8).toFixed(1)},${(pf.y + yC - 2).toFixed(1)}h${(w + 1.6).toFixed(1)}v1.4h-${(w + 1.6).toFixed(1)}Z`
           }
           return (
             <g>
@@ -2063,14 +2502,15 @@ export const Murailles = memo(function Murailles({
               {arriere ? (
                 (() => {
                   const d2 = cotesDedans(c)
+                  const fd = d2.profTal * 2.6
                   return (
                     <g>
-                      <path d={ruban(gi, -d2.hTal, gi, 2, a0, a1, nC, 0, -d2.profTal)} fill="url(#mur-terre)" />
-                      <path d={ruban(gi, -d2.hTal, gi, 2, a0, a1, nC, 0, -d2.profTal * 0.45)} fill="#a68f57" opacity={0.45} />
-                      <path d={ruban(gi, 2, gi, 2, a0, a1, nC, -d2.profTal * 0.72, -d2.profTal)} fill="#4a3c23" opacity={0.55} />
-                      <path d={ligne(gi, a0, a1, nC, -d2.hTal - 0.8)} stroke={PAL.ombrePortee} strokeWidth={1.8} fill="none" opacity={0.26} />
-                      <path d={ligne(gi, a0, a1, nC, -d2.hTal + 0.5)} stroke="#c3ab6c" strokeWidth={1.3} fill="none" opacity={0.8} />
-                      <path d={ligne(gi, a0, a1, nC, 2.4, -d2.profTal)} stroke="url(#mur-pied)" strokeWidth={4} fill="none" />
+                      <path d={rubanMourant(gi, t, -d2.hTal, 2, a0, a1, nC, 0, -d2.profTal, 2, fd)} fill="url(#mur-terre)" />
+                      <path d={rubanMourant(gi, t, -d2.hTal, 2, a0, a1, nC, 0, -d2.profTal * 0.45, 2, fd)} fill="#a68f57" opacity={0.45} />
+                      <path d={rubanMourant(gi, t, 2, 2, a0, a1, nC, -d2.profTal * 0.72, -d2.profTal, 2, fd)} fill="#4a3c23" opacity={0.55} />
+                      <path d={ligneMourante(gi, t, a0, a1, nC, -d2.hTal - 0.8, 0, 2, fd)} stroke={PAL.ombrePortee} strokeWidth={1.8} fill="none" opacity={0.26} />
+                      <path d={ligneMourante(gi, t, a0, a1, nC, -d2.hTal + 0.5, 0, 2, fd)} stroke="#c3ab6c" strokeWidth={1.3} fill="none" opacity={0.8} />
+                      <path d={ligneMourante(gi, t, a0, a1, nC, 2.4, -d2.profTal, 2.4, fd)} stroke="url(#mur-pied)" strokeWidth={4} fill="none" />
                     </g>
                   )
                 })()
@@ -2078,16 +2518,46 @@ export const Murailles = memo(function Murailles({
                 <path d={ligne(gFace, a0, a1, nC, 0.9)} stroke="url(#mur-pied)" strokeWidth={5} fill="none" />
               )}
               {/* le sommet n'est plus une palissade de pointes mais un HOURD :
-                  chemin de bois en encorbellement, bardé de planches */}
+                  chemin de bois EN ENCORBELLEMENT, bardé de planches */}
               <path d={ruban(geo, -H, gi, -H, a0, a1, nC)} fill="url(#mur-dalle)" />
               <path d={ligne(geo, a0, a1, nC, -H + 0.6)} stroke={PAL.ombrePortee} strokeWidth={2} fill="none" opacity={0.16} />
-              <path d={ruban(geo, -H - 0.5, geo, -H - c.par, a0, a1, nC, 0.8, 0.8)} fill="#6a4e2d" />
-              <path d={ligne(geo, a0, a1, nC, -H - c.par + 1.3, 0.8)} stroke="#96713f" strokeWidth={1.5} fill="none" opacity={0.95} />
-              <path d={ligne(geo, a0, a1, nC, -H - 2.6, 0.8)} stroke="#8b6a40" strokeWidth={1.1} fill="none" opacity={0.7} />
-              <path d={ligne(geo, a0, a1, nC, -H - 0.7, 0.8)} stroke="#3f2d18" strokeWidth={1.2} fill="none" opacity={0.6} />
+              {/* AU DEHORS SEULEMENT : l'ombre que le débord jette sur la pierre,
+                  et les abouts des poutres de sole qui le portent - c'est par
+                  eux qu'on lit que le bois SORT du mur, et à l'est comme à
+                  l'ouest ce sont eux qui restent quand le bardage se voit de
+                  bout */}
+              {!arriere && (
+                <>
+                  <path d={ligne(geo, a0, a1, nC, -H + 2.4)} stroke={PAL.ombrePortee} strokeWidth={3.2} fill="none" opacity={0.24} />
+                  <path d={corb} fill="#7d5e39" />
+                  <path d={corbLit} fill="#a8845d" opacity={0.9} />
+                </>
+              )}
+              {/* LE PLANCHER EN ENCORBELLEMENT : l'anneau entre le nu du mur et
+                  celui de la galerie. Il se pince au nord et au sud, il S'OUVRE
+                  à l'est et à l'ouest (R3) - c'est lui, et lui seul, qui porte
+                  le volume du hourd là où le bardage n'en a plus */}
+              <path d={ruban(gH, -H, geo, -H, a0, a1, nC)} fill="#9a744a" />
+              <path d={ruban(gH, -H, gH, -H + 1.1, a0, a1, nC)} fill="#4f3820" opacity={0.8} />
+              {/* le BARDAGE, sur la face vue (R4) */}
+              <path d={ruban(gF, -H + 0.6, gF, yC, a0, a1, nC)} fill="#6a4e2d" />
+              <path d={ligne(gF, a0, a1, nC, yC + 1.3)} stroke="#96713f" strokeWidth={1.5} fill="none" opacity={0.95} />
+              <path d={ligne(gF, a0, a1, nC, -H - 2.6)} stroke="#8b6a40" strokeWidth={1.1} fill="none" opacity={0.7} />
+              <path d={ligne(gF, a0, a1, nC, -H + 0.3)} stroke="#3f2d18" strokeWidth={1.2} fill="none" opacity={0.6} />
               <path d={pot} fill="#5c4227" />
               <path d={potLum} fill="#9a744a" opacity={0.9} />
-              <path d={chapeau} fill="#8b6a40" />
+              {/* MAIN COURANTE : un anneau, pas un trait. Elle déborde du
+                  bardage des deux côtés, si bien qu'à l'est et à l'ouest - où
+                  le bardage n'a plus d'épaisseur apparente - c'est son DESSUS,
+                  large de 3,4 px, qui tient la crête */}
+              <path d={ruban(gR, yC, gRi, yC, a0, a1, nC)} fill="#8b6a40" />
+              <path d={ligne(gRi, a0, a1, nC, yC)} stroke="#c1996a" strokeWidth={1} fill="none" opacity={0.75} />
+              {/* … et la galerie SE TERMINE : pignon, poteau cornier, sole */}
+              <path d={pignon} fill="#5c4227" />
+              <path d={pignonLit} fill="#a8845d" opacity={0.85} />
+              <path d={cornier} fill="#6a4e2d" />
+              <path d={corniere} fill="#a8845d" opacity={0.8} />
+              <path d={chapeau} fill="#96713f" />
             </g>
           )
         })()}
@@ -2162,6 +2632,12 @@ export const Murailles = memo(function Murailles({
           //    et appentis. Aucun au droit d'une tour (le fût les avalerait), et
           //    les éperons cèdent le pas aux volées et aux appentis. ──
           const dd = cotesDedans(c)
+          /**
+           * Longueur d'arc sur laquelle le remblai s'amortit à chaque bout. Vaut
+           * 2,6 fois sa propre avancée : le talus meurt donc sur une pente de
+           * plan comparable à la sienne, et non sur une tranche.
+           */
+          const fdTal = dd.profTal * 2.6
           /** px d'ARC → radians à cet angle : sert à espacer les ouvrages (R1) */
           const angPx = (a: number, px: number) => px / (Math.hypot(geo.rx * Math.sin(a), geo.ry * Math.cos(a)) || 1)
           const libre = (a: number, f: number) => !encoches.some((e) => Math.abs(a - e.a) < e.da * f)
@@ -2203,14 +2679,19 @@ export const Murailles = memo(function Murailles({
           let caillouxLit = ''
           if (arriere) {
             const rt = alea(niveau * 17 + 5)
+            // replats et pierres suivent le BISEAU du remblai : sans cela, la
+            // terre s'amortissait mais ses stries restaient posées sur l'herbe
             for (const a of anglesArc(t, 17, 4)) {
-              const o = saillie(gi, a, -dd.profTal)
+              const bi = biseau(t, a, fdTal)
+              if (bi < 0.12) continue
+              const o = saillie(gi, a, -dd.profTal * bi)
               const p = pt(gi, a)
               const { tx, ty } = tangente(gi, a)
               const f = 0.22 + rt() * 0.5
-              const hh = dd.hTal + 2 + o.dy
+              const hTb = dd.hTal * bi
+              const hh = hTb + 2 + o.dy
               const cxp = p.x + o.dx * f
-              const cyp = p.y - dd.hTal + hh * f
+              const cyp = p.y - hTb + hh * f
               const lg = 4.2 + rt() * 4.4
               const ep2 = 1 + rt() * 0.8
               stries +=
@@ -2218,11 +2699,14 @@ export const Murailles = memo(function Murailles({
                 `L${(cxp + tx * lg).toFixed(1)},${(cyp + ty * lg + ep2).toFixed(1)}L${(cxp - tx * lg).toFixed(1)},${(cyp - ty * lg + ep2).toFixed(1)}Z`
             }
             for (const a of anglesArc(t, 21, 9)) {
-              const o = saillie(gi, a, -dd.profTal)
+              const bi = biseau(t, a, fdTal)
+              if (bi < 0.12) continue
+              const o = saillie(gi, a, -dd.profTal * bi)
               const p = pt(gi, a)
               const f = 0.82 + rt() * 0.16
+              const hTb = dd.hTal * bi
               const x = p.x + o.dx * f
-              const y = p.y - dd.hTal + (dd.hTal + 2 + o.dy) * f
+              const y = p.y - hTb + (hTb + 2 + o.dy) * f
               const r = 1.5 + rt() * 1.3
               cailloux += `M${(x - r).toFixed(1)},${y.toFixed(1)}L${x.toFixed(1)},${(y - r * 0.72).toFixed(1)}L${(x + r).toFixed(1)},${y.toFixed(1)}L${x.toFixed(1)},${(y + r * 0.6).toFixed(1)}Z`
               caillouxLit += `M${(x - r * 0.7).toFixed(1)},${(y - r * 0.1).toFixed(1)}L${x.toFixed(1)},${(y - r * 0.66).toFixed(1)}L${(x + r * 0.3).toFixed(1)},${(y - r * 0.24).toFixed(1)}L${(x - r * 0.2).toFixed(1)},${(y + r * 0.06).toFixed(1)}Z`
@@ -2350,10 +2834,10 @@ export const Murailles = memo(function Murailles({
                       bélier. Sa crête porte contre le parement, son pied avance
                       de profTal px de plan dans la place - donc plus bas à
                       l'écran. C'est LUI la ligne de sol de tout le dedans. */}
-                  <path d={ruban(gi, -dd.hTal, gi, 2, a0, a1, nC, 0, -dd.profTal)} fill="url(#mur-terre)" />
-                  <path d={ruban(gi, -dd.hTal, gi, 2, a0, a1, nC, 0, -dd.profTal * 0.4)} fill="#a68f57" opacity={0.42} />
-                  <path d={ruban(gi, -dd.hTal, gi, -dd.hTal + 1.6, a0, a1, nC, 0, -dd.profTal * 0.12)} fill="#c3ab6c" opacity={0.5} />
-                  <path d={ruban(gi, 2, gi, 2, a0, a1, nC, -dd.profTal * 0.74, -dd.profTal)} fill="#4a3c23" opacity={0.5} />
+                  <path d={rubanMourant(gi, t, -dd.hTal, 2, a0, a1, nC, 0, -dd.profTal, 2, fdTal)} fill="url(#mur-terre)" />
+                  <path d={rubanMourant(gi, t, -dd.hTal, 2, a0, a1, nC, 0, -dd.profTal * 0.4, 2, fdTal)} fill="#a68f57" opacity={0.42} />
+                  <path d={rubanMourant(gi, t, -dd.hTal, -dd.hTal + 1.6, a0, a1, nC, 0, -dd.profTal * 0.12, 2, fdTal)} fill="#c3ab6c" opacity={0.5} />
+                  <path d={rubanMourant(gi, t, 2, 2, a0, a1, nC, -dd.profTal * 0.74, -dd.profTal, 2, fdTal)} fill="#4a3c23" opacity={0.5} />
                   {/* la terre est BATTUE, pas versée : des coulées dans le sens
                       de la pente, et un pied revêtu de pierres */}
                   <path d={stries} fill="#5f4d2c" opacity={0.42} />
@@ -2361,9 +2845,9 @@ export const Murailles = memo(function Murailles({
                   <path d={caillouxLit} fill="#b5ad99" opacity={0.6} />
                   {/* le pli du raccord : ombre de contact sur le parement, puis
                       la crête du remblai qui prend le jour */}
-                  <path d={ligne(gi, a0, a1, nC, -dd.hTal - 1)} stroke={PAL.ombrePortee} strokeWidth={2.4} fill="none" opacity={0.3} />
-                  <path d={ligne(gi, a0, a1, nC, -dd.hTal + 0.5)} stroke="#cdb679" strokeWidth={1.4} fill="none" opacity={0.75} />
-                  <path d={ligne(gi, a0, a1, nC, 2.6, -dd.profTal)} stroke="url(#mur-pied)" strokeWidth={H * 0.18} fill="none" />
+                  <path d={ligneMourante(gi, t, a0, a1, nC, -dd.hTal - 1, 0, 2, fdTal)} stroke={PAL.ombrePortee} strokeWidth={2.4} fill="none" opacity={0.3} />
+                  <path d={ligneMourante(gi, t, a0, a1, nC, -dd.hTal + 0.5, 0, 2, fdTal)} stroke="#cdb679" strokeWidth={1.4} fill="none" opacity={0.75} />
+                  <path d={ligneMourante(gi, t, a0, a1, nC, 2.6, -dd.profTal, 2.6, fdTal)} stroke="url(#mur-pied)" strokeWidth={H * 0.18} fill="none" />
                   {/* ÉPERONS : les massifs qui prennent le mur à revers. Pied au
                       SOL en avant du remblai, glacis mourant CONTRE le parement
                       sous le bahut - c'est ce double appui qui les fait tenir. */}

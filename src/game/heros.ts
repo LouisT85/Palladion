@@ -896,6 +896,49 @@ export function statsCombatHeros(niveau: number): { hp: number; atk: number } {
   return { hp: Math.round(HERO_HP_BASE * f), atk: Math.round(HERO_ATK_BASE * f) }
 }
 
+/** un héros qui descend sur le terrain, tel que `creerBataille` l'attend */
+export interface HeroEnColonne {
+  id: HeroId
+  niveau: number
+}
+
+/**
+ * Pourquoi un héros ne sera pas de la bataille - `null` s'il y sera.
+ *
+ * Ces trois-là ne sont pas des variantes d'un même « indisponible » : on ne dit
+ * pas la même chose d'un héros qu'on n'a pas encore engagé, d'un mort, et d'un
+ * vivant qui boude sous sa tente. Le plan de défense doit pouvoir les distinguer
+ * mot pour mot, sans quoi le joueur lit « absent » et croit à une panne.
+ */
+export type AbsenceHero = 'non-recrute' | 'mort' | 'boude'
+
+export function absenceHero(etat: HeroState | undefined, now: number): AbsenceHero | null {
+  if (!etat || !etat.recrute) return 'non-recrute'
+  if (etat.mort) return 'mort'
+  if (now < etat.boudeJusqua) return 'boude'
+  return null
+}
+
+/**
+ * Les héros qui descendent VRAIMENT sur le terrain : engagés, vivants, et pas
+ * alités. C'est la seule liste qui vaille - celle que `creerBataille` reçoit dans
+ * `herosPresents`, et donc celle qu'une estimation de puissance doit peser. Toute
+ * autre liste ferait promettre au panneau des bras qui ne frapperont pas.
+ *
+ * Noter ce qu'elle NE filtre pas : `cooldownUntil`. Une capacité en recharge
+ * n'empêche pas un homme de tenir sa lance.
+ */
+export function herosEnColonne(
+  etats: Record<HeroId, HeroState> | undefined,
+  now: number,
+): HeroEnColonne[] {
+  if (!etats) return []
+  return HERO_IDS.filter((h) => absenceHero(etats[h], now) === null).map((h) => ({
+    id: h,
+    niveau: etats[h].niveau,
+  }))
+}
+
 /**
  * Prochain nœud d'arc à déclencher, s'il est mûr - sinon null.
  *

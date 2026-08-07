@@ -4,11 +4,11 @@ import {
   ENEMIES,
   MAP,
   REDOUTE_CADENCE_MS,
-  REDOUTE_DMG,
   REDOUTE_PORTEE,
   REDOUTE_POS,
   REDOUTE_POSTES,
   REDOUTE_VITESSE,
+  redouteDmg,
   TOUR_ANGLES,
   TOUR_CADENCE_MS,
   TOUR_DMG,
@@ -718,6 +718,10 @@ export function creerBataille(opts: OptionsBataille): BattleState {
           x: REDOUTE_POS.x + p.dx,
           y: REDOUTE_POS.y + p.dy,
           nextHit: now,
+          // la force du trait suit le NIVEAU de l'ouvrage, arrêtée ici une fois
+          // pour toutes : la relire à chaque salve obligerait à traîner le niveau
+          // dans le contexte de chaque battement
+          dmg: redouteDmg(opts.redoute ?? 0),
         }))
       : undefined
 
@@ -742,6 +746,54 @@ export function creerBataille(opts: OptionsBataille): BattleState {
     champion,
     result: null,
     engages,
+  }
+}
+
+/**
+ * Poste les héros du camp du joueur sur le pan qu'on leur a désigné, par RANG de
+ * secteur (`plandefense.ts` fait la traduction depuis le nom du pan).
+ *
+ * Trois choses s'y jouent, et aucune n'est décorative :
+ *
+ *  · `f.secteur` est ce que `secteurAssigne` relit à chaque battement : c'est lui
+ *    qui fait que le héros ne court PAS au trou d'à côté et ne frappe que ce qui
+ *    assaille SON mur ;
+ *  · on l'y place tout de suite, en deçà du pan. Le plan promet des hommes « en
+ *    place avant le premier coup de bélier » ; un héros qui traverserait la cour
+ *    pendant que les béliers cognent tiendrait son mur avec dix secondes de
+ *    retard, et le joueur ne le verrait pas où il l'a mis ;
+ *  · un id absent de `parHeros` laisse le héros EXACTEMENT où il était. C'est le
+ *    cas du pan qu'on n'assaille pas ce soir, et c'est ce qui garantit qu'un
+ *    placement ne retire jamais personne de la bataille.
+ */
+export function posterHeros(b: BattleState, parHeros: Partial<Record<HeroId, number>>): void {
+  const mien = (f: Fighter): number | undefined => {
+    if (!f.heros || f.camp !== b.campJoueur) return undefined
+    const i = parHeros[f.heros as HeroId]
+    return i !== undefined && b.secteurs[i] ? i : undefined
+  }
+  // combien de héros par pan : deux qui tiennent le même mur ne se superposent pas
+  const total = new Map<number, number>()
+  for (const f of b.fighters) {
+    const i = mien(f)
+    if (i !== undefined) total.set(i, (total.get(i) ?? 0) + 1)
+  }
+  const rang = new Map<number, number>()
+  for (const f of b.fighters) {
+    const i = mien(f)
+    if (i === undefined) continue
+    const s = b.secteurs[i]
+    const k = rang.get(i) ?? 0
+    rang.set(i, k + 1)
+    const p = entreeSecteur(b.geo, s.angle)
+    // écartés le long du mur, pas en profondeur : ils en tiennent la largeur
+    const ecart = (k - ((total.get(i) ?? 1) - 1) / 2) * 46
+    f.secteur = i
+    f.x = p.x - Math.sin(s.angle) * ecart
+    f.y = p.y + Math.cos(s.angle) * ecart
+    f.tx = f.x
+    f.ty = f.y
+    f.etat = 'melee'
   }
 }
 
@@ -1010,10 +1062,21 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
     champReduc(cible)
   /** pas de déplacement de cet homme, posture comprise */
   const pas = (f: Fighter): number => dt * (enLigne(f) ? ligne.vitesse : 1)
-  /** le secteur que le joueur a assigné à ce type d'unité, s'il en a assigné un */
+  /**
+   * Le secteur que le joueur a assigné à cet homme, s'il en a assigné un.
+   *
+   * Deux façons d'en avoir un, et elles ne se mélangent pas :
+   *
+   *  · une TROUPE le tient par son type - « les hoplites au nord » vaut pour les
+   *    trente hoplites, c'est une garnison qu'on désigne ;
+   *  · un HÉROS le porte sur lui (`Fighter.secteur`), parce qu'on le poste
+   *    NOMMÉMENT. Hector au nord ne dit rien d'Ajax, et un héros ne suit pas
+   *    l'ordre donné aux hoplites du seul fait que le moteur le compte comme tel.
+   *    C'est `posterHeros` qui l'inscrit, à l'ouverture de la bataille.
+   */
   const secteurAssigne = (f: Fighter): SecteurBataille | null => {
-    if (f.camp !== b.campJoueur || f.heros) return null
-    const i = ordres.secteurs[f.type as UnitId]
+    if (f.camp !== b.campJoueur) return null
+    const i = f.heros ? f.secteur : ordres.secteurs[f.type as UnitId]
     return i === undefined ? null : (b.secteurs[Math.min(i, b.secteurs.length - 1)] ?? null)
   }
   let brecheOuverte = false
@@ -1435,7 +1498,8 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
    * assaillant encore devant le mur ne l'intéresse pas, sinon elle doublerait
    * les tours au lieu de les relayer.
    *
-   * `redouteHpRestant` vient du store : à zéro l'ouvrage est abattu et les trois
+   * `ctx.redouteHp` vient du store - c'est `buildings.redoute.hp` : à zéro
+   * l'ouvrage est abattu et les
    * scorpions se taisent ensemble.
    */
   if (b.breche && b.redouteDef && (ctx.redouteHp ?? 1) > 0) {
@@ -1459,7 +1523,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
         start: now,
         dur: Math.max(160, (d / REDOUTE_VITESSE) * 1000),
         targetId: cible.id,
-        dmg: REDOUTE_DMG * enragees * ciel.tir,
+        dmg: poste.dmg * enragees * ciel.tir,
       })
     }
   }

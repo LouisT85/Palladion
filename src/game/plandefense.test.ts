@@ -108,11 +108,13 @@ describe('un plan se lit et se réécrit sans se corrompre', () => {
     expect(sale.ligne).toBe('tenir')
     expect(sale.tir).toBe('tendu')
     expect(sale.pans).toEqual({})
-    // et ce qui est valide passe intact
+    // et ce qui est valide passe intact - la table des héros venant en plus,
+    // vide quand la sauvegarde est d'avant leur entrée dans le plan
     expect(planValide({ ligne: 'charge', tir: 'cloche', pans: { archer: 'nord' } })).toEqual({
       ligne: 'charge',
       tir: 'cloche',
       pans: { archer: 'nord' },
+      heros: {},
     })
   })
 

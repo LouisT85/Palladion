@@ -12,6 +12,7 @@ import {
   puissanceAssiegeants,
   puissanceEffective,
   type Intention,
+  detailPuissanceColonne,
 } from '../../game/expeditions'
 import {
   GAIN_PRESENT,
@@ -24,8 +25,19 @@ import {
   motRelation,
   type StatutVillage,
 } from '../../game/diplomatie'
+import { herosEnColonne } from '../../game/heros'
 import { ageDe, estAdulte } from '../../game/lignees'
-import { fmtDuree, jourDe, merFermee, relationVillage, statutDe, totalEtoiles, useGame } from '../../game/store'
+import {
+  bonusFaveurs,
+  bonusHeros,
+  fmtDuree,
+  jourDe,
+  merFermee,
+  relationVillage,
+  statutDe,
+  totalEtoiles,
+  useGame,
+} from '../../game/store'
 import type { Cost, ResourceId, UnitId } from '../../game/types'
 import type { VillageCible } from '../../game/expeditions'
 import { Montant } from './Icones'
@@ -37,14 +49,10 @@ import { DefsArt } from '../map/art'
 import { DefsBatiments } from '../map/Batiments'
 import { Meteo, VoileSaison } from '../map/Ciel'
 import { Murailles } from '../map/Murailles'
-import { CoeurVillage, DecorExpedition } from '../map/VillageEnnemi'
+import { CoeurVillage, DecorExpedition, signatureAbattus } from '../map/VillageEnnemi'
 import { DieuxRapides } from './Hud'
 import { Astuce } from './Infobulle'
 import { BarreOrdres } from './Ordres'
-
-function puissance(troupes: Record<UnitId, number>): number {
-  return UNIT_IDS.reduce((a, u) => a + (troupes[u] ?? 0) * (UNITS[u].atk + UNITS[u].hp / 8), 0)
-}
 
 /**
  * La relation avec une place forte, de −100 à +100. Le curseur seul suffit à
@@ -223,7 +231,25 @@ export function PanneauExpeditions() {
   }
 
   if (cible) {
-    const maPuissance = puissance(troupes)
+    /*
+     * Les héros MARCHENT avec la colonne : `herosPresents` de `creerBataille` les y
+     * pose et ils y frappent. Mesuré sur la forteresse mysienne, à graine égale,
+     * deux héros font passer la même colonne de 0 à 179 dégâts portés - et le
+     * panneau annonçait la MÊME force dans les deux cas. C'était le reproche du
+     * joueur, mot pour mot.
+     *
+     * `heros` et `bonus` sont deux entrées distinctes à dessein : un héros qui
+     * boude ne marche pas, mais son passif reste acquis. C'est ce que fait le
+     * store ; l'estimation doit dire la même chose.
+     */
+    const force = detailPuissanceColonne({
+      troupes,
+      heros: herosEnColonne(s.heros, now),
+      bonus: bonusHeros(s),
+      // la même somme que `lancerExpedition` : la fureur d'Arès compte aussi
+      faveurDegatsPct: bonusFaveurs(s).degatsPct,
+    })
+    const maPuissance = force.total
     const secours = intention === 'secours'
     const pillages = s.expeditions[cible.id]?.pillages ?? 0
     // en secours on affronte les assiégeants en rase campagne, pas la garnison
@@ -269,6 +295,13 @@ export function PanneauExpeditions() {
             <h3>
               Vos troupes ({total}/{MAX_TROUPES}) - puissance ≈ {Math.round(maPuissance)}
             </h3>
+            {(force.heros > 0 || force.passifs > 0) && (
+              <div style={{ fontSize: 11.5, color: '#93a7b4' }}>
+                dont {Math.round(force.troupes)} de troupes
+                {force.heros > 0 && <> · {Math.round(force.heros)} de héros en colonne</>}
+                {Math.round(force.passifs) > 0 && <> · {Math.round(force.passifs)} de leurs passifs</>}
+              </div>
+            )}
             {UNIT_IDS.map((u) => (
               <div key={u} className="unite">
                 <span style={{ fontSize: 22 }}>{UNITS[u].emoji}</span>
@@ -480,6 +513,13 @@ export function ExpeditionScene() {
   const wallMax = WALL_HP[v.mur]
   const vivantsJoueur = exp.battle.fighters.filter((f) => f.camp === 'attaque' && f.etat !== 'mort' && f.etat !== 'fuite').length
   const vivantsEnnemis = exp.battle.fighters.filter((f) => f.camp === 'defense' && f.etat !== 'mort').length
+  /*
+   * Ce que le décor doit montrer à terre. Une CHAÎNE et non un `Set` : la scène
+   * se re-rend quatre fois par seconde, et `CoeurVillage` est mémoïsé sur cette
+   * valeur - le décor n'est donc recalculé qu'au moment où un ouvrage tombe
+   * vraiment, alors qu'il l'était à chaque battement jusqu'ici.
+   */
+  const abattus = signatureAbattus((exp.ouvrages ?? []).filter((o) => o.hp <= 0).map((o) => o.id))
 
   return (
     <div className="voile">
@@ -514,7 +554,7 @@ export function ExpeditionScene() {
 
             {/* l'intérieur du village visé, peint selon son archétype */}
             <g transform={`translate(${geo.place.x},${geo.place.y})`}>
-              <CoeurVillage decor={v.decor} />
+              <CoeurVillage decor={v.decor} abattus={abattus} />
             </g>
 
             {/*

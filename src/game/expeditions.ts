@@ -1,5 +1,13 @@
 import { UNITS, UNIT_IDS, troupes } from './data'
-import type { Cost, UnitId } from './types'
+import {
+  BONUS_NEUTRE,
+  herosEnColonne,
+  statsCombatHeros,
+  type BonusHeros,
+  type HeroEnColonne,
+  type HeroState,
+} from './heros'
+import type { Cost, HeroId, UnitId } from './types'
 
 /**
  * Deux façons de marcher sur un village : le piller (riche, mais on s'en souvient
@@ -204,13 +212,181 @@ export function puissanceTroupe(army: Record<UnitId, number>): number {
   return UNIT_IDS.reduce((a, u) => a + (army[u] ?? 0) * (UNITS[u].atk + UNITS[u].hp / 8), 0)
 }
 
+/*
+ * ═══════════ CE QUE PÈSE UNE COLONNE, HÉROS COMPRIS ═══════════
+ *
+ * « Les héros ne sont pas comptés dans la puissance d'attaque en expédition. »
+ *
+ * C'était vrai de l'ESTIMATION seule, et c'est ce qui rendait le reproche juste :
+ * les héros marchent bel et bien avec la colonne et frappent (`herosPresents` de
+ * `creerBataille`). MESURÉ, sur la forteresse mysienne, 6 lanciers + 4 hoplites +
+ * 3 archers à graine égale :
+ *
+ *   sans héros           13 combattants ·   0 dégât · la colonne rompt avant le mur
+ *   + Hector 5, Achille 3  15 combattants · 179 dégâts · un défenseur abattu
+ *
+ * Deux hommes de plus sur quinze qui font passer de 0 à 179 : le panneau annonçait
+ * 226 dans les deux cas. Il ne mentait pas sur la bataille, il mentait sur ce qui
+ * y allait.
+ *
+ * ── COMMENT ON LE CHIFFRE ────────────────────────────────────────────────────
+ *
+ * Dans la MÊME métrique que le reste du panneau, `atk + hp/8`, sans en inventer
+ * une seconde. Un héros n'a donc pas de barème à part : on lui applique ses stats
+ * de combat réelles, celles que `creerBataille` lui donne (`statsCombatHeros`).
+ * D'où, mécaniquement, un poids qui monte avec le niveau :
+ *
+ *   niveau 1  atk 26 · hp 240 →  56   ≈ 4,2 lanciers  ≈ 1,9 hoplite
+ *   niveau 3  atk 36 · hp 336 →  78   ≈ 5,9 lanciers  ≈ 2,7 hoplites
+ *   niveau 5  atk 47 · hp 432 → 101   ≈ 7,6 lanciers  ≈ 3,5 hoplites
+ *
+ * Un héros de niveau 5 ne vaut pas un lancier : il en vaut sept, et le chiffre
+ * n'est pas décrété - il tombe de ses points de vie et de sa frappe.
+ *
+ * ── ET LES PASSIFS, QUI PORTENT SUR TOUTE LA COLONNE ────────────────────────
+ *
+ * `bonusHeros` n'ajoute pas des hommes : il multiplie. Le store en fait deux
+ * multiplicateurs de bataille, et on applique EXACTEMENT les mêmes, chacun à la
+ * moitié de la métrique qui le concerne :
+ *
+ *   dégâts portés   × (1 + degatsMeleePct + degatsExpeditionPct)   sur la part `atk`
+ *   dégâts subis    × (1 − gardeDuCorpsPct)  →  vie utile ÷ autant, sur `hp/8`
+ *
+ * Encaisser 25 % de moins (Ajax), c'est vivre 1/0,75 = 1,33 fois plus longtemps :
+ * la garde du corps se lit donc en points de vie, pas en frappe. Et ces passifs
+ * valent pour TOUS les héros à votre service - y compris celui qui boude sous sa
+ * tente et ne marche pas. C'est pourquoi `bonus` et `heros` sont deux entrées
+ * distinctes et non deux vues d'une même liste.
+ */
+
+/** ce qui part en expédition, et tout ce qui en fait le poids */
+export interface ForcesColonne {
+  /** les unités embarquées */
+  troupes: Partial<Record<UnitId, number>>
+  /** les héros qui MARCHENT (cf. `herosEnColonne`) - pas ceux qu'on possède */
+  heros?: readonly HeroEnColonne[]
+  /** passifs de TOUS les héros à votre service (`cumulerPassifs` / `bonusHeros`) */
+  bonus?: BonusHeros | null
+  /** grâce des dieux : la même part que le store ajoute (`bonusFaveurs(s).degatsPct`) */
+  faveurDegatsPct?: number
+}
+
+/** le détail, pour que le joueur puisse voir d'où sort le chiffre */
+export interface DetailPuissance {
+  /** ce que valent les unités seules */
+  troupes: number
+  /** ce que les héros ajoutent, à niveau nu */
+  heros: number
+  /** ce que les passifs ajoutent par-dessus les deux */
+  passifs: number
+  total: number
+  /** multiplicateur de dégâts portés appliqué (1 = aucun) */
+  multDegats: number
+  /** multiplicateur de vie utile appliqué (1 = aucun) */
+  multVie: number
+}
+
+/** poids d'un héros de ce niveau, dans la métrique du panneau */
+export function puissanceHero(niveau: number): number {
+  const st = statsCombatHeros(niveau)
+  return st.atk + st.hp / 8
+}
+
+export function detailPuissanceColonne(f: ForcesColonne): DetailPuissance {
+  const b = f.bonus ?? BONUS_NEUTRE
+  let atk = 0
+  let vie = 0
+  for (const u of UNIT_IDS) {
+    const n = f.troupes[u] ?? 0
+    if (n <= 0) continue
+    atk += n * UNITS[u].atk
+    vie += n * UNITS[u].hp
+  }
+  const nu = atk + vie / 8
+  let atkH = 0
+  let vieH = 0
+  for (const h of f.heros ?? []) {
+    const st = statsCombatHeros(h.niveau)
+    atkH += st.atk
+    vieH += st.hp
+  }
+  const multDegats = 1 + b.degatsMeleePct + b.degatsExpeditionPct + (f.faveurDegatsPct ?? 0)
+  // `gardeDuCorpsPct` est déjà plafonné à 0,8 par `cumulerPassifs` ; on le reborne
+  // ici pour qu'une valeur venue d'ailleurs ne fasse pas diverger le rapport
+  const multVie = 1 / (1 - Math.min(0.8, Math.max(0, b.gardeDuCorpsPct)))
+  const total = (atk + atkH) * multDegats + ((vie + vieH) / 8) * multVie
+  return {
+    troupes: nu,
+    heros: atkH + vieH / 8,
+    passifs: total - nu - (atkH + vieH / 8),
+    total,
+    multDegats,
+    multVie,
+  }
+}
+
+/**
+ * Puissance d'une colonne, héros et passifs compris. C'est CE chiffre que le
+ * panneau de préparation doit opposer à `puissanceEffective` de la place.
+ */
+export function puissanceColonne(f: ForcesColonne): number {
+  return detailPuissanceColonne(f).total
+}
+
+/**
+ * Ce que le store sait de la maisonnée quand on pèse une colonne. Trois lectures,
+ * et elles se prennent TOUTES LES TROIS sur le même état - sans quoi l'estimation
+ * dit autre chose que la bataille.
+ */
+export interface MaisonneeColonne {
+  /** `s.heros`, brut : la liste qui marche s'en déduit ici, pas chez l'appelant */
+  heros?: Record<HeroId, HeroState>
+  /** `bonusHeros(s)` - les passifs de TOUS les engagés, boudeurs compris */
+  bonus?: BonusHeros | null
+  /** `bonusFaveurs(s).degatsPct` - la grâce d'Arès pèse comme un passif */
+  faveurDegatsPct?: number
+}
+
+/**
+ * La colonne telle qu'elle partira, prête à peser. Une seule fonction plutôt que
+ * trois lectures à recomposer chez l'appelant, et ce n'est pas de la commodité :
+ *
+ *  · les trois morceaux doivent venir du MÊME instant. Prendre les passifs avant
+ *    et la liste des marcheurs après, c'est afficher la garde d'Ajax à un joueur
+ *    dont Ajax vient de mourir ;
+ *  · `herosEnColonne` rend un TABLEAU NEUF à chaque appel. Écrit dans un sélecteur
+ *    zustand (`useGame(s => herosEnColonne(s.heros, Date.now()))`), il ne serait
+ *    jamais égal à lui-même et le panneau se redessinerait sans fin. On sélectionne
+ *    `s.heros` - une référence stable - et l'on appelle ceci APRÈS, dans le rendu.
+ */
+export function colonneQuiPart(
+  troupes: Partial<Record<UnitId, number>>,
+  m: MaisonneeColonne,
+  now: number,
+): ForcesColonne {
+  return {
+    troupes,
+    heros: herosEnColonne(m.heros, now),
+    bonus: m.bonus ?? null,
+    faveurDegatsPct: m.faveurDegatsPct ?? 0,
+  }
+}
+
 /**
  * Les villages qui peuvent décemment appeler CE chef à l'aide : ceux dont les
  * assiégeants sont à sa portée. On garde une marge de 15 % - un secours doit être
  * un risque, pas une formalité - mais jamais l'impossible.
+ *
+ * `heros` est facultatif et devrait être fourni : un chef qui a Hector et Achille
+ * peut décemment répondre à un appel que ses trois lanciers seuls interdiraient,
+ * et refuser de le lui proposer, c'est lui faire manquer un allié pour rien.
  */
-export function appelsAPortee(candidats: VillageCible[], army: Record<UnitId, number>): VillageCible[] {
-  const force = puissanceTroupe(army)
+export function appelsAPortee(
+  candidats: VillageCible[],
+  army: Record<UnitId, number>,
+  renfort?: Omit<ForcesColonne, 'troupes'>,
+): VillageCible[] {
+  const force = puissanceColonne({ troupes: army, ...renfort })
   return candidats.filter((v) => puissanceAssiegeants(v) <= force * 1.15)
 }
 

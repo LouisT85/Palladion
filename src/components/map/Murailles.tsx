@@ -27,7 +27,23 @@ import { AOBase, PAL, alea } from './art'
  * R4 — DEUX FACES, PAS UNE. La couche `front` (arc sud) montre la face
  *   EXTERNE : appareil, archères, contreforts, mâchicoulis. La couche `back`
  *   (arc nord) montre la face INTERNE - c'est celle qui regarde le joueur :
- *   enduit, escaliers, appentis, aucune archère.
+ *   remblai, éperons, chaînage, volées, appentis, aucune archère.
+ *
+ * R5 — TOUT OUVRAGE DU DEDANS A UNE ÉPAISSEUR. Un ouvrage qui avance de d px de
+ *   PLAN dans la place a son pied `saillie(gi, a, −d)` px PLUS BAS À L'ÉCRAN que
+ *   la base du parement. Chaque pièce a DEUX appuis - son pied sur la ligne de
+ *   sol de SA profondeur, son sommet contre le parement.
+ *
+ * R6 — LA PROFONDEUR NE SE DIT PAS PAR UN DÉCALÉ EN X. Au nord de l'ellipse
+ *   cos a → 0 : `saillie` n'y rend presque QUE du y. Un volume qui comptait sur
+ *   son décalé horizontal pour se lire y devenait plat - l'appentis y était un
+ *   rectangle de 23,7 px cisaillé de 5,4, une planche peinte sur le mur, et
+ *   c'est ce « truc en bois » que le joueur a signalé. Ce qui fuit doit donc
+ *   RÉTRÉCIR (faîte plus étroit que l'égout, éperon à fruit) et porter des
+ *   lignes qui joignent l'avant à l'arrière (chevrons, glacis, lits de pierre).
+ *   Corollaire : ce qui court le long de l'arc (replats du remblai) ne peut pas
+ *   se dresser, ce qui descend la pente le peut - au nord, une coulée devient
+ *   un piquet.
  *
  * Et une règle de raccord : LA TOUR EST DESSINÉE POUR SON NIVEAU DE MUR. Son
  * plancher EST le chemin de ronde, son axe suit l'ellipse de MI-ÉPAISSEUR (elle
@@ -266,6 +282,12 @@ function DefsMur() {
         <stop offset="45%" stopColor="#a1936f" />
         <stop offset="100%" stopColor="#7d7052" />
       </linearGradient>
+      {/* le REMBLAI du dedans : terre battue, claire à l'ouest, sourde à l'est */}
+      <linearGradient id="mur-terre" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor="#8f7a4c" />
+        <stop offset="45%" stopColor="#7a6640" />
+        <stop offset="100%" stopColor="#54452a" />
+      </linearGradient>
       {/* bande claire du couronnement : forte à l'ouest, s'éteint vers l'est */}
       <linearGradient id="mur-lum" x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%" stopColor="#f7f1dd" stopOpacity="0.95" />
@@ -492,6 +514,438 @@ function contreforts(geo: GeoMur, angles: number[], H: number, larg: number, sai
       `L${(gx + o.dx * 0.55 + 1.2).toFixed(1)},${(gy + o.dy * 0.55 + yH + 3).toFixed(1)}L${(gx + o.dx * 0.55).toFixed(1)},${(gy + o.dy * 0.55 + yH + 3).toFixed(1)}Z`
   }
   return { face, flanc, lum }
+}
+
+/*
+ * ═════════ R5 — LES OUVRAGES DU DEDANS ONT UNE ÉPAISSEUR ═════════
+ *
+ * Un mur ne tient pas parce qu'il est épais : il tient parce qu'on l'épaule du
+ * DEDANS. Quatre pièces le font ici - le remblai qui encaisse le bélier, les
+ * éperons qui le prennent à revers, le chaînage qui le ceinture, les volées
+ * qui montent au chemin de ronde - et toutes obéissent à la règle qui manquait :
+ *
+ *   UN OUVRAGE QUI AVANCE DE d PX DE PLAN DANS LA PLACE A SON PIED
+ *   `saillie(gi, a, −d)` PLUS BAS À L'ÉCRAN QUE LA BASE DU PAREMENT.
+ *
+ * L'appentis était dessiné SANS ce terme : posé sur la base du parement comme
+ * s'il avait zéro épaisseur, il flottait de d·k px au-dessus de l'endroit où
+ * tombait son ombre - 6,7 px au niveau 3, 8,9 px au niveau 4 -, et son pan de
+ * toit, un simple rectangle incliné, ne s'appuyait sur rien. Toute pièce du
+ * dedans a donc désormais DEUX appuis : son pied sur la ligne de sol de SA
+ * profondeur, son sommet contre le parement.
+ */
+interface Dedans {
+  /** hauteur du remblai contre le parement */
+  hTal: number
+  /** avancée en plan du PIED du remblai dans la place */
+  profTal: number
+  /** éperons : avancée du nu avant, largeur en plan, hauteur, pas d'arc */
+  profEp: number
+  largEp: number
+  hEp: number
+  pasEp: number
+  /** appentis : avancée du nu avant, demi-largeur, faîte, poteaux */
+  profApp: number
+  demApp: number
+  hApp: number
+  hPot: number
+}
+
+/**
+ * Les cotes du dedans se DÉDUISENT de celles du mur - aucune n'est écrite deux
+ * fois, et un niveau 4 est donc épaulé plus fort qu'un niveau 3 sans réglage.
+ *
+ * DEUX de ces cotes étaient fausses, et c'est tout ce qui manquait à la face
+ * interne pour tenir debout :
+ *
+ *  · `profTal = 1,6·W` donnait au remblai 12 px de PLAN au niveau 3, soit
+ *    12·k·|sin a| = 7 px d'écran au nord. Un talus de 7 px au pied d'un mur de
+ *    27 n'est pas un talus, c'est un filet d'ombre. Un remblai de terre ne tient
+ *    pas plus raide que 1,25 de base pour 1 de haut : son pied avance donc de
+ *    l'épaisseur du mur PLUS 1,25 fois sa propre hauteur, et il se voit.
+ *
+ *  · `hEp = 0,62·H` arrêtait l'éperon à 10,3 px SOUS le chemin de ronde (n3) -
+ *    17,1 px SOUS l'arase au niveau 4 : le massif ne touchait rien en haut, se
+ *    coiffait d'un chapeau clair et se lisait comme une stèle plantée devant le
+ *    mur. Un contrefort meurt CONTRE le parement, juste sous le bahut, par un
+ *    glacis qui rend l'eau au mur. Le défaut était partagé par les niveaux 3
+ *    ET 4 : il fallait le corriger dans la cote, pas dans un dessin.
+ */
+function cotesDedans(c: Cote): Dedans {
+  const hTal = c.H * 0.34
+  const profTal = c.W * 1.6 + hTal * 1.25
+  return {
+    hTal,
+    profTal,
+    // éperons et appentis dépassent le pied du remblai : leur pied est AU SOL,
+    // et c'est la terre qui vient s'entasser entre eux et les border
+    /*
+     * L'ÉPERON EST LARGE ET PEU SAILLANT, PAS ÉTROIT ET PROFOND. Mené jusqu'au
+     * pied du talus (profTal + 4 = 27,5 px de plan au niveau 3) son flanc
+     * s'étalait de profEp·|cos a| = 21,7 px à l'écran vers l'ouest de l'arc :
+     * une plaque pâle plus large que haute, qui mangeait le mur. Réduit sans
+     * être élargi, il devenait un pilier de 10 px pour 27 de haut - une stèle.
+     * Une épaisseur de mur en saillie pour 1,6 en largeur donne un CONTREFORT :
+     * le même rapport que ceux du dehors, qui eux se lisent déjà bien.
+     */
+    profEp: c.W,
+    largEp: c.W * 1.6,
+    hEp: c.H - 3.4,
+    pasEp: 42 + c.H * 0.8,
+    profApp: profTal + 6,
+    demApp: 10,
+    // le faîte passe SOUS le lit de chaînage haut (0,78·H) : l'appentis se range
+    // dans la structure du mur au lieu de la trancher
+    hApp: c.H * 0.66,
+    hPot: c.H * 0.52,
+  }
+}
+
+/**
+ * ÉPERONS INTÉRIEURS : le pendant du contrefort extérieur, côté place. Massif
+ * qui naît large et EN AVANT au sol, et meurt CONTRE le parement juste sous le
+ * bahut - ce double appui est tout ce qui le distingue d'une stèle posée là.
+ * Huit chemins pour tous les massifs de la couche.
+ *
+ * Trois pièces le font APPARTENIR au mur, et elles manquaient toutes les trois :
+ *  · le GLACIS - le versant qui coiffe le massif et rend l'eau au parement ; un
+ *    chapeau horizontal, lui, disait « ce bloc s'arrête ici » ;
+ *  · le FRUIT - le nu avant se rapproche du mur en montant (0,62 de la saillie
+ *    au sommet) : un prisme droit se lit comme une armoire, un massif à fruit
+ *    comme une poussée ;
+ *  · la BERGE de terre qui vient border son pied : sans elle le massif est posé
+ *    SUR le remblai au lieu d'en sortir.
+ */
+function eperons(gi: GeoMur, angles: number[], d: Dedans, H: number, hA: number) {
+  let ombre = ''
+  let face = ''
+  let faceOmbre = ''
+  let flancJour = ''
+  let flancOmbre = ''
+  let glacis = ''
+  let arete = ''
+  let pied = ''
+  let joints = ''
+  let berge = ''
+  const { largEp: larg, profEp: prof, hEp, hTal } = d
+  /** fraction de la saillie encore tenue au sommet : le fruit du massif */
+  const fT = 0.74
+  for (const a of angles) {
+    const p = pt(gi, a)
+    const { tx, ty } = tangente(gi, a)
+    const o = saillie(gi, a, -prof)
+    const demi = (larg * Math.abs(tx)) / 2 + 1.1
+    const demiT = demi * 0.9
+    /*
+     * UN PRISME, PAS UN QUADRILATÈRE PENCHÉ. Dessiné d'un seul tenant entre son
+     * pied (avancé de `prof`) et son sommet (contre le parement), le massif se
+     * couchait : le décalé écran de la profondeur devenait une INCLINAISON, et
+     * on lisait une planche appuyée au mur. Ici les faces sont séparées - nu
+     * AVANT à fruit, FLANC (celui que la profondeur découvre), GLACIS entre le
+     * sommet du nu avant et le parement -, et le décalé redevient de l'épaisseur.
+     */
+    const sw = tx >= 0 ? -1 : 1
+    // quatre points du PAREMENT : les deux joues, en bas et en haut
+    const wx = p.x + sw * tx * demi
+    const wy = p.y + sw * ty * demi
+    const ex = p.x - sw * tx * demi
+    const ey = p.y - sw * ty * demi
+    const wxT = p.x + sw * tx * demiT
+    const wyT = p.y + sw * ty * demiT
+    const exT = p.x - sw * tx * demiT
+    const eyT = p.y - sw * ty * demiT
+    // les mêmes, portés au NU AVANT : plein décalé en bas, `fT` en haut
+    const wxA = wx + o.dx
+    const wyA = wy + o.dy
+    const exA = ex + o.dx
+    const eyA = ey + o.dy
+    const wxB = wxT + o.dx * fT
+    const wyB = wyT + o.dy * fT - hEp
+    const exB = exT + o.dx * fT
+    const eyB = eyT + o.dy * fT - hEp
+    // NU AVANT : planté au SOL à `prof` px de plan du mur, et qui se resserre
+    face +=
+      `M${wxA.toFixed(1)},${(wyA + 2).toFixed(1)}L${exA.toFixed(1)},${(eyA + 2).toFixed(1)}` +
+      `L${exB.toFixed(1)},${eyB.toFixed(1)}L${wxB.toFixed(1)},${wyB.toFixed(1)}Z`
+    // le tiers EST du nu avant tourne à l'ombre : c'est ce qui lui donne son
+    // volume sans le moindre contour
+    const gm = 0.66
+    faceOmbre +=
+      `M${(wxA + (exA - wxA) * gm).toFixed(1)},${(wyA + (eyA - wyA) * gm + 2).toFixed(1)}L${exA.toFixed(1)},${(eyA + 2).toFixed(1)}` +
+      `L${exB.toFixed(1)},${eyB.toFixed(1)}L${(wxB + (exB - wxB) * gm).toFixed(1)},${(wyB + (eyB - wyB) * gm).toFixed(1)}Z`
+    // GLACIS : le versant qui monte du nu avant jusqu'au parement, 2,6 px plus
+    // haut - c'est LUI qui soude le massif au mur
+    glacis +=
+      `M${wxB.toFixed(1)},${wyB.toFixed(1)}L${exB.toFixed(1)},${eyB.toFixed(1)}` +
+      `L${exT.toFixed(1)},${(eyT - hEp - 2.6).toFixed(1)}L${wxT.toFixed(1)},${(wyT - hEp - 2.6).toFixed(1)}Z`
+    // l'arête du glacis prend le jour : le liseré clair de la bible, jamais noir
+    arete += `M${wxB.toFixed(1)},${wyB.toFixed(1)}L${exB.toFixed(1)},${eyB.toFixed(1)}L${exB.toFixed(1)},${(eyB + 1.1).toFixed(1)}L${wxB.toFixed(1)},${(wyB + 1.1).toFixed(1)}Z`
+    // FLANC : celui que le décalé découvre. Le nu avant part-il vers l'est
+    // (o.dx > 0) ? alors c'est le flanc OUEST qu'on voit, et il prend le jour.
+    const ouest = o.dx >= 0
+    const cx = ouest ? wx : ex
+    const cy = ouest ? wy : ey
+    const cxT = ouest ? wxT : exT
+    const cyT = ouest ? wyT : eyT
+    const cxB = ouest ? wxB : exB
+    const cyB = ouest ? wyB : eyB
+    const cf =
+      `M${cx.toFixed(1)},${(cy + 2).toFixed(1)}L${(cx + o.dx).toFixed(1)},${(cy + o.dy + 2).toFixed(1)}` +
+      `L${cxB.toFixed(1)},${cyB.toFixed(1)}L${cxT.toFixed(1)},${(cyT - hEp - 2.6).toFixed(1)}Z`
+    if (ouest) flancJour += cf
+    else flancOmbre += cf
+    // occlusion au pied du nu avant : sans elle le massif reste posé, pas planté
+    pied += `M${wxA.toFixed(1)},${(wyA - 1).toFixed(1)}L${exA.toFixed(1)},${(eyA - 1).toFixed(1)}L${exA.toFixed(1)},${(eyA + 2).toFixed(1)}L${wxA.toFixed(1)},${(wyA + 2).toFixed(1)}Z`
+    /*
+     * LES LITS DU MASSIF SONT CEUX DU MUR. Trois joints posés à des fractions
+     * arbitraires de sa hauteur faisaient un objet à part, appuyé contre la
+     * courtine ; alignés sur les assises du parement (`hA`, comptées depuis le
+     * chemin de ronde comme celles de `assisesArc`), ils font un massif LIÉ à
+     * la maçonnerie - c'est le chaînage qui se voit, pas un placage.
+     */
+    for (let r = 1; (r + 1) * hA < H - 2; r++) {
+      const f = (H - 2 - (r + 1) * hA) / hEp
+      if (f < 0.06 || f > 0.96) continue
+      const gx0 = wxA + (wxB - wxA) * f
+      const gy0 = wyA + 2 + (wyB - wyA - 2) * f
+      const gx1 = exA + (exB - exA) * f
+      const gy1 = eyA + 2 + (eyB - eyA - 2) * f
+      joints +=
+        `M${gx0.toFixed(1)},${gy0.toFixed(1)}L${gx1.toFixed(1)},${gy1.toFixed(1)}` +
+        `L${gx1.toFixed(1)},${(gy1 + 0.9).toFixed(1)}L${gx0.toFixed(1)},${(gy0 + 0.9).toFixed(1)}Z`
+      // le même lit court sur le FLANC : c'est lui qui dit que la masse recule
+      const px0 = cx + (cxT - cx) * f
+      const py0 = cy + 2 + (cyT - hEp - 4.6 - cy) * f
+      const qx0 = cx + o.dx + (cxB - cx - o.dx) * f
+      const qy0 = cy + o.dy + 2 + (cyB - cy - o.dy - 2) * f
+      joints +=
+        `M${px0.toFixed(1)},${py0.toFixed(1)}L${qx0.toFixed(1)},${qy0.toFixed(1)}` +
+        `L${qx0.toFixed(1)},${(qy0 + 0.9).toFixed(1)}L${px0.toFixed(1)},${(py0 + 0.9).toFixed(1)}Z`
+    }
+    // BERGE : la terre du remblai vient border le pied du massif. Peinte APRÈS
+    // lui, elle l'enterre de 3 px et c'est ce qui le fait sortir du sol.
+    const bw = (wxA + exA) / 2
+    const bh = (wyA + eyA) / 2 + 2
+    berge +=
+      `M${(wxA - 4.2).toFixed(1)},${(wyA + 2.2).toFixed(1)}Q${bw.toFixed(1)},${(bh - 5.4).toFixed(1)} ${(exA + 4.2).toFixed(1)},${(eyA + 2.2).toFixed(1)}` +
+      `L${(exA + 4.2).toFixed(1)},${(eyA + 3.6).toFixed(1)}L${(wxA - 4.2).toFixed(1)},${(wyA + 3.6).toFixed(1)}Z`
+    /*
+     * L'OMBRE PORTÉE S'ARRÊTE AU REMBLAI. Menée jusqu'au pied du massif elle
+     * débordait sur l'herbe en une nappe grise : le massif est en avant du mur,
+     * mais son ombre tombe sur le PAREMENT, qui s'arrête à la crête du talus.
+     */
+    const s = Math.max(4.6, prof * 0.8)
+    const yC = p.y - hTal
+    ombre +=
+      `M${ex.toFixed(1)},${(ey - hEp - 2.6).toFixed(1)}L${(ex + s).toFixed(1)},${(ey - hEp - 2.6 + s * 0.42).toFixed(1)}` +
+      `L${(ex + s).toFixed(1)},${(yC + s * 0.42).toFixed(1)}L${ex.toFixed(1)},${yC.toFixed(1)}Z`
+  }
+  return { ombre, face, faceOmbre, flancJour, flancOmbre, glacis, arete, pied, joints, berge }
+}
+
+/**
+ * CHAÎNAGE APPARENT. Le lit de poutres noyé dans la maçonnerie, dont on voit du
+ * dedans la course et les TÊTES. Sans lui la face interne restait une bande
+ * lisse de 19 px de haut sur 820 px de long : rien n'y disait qu'une structure
+ * retenait le mur.
+ */
+function chainage(
+  gi: GeoMur,
+  t: Abs,
+  a0: number,
+  a1: number,
+  n: number,
+  dy: number,
+  hB: number,
+  pasTete: number,
+  phaseTete: number,
+) {
+  // la maçonnerie SURPLOMBE la poutre : sans ce creux d'ombre au-dessus, le lit
+  // se lisait comme une main courante posée devant le mur, pas comme un bois
+  // noyé dedans. C'est cette lecture-là qui faisait un « truc en bois » de plus.
+  const creux = ruban(gi, dy - 1.4, gi, dy, a0, a1, n)
+  const bande = ruban(gi, dy, gi, dy + hB, a0, a1, n)
+  const lit = ruban(gi, dy, gi, dy + hB * 0.34, a0, a1, n)
+  const sous = ruban(gi, dy + hB, gi, dy + hB + 0.9, a0, a1, n)
+  let tetes = ''
+  let tetesLit = ''
+  let tetesOmbre = ''
+  for (const a of anglesArc(t, pasTete, phaseTete)) {
+    const p = pt(gi, a)
+    const { tx } = tangente(gi, a)
+    const w = 3.4 * Math.max(0.4, Math.abs(tx))
+    const y = p.y + dy - 1.1
+    const h = hB + 2.2
+    tetes += `M${(p.x - w / 2).toFixed(1)},${y.toFixed(1)}h${w.toFixed(1)}v${h.toFixed(1)}h-${w.toFixed(1)}Z`
+    tetesLit += `M${(p.x - w / 2).toFixed(1)},${y.toFixed(1)}h${w.toFixed(1)}v1.1h-${w.toFixed(1)}Z`
+    // la joue est de la tête, et l'ombre qu'elle jette sur le parement
+    tetesOmbre +=
+      `M${(p.x + w / 2 - 0.9).toFixed(1)},${y.toFixed(1)}h0.9v${h.toFixed(1)}h-0.9Z` +
+      `M${(p.x + w / 2).toFixed(1)},${(y + 0.6).toFixed(1)}l1.6,0.7v${h.toFixed(1)}l-1.6,-0.7Z`
+  }
+  return { creux, bande, lit, sous, tetes, tetesLit, tetesOmbre }
+}
+
+/**
+ * ═════════════ APPENTIS DE SERVICE - « LE TRUC EN BOIS » ═════════════
+ *
+ * C'est la pièce que le joueur a montrée du doigt, et elle flottait pour une
+ * raison très précise, qu'aucune retouche de couleur n'aurait réparée :
+ *
+ *   SON PAN DE TOIT ÉTAIT UN RECTANGLE. Faîte et égout avaient la MÊME
+ *   demi-largeur `lg`, et l'écart horizontal entre les deux valait `o.dx`, qui
+ *   s'annule au nord de l'ellipse (cos a → 0). Au pan nord de la carte -
+ *   exactement la capture - le quadrilatère mesurait 23,7 px de large pour
+ *   5,4 px de cisaillement : une PLANCHE peinte à plat sur le parement. Le
+ *   caisson sous l'auvent, lui, était rempli de #54432a, plus sombre que tout
+ *   ce qui l'entoure : on lisait une ombre, pas un volume. D'où l'impression
+ *   d'un rectangle de bois clair accroché à rien.
+ *
+ * La profondeur, dans cette vue oblique, ne se dit PAS par un décalé en x -
+ * il n'en existe pas au nord - mais par un décalé EN Y (`o.dy = prof·k·sin a`)
+ * et par le RÉTRÉCISSEMENT de ce qui s'éloigne. L'appentis est donc rebâti sur
+ * quatre appuis mesurés :
+ *
+ *  1. le faîte est CONTRE le parement, à `hApp` du sol du mur, et il est plus
+ *     ÉTROIT que l'égout (0,86) : le pan devient un plan qui fuit ;
+ *  2. l'égout est porté par deux poteaux dont le pied est AU SOL, `profApp·k`
+ *     px plus bas à l'écran que la base du parement (R5) ;
+ *  3. les CHEVRONS courent du faîte à l'égout - obliques, ils disent la pente
+ *     là où les rangées de chaume, horizontales, disaient un panneau plat ;
+ *  4. le PIGNON visible (celui que le décalé découvre) ferme le volume, et
+ *     trois CORBEAUX scellés dans le parement portent la panne faîtière.
+ *
+ * Tout est déduit de `gi`, de `a` et des cotes : juste pour n'importe quelle
+ * ellipse, donc pour la scène d'expédition comme pour la carte.
+ */
+function AppentisMur({ gi, a, d }: { gi: GeoMur; a: number; d: Dedans }) {
+  const p = pt(gi, a)
+  const o = saillie(gi, a, -d.profApp)
+  const { tx } = tangente(gi, a)
+  // vu de bout (est/ouest de l'ellipse) l'appentis ne doit pas s'étaler
+  const demE = d.demApp * Math.max(0.55, Math.abs(tx))
+  const demF = demE * 0.86
+  const xA = p.x + o.dx
+  const ySol = p.y + o.dy + 2
+  const yEg = ySol - d.hPot
+  const yFa = p.y - d.hApp
+  const sh = 5.2
+  const q = (
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    x3: number,
+    y3: number,
+  ) =>
+    `M${x0.toFixed(1)},${y0.toFixed(1)}L${x1.toFixed(1)},${y1.toFixed(1)}` +
+    `L${x2.toFixed(1)},${y2.toFixed(1)}L${x3.toFixed(1)},${y3.toFixed(1)}Z`
+  // le débord du chaume, égout et rives
+  const dbE = demE + 1.4
+  const dbF = demF + 1
+  const yCh = yEg - 1.8
+  // le pignon qu'on voit est celui vers lequel le nu avant s'écarte
+  const ouest = o.dx >= 0
+  const sg = ouest ? -1 : 1
+  const pgB = p.x + sg * demF
+  const pgA = xA + sg * demE
+  return (
+    <g>
+      {/* ombre au sol, PEINTE (deux valeurs, jamais floutée) et jetée au SE */}
+      <ellipse cx={xA + demE * 0.5} cy={ySol + 1.8} rx={demE * 1.35} ry={3.8} fill={PAL.ombrePortee} opacity={0.12} />
+      <ellipse cx={xA + demE * 0.3} cy={ySol + 0.7} rx={demE * 1.02} ry={2.5} fill={PAL.ombrePortee} opacity={0.17} />
+      {/* l'ombre portée SUR le parement : c'est elle qui l'attache au mur */}
+      <path
+        d={q(p.x + dbF, yFa, p.x + dbF + sh, yFa + sh * 0.42, xA + dbE + sh, yCh + sh * 0.42, xA + dbE, yCh)}
+        fill={PAL.ombrePortee}
+        opacity={0.17}
+      />
+      {/* LA PANNE FAÎTIÈRE, SCELLÉE DANS LE MUR, et les deux corbeaux qui la
+          portent. Elle DÉPASSE le pan de toit de part et d'autre : c'est la
+          seule pièce qui puisse montrer, hors de l'ombre de l'auvent, que
+          l'appentis tient au parement et non à côté. (Des corbeaux placés sous
+          le faîte étaient invisibles - le pan les recouvrait entièrement.) */}
+      <path d={q(p.x - dbF - 4.4, yFa + 0.2, p.x + dbF + 4.4, yFa + 0.2, p.x + dbF + 4.4, yFa + 2.6, p.x - dbF - 4.4, yFa + 2.6)} fill={PAL.boisMi} />
+      <path d={q(p.x - dbF - 4.4, yFa + 0.2, p.x + dbF + 4.4, yFa + 0.2, p.x + dbF + 4.4, yFa + 1.1, p.x - dbF - 4.4, yFa + 1.1)} fill={PAL.boisLit} />
+      {[-1, 1].map((s) => (
+        <g key={s}>
+          <path d={q(p.x + s * (dbF + 3.4) - 1.4, yFa + 2.6, p.x + s * (dbF + 3.4) + 1.4, yFa + 2.6, p.x + s * (dbF + 3.4) + 1.4, yFa + 5.6, p.x + s * (dbF + 3.4) - 1.4, yFa + 5.6)} fill="#9d9179" />
+          <path d={q(p.x + s * (dbF + 3.4) - 1.4, yFa + 2.6, p.x + s * (dbF + 3.4) + 1.4, yFa + 2.6, p.x + s * (dbF + 3.4) + 1.4, yFa + 3.4, p.x + s * (dbF + 3.4) - 1.4, yFa + 3.4)} fill={PAL.pierreLit} />
+        </g>
+      ))}
+      {/* LA PÉNOMBRE SOUS L'AUVENT, cadrée par les deux poteaux. Deux valeurs :
+          le fond de l'abri et le sol qui reçoit encore un peu de jour */}
+      <path d={q(xA - demE, yEg, xA + demE, yEg, xA + demE, ySol, xA - demE, ySol)} fill="#5b4a2e" />
+      <path d={q(xA - demE, ySol - d.hPot * 0.3, xA + demE, ySol - d.hPot * 0.3, xA + demE, ySol, xA - demE, ySol)} fill="#75603c" />
+      {/* ce qu'on y range : bois fendu et deux jarres - la vie du dedans */}
+      <path
+        d={
+          q(xA - demE + 1.6, ySol - 4.2, xA - demE + 7.4, ySol - 4.2, xA - demE + 7.4, ySol - 0.6, xA - demE + 1.6, ySol - 0.6) +
+          q(xA - demE + 1.6, ySol - 4.2, xA - demE + 7.4, ySol - 4.2, xA - demE + 7.4, ySol - 3.2, xA - demE + 1.6, ySol - 3.2)
+        }
+        fill="#7d5e39"
+      />
+      <path d={q(xA - demE + 1.6, ySol - 4.2, xA - demE + 7.4, ySol - 4.2, xA - demE + 7.4, ySol - 3.5, xA - demE + 1.6, ySol - 3.5)} fill="#a8845d" />
+      <ellipse cx={xA + demE - 4} cy={ySol - 2.4} rx={2.4} ry={3} fill="#8a6b45" />
+      <ellipse cx={xA + demE - 4.7} cy={ySol - 3.2} rx={1} ry={1.5} fill="#b08f5e" opacity={0.7} />
+      {/* LE PIGNON : le côté que le décalé découvre ferme le volume. Sans lui
+          l'auvent n'avait ni épaisseur ni intérieur, juste une face noire. */}
+      <path d={q(pgB, yFa, pgA, yEg, pgA, ySol, pgB, p.y + 2)} fill={ouest ? '#a3855a' : '#6b5334'} />
+      <path
+        d={
+          q(pgB, yFa + (p.y + 2 - yFa) * 0.42, pgA, yEg + (ySol - yEg) * 0.42, pgA, yEg + (ySol - yEg) * 0.42 + 1, pgB, yFa + (p.y + 2 - yFa) * 0.42 + 1) +
+          q(pgB, yFa + (p.y + 2 - yFa) * 0.72, pgA, yEg + (ySol - yEg) * 0.72, pgA, yEg + (ySol - yEg) * 0.72 + 1, pgB, yFa + (p.y + 2 - yFa) * 0.72 + 1)
+        }
+        fill={ouest ? '#88693f' : '#57422a'}
+        opacity={0.8}
+      />
+      {/* les deux POTEAUX, plantés au sol, et leur sablière */}
+      {[-1, 1].map((s) => (
+        <g key={s}>
+          <path d={q(xA + s * demE - 1.5, yEg, xA + s * demE + 1.5, yEg, xA + s * demE + 1.5, ySol + 0.6, xA + s * demE - 1.5, ySol + 0.6)} fill={s < 0 ? PAL.boisMi : '#5f462d'} />
+          <path d={q(xA + s * demE - 1.5, yEg, xA + s * demE - 0.5, yEg, xA + s * demE - 0.5, ySol + 0.6, xA + s * demE - 1.5, ySol + 0.6)} fill={PAL.boisLit} opacity={0.85} />
+          {/* l'empattement : la pierre de calage sous le poteau */}
+          <ellipse cx={xA + s * demE} cy={ySol + 0.8} rx={2.6} ry={1.1} fill="#a89d83" />
+        </g>
+      ))}
+      <path d={q(xA - demE - 1, yEg - 0.4, xA + demE + 1, yEg - 0.4, xA + demE + 1, yEg + 1.9, xA - demE - 1, yEg + 1.9)} fill={PAL.boisMi} />
+      <path d={q(xA - demE - 1, yEg - 0.4, xA + demE + 1, yEg - 0.4, xA + demE + 1, yEg + 0.5, xA - demE - 1, yEg + 0.5)} fill={PAL.boisLit} />
+      {/* LE PAN DE TOIT : faîte ÉTROIT contre le parement, égout LARGE en avant
+          et plus bas - le rétrécissement est ce qui fait fuir le plan */}
+      <path d={q(p.x - dbF, yFa, p.x + dbF, yFa, xA + dbE, yCh, xA - dbE, yCh)} fill={PAL.chaumeOmbre} />
+      <path d={q(p.x - dbF, yFa, p.x - dbF * 0.1, yFa, xA - dbE * 0.1, yCh, xA - dbE, yCh)} fill={PAL.chaumeLit} opacity={0.4} />
+      {/* LES CHEVRONS, du faîte à l'égout : obliques, ils disent la pente. Les
+          rangées horizontales de l'ancien dessin disaient un panneau plat. */}
+      {(() => {
+        let ch = ''
+        for (const f of [-0.66, -0.22, 0.22, 0.66]) {
+          const x0 = p.x + f * dbF
+          const x1 = xA + f * dbE
+          ch += q(x0 - 0.6, yFa, x0 + 0.6, yFa, x1 + 0.7, yCh, x1 - 0.7, yCh)
+        }
+        return <path d={ch} fill="#8a6d3c" opacity={0.42} />
+      })()}
+      {/* deux liens de chaume en travers, et l'arête claire du faîte */}
+      {(() => {
+        let rangs = ''
+        for (const f of [0.42, 0.76]) {
+          const y = yFa + (yCh - yFa) * f
+          const xg = p.x - dbF + (xA - dbE - (p.x - dbF)) * f
+          const xd = p.x + dbF + (xA + dbE - (p.x + dbF)) * f
+          rangs += q(xg, y, xd, y, xd, y + 0.9, xg, y + 0.9)
+        }
+        return <path d={rangs} fill="#7d6234" opacity={0.5} />
+      })()}
+      <path d={q(p.x - dbF, yFa, p.x + dbF, yFa, p.x + dbF, yFa + 1.2, p.x - dbF, yFa + 1.2)} fill="#ecd9a0" opacity={0.7} />
+      {/* l'égout : la tranche du chaume, qui donne son épaisseur au pan, et
+          l'ombre qu'il jette sous lui */}
+      <path d={q(xA - dbE, yCh, xA + dbE, yCh, xA + dbE, yCh + 2, xA - dbE, yCh + 2)} fill="#8a6d3c" />
+      <path d={q(xA - dbE, yCh, xA + dbE, yCh, xA + dbE, yCh + 0.7, xA - dbE, yCh + 0.7)} fill="#c2a066" opacity={0.8} />
+      <path d={q(xA - demE, yCh + 2, xA + demE, yCh + 2, xA + demE, yCh + 3.4, xA - demE, yCh + 3.4)} fill={PAL.ombrePortee} opacity={0.2} />
+    </g>
+  )
 }
 
 /**
@@ -1603,7 +2057,26 @@ export const Murailles = memo(function Murailles({
               {/* fruit : la plinthe est poussée vers le dehors */}
               <path d={ruban(gFace, 2, gFace, -4.4, a0, a1, nC, arriere ? 0 : 1.6)} fill={arriere ? 'url(#mur-interne)' : 'url(#mur-sec)'} />
               <path d={ligne(gFace, a0, a1, nC, -4.4, arriere ? 0 : 0.5)} stroke="#c8bda2" strokeWidth={1} fill="none" opacity={0.5} />
-              <path d={ligne(gFace, a0, a1, nC, 0.9)} stroke="url(#mur-pied)" strokeWidth={5} fill="none" />
+              {/* AU DEDANS, le remblai (R5) : la levée de terre du niveau 1 ne
+                  disparaît pas quand on passe à la pierre, elle s'adosse au mur.
+                  C'est la même pièce qu'aux niveaux 3 et 4, aux cotes de CE mur. */}
+              {arriere ? (
+                (() => {
+                  const d2 = cotesDedans(c)
+                  return (
+                    <g>
+                      <path d={ruban(gi, -d2.hTal, gi, 2, a0, a1, nC, 0, -d2.profTal)} fill="url(#mur-terre)" />
+                      <path d={ruban(gi, -d2.hTal, gi, 2, a0, a1, nC, 0, -d2.profTal * 0.45)} fill="#a68f57" opacity={0.45} />
+                      <path d={ruban(gi, 2, gi, 2, a0, a1, nC, -d2.profTal * 0.72, -d2.profTal)} fill="#4a3c23" opacity={0.55} />
+                      <path d={ligne(gi, a0, a1, nC, -d2.hTal - 0.8)} stroke={PAL.ombrePortee} strokeWidth={1.8} fill="none" opacity={0.26} />
+                      <path d={ligne(gi, a0, a1, nC, -d2.hTal + 0.5)} stroke="#c3ab6c" strokeWidth={1.3} fill="none" opacity={0.8} />
+                      <path d={ligne(gi, a0, a1, nC, 2.4, -d2.profTal)} stroke="url(#mur-pied)" strokeWidth={4} fill="none" />
+                    </g>
+                  )
+                })()
+              ) : (
+                <path d={ligne(gFace, a0, a1, nC, 0.9)} stroke="url(#mur-pied)" strokeWidth={5} fill="none" />
+              )}
               {/* le sommet n'est plus une palissade de pointes mais un HOURD :
                   chemin de bois en encorbellement, bardé de planches */}
               <path d={ruban(geo, -H, gi, -H, a0, a1, nC)} fill="url(#mur-dalle)" />
@@ -1685,25 +2158,147 @@ export const Murailles = memo(function Murailles({
               })}
             </g>
           )
-          // ── escaliers et appentis du dedans : un chemin par valeur, et jamais
-          //    au droit d'une tour (le fût les avalerait) ──
+          // ── LES OUVRAGES DU DEDANS (R5) : remblai, éperons, chaînage, volées
+          //    et appentis. Aucun au droit d'une tour (le fût les avalerait), et
+          //    les éperons cèdent le pas aux volées et aux appentis. ──
+          const dd = cotesDedans(c)
+          /** px d'ARC → radians à cet angle : sert à espacer les ouvrages (R1) */
+          const angPx = (a: number, px: number) => px / (Math.hypot(geo.rx * Math.sin(a), geo.ry * Math.cos(a)) || 1)
+          const libre = (a: number, f: number) => !encoches.some((e) => Math.abs(a - e.a) < e.da * f)
+          const aEsc = arriere ? anglesArc(t, 240, 70).filter((a) => libre(a, 2.2)) : []
+          const aApp = arriere ? anglesArc(t, 300, 150).filter((a) => libre(a, 2.4)) : []
+          const aEp = arriere
+            ? anglesArc(t, dd.pasEp, 18).filter(
+                (a) =>
+                  libre(a, 1.5) &&
+                  !aEsc.some((b) => Math.abs(a - b) < angPx(a, 36)) &&
+                  !aApp.some((b) => Math.abs(a - b) < angPx(a, 30)),
+              )
+            : []
+          const ep = eperons(gi, aEp, dd, H, c.hAssise)
+          // deux lits de chaînage au niveau 3, TROIS au niveau 4 : la progression
+          // se lit aussi du dedans, et un seul lit se prenait pour une rambarde
+          // Les têtes de poutres sont DÉCALÉES d'un lit à l'autre. Alignées, les
+          // deux lits et leurs têtes composaient un quadrillage : le mur de
+          // pierre se lisait comme un pan de bois, et c'était un « truc en
+          // bois » de plus sur la face interne.
+          const chz = (n4 ? [0.44, 0.64, 0.84] : [0.5, 0.78]).map((f, i) =>
+            chainage(gi, t, a0, a1, nC, -H * f, n4 ? 3 : 2.7, n4 ? 26 : 23, (i * 2 + 1) * 6.5),
+          )
+          /*
+           * LA TERRE DU REMBLAI EST BATTUE, PAS VERSÉE. Une nappe unie de 14 px
+           * d'écran ne se lit pas comme un talus : ce sont les REPLATS - les
+           * paliers qu'un remblai damé garde en séchant - et les pierres qui en
+           * revêtent le pied qui lui donnent sa matière, et qui disent que c'est
+           * de la terre entassée contre le mur, pas une ombre.
+           *
+           * Des coulées dans le SENS DE LA PENTE avaient été essayées d'abord :
+           * la profondeur ne se projetant presque qu'en y au nord, elles y
+           * devenaient un rang de traits verticaux régulièrement espacés - une
+           * palissade de piquets plantée dans le talus. Les replats, eux,
+           * courent le long de l'arc : ils ne peuvent pas se dresser.
+           */
+          let stries = ''
+          let cailloux = ''
+          let caillouxLit = ''
+          if (arriere) {
+            const rt = alea(niveau * 17 + 5)
+            for (const a of anglesArc(t, 17, 4)) {
+              const o = saillie(gi, a, -dd.profTal)
+              const p = pt(gi, a)
+              const { tx, ty } = tangente(gi, a)
+              const f = 0.22 + rt() * 0.5
+              const hh = dd.hTal + 2 + o.dy
+              const cxp = p.x + o.dx * f
+              const cyp = p.y - dd.hTal + hh * f
+              const lg = 4.2 + rt() * 4.4
+              const ep2 = 1 + rt() * 0.8
+              stries +=
+                `M${(cxp - tx * lg).toFixed(1)},${(cyp - ty * lg).toFixed(1)}L${(cxp + tx * lg).toFixed(1)},${(cyp + ty * lg).toFixed(1)}` +
+                `L${(cxp + tx * lg).toFixed(1)},${(cyp + ty * lg + ep2).toFixed(1)}L${(cxp - tx * lg).toFixed(1)},${(cyp - ty * lg + ep2).toFixed(1)}Z`
+            }
+            for (const a of anglesArc(t, 21, 9)) {
+              const o = saillie(gi, a, -dd.profTal)
+              const p = pt(gi, a)
+              const f = 0.82 + rt() * 0.16
+              const x = p.x + o.dx * f
+              const y = p.y - dd.hTal + (dd.hTal + 2 + o.dy) * f
+              const r = 1.5 + rt() * 1.3
+              cailloux += `M${(x - r).toFixed(1)},${y.toFixed(1)}L${x.toFixed(1)},${(y - r * 0.72).toFixed(1)}L${(x + r).toFixed(1)},${y.toFixed(1)}L${x.toFixed(1)},${(y + r * 0.6).toFixed(1)}Z`
+              caillouxLit += `M${(x - r * 0.7).toFixed(1)},${(y - r * 0.1).toFixed(1)}L${x.toFixed(1)},${(y - r * 0.66).toFixed(1)}L${(x + r * 0.3).toFixed(1)},${(y - r * 0.24).toFixed(1)}L${(x - r * 0.2).toFixed(1)},${(y + r * 0.06).toFixed(1)}Z`
+            }
+          }
           let esc = ''
           let escLum = ''
           let escFlanc = ''
-          if (arriere)
-            for (const a of anglesArc(t, 240, 70)) {
-              if (encoches.some((e) => Math.abs(a - e.a) < e.da * 2.2)) continue
-              const p = pt(gi, a)
-              escFlanc += `M${(p.x - 9).toFixed(1)},${(p.y + 1).toFixed(1)}L${(p.x + 6).toFixed(1)},${(p.y + 1).toFixed(1)}L${(p.x + 6).toFixed(1)},${(p.y - H).toFixed(1)}L${(p.x - 9).toFixed(1)},${(p.y - H * 0.1).toFixed(1)}Z`
-              for (let i = 0; i < 7; i++) {
-                const yy = p.y - ((i + 1) * H) / 7
-                // chaque marche recule : c'est ce décalage qui fait une VOLÉE et
-                // non une échelle de barreaux plaquée sur le mur
-                const xx = p.x - 9 + i * 1.9
-                esc += `M${xx.toFixed(1)},${yy.toFixed(1)}L${(p.x + 6).toFixed(1)},${yy.toFixed(1)}L${(p.x + 6).toFixed(1)},${(yy + H / 7 - 0.6).toFixed(1)}L${xx.toFixed(1)},${(yy + H / 7 - 0.6).toFixed(1)}Z`
-                escLum += `M${xx.toFixed(1)},${yy.toFixed(1)}L${(p.x + 6).toFixed(1)},${yy.toFixed(1)}L${(p.x + 6).toFixed(1)},${(yy + 0.9).toFixed(1)}L${xx.toFixed(1)},${(yy + 0.9).toFixed(1)}Z`
-              }
+          let escJoints = ''
+          let escRampe = ''
+          let escRampeLit = ''
+          for (const a of aEsc) {
+            const p = pt(gi, a)
+            const { tx, ty } = tangente(gi, a)
+            const o = saillie(gi, a, -dd.profTal)
+            /*
+             * LA VOLÉE GARDE SA PENTE, QUELLE QUE SOIT L'ELLIPSE. Elle part du
+             * SOL, au pied du talus, et monte dans le sens où la base du mur
+             * DESCEND à l'écran : dans l'autre sens la chute du terrain s'ajoute
+             * à la hauteur du mur et la volée se dresse à 75°, une échelle. Sa
+             * longueur d'arc `s` est ensuite RÉSOLUE pour que la pente écran
+             * vaille 1,35 - soit 53° au nord comme à l'ouest, sur la carte comme
+             * sur l'ellipse bien plus plate de l'expédition.
+             */
+            const sg = ty >= 0 ? 1 : -1
+            const ax = tx * sg
+            const ay = ty * sg
+            const s = (H + 2 + o.dy) / (1.35 * Math.abs(ax) + ay)
+            const fx = p.x + o.dx
+            const fy = p.y + o.dy + 2
+            // le haut de la volée : sur la base du mur `s` px d'arc plus loin,
+            // donc sur le chemin de ronde de CE point-là
+            const gx = p.x + ax * s
+            const yG = p.y + ay * s + 2
+            const ty2 = yG - 2 - H
+            const nM = Math.max(5, Math.min(12, Math.round((fy - ty2) / 3.6)))
+            const hM = (fy - ty2) / nM
+            const g = (gx - fx) / nM
+            /*
+             * LE PROFIL EN ESCALIER, D'UN SEUL TENANT. Chaque marche était
+             * dessinée du nez jusqu'à l'arrivée : les marches du bas faisaient
+             * 30 px de fond et la volée se lisait comme un empilement de dalles.
+             * Ici la maçonnerie est UN polygone - sol, contremarche, marche,
+             * contremarche… - et les marches n'ont plus que leur giron.
+             */
+            let prof = `M${fx.toFixed(1)},${fy.toFixed(1)}`
+            for (let i = 0; i < nM; i++) {
+              const x0 = fx + g * i
+              const yy = fy - hM * (i + 1)
+              prof += `L${x0.toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${yy.toFixed(1)}`
+              esc += `M${x0.toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${(yy + 1.9).toFixed(1)}L${x0.toFixed(1)},${(yy + 1.9).toFixed(1)}Z`
+              escLum += `M${x0.toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${(yy + 0.8).toFixed(1)}L${x0.toFixed(1)},${(yy + 0.8).toFixed(1)}Z`
             }
+            escFlanc += `${prof}L${gx.toFixed(1)},${yG.toFixed(1)}Z`
+            /*
+             * DEUX APPUIS POUR LA VOLÉE AUSSI. Elle naissait dans l'herbe et
+             * mourait dans le vide : ni dé de pied, ni palier d'arrivée. On
+             * ajoute donc la DALLE DE PIED, posée au sol devant la première
+             * marche, et le PALIER qui la raccorde au dallage - et des joints
+             * verticaux sur le mur d'échiffre, qui n'était qu'un aplat pâle.
+             */
+            const sn = Math.sign(g) || 1
+            escRampe +=
+              `M${(fx - sn * 6.5).toFixed(1)},${(fy - 2.6).toFixed(1)}L${(fx + sn * 2).toFixed(1)},${(fy - 2.6).toFixed(1)}L${(fx + sn * 2).toFixed(1)},${(fy + 0.8).toFixed(1)}L${(fx - sn * 6.5).toFixed(1)},${(fy + 0.8).toFixed(1)}Z` +
+              `M${(gx - sn * 2).toFixed(1)},${(ty2 - 0.4).toFixed(1)}L${(gx + sn * 7).toFixed(1)},${(ty2 - 0.4).toFixed(1)}L${(gx + sn * 7).toFixed(1)},${(ty2 + 2.6).toFixed(1)}L${(gx - sn * 2).toFixed(1)},${(ty2 + 2.6).toFixed(1)}Z`
+            escRampeLit +=
+              `M${(fx - sn * 6.5).toFixed(1)},${(fy - 2.6).toFixed(1)}L${(fx + sn * 2).toFixed(1)},${(fy - 2.6).toFixed(1)}L${(fx + sn * 2).toFixed(1)},${(fy - 1.6).toFixed(1)}L${(fx - sn * 6.5).toFixed(1)},${(fy - 1.6).toFixed(1)}Z` +
+              `M${(gx - sn * 2).toFixed(1)},${(ty2 - 0.4).toFixed(1)}L${(gx + sn * 7).toFixed(1)},${(ty2 - 0.4).toFixed(1)}L${(gx + sn * 7).toFixed(1)},${(ty2 + 0.7).toFixed(1)}L${(gx - sn * 2).toFixed(1)},${(ty2 + 0.7).toFixed(1)}Z`
+            for (let i = 1; i < nM; i++) {
+              const x = fx + g * i
+              const yb = fy + ((yG - fy) * i) / nM
+              const yh = fy - hM * i + 1.9
+              if (yb - yh < 1.5) continue
+              escJoints += `M${x.toFixed(1)},${yh.toFixed(1)}L${(x + 0.9).toFixed(1)},${yh.toFixed(1)}L${(x + 0.9).toFixed(1)},${yb.toFixed(1)}L${x.toFixed(1)},${yb.toFixed(1)}Z`
+            }
+          }
           return (
             <g>
               {/* ombre portée du mur, bande floue décalée vers le SE */}
@@ -1731,35 +2326,80 @@ export const Murailles = memo(function Murailles({
                   {/* face interne : enduit de terre, assises noyées dedans */}
                   <path d={ruban(gi, 2, gi, -H, a0, a1, nC)} fill="url(#mur-interne)" />
                   {as.tons.map((d, i) => (
-                    <path key={i} d={d} fill={TONS_SEC[i]} opacity={0.34} />
+                    <path key={i} d={d} fill={TONS_SEC[i]} opacity={0.46} />
                   ))}
                   {/* lumière rasante juste sous le bahut, puis l'ombre du parapet */}
                   <path d={ligne(gi, a0, a1, nC, -H + 1.2)} stroke="#d5cbb2" strokeWidth={1.4} fill="none" opacity={0.4} />
                   <path d={ligne(gi, a0, a1, nC, -H + 3.4)} stroke={PAL.ombrePortee} strokeWidth={2.6} fill="none" opacity={0.14} />
-                  <path d={ligne(gi, a0, a1, nC, -H * 0.46)} stroke="#7d7052" strokeWidth={1.2} fill="none" opacity={0.45} />
-                  {/* socle : le mur repose sur un empattement, il ne sort pas du sol */}
-                  <path d={ruban(gi, 2.4, gi, -3.6, a0, a1, nC, -1.6)} fill="#8d8064" />
-                  <path d={ligne(gi, a0, a1, nC, -3.6, -1.6)} stroke="#b5a888" strokeWidth={1} fill="none" opacity={0.6} />
-                  <path d={ligne(gi, a0, a1, nC, 0.9)} stroke="url(#mur-pied)" strokeWidth={H * 0.2} fill="none" />
-                  {/* escaliers droits adossés : on monte au chemin de ronde */}
-                  <path d={escFlanc} fill="#8b7d5e" />
-                  <path d={escFlanc} fill={PAL.ombrePortee} opacity={0.18} />
-                  <path d={esc} fill="#9d9179" />
-                  <path d={escLum} fill="#cbc1a9" />
-                  {/* appentis de bois adossés au mur : la vie du dedans */}
-                  {anglesArc(t, 300, 150)
-                    .filter((a) => !encoches.some((e) => Math.abs(a - e.a) < e.da * 2.4))
-                    .map((a) => {
-                      const p = pt(gi, a)
-                      return (
-                        <g key={a}>
-                          <path d={`M${(p.x - 10).toFixed(1)},${(p.y + 1).toFixed(1)}L${(p.x - 10).toFixed(1)},${(p.y - 8).toFixed(1)}L${(p.x + 10).toFixed(1)},${(p.y - 13).toFixed(1)}L${(p.x + 10).toFixed(1)},${(p.y + 1).toFixed(1)}Z`} fill={PAL.boisMi} />
-                          <path d={`M${(p.x - 10).toFixed(1)},${(p.y + 1).toFixed(1)}L${(p.x - 10).toFixed(1)},${(p.y - 8).toFixed(1)}L${(p.x - 3).toFixed(1)},${(p.y - 9.7).toFixed(1)}L${(p.x - 3).toFixed(1)},${(p.y + 1).toFixed(1)}Z`} fill={PAL.boisLit} opacity={0.7} />
-                          <path d={`M${(p.x - 11.5).toFixed(1)},${(p.y - 7.6).toFixed(1)}L${(p.x + 11.5).toFixed(1)},${(p.y - 13.4).toFixed(1)}L${(p.x + 11.5).toFixed(1)},${(p.y - 10.8).toFixed(1)}L${(p.x - 11.5).toFixed(1)},${(p.y - 5).toFixed(1)}Z`} fill={PAL.chaumeOmbre} />
-                          <path d={`M${(p.x - 11.5).toFixed(1)},${(p.y - 7.6).toFixed(1)}L${(p.x + 11.5).toFixed(1)},${(p.y - 13.4).toFixed(1)}L${(p.x + 11.5).toFixed(1)},${(p.y - 12.4).toFixed(1)}L${(p.x - 11.5).toFixed(1)},${(p.y - 6.6).toFixed(1)}Z`} fill={PAL.chaumeLit} />
-                        </g>
-                      )
-                    })}
+                  {/* CHAÎNAGE APPARENT : les lits de poutres et leurs têtes.
+                      Posés AVANT les éperons, qui doivent les masquer là où ils
+                      passent. Le creux d'ombre au-dessus est ce qui les NOIE
+                      dans la maçonnerie au lieu de les poser devant. */}
+                  {chz.map((ch, i) => (
+                    <g key={i}>
+                      <path d={ch.creux} fill={PAL.ombrePortee} opacity={0.24} />
+                      <path d={ch.bande} fill={PAL.boisMi} />
+                      <path d={ch.lit} fill={PAL.boisLit} opacity={0.85} />
+                      <path d={ch.sous} fill={PAL.ombrePortee} opacity={0.2} />
+                      <path d={ch.tetesOmbre} fill={PAL.ombrePortee} opacity={0.3} />
+                      <path d={ch.tetes} fill="#6f5636" />
+                      <path d={ch.tetesLit} fill="#a8845d" opacity={0.9} />
+                    </g>
+                  ))}
+                  {/* LE REMBLAI ADOSSÉ : le talus de terre qui encaisse le
+                      bélier. Sa crête porte contre le parement, son pied avance
+                      de profTal px de plan dans la place - donc plus bas à
+                      l'écran. C'est LUI la ligne de sol de tout le dedans. */}
+                  <path d={ruban(gi, -dd.hTal, gi, 2, a0, a1, nC, 0, -dd.profTal)} fill="url(#mur-terre)" />
+                  <path d={ruban(gi, -dd.hTal, gi, 2, a0, a1, nC, 0, -dd.profTal * 0.4)} fill="#a68f57" opacity={0.42} />
+                  <path d={ruban(gi, -dd.hTal, gi, -dd.hTal + 1.6, a0, a1, nC, 0, -dd.profTal * 0.12)} fill="#c3ab6c" opacity={0.5} />
+                  <path d={ruban(gi, 2, gi, 2, a0, a1, nC, -dd.profTal * 0.74, -dd.profTal)} fill="#4a3c23" opacity={0.5} />
+                  {/* la terre est BATTUE, pas versée : des coulées dans le sens
+                      de la pente, et un pied revêtu de pierres */}
+                  <path d={stries} fill="#5f4d2c" opacity={0.42} />
+                  <path d={cailloux} fill="#8f8878" />
+                  <path d={caillouxLit} fill="#b5ad99" opacity={0.6} />
+                  {/* le pli du raccord : ombre de contact sur le parement, puis
+                      la crête du remblai qui prend le jour */}
+                  <path d={ligne(gi, a0, a1, nC, -dd.hTal - 1)} stroke={PAL.ombrePortee} strokeWidth={2.4} fill="none" opacity={0.3} />
+                  <path d={ligne(gi, a0, a1, nC, -dd.hTal + 0.5)} stroke="#cdb679" strokeWidth={1.4} fill="none" opacity={0.75} />
+                  <path d={ligne(gi, a0, a1, nC, 2.6, -dd.profTal)} stroke="url(#mur-pied)" strokeWidth={H * 0.18} fill="none" />
+                  {/* ÉPERONS : les massifs qui prennent le mur à revers. Pied au
+                      SOL en avant du remblai, glacis mourant CONTRE le parement
+                      sous le bahut - c'est ce double appui qui les fait tenir. */}
+                  <path d={ep.ombre} fill={PAL.ombrePortee} opacity={0.17} />
+                  {/* le nu avant ne doit PAS être plus clair que le parement : le
+                      massif se lisait alors comme une planche blanche appuyée
+                      dessus. Ce sont le flanc et le glacis qui le détachent. */}
+                  <path d={ep.face} fill="url(#mur-interne)" />
+                  <path d={ep.face} fill="#6f6349" opacity={0.3} />
+                  <path d={ep.faceOmbre} fill="#4f4534" opacity={0.28} />
+                  <path d={ep.flancOmbre} fill="#5f5540" />
+                  <path d={ep.flancJour} fill="#9e9174" />
+                  <path d={ep.joints} fill={PAL.pierreJoint} opacity={0.45} />
+                  <path d={ep.pied} fill={PAL.ombrePortee} opacity={0.24} />
+                  <path d={ep.glacis} fill="#a89b80" />
+                  <path d={ep.arete} fill="#ddd5c2" opacity={0.42} />
+                  {/* la terre vient border leur pied : le massif SORT du remblai
+                      au lieu d'être posé dessus */}
+                  <path d={ep.berge} fill="#6d5a34" />
+                  <path d={ep.berge} fill="#a68f57" opacity={0.35} transform="translate(-0.6,-0.8)" />
+                  {/* RAMPES D'ACCÈS : elles partent du SOL, au pied du remblai,
+                      et leur mur d'échiffre porte les marches jusqu'au dallage */}
+                  {/* l'ombre de la volée : son propre profil, décalé au SE */}
+                  <path d={escFlanc} fill={PAL.ombrePortee} opacity={0.15} transform="translate(4.4,1.9)" />
+                  <path d={escFlanc} fill="url(#mur-interne)" />
+                  <path d={escFlanc} fill="#8d8064" opacity={0.18} />
+                  <path d={escJoints} fill={PAL.pierreJoint} opacity={0.22} />
+                  <path d={esc} fill="#b5aa90" />
+                  <path d={escLum} fill="#ddd5c2" />
+                  {/* le garde-corps de la volée, rampant avec elle */}
+                  <path d={escRampe} fill="#9e937a" />
+                  <path d={escRampeLit} fill="#ddd5c2" opacity={0.85} />
+                  {/* appentis de service, posés sur leurs pieds : la vie du dedans */}
+                  {aApp.map((a) => (
+                    <AppentisMur key={a} gi={gi} a={a} d={dd} />
+                  ))}
                 </>
               ) : (
                 <>

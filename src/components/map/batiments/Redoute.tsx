@@ -411,7 +411,43 @@ export function Redoute({ n }: { n: number }) {
           <path d={`M${-larg},0 L${-larg + 3},${-haut} L${larg - 3},${-haut} L${larg},0 Z`} fill="#8a7049" />
           <path d={`M${-larg},0 L${-larg + 3},${-haut} L${-larg * 0.26},${-haut} L${-larg * 0.3},0 Z`} fill="#a08256" />
           <path d={`M${larg * 0.3},${-haut} L${larg - 3},${-haut} L${larg},0 L${larg * 0.36},0 Z`} fill="#6d5636" />
+          {/*
+            LA JOUE, et non plus un aplat sombre de toute la hauteur. C'est le
+            RETOUR du même ouvrage : les mêmes fûts vus de flanc, les mêmes moises
+            qui tournent l'angle, le même remblai à son pied. Un ouvrage dont le
+            côté ne montre rien de ce que montre la face n'est pas un volume,
+            c'est un panneau posé de biais.
+          */}
           <path d={`M${larg},0 L${larg + joue},${-joue * 0.4} L${larg + joue},${-haut - joue * 0.4} L${larg - 3},${-haut} Z`} fill="#5e4a2e" />
+          {/* les fûts de flanc, plus serrés qu'en face : la perspective les tasse */}
+          {[0.18, 0.42, 0.66, 0.88].map((f) => {
+            const jx = larg + joue * f
+            const jy = -joue * 0.4 * f
+            return (
+              <g key={f}>
+                <path d={`M${jx},${jy} L${jx},${jy - haut}`} stroke="#4a3a23" strokeWidth={2.2} />
+                <path d={`M${jx - 0.7},${jy} L${jx - 0.7},${jy - haut}`} stroke="#6d5636" strokeWidth={0.9} />
+              </g>
+            )
+          })}
+          {/* les deux moises tournent l'angle : c'est ce qui lie les deux faces */}
+          {[0.34, 0.68].map((f) => (
+            <g key={f}>
+              <path
+                d={`M${larg - 1},${-haut * f} L${larg + joue},${-haut * f - joue * 0.4} L${larg + joue},${-haut * f - joue * 0.4 + 2.6} L${larg - 1},${-haut * f + 3} Z`}
+                fill="#54432a"
+              />
+              <path
+                d={`M${larg - 1},${-haut * f} L${larg + joue},${-haut * f - joue * 0.4} L${larg + joue},${-haut * f - joue * 0.4 + 0.8} L${larg - 1},${-haut * f + 0.9} Z`}
+                fill="#7b6440"
+              />
+            </g>
+          ))}
+          {/* et le remblai revient au pied de la joue */}
+          <path
+            d={`M${larg - 1},-1.4 L${larg + joue},${-joue * 0.4 - 1.4} L${larg + joue},${-joue * 0.4 + 2.6} L${larg - 1},2.6 Z`}
+            fill="#7a6845"
+          />
           {/*
             Rondins fichés debout, chacun son diamètre et sa valeur : neuf traits
             identiques donnaient une caisse à claire-voie. On les dessine comme
@@ -515,11 +551,74 @@ export function Redoute({ n }: { n: number }) {
             )
           })}
           <PiedRedoute larg={larg} joue={joue} pierre={false} seed={71 + niv} />
-          {/* couronnement : plancher de madriers */}
-          <path d={`M${-larg - 4},${-haut} L${larg + 3},${-haut} L${larg + joue},${pont} L${-larg},${pont} Z`} fill={PAL.boisMi} />
+          {/*
+            ═══ LE PLANCHER DE TIR ═══
+            Trois chemins plats - un quadrilatère, un filet clair, une ombre - et
+            l'on ne comprenait pas ce qu'on regardait : une bande brune entre le
+            parapet et le rideau, sans épaisseur ni matière. C'est pourtant la
+            pièce qui explique tout le bâtiment, celle sur laquelle les scorpions
+            reposent.
+            Quatre choses la rendent lisible, et ce sont celles d'un vrai plancher :
+            les MADRIERS, posés dans le sens de la profondeur ; le CHANT du
+            plancher, qui donne son épaisseur ; les ABOUTS DE SOLIVE qui en
+            sortent ; et les CORBEAUX qui portent le débord. On lit alors une
+            charpente posée sur un rideau de rondins, ce qui est exactement ce
+            qu'est cet ouvrage.
+          */}
+          {/*
+            La surface du plancher est plus CLAIRE que le rideau : elle regarde le
+            ciel quand lui regarde l'horizon. C'est cet écart de valeur - et non un
+            trait de séparation - qui fait qu'on lit « un sol » puis « un mur », et
+            non une seule masse brune de haut en bas.
+          */}
+          <path d={`M${-larg - 4},${-haut} L${larg + 3},${-haut} L${larg + joue},${pont} L${-larg},${pont} Z`} fill="#a3855a" />
+          {/* les madriers : un joint tous les six pas, dans le sens de la fuite */}
+          {Array.from({ length: 13 }, (_, i) => {
+            const f = (i + 1) / 14
+            const xa = -larg - 4 + f * (larg * 2 + 7)
+            const xb = -larg + f * (larg * 2 + joue)
+            return <path key={i} d={`M${xa},${-haut} L${xb},${pont}`} stroke="#6b5433" strokeWidth={0.8} opacity={0.75} />
+          })}
+          {/* deux madriers plus clairs : un plancher n'est pas fait d'un seul bois */}
+          {[3, 8].map((i) => {
+            const f = (i + 1) / 14
+            const g = (i + 2) / 14
+            return (
+              <path
+                key={i}
+                d={`M${-larg - 4 + f * (larg * 2 + 7)},${-haut} L${-larg + f * (larg * 2 + joue)},${pont} L${-larg + g * (larg * 2 + joue)},${pont} L${-larg - 4 + g * (larg * 2 + 7)},${-haut} Z`}
+                fill="#a08256"
+                opacity={0.5}
+              />
+            )
+          })}
+          {/* l'arête du plancher, côté dedans, prise par la lumière */}
           <path d={`M${-larg},${pont} L${larg + joue},${pont}`} stroke={PAL.boisLit} strokeWidth={1.4} />
-          {/* ombre du plancher sur le haut du front : le débord se voit */}
-          <path d={`M${-larg + 2},${-haut} L${larg - 2},${-haut} L${larg - 2},${-haut + 3.4} L${-larg + 2},${-haut + 3.4} Z`} fill={PAL.ombrePortee} opacity={0.16} />
+          {/* le CHANT : l'épaisseur du plancher, en débord au-dessus du rideau */}
+          <path d={`M${-larg - 4},${-haut} L${larg + 3},${-haut} L${larg + 3},${-haut + 2.8} L${-larg - 4},${-haut + 2.8} Z`} fill="#6b5433" />
+          <path d={`M${-larg - 4},${-haut} L${larg + 3},${-haut} L${larg + 3},${-haut + 0.9} L${-larg - 4},${-haut + 0.9} Z`} fill="#9c7c4e" />
+          {/* les abouts de solive qui sortent du chant, un sur deux madriers */}
+          {Array.from({ length: 7 }, (_, i) => {
+            const sx = -larg - 1 + (i * (larg * 2 + 1)) / 6
+            return (
+              <g key={`s${i}`}>
+                <rect x={sx} y={-haut + 0.4} width={2.6} height={3.6} fill="#7f6540" />
+                <rect x={sx} y={-haut + 0.4} width={2.6} height={1} fill="#b08f60" />
+              </g>
+            )
+          })}
+          {/* les corbeaux qui portent le débord : deux plans, donc du volume */}
+          {Array.from({ length: 4 }, (_, i) => {
+            const cx = -larg + 6 + (i * (larg * 2 - 12)) / 3
+            return (
+              <g key={`c${i}`}>
+                <path d={`M${cx},${-haut + 3.4} L${cx + 4.4},${-haut + 3.4} L${cx + 2.2},${-haut + 8.4} Z`} fill="#54432a" />
+                <path d={`M${cx},${-haut + 3.4} L${cx + 1.6},${-haut + 3.4} L${cx + 1.4},${-haut + 6.6} Z`} fill="#8a6f47" />
+              </g>
+            )
+          })}
+          {/* ombre du débord sur le haut du rideau */}
+          <path d={`M${-larg + 2},${-haut + 2.8} L${larg - 2},${-haut + 2.8} L${larg - 2},${-haut + 6.2} L${-larg + 2},${-haut + 6.2} Z`} fill={PAL.ombrePortee} opacity={0.2} />
 
           {/* les machines, PUIS le parapet de fascines qui passe devant elles */}
           {REDOUTE_POSTES.slice(0, niv).map((p, i) => (

@@ -3759,3 +3759,51 @@ button.plan-lien:hover:not(:disabled) {
   background: #3a251a;
   border-color: #d79a6c;
 }
+
+/* ── l'assaut, suite : un seul cadre, et de la place quand on la demande ─────
+   Le panneau empilait QUATRE encadrements dans 300 px de large : le sien, celui
+   de la barre d'ordres, celui du jeton « Pans », et celui du schéma d'enceinte.
+   Chacun se justifiait isolément ; ensemble ils faisaient un labyrinthe de
+   filets brun-rouge où plus rien ne se hiérarchisait. À l'intérieur du panneau
+   d'assaut, la barre d'ordres n'est donc plus une boîte mais une SECTION : pas
+   de bordure, pas de fond propre, un simple filet qui la sépare de ce qui
+   précède. Le cadre du panneau suffit à dire où l'on est. */
+.bandeau.assaut .ordres {
+  border: none;
+  background: none;
+  border-top: 1px solid #ffffff1a;
+  border-radius: 0;
+  padding: 5px 0 0;
+  margin-top: 5px;
+}
+.bandeau.assaut .ordres-pans > summary {
+  border-color: #ffffff26;
+  background: #ffffff0f;
+}
+.bandeau.assaut .ordres-pans[open] > summary {
+  background: #7a3f2c;
+  border-color: #d79a6c;
+}
+
+/*
+   ET DE LA PLACE POUR LE SCHÉMA. Replié, le panneau tient dans la bande libre
+   entre les jauges du nord et du sud - c'est la contrainte mesurée qui l'a
+   envoyé à gauche, et elle ne bouge pas. Mais déplié, il défilait : le schéma
+   d'enceinte, coupé sous son étiquette « NORD », ne servait plus à rien, et
+   c'est ce que le joueur appelait « la gestion des pans n'est pas pratique ».
+
+   Le dépliage est un GESTE DÉLIBÉRÉ : à cet instant, le joueur a demandé à voir
+   son enceinte et accepte qu'elle prenne la place d'un pan de mur pendant
+   quelques secondes. Le panneau s'ouvre donc jusqu'à 62 % de la hauteur utile,
+   le temps du réglage, et se referme à sa taille de veille. Replié, rien n'a
+   changé : aucun pixel du pan Nord n'est repris.
+*/
+.scene:has(.ordres-pans[open]) .bandeau.assaut {
+  max-height: min(62vh, 520px);
+}
+.bandeau.assaut .ordres-pans[open] {
+  display: block;
+  width: 100%;
+  margin-left: 0;
+  margin-top: 5px;
+}

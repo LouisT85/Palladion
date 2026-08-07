@@ -480,19 +480,28 @@ svg.carte-exp {
    1920 × 1080. La classe est ADDITIVE : `.bandeau` seul continue de servir le
    siège, le défi, le secours et l'alerte, qui restent centrés en haut. */
 .bandeau.assaut {
-  top: 46%;
   bottom: auto;
   left: 10px;
   right: auto;
-  transform: translateY(-50%);
   margin: 0;
   width: max-content;
   min-width: 0;
   max-width: min(330px, 40vw);
-  /* ceinture : la bande libre ne fait que 198 px à 1100 × 800. Si un rang de
-     héros ou un présage s'ajoute, le panneau DÉFILE au lieu de remonter sur le
-     crénelage - il ne peut pas reprendre ce qu'on vient de lui retirer. */
-  max-height: min(196px, 24vh);
+  /* ANCRÉ, PLUS CENTRÉ. Centrer coûtait la moitié de la bande : à `top: 46%` +
+     `translateY(-50%)`, la hauteur utile n'est pas la bande libre (316 px à
+     1100 × 800, entre le bas de la jauge du nord et le haut de celle du sud)
+     mais deux fois la plus courte des deux distances - soit 192. D'où le
+     défilement, qui était STRUCTUREL : replié, ce panneau demande déjà 208 à
+     222 px quand un champion mène la colonne, et aucun réglage de `max-height`
+     ne pouvait le lever. Le bord haut se pose donc sous la jauge du nord, et le
+     panneau grandit vers le bas.
+     Mesuré, trois fronts, 26 échantillons d'une bataille entière à 1100 × 800 :
+     bord haut 339,9 px pour une jauge du nord au plus bas à 335,7 ; bord bas au
+     pire 634 pour une jauge du sud au plus haut à 639. Aucun recouvrement,
+     aucune barre de défilement, aux trois tailles. */
+  top: 32.5%;
+  transform: none;
+  max-height: min(298px, 37vh);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 6px 10px 7px;
@@ -540,20 +549,14 @@ svg.carte-exp {
   font-size: 11px;
   padding: 2px 7px;
 }
-.bandeau.assaut .ordres-pans > summary {
-  font-size: 10.5px;
-  padding: 2px 7px;
-}
-/* l'assignation par pan tient en une colonne dans un panneau étroit, et défile
-   plutôt que de faire grandir le panneau hors de sa bande */
-.bandeau.assaut .ordres-grille {
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  max-height: 74px;
-  overflow-y: auto;
-}
 .bandeau.assaut .dieux-rapides {
-  margin-top: 4px;
+  margin-top: 0;
   justify-content: flex-start;
+}
+/* le rang des héros respire sous celui des dieux ; la section, elle, porte déjà
+   sa marge et son filet */
+.bandeau.assaut .heros-rapides {
+  margin-top: 4px;
 }
 .bandeau.assaut .dieux-rapides button {
   font-size: 11.5px;
@@ -565,7 +568,7 @@ svg.carte-exp {
    basse le temps de la bataille ; sa liste défile déjà à l'intérieur, donc aucune
    ligne n'est perdue. */
 .scene:has(> .bandeau.assaut) .missions {
-  max-height: calc(46% - 116px);
+  max-height: calc(32.5% - 26px);
 }
 /* le moral de la garnison, avec son seuil de rupture tracé dessus */
 .moral-ligne {
@@ -739,67 +742,26 @@ svg.carte-exp {
   transition: width 0.25s linear;
 }
 
-/* l'assignation par pan se replie : cinq lignes de boutons ne s'imposent qu'à
-   celui qui a trois fronts et veut vraiment répartir sa garnison */
-.ordres-pans {
-  display: inline-block;
+/* le pli qui ouvre la section des pans. Une pastille, pas une boîte : c'est un
+   bouton de plus dans la rangée de tir, pas un troisième encadrement. */
+button.ordres-pli {
   margin-left: auto;
-}
-.ordres-pans > summary {
-  list-style: none;
-  cursor: pointer;
-  font-size: 11px;
-  padding: 3px 9px;
-  border-radius: 6px;
-  border: 1px solid #6b3f2c;
-  background: #2a1a12;
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #ffffff26;
+  background: #ffffff0f;
   color: #e0c3ab;
   white-space: nowrap;
-  user-select: none;
 }
-.ordres-pans > summary::-webkit-details-marker {
-  display: none;
+button.ordres-pli:hover:not(:disabled) {
+  background: #ffffff1c;
+  border-color: #d79a6c;
 }
-.ordres-pans[open] > summary {
+button.ordres-pli.actif {
   background: #7a3f2c;
   border-color: #d79a6c;
   color: #ffeeda;
-}
-.ordres-grille {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 2px 12px;
-  margin-top: 5px;
-  padding-top: 5px;
-  border-top: 1px dashed #6b3f2c;
-}
-.ordres-ligne-unite {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-.ordres-unite {
-  font-size: 15px;
-  width: 20px;
-  text-align: center;
-  cursor: help;
-}
-.ordres button.pan {
-  font-size: 10.5px;
-  padding: 2px 6px;
-  background: #2a1a12;
-  border: 1px solid #5c3626;
-  color: #cdb09c;
-}
-.ordres button.pan.actif {
-  background: #7a3f2c;
-  border-color: #d79a6c;
-  color: #ffeeda;
-}
-/* un pan percé se lit d'un coup d'œil : c'est là qu'il faut des hommes */
-.ordres button.pan.perce {
-  border-color: #e0715a;
-  color: #f0a292;
 }
 
 /* l'appel au secours n'est pas une menace : il est doré, pas rouge sang - et il
@@ -3582,23 +3544,12 @@ svg.carte-exp {
 .plan-carte {
   margin-top: 4px;
 }
-/* Déplié, le schéma prend TOUTE la ligne. Sans cela il reste dans la rangée de
-   tir, dont il devient l'élément le plus haut : les jetons « Tendu / Cloche » se
-   retrouvent centrés au milieu de 300 px de vide, et la rangée est illisible. */
-.ordres-pans[open] {
-  flex: 1 0 100%;
-  margin-left: 0;
-  margin-top: 4px;
-}
 .plan-scene {
   position: relative;
   width: 100%;
   max-width: 430px;
   aspect-ratio: 372 / 262;
   margin: 0 auto;
-}
-.plan-carte.compact .plan-scene {
-  max-width: 330px;
 }
 .plan-fond {
   position: absolute;
@@ -3640,18 +3591,6 @@ svg.carte-exp {
   text-transform: uppercase;
   color: #c99b7d;
   white-space: nowrap;
-}
-/* sous les flèches, tout se resserre : la plaine doit rester visible */
-.plan-carte.compact .plan-zone {
-  min-width: 52px;
-  padding: 1px 4px 2px;
-}
-.plan-carte.compact .plan-zone-nom {
-  font-size: 8.5px;
-}
-.plan-carte.compact button.plan-jeton {
-  font-size: 12.5px;
-  padding: 0 3px;
 }
 .plan-zone.reserve .plan-zone-nom {
   color: #9d8a6a;
@@ -3735,10 +3674,6 @@ button.plan-poser:hover {
   color: #b39a80;
   text-align: center;
 }
-.plan-carte.compact .plan-aide {
-  font-size: 10.5px;
-}
-
 /* le panneau lui-même : un peu plus large que le châssis courant, le schéma en a besoin */
 .modale.plan-modale {
   max-width: 600px;
@@ -3760,50 +3695,163 @@ button.plan-lien:hover:not(:disabled) {
   border-color: #d79a6c;
 }
 
-/* ── l'assaut, suite : un seul cadre, et de la place quand on la demande ─────
-   Le panneau empilait QUATRE encadrements dans 300 px de large : le sien, celui
-   de la barre d'ordres, celui du jeton « Pans », et celui du schéma d'enceinte.
-   Chacun se justifiait isolément ; ensemble ils faisaient un labyrinthe de
-   filets brun-rouge où plus rien ne se hiérarchisait. À l'intérieur du panneau
-   d'assaut, la barre d'ordres n'est donc plus une boîte mais une SECTION : pas
-   de bordure, pas de fond propre, un simple filet qui la sépare de ce qui
-   précède. Le cadre du panneau suffit à dire où l'on est. */
-.bandeau.assaut .ordres {
+/* ── l'assaut : UN cadre, des filets, et les pans en rangs ───────────────────
+   « Le panneau a des contours bizarres. La gestion des pans n'est pas pratique :
+   le système est bon mais l'intégration est difficile. »
+
+   LES CONTOURS. Quatre encadrements brun-rouge dans 300 px : le panneau, la
+   barre d'ordres, le jeton « Pans », le schéma. Le panneau garde le sien, seul.
+   À l'intérieur, les trois SECTIONS - ordres, pans, invocations - ne sont plus
+   des boîtes mais des bandes séparées par un filet d'un pixel. Le champion
+   achéen y compris : il gardait un cadre rouge dans un cadre rouge.
+
+   L'INTÉGRATION. L'ellipse de l'enceinte réclame 280 px de haut. La bande que ce
+   panneau peut occuper sans mordre sur une jauge de secteur en mesure 316 à
+   1100 × 800, dont 254 sont déjà pris quand la section des pans est ouverte :
+   elle n'entrait pas, et l'ouvrir faisait défiler le panneau puis recouvrir DEUX
+   des trois jauges (mesuré : 330 × 463). Elle est remplacée sous les flèches par
+   QUATRE RANGS de 18 px - un pan par ligne, la réserve en bas - avec exactement
+   les mêmes jetons et le même geste que le schéma du plan de défense. Et pour
+   cause : c'est le même composant, sous une autre disposition. Redessiner une
+   seconde muraille par-dessus la vraie, qui est à l'écran juste derrière le
+   panneau avec ses jauges, n'apprenait rien à personne. */
+.bandeau.assaut .ordres,
+.bandeau.assaut .ordres-pans,
+.bandeau.assaut .assaut-invocations {
   border: none;
   background: none;
   border-top: 1px solid #ffffff1a;
   border-radius: 0;
-  padding: 5px 0 0;
-  margin-top: 5px;
+  padding: 4px 0 0;
+  margin-top: 4px;
 }
-.bandeau.assaut .ordres-pans > summary {
-  border-color: #ffffff26;
-  background: #ffffff0f;
+/* le champion garde son fond - c'est l'alarme - mais perd ses quatre côtés */
+.bandeau.assaut .champion-ligne {
+  border: none;
+  border-top: 1px solid #a8503a66;
+  border-bottom: 1px solid #a8503a66;
+  border-radius: 0;
+  margin: 5px -10px 0;
+  padding: 3px 10px;
 }
-.bandeau.assaut .ordres-pans[open] > summary {
-  background: #7a3f2c;
+
+/* ── LES PANS EN RANGS ───────────────────────────────────────────────────────
+   Une `.plan-zone` posée à plat : plus de position absolue, plus de bordure en
+   tirets. Le nom, la structure restante, puis qui tient ce pan. */
+.plan-rangs {
+  display: flex;
+  flex-direction: column;
+}
+.plan-zone.rang {
+  position: static;
+  transform: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+}
+.plan-zone.rang + .plan-zone.rang {
+  border-top: 1px solid #ffffff12;
+}
+.plan-zone.rang .plan-zone-nom {
+  flex: 0 0 42px;
+  text-align: left;
+}
+.plan-zone.rang .plan-zone-etat {
+  order: 2;
+  flex: 0 0 32px;
+  text-align: right;
+}
+.plan-zone.rang .plan-zone-jetons {
+  order: 3;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-height: 17px;
+  gap: 3px;
+}
+/* l'état du pan se dit par la COULEUR DU NOM : rallumer un cadre autour du rang
+   remettrait la boîte qu'on vient d'enlever */
+.plan-zone.rang.assailli .plan-zone-nom {
+  color: #f0a292;
+}
+.plan-zone.rang.perce .plan-zone-nom {
+  color: #e0715a;
+  font-weight: 700;
+}
+.plan-zone.rang.reserve .plan-zone-nom {
+  color: #9d8a6a;
+  flex-basis: 74px;
+}
+/* UNE ligne, toujours : la hauteur de la section doit être déterministe, sinon
+   le panneau franchit la jauge du sud le jour où l'avertissement en fait deux */
+.plan-rangs .plan-aide {
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.3;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plan-rangs button.plan-jeton {
+  font-size: 12.5px;
+  padding: 0 3px;
+}
+/* le geste de repli, au bout du rang « au plus pressé ». L'ancre de l'astuce est
+   en `display: contents` : c'est le BOUTON qui est enfant du flex. */
+button.ordres-repli {
+  order: 4;
+  margin-left: auto;
+  flex: 0 0 auto;
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid #6b3f2c;
+  background: #2a1a12;
+  color: #e0c3ab;
+  white-space: nowrap;
+}
+button.ordres-repli:hover:not(:disabled) {
+  background: #3a251a;
   border-color: #d79a6c;
 }
 
-/*
-   ET DE LA PLACE POUR LE SCHÉMA. Replié, le panneau tient dans la bande libre
-   entre les jauges du nord et du sud - c'est la contrainte mesurée qui l'a
-   envoyé à gauche, et elle ne bouge pas. Mais déplié, il défilait : le schéma
-   d'enceinte, coupé sous son étiquette « NORD », ne servait plus à rien, et
-   c'est ce que le joueur appelait « la gestion des pans n'est pas pratique ».
-
-   Le dépliage est un GESTE DÉLIBÉRÉ : à cet instant, le joueur a demandé à voir
-   son enceinte et accepte qu'elle prenne la place d'un pan de mur pendant
-   quelques secondes. Le panneau s'ouvre donc jusqu'à 62 % de la hauteur utile,
-   le temps du réglage, et se referme à sa taille de veille. Replié, rien n'a
-   changé : aucun pixel du pan Nord n'est repris.
-*/
-.scene:has(.ordres-pans[open]) .bandeau.assaut {
-  max-height: min(62vh, 520px);
+/* ── LE JETON D'UN HÉROS ─────────────────────────────────────────────────────
+   Un jeton de troupe porte son EFFECTIF, un jeton de héros son NIVEAU : au même
+   gabarit, « ⚔️ 4 » se lisait aussi bien « quatre hoplites » que « Achille,
+   niveau 4 ». La PASTILLE ronde tranche d'un coup d'œil - un homme, pas un bloc
+   - et c'est la distinction même que le plan fait entre ses deux tables. */
+button.plan-jeton.hero {
+  background: #241a26;
+  border-radius: 999px;
+  padding-left: 5px;
+  padding-right: 5px;
 }
-.bandeau.assaut .ordres-pans[open] {
-  display: block;
-  width: 100%;
-  margin-left: 0;
-  margin-top: 5px;
+button.plan-jeton.hero i {
+  color: #e8c04a;
+}
+/* sous les flèches on ne le déplace plus (`posterHeros` téléporte le combattant
+   à l'entrée du secteur) : il est inerte, mais il n'est pas grisé - c'est une
+   information, pas un refus */
+button.plan-jeton.hero:disabled {
+  opacity: 1;
+  cursor: default;
+}
+button.plan-jeton.hero.vide,
+button.plan-jeton.hero.vide:disabled {
+  opacity: 0.45;
+}
+
+/* l'emblème qui remplace « - un héros rallie » : la phrase poussait la ligne de
+   moral sur deux rangs, l'astuce donne le chiffre qui compte */
+.moral-heros {
+  font-size: 12px;
+  line-height: 1;
+  cursor: help;
 }

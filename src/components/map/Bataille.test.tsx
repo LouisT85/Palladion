@@ -86,10 +86,16 @@ describe('bandeau d’assaut', () => {
     expect(m.q('.bandeau .gros')?.textContent).toContain('3 assaillants')
   })
 
-  it('dit si les remparts encaissent ou s’ils sont percés', () => {
+  it('crie la brèche, et se tait tant que le mur tient', () => {
+    /*
+     * Tant que le mur tient, le panneau ne dit rien : les jauges de secteur, qui
+     * sont sur la carte à l'aplomb de chaque pan, le disent mieux et chiffré.
+     * Cette ligne coûtait 14 px de la bande étroite où le panneau doit tenir sans
+     * recouvrir lesdites jauges - elle payait pour se rendre elle-même illisible.
+     */
     poser({ battle: bataille() })
     m = monter(<BandeauAlerte />)
-    expect(m.texte()).toContain('Vos remparts encaissent le choc')
+    expect(m.texte()).not.toContain('Les remparts sont percés')
     m.demonter()
 
     reinitialiser()

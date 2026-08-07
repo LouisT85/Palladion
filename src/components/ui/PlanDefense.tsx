@@ -1,5 +1,17 @@
 import { SECTEURS, UNITS, nbFronts } from '../../game/data'
-import { PANS, UNITES_PLAN, pansSansHommes, planAvecOrdre, planAvecPan, resumePlan } from '../../game/plandefense'
+import { HEROS } from '../../game/heros'
+import {
+  PANS,
+  UNITES_PLAN,
+  herosAbsents,
+  herosDormants,
+  herosPlacables,
+  pansSansHommes,
+  planAvecHero,
+  planAvecOrdre,
+  planAvecPan,
+  resumePlan,
+} from '../../game/plandefense'
 import { bonusFaveurs, bonusHeros, useGame } from '../../game/store'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
@@ -34,6 +46,20 @@ import { JetonsLigne, JetonsTir, SchemaEnceinte, court, usePlanDefense, useRegle
  *    restait modifiable pendant la bataille, il deviendrait la porte de service de
  *    `DELAI_ORDRE_MS`. Sous les flèches, on lit le plan, on ne le change pas : les
  *    ordres se donnent sur la barre, où le délai s'applique.
+ *
+ * ── ET LES HÉROS S'Y POSTENT COMME LES TROUPES ──
+ *
+ * C'est ici, et NULLE PART AILLEURS, qu'on place un héros. Deux raisons, et la
+ * seconde est du moteur, pas du goût :
+ *
+ *  · le geste est le même que pour une troupe - désigner la pièce, désigner le
+ *    pan - donc il se fait avec les mêmes jetons, dans les mêmes zones, sur le
+ *    même schéma. Une seconde interface pour les héros aurait obligé le joueur à
+ *    apprendre deux fois la même chose ;
+ *  · en bataille, on ne peut pas. `posterHeros` TÉLÉPORTE le combattant à
+ *    l'entrée du secteur - juste à l'ouverture (« en place avant le premier coup
+ *    de bélier »), absurde en pleine mêlée. La barre d'ordres montre donc où
+ *    chaque héros se tient, et n'offre pas de l'y déplacer.
  */
 
 /** ouvre le panneau. `'plandefense'` est ajouté à l'union `panel` par store.ts. */
@@ -118,6 +144,29 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
   const postes = UNITES_PLAN.filter((u) => plan.pans[u])
   const fronts = nbFronts(menace)
 
+  /*
+   * Les héros. `herosPlacables` rend TOUJOURS les huit, absents compris : le plan
+   * garde l'ordre donné à un héros qu'on n'a pas encore engagé, exactement comme
+   * celui donné à des archers qu'on n'a pas levés. On ne cache pas la case, on
+   * dit qu'elle est vide - et `herosAbsents` le redit en toutes lettres.
+   */
+  const etatsHeros = useGame((s) => s.heros)
+  const now = useGame((s) => s.lastSeen)
+  const cartesHeros = herosPlacables(plan, etatsHeros, now).filter((h) => h.present || h.pan !== null)
+  const absents = herosAbsents(plan, etatsHeros, now)
+  /*
+   * « Postés sur un pan que personne n'assaillera » ne se sait que lorsque les
+   * éclaireurs ont parlé : sans renseignement, les fronts sont tirés au sort et
+   * l'avertissement serait un mensonge. On ne le calcule donc que sur `annonces`.
+   */
+  const dormantsHeros = annonces
+    ? herosDormants(
+        plan,
+        SECTEURS.filter((s) => annonces.includes(s.id)),
+      )
+    : []
+  const postesHeros = cartesHeros.filter((h) => h.pan !== null)
+
   const pans: PanCarte[] = PANS.map((p) => ({
     id: p.id,
     nom: p.nom,
@@ -184,11 +233,14 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
             pans={pans}
             reserve={reserve}
             effectifs={army}
+            heros={cartesHeros}
+            dormantsHeros={dormantsHeros}
             onDeposer={(u, pan) => regler(planAvecPan(plan, u, pan))}
+            onDeposerHero={(h, pan) => regler(planAvecHero(plan, h, pan))}
             note={
               <>
-                Cliquez une troupe, puis le pan qu’elle doit tenir - ou glissez-la. « Au plus pressé » les laisse courir
-                au pan enfoncé.
+                Cliquez une troupe <b>ou un héros</b>, puis le pan à tenir - ou glissez-le. « Au plus pressé » les
+                laisse courir au pan enfoncé.
               </>
             }
           />
@@ -235,15 +287,30 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
             avoir un seul. L’ordre est gardé - il commandera le jour où vous en lèverez - mais ce pan est nu.
           </div>
         )}
-        {postes.length > 0 && !enBataille && (
-          <button style={{ width: '100%', marginTop: 8 }} onClick={() => regler({ ...plan, pans: {} })}>
+        {/* le pendant, pour les hommes qu'on désigne par leur nom */}
+        {absents.length > 0 && (
+          <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
+            ⚠ {absents.map((h) => `${HEROS[h].emoji} ${HEROS[h].nom}`).join(', ')}{' '}
+            {absents.length > 1 ? 'sont postés mais ne descendront pas' : 'est posté mais ne descendra pas'} - pas
+            encore engagé, tombé, ou sous sa tente. L’ordre est gardé pour son retour.
+          </div>
+        )}
+        {dormantsHeros.length > 0 && (
+          <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
+            ⚠ {dormantsHeros.map((h) => `${HEROS[h].emoji} ${HEROS[h].nom}`).join(', ')} garde
+            {dormantsHeros.length > 1 ? 'nt' : ''} un pan que les éclaireurs n’annoncent pas : il
+            {dormantsHeros.length > 1 ? 's iront' : ' ira'} au plus pressé.
+          </div>
+        )}
+        {(postes.length > 0 || postesHeros.length > 0) && !enBataille && (
+          <button style={{ width: '100%', marginTop: 8 }} onClick={() => regler({ ...plan, pans: {}, heros: {} })}>
             Tout rendre au plus pressé
           </button>
         )}
       </div>
 
       {/* la traduction du plan en ordres, pour que rien ne soit magique */}
-      {niveauMur > 0 && postes.length > 0 && (
+      {niveauMur > 0 && (postes.length > 0 || postesHeros.length > 0) && (
         <div className="bloc" style={{ fontSize: 11.5, color: '#93a7b4' }}>
           <h3>📋 Ce que la prochaine bataille entendra</h3>
           {UNITES_PLAN.filter((u) => plan.pans[u]).map((u) => {
@@ -255,8 +322,23 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
               </div>
             )
           })}
+          {/* les héros à la suite, et nommément : « Hector → Nord », pas « 1 héros » */}
+          {postesHeros.map((h) => {
+            const pan = PANS.find((p) => p.id === h.pan)
+            return (
+              <div key={h.id} style={{ color: h.present ? '#c7b48f' : '#d98a4e' }}>
+                {h.emoji} {h.nom} → {pan ? court(pan.nom) : '—'}
+                {h.present ? ` (niveau ${h.niveau})` : ' (absent - l’ordre attend son retour)'}
+              </div>
+            )
+          })}
           <div style={{ marginTop: 4 }}>
             Reste au plus pressé : {reserve.map((u) => UNITS[u].emoji).join(' ') || '—'}
+            {cartesHeros.filter((h) => h.pan === null).length > 0 &&
+              ` ${cartesHeros
+                .filter((h) => h.pan === null)
+                .map((h) => h.emoji)
+                .join(' ')}`}
           </div>
         </div>
       )}

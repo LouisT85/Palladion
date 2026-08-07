@@ -1,9 +1,10 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { DELAI_ORDRE_MS, EFFETS_LIGNE, EFFETS_TIR, ORDRES_NEUTRES, estTireur } from '../../game/combat'
 import { UNITS } from '../../game/data'
-import { pansDormants, planValide, type PlanDefense } from '../../game/plandefense'
+import { HEROS } from '../../game/heros'
+import { HEROS_PLAN, pansDormants, planValide, type HeroPlacable, type PlanDefense } from '../../game/plandefense'
 import { useGame } from '../../game/store'
-import type { BattleState, OrdreLigne, OrdreTir, UnitId } from '../../game/types'
+import type { BattleState, HeroId, OrdreLigne, OrdreTir, UnitId } from '../../game/types'
 import { Astuce } from './Infobulle'
 
 /*
@@ -27,6 +28,29 @@ import { Astuce } from './Infobulle'
  * douterait de savoir laquelle commande. Ce module porte donc les BRIQUES
  * COMMUNES - jetons de posture, jetons de tir, schéma de l'enceinte - et la barre
  * de bataille n'en est plus qu'un assemblage. Le panneau de paix en est un autre.
+ *
+ * ── Puis le schéma a été trop grand pour la barre ──
+ *
+ * « Le système est bon mais l'intégration est difficile. » Mesuré, et c'était
+ * une affaire de centimètres. Le panneau d'assaut vit dans une colonne de 330 px
+ * à gauche de la scène ; la bande qu'il peut occuper sans recouvrir une jauge de
+ * secteur mesure 327 px de haut à 1100 × 800 (entre le bas de la jauge du nord,
+ * y 323, et le haut de celle du sud, y 650). Replié, le panneau en consomme déjà
+ * 208 à 222 selon qu'un champion mène la colonne. Il reste donc 105 à 119 px.
+ *
+ * L'ellipse de l'enceinte en réclame 280 : elle ne rentre pas, elle n'est jamais
+ * rentrée, et l'ouvrir faisait défiler le panneau puis recouvrir DEUX des trois
+ * jauges. Le même geste - désigner une pièce, désigner un pan - tient en revanche
+ * en QUATRE RANGS de 22 px. Le module rend donc la même interface sous deux
+ * DISPOSITIONS : `schema` à la table du conseil, où l'on a 600 px de large et
+ * besoin de voir OÙ est le nord ; `rangs` sous les flèches, où l'on a la vraie
+ * enceinte sous les yeux derrière le panneau et où redessiner une seconde
+ * muraille par-dessus la première n'apprend rien à personne.
+ *
+ * Mêmes jetons, même état « pièce désignée », même glisser-déposer, même phrase
+ * d'aide : une grammaire, deux densités. Le gabarit `compact` qui existait avant
+ * - la même ellipse, en plus petit - a été retiré : il ne réglait rien, une
+ * ellipse de 330 px de large reste haute de 230.
  */
 
 // ═══════════════════ Les jetons de posture et de tir ═══════════════════
@@ -225,6 +249,26 @@ function ToitsDuVillage() {
   )
 }
 
+/**
+ * LA PIÈCE QU'ON TIENT EN MAIN, en attente d'un pan où la poser.
+ *
+ * Deux natures, et l'interface ne doit surtout pas les confondre : on poste un
+ * TYPE (« les hoplites au nord » commande les trente) ou un HOMME (« Hector au
+ * nord » ne dit rien d'Ajax). Le plan les range dans deux tables distinctes pour
+ * cette raison exacte ; le jeton qu'on saisit porte donc sa nature avec lui.
+ */
+export type Piece = { quoi: 'unite'; id: UnitId } | { quoi: 'hero'; id: HeroId }
+const memePiece = (a: Piece | null, b: Piece): boolean => a !== null && a.quoi === b.quoi && a.id === b.id
+/** ce que le glisser-déposer transporte : `u:hoplite`, `h:hector` */
+const codePiece = (p: Piece): string => `${p.quoi === 'unite' ? 'u' : 'h'}:${p.id}`
+function lirePiece(code: string): Piece | null {
+  const [q, id] = code.split(':')
+  if (q === 'u' && id in UNITS) return { quoi: 'unite', id: id as UnitId }
+  if (q === 'h' && HEROS_PLAN.includes(id as HeroId)) return { quoi: 'hero', id: id as HeroId }
+  return null
+}
+const emblemePiece = (p: Piece): string => (p.quoi === 'unite' ? UNITS[p.id].emoji : HEROS[p.id].emoji)
+
 /** un type d'unité, posé quelque part : emoji, effectif, et l'état de son ordre */
 function JetonUnite({
   u,
@@ -239,7 +283,7 @@ function JetonUnite({
   effectif: number
   choisi: boolean
   dort: boolean
-  onChoisir: (u: UnitId | null) => void
+  onChoisir: (p: Piece | null) => void
 }) {
   return (
     <Astuce
@@ -259,15 +303,86 @@ function JetonUnite({
         className={`plan-jeton${choisi ? ' choisi' : ''}${effectif <= 0 ? ' vide' : ''}${dort ? ' dort' : ''}`}
         draggable
         onDragStart={(e) => {
-          onChoisir(u)
-          e.dataTransfer.setData('text/plain', u)
+          onChoisir({ quoi: 'unite', id: u })
+          e.dataTransfer.setData('text/plain', codePiece({ quoi: 'unite', id: u }))
           e.dataTransfer.effectAllowed = 'move'
         }}
-        onClick={() => onChoisir(choisi ? null : u)}
+        onClick={() => onChoisir(choisi ? null : { quoi: 'unite', id: u })}
         aria-pressed={choisi}
       >
         {UNITS[u].emoji}
         <i>{effectif}</i>
+      </button>
+    </Astuce>
+  )
+}
+
+/** pourquoi un héros posté ne descendra pas sur le terrain */
+const MOTIF_ABSENCE: Record<string, string> = {
+  'non-recrute': 'Il n’est pas encore à votre service : l’ordre est gardé pour le jour où vous l’engagerez.',
+  mort: 'Il est tombé. L’ordre reste écrit, mais plus personne ne le tiendra.',
+  boude: 'Il boude sous sa tente et ne descendra pas : ce pan sera nu.',
+}
+
+/**
+ * UN HÉROS, posé sur un pan. Même jeton que celui d'une troupe - même taille,
+ * même bordure, même « choisi » - à trois différences près, qui sont les trois
+ * choses qu'un homme a et qu'un type n'a pas : ses couleurs, son NIVEAU en
+ * exposant (là où la troupe affiche son effectif), et le fait qu'il puisse être
+ * absent alors qu'on l'a posté.
+ *
+ * `fige` : sous les flèches, un héros ne se déplace plus. Ce n'est pas une
+ * pudeur d'interface, c'est le moteur : `posterHeros` TÉLÉPORTE le combattant à
+ * l'entrée du secteur (`f.x = p.x`), ce qui est juste à l'ouverture de la
+ * bataille - « en place avant le premier coup de bélier » - et absurde en pleine
+ * mêlée, où l'on verrait Hector disparaître d'un mur pour reparaître à l'autre.
+ * On le montre donc là où il est, et on ne ment pas sur ce qu'on peut en faire.
+ */
+function JetonHero({
+  h,
+  choisi,
+  dort,
+  fige,
+  onChoisir,
+}: {
+  h: HeroPlacable
+  choisi: boolean
+  dort: boolean
+  fige: boolean
+  onChoisir: (p: Piece | null) => void
+}) {
+  const piece: Piece = { quoi: 'hero', id: h.id }
+  return (
+    <Astuce
+      titre={`${h.emoji} ${h.nom}`}
+      resume={`Niveau ${h.niveau}. Un héros vaut une dizaine d’hommes sur le pan qu’il tient - et il n’en tient qu’un.`}
+      note={
+        !h.present
+          ? MOTIF_ABSENCE[h.absence ?? 'non-recrute']
+          : fige
+            ? 'L’assaut est engagé : un héros ne traverse pas la cour en pleine mêlée. Il tient le pan où le plan l’a posté.'
+            : dort
+              ? 'Ce pan n’est pas assailli aujourd’hui : il ira au plus pressé.'
+              : h.pan === null
+                ? 'Au plus pressé : il court au pan enfoncé.'
+                : 'Il tient ce pan et n’en bouge plus.'
+      }
+    >
+      <button
+        className={`plan-jeton hero${choisi ? ' choisi' : ''}${h.present ? '' : ' vide'}${dort ? ' dort' : ''}`}
+        style={{ borderColor: `${h.couleur}99` }}
+        disabled={fige}
+        draggable={!fige}
+        onDragStart={(e) => {
+          onChoisir(piece)
+          e.dataTransfer.setData('text/plain', codePiece(piece))
+          e.dataTransfer.effectAllowed = 'move'
+        }}
+        onClick={() => onChoisir(choisi ? null : piece)}
+        aria-pressed={choisi}
+      >
+        {h.emoji}
+        <i>{h.niveau}</i>
       </button>
     </Astuce>
   )
@@ -278,8 +393,11 @@ function ZonePan({
   pan,
   titre,
   unites,
+  heros,
   effectifs,
   dormants,
+  dormantsHeros,
+  herosFiges,
   choisi,
   onChoisir,
   onDeposer,
@@ -290,15 +408,24 @@ function ZonePan({
   pan: string | null
   titre: string
   unites: UnitId[]
+  /** les héros de CE pan, déjà filtrés par l'appelant */
+  heros: HeroPlacable[]
   effectifs: Partial<Record<UnitId, number>>
   dormants: UnitId[]
-  choisi: UnitId | null
-  onChoisir: (u: UnitId | null) => void
-  onDeposer: (u: UnitId, pan: string | null) => void
+  dormantsHeros: HeroId[]
+  /** on ne déplace plus un héros : on le montre où il est */
+  herosFiges: boolean
+  choisi: Piece | null
+  onChoisir: (p: Piece | null) => void
+  onDeposer: (p: Piece, pan: string | null) => void
   style?: CSSProperties
   classe?: string
   detail?: ReactNode
 }) {
+  // la pièce en main est-elle DÉJÀ ici ? alors pas de cible « poser ici »
+  const dejaLa =
+    choisi !== null &&
+    (choisi.quoi === 'unite' ? unites.includes(choisi.id) : heros.some((x) => x.id === choisi.id))
   return (
     <div
       className={`plan-zone ${classe}`}
@@ -306,8 +433,8 @@ function ZonePan({
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault()
-        const u = e.dataTransfer.getData('text/plain') as UnitId
-        if (u in UNITS) onDeposer(u, pan)
+        const p = lirePiece(e.dataTransfer.getData('text/plain'))
+        if (p) onDeposer(p, pan)
       }}
     >
       <span className="plan-zone-nom">{titre}</span>
@@ -318,15 +445,25 @@ function ZonePan({
             u={u}
             pan={pan}
             effectif={effectifs[u] ?? 0}
-            choisi={choisi === u}
+            choisi={memePiece(choisi, { quoi: 'unite', id: u })}
             dort={dormants.includes(u)}
             onChoisir={onChoisir}
           />
         ))}
-        {/* la cible accessible : elle n'apparaît qu'une fois la troupe désignée */}
-        {choisi !== null && !unites.includes(choisi) && (
+        {heros.map((h) => (
+          <JetonHero
+            key={h.id}
+            h={h}
+            choisi={memePiece(choisi, { quoi: 'hero', id: h.id })}
+            dort={dormantsHeros.includes(h.id)}
+            fige={herosFiges}
+            onChoisir={onChoisir}
+          />
+        ))}
+        {/* la cible accessible : elle n'apparaît qu'une fois la pièce désignée */}
+        {choisi !== null && !dejaLa && (
           <button className="plan-poser" onClick={() => onDeposer(choisi, pan)}>
-            {UNITS[choisi].emoji} ici
+            {emblemePiece(choisi)} ici
           </button>
         )}
       </div>
@@ -343,17 +480,26 @@ function ZonePan({
  * toujours visé. Le schéma le montre - l'ellipse aux proportions de la place, ses
  * trois pans nommés à leur vraie position, et les hommes posés dessus.
  *
- * On désigne une troupe, puis le pan qu'elle doit tenir. Le glisser-déposer fait
+ * On désigne une troupe ou un héros, puis le pan à tenir. Le glisser-déposer fait
  * la même chose pour qui préfère la souris ; le clavier suit les boutons.
+ *
+ * DEUX DISPOSITIONS, une seule grammaire (voir l'en-tête du fichier) :
+ *  · `schema` - l'ellipse. 280 px de haut, à la table du conseil ;
+ *  · `rangs`  - un pan par ligne. 22 px chacun, sous les flèches, où l'on n'a
+ *    que 105 à 119 px et où la vraie muraille est déjà à l'écran, derrière.
  */
 export function SchemaEnceinte({
   pans,
   reserve,
   effectifs,
   dormants = [],
+  heros = [],
+  dormantsHeros = [],
   onDeposer,
+  onDeposerHero,
   note,
-  compact = false,
+  repli,
+  disposition = 'schema',
 }: {
   pans: PanCarte[]
   /** les types qu'aucun pan ne retient : ils vont au plus pressé */
@@ -361,19 +507,119 @@ export function SchemaEnceinte({
   effectifs: Partial<Record<UnitId, number>>
   /** ordres qui ne commandent personne ce soir : leur pan n'est pas assailli */
   dormants?: UnitId[]
+  /**
+   * Les héros à montrer, avec le pan de chacun. `HeroPlacable.pan` désigne un
+   * `PanCarte.id` : l'id de `SECTEURS` à la table du conseil, le RANG du secteur
+   * en bataille - exactement comme pour les pans eux-mêmes.
+   */
+  heros?: HeroPlacable[]
+  /** héros dont le pan n'est pas assailli ce soir */
+  dormantsHeros?: HeroId[]
   onDeposer: (u: UnitId, pan: string | null) => void
+  /** absent = les héros se lisent mais ne se déplacent pas (c'est le cas en bataille) */
+  onDeposerHero?: (h: HeroId, pan: string | null) => void
   note?: ReactNode
-  /** gabarit réduit : sous les flèches, la plaine doit rester visible */
-  compact?: boolean
+  /** un geste accroché au bout du rang « au plus pressé » (rangs seulement) */
+  repli?: ReactNode
+  /**
+   * `schema` - l'ellipse de l'enceinte, 280 px de haut, à la table du conseil.
+   * `rangs`  - un pan par ligne, 22 px chacun, sous les flèches. Le gabarit
+   * `compact` d'autrefois n'existe plus : il servait à faire tenir l'ellipse dans
+   * la barre d'ordres, et l'ellipse n'y tient pas, même resserrée (mesuré).
+   */
+  disposition?: 'schema' | 'rangs'
 }) {
-  const [choisi, setChoisi] = useState<UnitId | null>(null)
-  const deposer = (u: UnitId, pan: string | null) => {
-    onDeposer(u, pan)
+  const [choisi, setChoisi] = useState<Piece | null>(null)
+  const herosFiges = onDeposerHero === undefined
+  const deposer = (p: Piece, pan: string | null) => {
+    if (p.quoi === 'unite') onDeposer(p.id, pan)
+    else if (onDeposerHero) onDeposerHero(p.id, pan)
+    else return
     setChoisi(null)
+  }
+  const herosDuPan = (id: string | null) => heros.filter((h) => h.pan === id)
+  /** ce qu'on rappelle sous les jetons : la pièce en main, ou la consigne */
+  const aide = choisi ? (
+    <>
+      {emblemePiece(choisi)}{' '}
+      <b>{choisi.quoi === 'unite' ? UNITS[choisi.id].nom : HEROS[choisi.id].nom}</b> - désignez le pan à tenir, ou
+      « Au plus pressé ».
+    </>
+  ) : (
+    (note ?? <>Cliquez une troupe, puis le pan qu’elle doit tenir. Le glisser-déposer marche aussi.</>)
+  )
+  /*
+   * En rangs, la phrase d'aide ne s'affiche QUE lorsqu'elle apprend quelque
+   * chose - une pièce en main, ou un avertissement -, et elle tient sur UNE
+   * ligne. Chaque ligne y vaut 13 px sur les 101 dont dispose la section
+   * (mesuré, panneau au pire : champion, brèche, trois fronts) ; le mode
+   * d'emploi complet est déjà dans l'astuce du jeton « ⚔ Pans », le répéter en
+   * permanence sous les flèches, c'est payer deux fois.
+   */
+  const aideRangs = choisi ? (
+    <>
+      {emblemePiece(choisi)} <b>{choisi.quoi === 'unite' ? UNITS[choisi.id].nom : HEROS[choisi.id].nom}</b> → quel pan ?
+    </>
+  ) : (
+    note
+  )
+
+  /*
+   * ── DISPOSITION EN RANGS ──
+   * Pas de SVG, pas de positionnement absolu, pas de second fond : la muraille
+   * est derrière le panneau, à l'écran, avec ses vraies jauges. On ne redessine
+   * pas ce qu'on a sous les yeux - on dit seulement QUI tient QUOI, dans l'ordre
+   * où la bataille a rangé ses fronts.
+   */
+  if (disposition === 'rangs') {
+    return (
+      <div className="plan-rangs">
+        {pans.map((p) => (
+          <ZonePan
+            key={p.id}
+            pan={p.id}
+            titre={court(p.nom)}
+            unites={p.unites}
+            heros={herosDuPan(p.id)}
+            effectifs={effectifs}
+            dormants={dormants}
+            dormantsHeros={dormantsHeros}
+            herosFiges={herosFiges}
+            choisi={choisi}
+            onChoisir={setChoisi}
+            onDeposer={deposer}
+            classe={`rang${p.breche ? ' perce' : ''}${p.assailli ? ' assailli' : ''}`}
+            detail={
+              p.breche ? (
+                <span className="plan-zone-etat perce">percé</span>
+              ) : p.part !== undefined ? (
+                <span className="plan-zone-etat">{Math.round(p.part * 100)} %</span>
+              ) : undefined
+            }
+          />
+        ))}
+        <ZonePan
+          pan={null}
+          titre="Au plus pressé"
+          unites={reserve}
+          heros={herosDuPan(null)}
+          effectifs={effectifs}
+          dormants={dormants}
+          dormantsHeros={dormantsHeros}
+          herosFiges={herosFiges}
+          choisi={choisi}
+          onChoisir={setChoisi}
+          onDeposer={deposer}
+          classe="rang reserve"
+          detail={repli}
+        />
+        {aideRangs !== undefined && <div className="plan-aide">{aideRangs}</div>}
+      </div>
+    )
   }
 
   return (
-    <div className={`plan-carte${compact ? ' compact' : ''}`}>
+    <div className="plan-carte">
       <div className="plan-scene">
         <svg viewBox={`0 0 ${G.w} ${G.h}`} className="plan-fond" aria-hidden="true">
           <defs>
@@ -521,8 +767,11 @@ export function SchemaEnceinte({
             pan={p.id}
             titre={court(p.nom)}
             unites={p.unites}
+            heros={herosDuPan(p.id)}
             effectifs={effectifs}
             dormants={dormants}
+            dormantsHeros={dormantsHeros}
+            herosFiges={herosFiges}
             choisi={choisi}
             onChoisir={setChoisi}
             onDeposer={deposer}
@@ -541,8 +790,11 @@ export function SchemaEnceinte({
           pan={null}
           titre="Réserve"
           unites={reserve}
+          heros={herosDuPan(null)}
           effectifs={effectifs}
           dormants={dormants}
+          dormantsHeros={dormantsHeros}
+          herosFiges={herosFiges}
           choisi={choisi}
           onChoisir={setChoisi}
           onDeposer={deposer}
@@ -551,15 +803,7 @@ export function SchemaEnceinte({
         />
       </div>
 
-      <div className="plan-aide">
-        {choisi ? (
-          <>
-            {UNITS[choisi].emoji} <b>{UNITS[choisi].nom}</b> - désignez le pan à tenir, ou « Au plus pressé ».
-          </>
-        ) : (
-          (note ?? <>Cliquez une troupe, puis le pan qu’elle doit tenir. Le glisser-déposer marche aussi.</>)
-        )}
-      </div>
+      <div className="plan-aide">{aide}</div>
     </div>
   )
 }
@@ -595,15 +839,46 @@ function typesEngages(b: BattleState): UnitId[] {
   return (Object.keys(UNITS) as UnitId[]).filter((u) => vus.has(u))
 }
 
+/**
+ * LES HÉROS TELS QUE LA BATAILLE LES A POSÉS, et non tels que le plan les rêve.
+ *
+ * En paix on lit `plan.heros` ; sous les flèches c'est le TERRAIN qui dit la
+ * vérité : le pan voyage sur le combattant (`Fighter.secteur`, posé une fois par
+ * `appliquerPlanHeros`), un héros dont le pan n'était pas assailli n'en a aucun,
+ * et un héros tombé n'est plus nulle part. Lire le plan ici afficherait Hector
+ * au nord alors qu'il gît devant la porte.
+ */
+function herosEnLigne(b: BattleState, niveaux: Partial<Record<HeroId, number>>): HeroPlacable[] {
+  const parId = new Map<HeroId, HeroPlacable>()
+  for (const f of b.fighters) {
+    if (!f.heros || f.camp !== b.campJoueur) continue
+    const def = HEROS[f.heros]
+    if (!def) continue
+    parId.set(f.heros, {
+      id: f.heros,
+      nom: def.nom,
+      emoji: def.emoji,
+      couleur: def.couleur,
+      niveau: niveaux[f.heros] ?? 1,
+      pan: f.secteur === undefined ? null : String(f.secteur),
+      present: f.etat !== 'mort',
+      absence: f.etat === 'mort' ? 'mort' : null,
+    })
+  }
+  // l'ordre du panthéon, comme partout ailleurs
+  return HEROS_PLAN.map((h) => parId.get(h)).filter((x): x is HeroPlacable => x !== undefined)
+}
+
 export function BarreOrdres() {
   // la bataille où le joueur a des hommes : défense du village ou expédition
   const b = useGame((s) => s.battle ?? (s.expedition && !s.expedition.result ? s.expedition.battle : null))
   const donnerOrdre = useGame((s) => s.donnerOrdre)
   const assigner = useGame((s) => s.assignerSecteur)
   const now = useGame((s) => s.lastSeen)
+  const etatsHeros = useGame((s) => s.heros)
   const plan = usePlanDefense()
-  // le schéma ne se rend que déplié : replié, il coûterait quarante nœuds SVG
-  // quatre fois par seconde pour rien
+  // les rangs ne se rendent que dépliés : repliés, ils coûteraient une trentaine
+  // de nœuds quatre fois par seconde pour rien
   const [ouvert, setOuvert] = useState(false)
   if (!b || b.result) return null
 
@@ -621,69 +896,104 @@ export function BarreOrdres() {
    * avait écrit « nord » et croit avoir perdu son réglage.
    */
   const dormants = pansDormants(plan, b.secteurs).filter((u) => types.includes(u))
+  const heros = herosEnLigne(b, Object.fromEntries(HEROS_PLAN.map((h) => [h, etatsHeros?.[h]?.niveau ?? 1])))
 
   return (
-    <div className="ordres" data-tuto="ordres">
-      <JetonsLigne valeur={o.ligne} onChoisir={(id) => donnerOrdre('ligne', id)} gele={gele} attente={attente} />
-      <JetonsTir valeur={o.tir} onChoisir={(id) => donnerOrdre('tir', id)} gele={gele} tireurs={tireurs}>
-        {/*
-          L'assignation par pan n'a de sens qu'à partir de deux fronts, et elle
-          n'intéresse qu'un joueur qui veut vraiment répartir sa garnison. Elle se
-          replie donc derrière un jeton, au lieu d'occuper la moitié du ciel.
-          Dépliée, c'est le MÊME schéma que celui du plan de défense : on ne
-          redécouvre pas une interface sous les flèches.
-        */}
-        {parPan && (
-          <details className="ordres-pans" onToggle={(e) => setOuvert(e.currentTarget.open)}>
-            {/*
-              L'astuce est DANS le résumé, et non autour du `details`. Deux raisons,
-              apprises l'une après l'autre : un `<span>` intercalé entre `details`
-              et `summary` casse le pliage du navigateur (le résumé doit rester
-              premier enfant) ; et une astuce dont on couperait l'activité au
-              dépliage changerait le type du nœud à cet endroit - React
-              démonterait le `details`, qui se refermerait tout seul.
-            */}
-            <summary>
-              <Astuce
-                titre="⚔ Tenir un pan"
-                resume="Assignez un type d’unité à un secteur : ces hommes-là s’y postent et n’y frappent que ce qui l’assaille. C’est la seule réponse à un assaut sur trois fronts quand on n’a qu’une garnison."
-                note="Réglé d’avance dans le plan de défense, aux remparts."
+    <>
+      <div className="ordres" data-tuto="ordres">
+        <JetonsLigne valeur={o.ligne} onChoisir={(id) => donnerOrdre('ligne', id)} gele={gele} attente={attente} />
+        <JetonsTir valeur={o.tir} onChoisir={(id) => donnerOrdre('tir', id)} gele={gele} tireurs={tireurs}>
+          {/*
+            LE PLI. L'assignation par pan n'a de sens qu'à partir de deux fronts et
+            n'intéresse pas tout le monde à chaque assaut : elle se replie donc
+            derrière un jeton. Ce n'est plus un `<details>` : le pliage natif
+            imposait un `<summary>` encadré à l'intérieur de la rangée de tir - un
+            cadre de plus - et forçait le contenu à rester enfant de cette rangée.
+            Un bouton et un frère, et la section des pans devient une SECTION du
+            panneau, au même rang que les ordres, séparée par un filet.
+          */}
+          {parPan && (
+            <Astuce
+              titre="⚔ Tenir un pan"
+              resume="Désignez une troupe, puis le pan qu’elle doit tenir : ces hommes-là s’y postent et n’y frappent que ce qui l’assaille. C’est la seule réponse à un assaut sur trois fronts quand on n’a qu’une garnison."
+              note="Se règle à froid dans le plan de défense, aux remparts - c'est là que les héros se postent aussi."
+            >
+              <button
+                className={`ordres-pli${ouvert ? ' actif' : ''}`}
+                aria-expanded={ouvert}
+                onClick={() => setOuvert((v) => !v)}
               >
-                <span>
-                  ⚔ Pans{assignes > 0 ? ` · ${assignes}` : ''}
-                  {dormants.length > 0 ? ' ⚠' : ''}
-                </span>
-              </Astuce>
-            </summary>
-            {ouvert && (
-              <SchemaEnceinte
-                pans={b.secteurs.map((sec, i) => ({
-                  id: String(i),
-                  nom: sec.nom,
-                  angle: sec.angle,
-                  unites: types.filter((u) => o.secteurs[u] === i),
-                  part: sec.max > 0 ? sec.hp / sec.max : 0,
-                  breche: sec.breche,
-                  assailli: true,
-                }))}
-                reserve={types.filter((u) => o.secteurs[u] === undefined)}
-                effectifs={b.engages}
-                dormants={dormants}
-                compact
-                onDeposer={(u, pan) => assigner(u, pan === null ? null : Number(pan))}
-                note={
-                  dormants.length > 0 ? (
-                    <>
-                      ⚠ Votre plan poste {dormants.map((u) => UNITS[u].emoji).join(' ')} sur un pan que personne
-                      n’assaille aujourd’hui : ces hommes vont au plus pressé.
-                    </>
-                  ) : undefined
-                }
-              />
-            )}
-          </details>
-        )}
-      </JetonsTir>
-    </div>
+                ⚔ Pans{assignes > 0 ? ` · ${assignes}` : ''}
+                {dormants.length > 0 ? ' ⚠' : ''}
+              </button>
+            </Astuce>
+          )}
+        </JetonsTir>
+      </div>
+
+      {parPan && ouvert && (
+        <div className="ordres-pans">
+          <SchemaEnceinte
+            disposition="rangs"
+            /*
+              Rangés DU NORD AU SUD, et non dans l'ordre où la bataille a tiré
+              ses fronts. C'est ce que le joueur a sous les yeux : la jauge du
+              nord en haut de l'écran, celle du sud en bas. Une liste qui
+              n'aurait pas cet ordre-là obligerait à traduire, et l'ellipse du
+              plan, elle, n'a jamais eu ce problème - elle montrait la position.
+            */
+            pans={b.secteurs
+              .map((sec, i) => ({
+                id: String(i),
+                nom: sec.nom,
+                angle: sec.angle,
+                unites: types.filter((u) => o.secteurs[u] === i),
+                part: sec.max > 0 ? sec.hp / sec.max : 0,
+                breche: sec.breche,
+                assailli: true,
+              }))
+              .sort((a, c) => a.angle - c.angle)}
+            reserve={types.filter((u) => o.secteurs[u] === undefined)}
+            effectifs={b.engages}
+            dormants={dormants}
+            heros={heros}
+            /* pas de `onDeposerHero` : voir `JetonHero`, `posterHeros` téléporte */
+            onDeposer={(u, pan) => assigner(u, pan === null ? null : Number(pan))}
+            /*
+              L'avertissement tient sur UNE ligne, et il le doit : le panneau a
+              298 px de haut au plus, et le pire cas en consomme 294. Le détail est dit trois
+              fois ailleurs - le ⚠ sur le jeton « Pans », la bordure orange en
+              tirets du jeton qui dort, et son astuce au survol.
+            */
+            note={
+              dormants.length > 0 ? (
+                <>⚠ {dormants.map((u) => UNITS[u].emoji).join(' ')} : leur pan n’est pas assailli ce soir.</>
+              ) : undefined
+            }
+            /*
+              LE GESTE DE REPLI, accroché au rang qui le nomme. `assignerSecteur`
+              n'est soumis à AUCUN délai - c'est `donnerOrdre` qui porte
+              `DELAI_ORDRE_MS`, pas lui (store.ts, `assignerSecteur` ne lit même
+              pas `prochainAt`) - donc rendre toute la garnison au plus pressé se
+              fait à la seconde où la brèche s'ouvre. C'est l'ordre qui vaut
+              alors, et il tient en un clic.
+            */
+            repli={
+              assignes > 0 ? (
+                <Astuce
+                  titre="↩ Tout au plus pressé"
+                  resume="Vos hommes cessent de tenir leur pan et courent au mur enfoncé. Le réglage du plan n’est pas effacé : il reprendra à la prochaine bataille."
+                  note="Aucun délai sur cet ordre-là - il part tout de suite."
+                >
+                  <button className="ordres-repli" onClick={() => types.forEach((u) => assigner(u, null))}>
+                    ↩ tous
+                  </button>
+                </Astuce>
+              ) : undefined
+            }
+          />
+        </div>
+      )}
+    </>
   )
 }

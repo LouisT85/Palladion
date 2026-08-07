@@ -577,7 +577,12 @@ export function BandeauAlerte() {
        */
       <div className="bandeau assaut">
         <div className="gros">⚔️ ASSAUT EN COURS - {restants} assaillants</div>
-        <div className="detail">{battle.breche ? '💥 Les remparts sont percés : mêlée dans le village !' : 'Vos remparts encaissent le choc.'}</div>
+        {/*
+          « Vos remparts encaissent le choc » ne disait rien que les jauges de
+          secteur ne disent mieux, et coûtait 14 px des 316 que le panneau a le
+          droit d'occuper sans mordre sur elles. La brèche, elle, se crie.
+        */}
+        {battle.breche && <div className="detail">💥 Les remparts sont percés : mêlée dans le village !</div>}
         <div className="detail moral-ligne">
           <span className={`moral-jauge${rompt ? ' rompt' : ''}`}>
             <div style={{ width: `${Math.round(moral * 100)}%` }} />
@@ -585,12 +590,28 @@ export function BandeauAlerte() {
             <span className="moral-seuil" style={{ left: `${Math.round(seuil * 100)}%` }} />
           </span>
           {rompt ? (
-            <b style={{ color: '#e0715a' }}>La ligne rompt - vos hommes lâchent un par un</b>
+            <b style={{ color: '#e0715a' }}>La ligne rompt - vos hommes lâchent</b>
           ) : (
-            <span>
-              Ligne tenue · rupture sous {Math.round(seuil * 100)} %
-              {heroTient && <b style={{ color: '#f0d9a0' }}> - un héros rallie</b>}
-            </span>
+            <span>Ligne tenue · rupture sous {Math.round(seuil * 100)} %</span>
+          )}
+          {/*
+            « - un héros rallie » en toutes lettres poussait cette ligne sur DEUX
+            rangs dans un panneau de 330 px, et deux rangs de moral, c'était 15 px
+            pris à la bande libre. L'emblème dit la même chose ; l'astuce donne le
+            chiffre, qui est ce qui compte vraiment.
+          */}
+          {heroTient && (
+            <Astuce
+              titre="🛡️ Un héros rallie la ligne"
+              resume="Tant qu’un héros tient debout de votre côté, vos hommes endurent bien plus avant de rompre."
+              lignes={[
+                { label: 'Rupture, sans héros', valeur: `${Math.round(SEUIL_PANIQUE * 100)} %` },
+                { label: 'Rupture, héros debout', valeur: `${Math.round(SEUIL_PANIQUE_HEROS * 100)} %`, fort: true },
+              ]}
+              note="S’il tombe ou s’enfuit, le seuil remonte aussitôt."
+            >
+              <b className="moral-heros">🛡️</b>
+            </Astuce>
           )}
         </div>
         {champ && def && (
@@ -629,9 +650,17 @@ export function BandeauAlerte() {
             )}
           </div>
         )}
-        {/* ce que le joueur peut FAIRE de la bataille, et pas seulement regarder */}
+        {/*
+          CE QUE LE JOUEUR PEUT FAIRE de la bataille, et pas seulement regarder.
+          Trois SECTIONS dans un seul cadre, séparées par un filet et non par des
+          boîtes : les ordres, les pans (dépliés à la demande), les invocations.
+          Le cadre du panneau dit où l'on est ; à l'intérieur, empiler des
+          encadrements brun-rouge ne hiérarchisait plus rien.
+        */}
         <BarreOrdres />
-        <DieuxRapides />
+        <div className="assaut-invocations">
+          <DieuxRapides />
+        </div>
       </div>
     )
   }

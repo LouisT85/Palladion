@@ -18,8 +18,11 @@ import type { VillageCible } from './expeditions'
  *
  * REPÈRE. Les positions sont celles du dessin, en coordonnées LOCALES du groupe
  * `CoeurVillage` - lequel est posé à `geo.place` et mis à l'échelle 1,28. La
- * conversion vit dans `ouvragesDe()` : un chiffre changé dans le décor doit
- * l'être ici aussi, sinon la jauge flotte à côté de son toit.
+ * conversion vit dans `ouvragesDe()`. Ces coordonnées étaient RECOPIÉES dans
+ * `VillageEnnemi.tsx`, et un chiffre changé d'un côté seulement décalait la
+ * jauge de son toit sans que rien ne s'en plaigne : le décor les lit désormais
+ * ici, par `posOuvrage()`, et `ouvrages.test.ts` monte les huit archétypes pour
+ * vérifier qu'aucun ouvrage ne manque au dessin.
  */
 
 /** l'échelle du groupe `CoeurVillage` - toute position locale la traverse */
@@ -41,14 +44,146 @@ export interface OuvrageDef {
 
 type Decor = VillageCible['decor']
 
+/*
+ * ═════════════════ CALIBRAGE DE LA DÉMOLITION ═════════════════
+ *
+ * L'ancienne cote - `120 + puissance × 1,7` - donnait 162 points à TOUTE la
+ * place du camp de pillards, dont 65 pour la tente du chef. Cinq hoplites en
+ * portent 45 par seconde : la tente tombait en une seconde et demie, et le
+ * joueur a dit ce qu'il voyait - « en un coup c'est écroulé ».
+ *
+ * ── CE DONT LA STRUCTURE DÉPEND, ET DE QUOI ELLE NE DÉPEND PAS ──────────────
+ *
+ * De la PLACE SEULE : sa puissance, et le matériau dont elle est faite. Jamais
+ * du nombre d'hommes envoyés. C'est un choix, non un oubli :
+ *
+ *  · une jauge est une propriété de la chose mesurée. « Tente du chef 410/410 »
+ *    doit valoir la même cote au deuxième raid qu'au premier, sinon le chiffre
+ *    n'apprend rien et le joueur ne peut RIEN prévoir ;
+ *  · faire épaissir les murs quand la colonne grossit annulerait exactement le
+ *    seul levier que le panneau de préparation propose. Amener du monde doit
+ *    payer - c'est la décision du joueur, pas une illusion à recalibrer.
+ *
+ * ── CE QUE LE CALIBRAGE PRÉCÉDENT AVAIT MANQUÉ ──────────────────────────────
+ *
+ * `1000 + puissance × 3` ne se voit pas au calcul, seulement à la sonde. Vraies
+ * expéditions dans le navigateur, chaque place avec SA colonne plausible :
+ *
+ *   camp de pillards     860 pts · 4 lanciers ............ 39 s de démolition
+ *   forteresse mysienne 2 983 pts · 20 hommes + 2 héros ... 23 s de démolition
+ *
+ * La plus grande place du jeu tombait plus vite que la plus petite. La raison
+ * tient en une comparaison de PENTES, et non de valeurs :
+ *
+ *  · la cadence de démolition réellement portée est multipliée par 5 environ
+ *    d'un bout à l'autre du monde (24 pts/s au camp avec quatre lanciers,
+ *    117 pts/s à la forteresse avec vingt hommes et deux héros) ;
+ *  · l'ancienne cote, elle, n'était multipliée que par 3,5 (860 → 2 983), parce
+ *    que ses mille points de SOCLE écrasaient le terme de puissance : à la plus
+ *    petite place, 1 000 des 1 075 points ne devaient rien à la place elle-même.
+ *
+ * Une cote doit croître au moins aussi vite que ce qu'on lui oppose. La nouvelle
+ * est multipliée par 5,7 (1 024 → 5 781).
+ *
+ * ── POURQUOI UNE RACINE PLUTÔT QU'UNE DROITE ────────────────────────────────
+ *
+ * Il faut être honnête : le pli n'est pas obligatoire. `1084 + puissance × 7,85`
+ * passe exactement par les deux mêmes bornes et tiendrait la fenêtre. Mais elle
+ * la tiendrait avec un socle de mille points, c'est-à-dire en refaisant le défaut
+ * qu'on vient de corriger un cran plus bas : entre le camp (puissance 25) et le
+ * hameau thrace (puissance 55) - le double de puissance - la droite n'ajoute que
+ * 18 % de structure, quand la racine en ajoute 38 %. Le socle rendrait les places
+ * du début de partie indiscernables les unes des autres, et la jauge cesserait
+ * d'apprendre quoi que ce soit. La racine met le poids sur le terme qui VARIE :
+ * 280 points de socle seulement, soit 5 % de la cote d'une forteresse.
+ *
+ * ── LES CADENCES RELEVÉES ───────────────────────────────────────────────────
+ *
+ * Le mètre utile n'est pas `DPS_BATIMENT` (9 points/s par homme) : entre la
+ * cadence de 2,1 s, la marche d'un ouvrage au suivant, la redistribution des
+ * hommes quand une cible tombe et les pertes de l'assaut, personne ne porte ces
+ * neuf points. On ne les calcule donc pas, on les relève (moteur rejoué à trois
+ * graines, `ouvrages.test.ts` §3) :
+ *
+ *   camp        4 lanciers ......................  24 pts/s
+ *               5 hoplites ......................  41 pts/s
+ *               8 lanciers + 2 archers ..........  91 pts/s
+ *   fort        8 hoplites + 2 béliers ..........  76 pts/s
+ *               5 lanciers 3 archers 5 hoplites 1 bélier   93 pts/s
+ *   forteresse  12 hoplites 3 béliers 5 peltastes 109 pts/s
+ *               les mêmes + Hector 3 et Achille 3  138 pts/s
+ *
+ * ── LA COTE, ET CE QU'ELLE DONNE ────────────────────────────────────────────
+ *
+ * `(280 + 200 × √puissance) × solidité`. SONDE PLAYWRIGHT, VRAIES EXPÉDITIONS,
+ * mêmes colonnes avant et après, la cote de comparaison étant celle dont le
+ * joueur s'est plaint (`120 + puissance × 1,7`) :
+ *
+ *                   structure        démolition          raid       issue
+ *                avant → après     avant → après   avant → après
+ *   camp            163   1024      9,5 s  34-44 s   23 s  47-58 s   ★★/★★★
+ *   fort            377   2729     12,8 s   49,8 s   43 s    81 s     ★★
+ *   forteresse      834   5781     11,8 s   39-41 s  47 s  73-76 s    ★★
+ *
+ * Colonnes : 4 lanciers ; 5 lanciers 3 archers 5 hoplites 1 bélier ; 12 hoplites
+ * 3 lanciers 3 archers 2 béliers avec Hector 3 et Achille 3. (La forteresse est
+ * IMPRENABLE sans héros : mesuré, vingt hommes de puissance 485 n'enlèvent pas
+ * un seul point de structure - la colonne rompt sous les traits du rempart.)
+ *
+ * LES FOURCHETTES SONT VRAIES ET IL FAUT LES LIRE. Deux passes du même raid sur
+ * le camp donnent 33,7 s et 43,7 s : à quatre lanciers, qu'il en tombe UN change
+ * la cadence d'un tiers. C'est pourquoi l'ordre des durées ne se garde pas sur
+ * ces chiffres-là mais sur le moteur rejoué à graine fixe (`ouvrages.test.ts`
+ * §3), où chaque place reçoit une colonne de même plausibilité :
+ *
+ *   camp   5 hoplites .......................... 25 s
+ *   fort   8 hoplites + 2 béliers ............... 36 s
+ *   forteresse 12 hoplites 3 béliers 5 peltastes  53 s
+ *
+ * Avant, les trois places tombaient dans la même dizaine de secondes et la plus
+ * grande allait le plus vite. Après, l'ordre est celui du bon sens, et tout tient
+ * sous les 180 s de `EXPEDITION_TIMEOUT_MS` : la marge la plus mince est la
+ * forteresse abordée SANS héros, 102 s au moteur rejoué à trois graines.
+ *
+ * Deux prix assumés :
+ *  · huit lanciers et deux archers lâchés sur un camp de pillards le rasent en
+ *    douze secondes. C'est juste : un tel gâchis de bronze mérite sa promenade ;
+ *  · une colonne trop mince met longtemps - quatre lanciers au camp, 34 s au
+ *    navigateur et 41 s au moteur nu. C'est juste aussi : quatre hommes qui
+ *    démontent un camp, cela prend le temps que cela prend.
+ */
+
+/** points de structure que porte la place la plus dérisoire */
+export const STRUCTURE_BASE = 280
 /**
- * Structure totale d'une place, dérivée de sa puissance. Calibrée pour qu'une
- * colonne capable de coucher la garnison ait ensuite de quoi démolir - une
- * vingtaine de secondes au camp de pillards, une minute devant la forteresse -
- * sans jamais s'approcher des trois minutes du renoncement forcé.
+ * Points gagnés par racine de puissance. RACINE et non puissance : voir le
+ * calibrage ci-dessus - une cote proportionnelle faisait tomber la forteresse
+ * plus vite que le camp.
+ */
+export const STRUCTURE_PAR_RACINE = 200
+
+/**
+ * Ce dont la place est FAITE. Des peaux tendues sur des perches ne se défendent
+ * pas comme un appareil cyclopéen, et deux places de puissance voisine ne
+ * s'écroulent pas au même rythme si l'une est de torchis et l'autre de granit.
+ */
+export const SOLIDITE: Record<Decor, number> = {
+  camp: 0.8, // peaux, perches, cordages
+  hameau: 0.85, // torchis et chaume
+  comptoir: 0.92, // brique crue chaulée, toit plat
+  village: 1, // pierre sèche et tuiles
+  fort: 1, // rondins équarris
+  cite: 1.12, // pierre de taille et marbre
+  citadelle: 1.22, // roc et moellons
+  forteresse: 1.32, // appareil cyclopéen
+}
+
+/**
+ * Structure totale d'une place : sa puissance, et le matériau dont elle est
+ * faite. Voir le calibrage ci-dessus pour le pourquoi de chaque chiffre.
  */
 export function structureTotale(v: VillageCible): number {
-  return Math.round(120 + v.puissance * 1.7)
+  return Math.round((STRUCTURE_BASE + Math.sqrt(v.puissance) * STRUCTURE_PAR_RACINE) * SOLIDITE[v.decor])
 }
 
 const OUVRAGES: Record<Decor, OuvrageDef[]> = {
@@ -107,6 +242,32 @@ const OUVRAGES: Record<Decor, OuvrageDef[]> = {
     { id: 'etendard', nom: 'Étendard de guerre', x: -72, y: 0, part: 0.1, haut: 34 },
     { id: 'butin', nom: 'Magasins', x: -6, y: 50, part: 0.14, haut: 16 },
   ],
+}
+
+/**
+ * Position locale d'un ouvrage - LA source, pour le peintre comme pour la jauge.
+ *
+ * `VillageEnnemi.tsx` posait ses tentes et ses tours sur des nombres écrits à la
+ * main, recopiés ici : deux vérités pour une seule chose, et un décalage qui ne
+ * se voit que si l'on regarde la capture au bon moment. Le décor lit désormais
+ * ces coordonnées, si bien qu'un ouvrage déplacé emmène sa jauge ET sa ruine.
+ */
+export function posOuvrage(decor: Decor, id: string): { x: number; y: number } {
+  const o = OUVRAGES[decor].find((d) => d.id === id)
+  if (!o) throw new Error(`ouvrage inconnu dans le décor « ${decor} » : ${id}`)
+  return { x: o.x, y: o.y }
+}
+
+/** les identifiants d'ouvrage d'un décor, dans l'ordre où ils sont déclarés */
+export function idsOuvrages(decor: Decor): string[] {
+  return OUVRAGES[decor].map((o) => o.id)
+}
+
+/** l'identifiant du CŒUR de ce décor - celui dont la chute décide du raid */
+export function idCoeur(decor: Decor): string {
+  const o = OUVRAGES[decor].find((d) => d.coeur)
+  if (!o) throw new Error(`le décor « ${decor} » n’a pas de cœur`)
+  return o.id
 }
 
 /** un ouvrage tel que la bataille et la scène le manipulent */

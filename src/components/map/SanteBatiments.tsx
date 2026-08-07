@@ -1,4 +1,4 @@
-import { BUILDINGS, BUILDING_IDS, REDOUTE_POS, hpAcropole, redouteHp, structureMax } from '../../game/data'
+import { BUILDINGS, BUILDING_IDS, hpAcropole, structureMax } from '../../game/data'
 import { useGame } from '../../game/store'
 
 /*
@@ -73,45 +73,37 @@ export function SanteBatiments() {
   const enBataille = useGame((s) => s.battle !== null && s.battle.breche)
   const buildings = useGame((s) => s.buildings)
   const acropole = useGame((s) => s.defenses?.acropole ?? 0)
-  const redoute = useGame((s) => s.redoute ?? 0)
-  const redouteVie = useGame((s) => s.redouteHp ?? 0)
   if (!enBataille) return null
 
   return (
     <g>
-      {/*
-        La Redoute tire tant qu'elle tient : sa jauge est donc de celles qu'on
-        surveille, et elle reste à l'œil dès la brèche même intacte - c'est elle
-        qui dit s'il reste une arme dans l'enceinte.
-      */}
-      {redoute > 0 && (
-        <Jauge
-          x={REDOUTE_POS.x}
-          y={REDOUTE_POS.y - 62 - redoute * 6}
-          part={Math.max(0, Math.min(1, redouteVie / redouteHp(redoute)))}
-          nom="La Redoute"
-          titre
-        />
-      )}
       {BUILDING_IDS.map((id) => {
         const b = buildings[id]
         if (id === 'remparts' || b.level <= 0 || b.ruine) return null
         const coeur = id === 'agora'
+        /*
+         * Deux ouvrages restent à l'œil même intacts : le cœur, dont la chute
+         * décide de la partie, et la REDOUTE, qui TIRE tant qu'elle tient - sa
+         * jauge dit s'il reste une arme dans l'enceinte. Le reste ne s'affiche
+         * qu'une fois entamé, sinon la carte se couvre de barres pour rien.
+         */
+        const veille = coeur || id === 'redoute'
         const max = structureMax(id, b.level) + (coeur ? hpAcropole(acropole) : 0)
         if (max <= 0) return null
         const hp = b.hp ?? max
         const part = Math.max(0, Math.min(1, hp / max))
-        // on ne montre que ce qui est entamé — sauf le cœur, toujours à l'œil
-        if (part >= 0.999 && !coeur) return null
+        if (part >= 0.999 && !veille) return null
         const pos = BUILDINGS[id].pos
         return (
           <Jauge
             key={id}
             x={pos.x}
-            y={pos.y - (coeur ? 54 : 40)}
+            // la Redoute est haute : sa jauge se pose au-dessus des scorpions
+            y={pos.y - (coeur ? 54 : id === 'redoute' ? 92 : 40)}
             part={part}
             nom={coeur ? 'Le Palladion' : BUILDINGS[id].nom}
             coeur={coeur}
+            titre={id === 'redoute'}
           />
         )
       })}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, REDOUTE_POS, TOUR_ANGLES, TOUR_PORTEE, pointMur } from '../../game/data'
+import { BUILDINGS, BUILDING_IDS, DAY_MS, MAP, TOUR_ANGLES, TOUR_PORTEE, pointMur } from '../../game/data'
 import { HERO_IDS } from '../../game/heros'
 import { ACTES_CAMPAGNE } from '../../game/campagne'
 import { murMax, postesPourvus, postesTotal, useGame } from '../../game/store'
@@ -23,7 +23,6 @@ import { Meteo, VoileSaison } from './Ciel'
 import { HerosVillage } from './HerosVillage'
 import { Garnison } from './Garnison'
 import { Murailles } from './Murailles'
-import { Redoute } from './batiments/Redoute'
 import { SanteBatiments } from './SanteBatiments'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
 import { Villageois } from './Villageois'
@@ -257,7 +256,6 @@ export function VillageMap() {
   const wallLevel = useGame((s) => s.buildings.remparts.level)
   const remparts = useGame((s) => s.buildings.remparts)
   const tours = useGame((s) => s.tours)
-  const redoute = useGame((s) => s.redoute ?? 0)
   const brechesMur = useGame((s) => s.brechesMur)
   const army = useGame((s) => s.army)
   const wallHp = useGame((s) => s.wallHp)
@@ -439,17 +437,6 @@ export function VillageMap() {
             <Emplacement key={b} id={b} now={now} paisible={paisible} cadre={camera.cadre} palier={camera.palier} />
           ))}
 
-          {/*
-            La Redoute. Elle n'est pas un `BuildingId` - elle n'a ni niveaux de
-            règne, ni postes, ni production - mais elle occupe bien une place dans
-            l'enceinte, au sud de l'agora, et se peint donc ici, entre les
-            édifices et les habitants.
-          */}
-          {redoute > 0 && (
-            <g transform={`translate(${REDOUTE_POS.x},${REDOUTE_POS.y})`}>
-              <Redoute n={redoute} />
-            </g>
-          )}
 
           <Villageois pop={pop} morale={morale} now={now} enBataille={battle !== null} />
           {/* les héros sont des habitants : ils arpentent la place comme les autres */}

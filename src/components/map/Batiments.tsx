@@ -10,6 +10,7 @@ import { Carriere } from './batiments/Carriere'
 import { Forge } from './batiments/Forge'
 import { Caserne } from './batiments/Caserne'
 import { Port } from './batiments/Port'
+import { Redoute } from './batiments/Redoute'
 
 export { DefsBatiments } from './batiments/primitives'
 
@@ -18,8 +19,8 @@ export { DefsBatiments } from './batiments/primitives'
  * L'art d'un bâtiment. **Mémoïsé, et c'est essentiel** : il ne dépend que de son
  * identifiant et de son niveau, donc il ne change quasiment jamais - alors que la
  * carte se re-rend quatre fois par seconde parce que l'heure du jour avance.
- * Sans ce mémo, React rediffusait à vide les cinq mille nœuds des dix édifices à
- * chaque battement, pour conclure chaque fois que rien n'avait bougé.
+ * Sans ce mémo, React rediffusait à vide les cinq mille nœuds des onze édifices
+ * à chaque battement, pour conclure chaque fois que rien n'avait bougé.
  */
 export const BatimentArt = memo(function BatimentArt({ id, level }: { id: BuildingId; level: number }) {
   switch (id) {
@@ -41,6 +42,8 @@ export const BatimentArt = memo(function BatimentArt({ id, level }: { id: Buildi
       return <Caserne n={level} />
     case 'port':
       return <Port n={level} />
+    case 'redoute':
+      return <Redoute n={level} />
     case 'remparts':
       return null // dessinés par <Murailles/>
   }

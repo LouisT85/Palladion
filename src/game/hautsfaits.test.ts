@@ -222,8 +222,11 @@ describe('le tableau des hauts faits', () => {
   })
 
   it('ne laisse pas les descriptions mentir sur les nombres qu’elles annoncent', () => {
-    // « les dix domaines », deux fois : la somme visée par « Cité de légende » en dépend
-    expect(BUILDING_IDS).toHaveLength(10)
+    // « les onze domaines », deux fois : la somme visée par « Cité de légende » en dépend.
+    // La Redoute est devenue le onzième : les deux descriptions ont dû suivre, et
+    // c'est ce garde-fou qui l'a dit - une promesse faite au joueur ne se périme pas
+    // en silence.
+    expect(BUILDING_IDS).toHaveLength(11)
     for (const b of BUILDING_IDS) {
       // quatre paliers de coût par bâtiment : les cinq hauts faits « niveau 4 »
       // visent bien le dernier niveau, et « Cité de légende » le sans-faute
@@ -316,7 +319,7 @@ describe('les conditions', () => {
     expect(new Set(paliers.map(([id]) => id)).size).toBe(paliers.length)
   })
 
-  it('ne prend pas l’agora pour une première pierre, et veut les dix domaines', () => {
+  it('ne prend pas l’agora pour une première pierre, et veut les onze domaines', () => {
     // l'agora est offerte à la fondation : la faire grandir n'est pas bâtir
     expect(atteint('premiere-pierre', village({ buildings: batiments(0, { agora: 4 }) }))).toBe(false)
     expect(atteint('premiere-pierre', village({ buildings: batiments(0, { agora: 4, ferme: 1 }) }))).toBe(true)
@@ -494,7 +497,7 @@ describe('le prestige', () => {
      * le héros mort ne compte plus, ni sa tête ni ses niveaux (3 × 12 + 9 × 4).
      */
     expect(detail.map((d) => [d.label, d.points])).toEqual([
-      ['Bâtiments élevés', 80], // 10 domaines au niveau 2 = 20 niveaux × 4
+      ['Bâtiments élevés', 88], // 11 domaines au niveau 2 = 22 niveaux × 4
       ['Tours d’archers', 24], // 4 × 6
       ['Habitants', 60], // 30 habitants × 2 // 30 × 2
       ['Assauts repoussés', 48], // 12 × 4 - les 9 perdus ne retirent rien
@@ -505,8 +508,8 @@ describe('le prestige', () => {
       ['Journées de règne', 40], // 20 × 2
       ['Hauts faits', 30], // 5 + 25
     ])
-    expect(prestige(regne, ['premier-sang', 'phalange'])).toBe(468)
-    expect(titrePrestige(468).titre).toBe('Seigneur de la plaine')
+    expect(prestige(regne, ['premier-sang', 'phalange'])).toBe(476)
+    expect(titrePrestige(476).titre).toBe('Seigneur de la plaine')
   })
 
   it('ne baisse jamais quand la partie s’améliore', () => {

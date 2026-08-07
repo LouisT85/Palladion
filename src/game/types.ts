@@ -11,6 +11,18 @@ export type BuildingId =
   | 'caserne'
   | 'temple'
   | 'port'
+  /*
+   * La Redoute, onzième et dernière : la plateforme à scorpions du dedans. Elle
+   * fut d'abord un compteur greffé sur le panneau des remparts, et cela se
+   * payait partout - une position en dur sur la carte, une jauge de structure à
+   * part, une branche à elle dans les dégâts. Elle est désormais un bâtiment
+   * comme les autres : quatre niveaux, un coût, une durée, sa case.
+   *
+   * AJOUTÉE EN QUEUE, et ce n'est pas indifférent : `BUILDING_IDS` dérive de
+   * l'ordre des clés de `BUILDINGS`, et cet ordre gouverne l'affichage de
+   * plusieurs listes. On n'insère donc pas au milieu.
+   */
+  | 'redoute'
 export type UnitId = 'lancier' | 'archer' | 'hoplite' | 'frondeur' | 'peltaste' | 'belier' | 'char'
 /** les héros de la matière troyenne - leurs fiches vivent dans heros.ts */
 export type HeroId =
@@ -330,13 +342,21 @@ export interface TourDef {
 
 /**
  * Un poste de tir de la Redoute. Même forme qu'une tour - sinon que le tir part
- * à la brèche et non avant, et que la structure de l'ouvrage est commune aux
- * trois postes : abattre la Redoute les fait taire tous ensemble.
+ * à la brèche et non avant, et que la structure de l'ouvrage est commune à tous
+ * les postes : abattre la Redoute les fait taire ensemble.
+ *
+ * `dmg` est porté par le POSTE et non lu d'une constante globale : la force du
+ * trait dépend du niveau de l'ouvrage (des ressorts plus gros, un trait plus
+ * lourd), et le niveau est arrêté au moment où la bataille se crée. Le porter
+ * ici évite de traîner le niveau de la Redoute dans le contexte de chaque
+ * battement pour le relire à chaque salve.
  */
 export interface PosteRedoute {
   x: number
   y: number
   nextHit: number
+  /** dégâts d'un trait, selon le niveau de l'ouvrage */
+  dmg: number
 }
 
 /**

@@ -13,7 +13,7 @@ import {
   BUILDING_IDS,
   DEFENSES_DEFS,
   hpAcropole,
-  redouteHp,
+  REDOUTE_MAX,
   structureMax,
   type DefenseId,
   CONSO_POP,
@@ -46,10 +46,6 @@ import {
   LOT_ECHANGE,
   MARGE_PORT,
   TOURS_MAX,
-  REDOUTE_COUTS,
-  REDOUTE_MAX,
-  REDOUTE_POS,
-  REDOUTE_REMPARTS_REQUIS,
   TOUR_COUTS,
   UNITS,
   UNIT_IDS,
@@ -101,7 +97,14 @@ import {
   type VillageCible,
 } from './expeditions'
 import { ouvragesDe, partAbattue, type Ouvrage } from './ouvrages'
-import { ordresDefense, ordresExpedition, planParDefaut, planValide, type PlanDefense } from './plandefense'
+import {
+  appliquerPlanHeros,
+  ordresDefense,
+  ordresExpedition,
+  planParDefaut,
+  planValide,
+  type PlanDefense,
+} from './plandefense'
 import {
   BONUS_NEUTRE,
   HEROS,
@@ -117,10 +120,12 @@ import {
   entretienTotal,
   etatHeroInitial,
   forceNiveau,
+  herosEnColonne,
   noeudMur,
   peutMonter,
   xpRequise,
   type BonusHeros,
+  type HeroEnColonne,
   type HeroId,
   type HeroState,
 } from './heros'
@@ -341,13 +346,11 @@ export interface GameState {
   /** les cinq ouvrages de l'intérieur : ce qui reste quand le mur est tombé */
   defenses: DefensesInterieures
   /**
-   * Niveau de la Redoute (0-3). Elle est la seule défense de l'intérieur qui se
-   * BATTE : ses scorpions ouvrent le feu à la brèche, quand les tours se taisent.
-   * Absente des sauvegardes d'avant - lue comme non bâtie.
+   * La Redoute n'a plus de champ à elle : elle est devenue un `BuildingId` comme
+   * un autre, et son niveau comme sa structure vivent dans `buildings.redoute`.
+   * Les sauvegardes d'avant portent encore `redoute` et `redouteHp` : `init()`
+   * les reporte une fois dans la table, puis les efface.
    */
-  redoute: number
-  /** structure restante de la Redoute ; abattue, elle ne tire plus */
-  redouteHp: number
   /** angles des pans effondrés lors du dernier assaut - visibles jusqu'à réparation */
   brechesMur: number[]
   army: Record<UnitId, number>
@@ -568,10 +571,6 @@ export interface GameState {
   construireTour: () => void
   /** bâtit un des cinq ouvrages de l'intérieur */
   construireDefense: (id: DefenseId) => void
-  /** élève ou rehausse la Redoute - la seule défense du dedans qui riposte */
-  construireRedoute: () => void
-  /** remonte les scorpions abattus, au tarif des maçons de l'enceinte */
-  reparerRedoute: () => void
   /** consulte un oracle : il ne facture jamais du vide */
   /** envoie un éclaireur : un villageois, ou un homme de métier qu'on paie */
   envoyerEspion: (mission: CibleEspion, villageois: string | null, villageId?: string) => void
@@ -1370,8 +1369,6 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     wallHp: 0,
     tours: 0,
     defenses: { acropole: 0, bastion: false, galeries: false, poterne: false, citerne: false },
-    redoute: 0,
-    redouteHp: 0,
     brechesMur: [],
     army: { lancier: 0, archer: 0, hoplite: 0, frondeur: 0, peltaste: 0, belier: 0, char: 0 },
     recruitQueue: [],
@@ -1474,8 +1471,6 @@ type ActionsOnly = {
   reparerRemparts: unknown
   construireTour: unknown
   construireDefense: unknown
-  construireRedoute: unknown
-  reparerRedoute: unknown
   envoyerEspion: unknown
   chercher: unknown
   batirMerveille: unknown
@@ -1543,8 +1538,6 @@ const CHAMPS_SAUVES = [
   'wallHp',
   'tours',
   'defenses',
-  'redoute',
-  'redouteHp',
   'brechesMur',
   'army',
   'recruitQueue',
@@ -1669,12 +1662,14 @@ function tournerCiel(s: GameState, now: number): void {
 
 // ── Héros : expérience, entretien, arcs ──────────────────────────────────────
 
-/** les héros qui descendent sur le terrain : présents, vivants, et pas alités */
-function herosAuCombat(s: GameState, now: number): { id: HeroId; niveau: number }[] {
-  return HERO_IDS.filter((h) => {
-    const e = s.heros[h]
-    return e?.recrute && !e.mort && now >= e.boudeJusqua
-  }).map((h) => ({ id: h, niveau: s.heros[h].niveau }))
+/**
+ * Les héros qui descendent sur le terrain : présents, vivants, et pas alités.
+ * La règle vit dans `heros.ts` et non ici, pour que le PANNEAU d'expédition puisse
+ * peser exactement la liste qui va se battre. C'était tout le défaut : il n'en
+ * pesait aucun, et annonçait la même force avec et sans Hector.
+ */
+function herosAuCombat(s: GameState, now: number): HeroEnColonne[] {
+  return herosEnColonne(s.heros, now)
 }
 
 /**
@@ -2194,15 +2189,6 @@ function ciblesBatiments(s: GameState): CibleBatiment[] {
     if (b.hp <= 0) continue
     out.push({ id, x: BUILDINGS[id].pos.x, y: BUILDINGS[id].pos.y, hp: b.hp, coeur: id === 'agora' })
   }
-  /*
-   * La Redoute est une cible comme les autres, et il FAUT qu'elle le soit : une
-   * pièce qui tire sans pouvoir être réduite au silence ferait de la brèche une
-   * formalité. Les assaillants la prennent donc pour cible au même titre qu'une
-   * ferme - et tant qu'elle tient, elle leur coûte cher.
-   */
-  if ((s.redoute ?? 0) > 0 && (s.redouteHp ?? 0) > 0) {
-    out.push({ id: 'redoute', x: REDOUTE_POS.x, y: REDOUTE_POS.y, hp: s.redouteHp })
-  }
   return out
 }
 
@@ -2248,16 +2234,6 @@ function encaisserOuvrages(
  */
 function encaisserBatiments(s: GameState, cibles: CibleBatiment[], now: number): void {
   for (const cible of cibles) {
-    if (cible.id === 'redoute') {
-      if (cible.hp >= (s.redouteHp ?? 0)) continue
-      const debout = (s.redouteHp ?? 0) > 0
-      s.redouteHp = cible.hp
-      if (cible.hp <= 0 && debout) {
-        s.moraleMods.push({ id: uid('m'), label: 'Redoute réduite au silence', delta: -5, expiresAt: now + 8 * 60_000 })
-        pushToast(s, '🎯', 'La Redoute est réduite au silence : ses scorpions se taisent.')
-      }
-      continue
-    }
     // `CibleBatiment.id` est libre depuis que les ouvrages ennemis empruntent la
     // même mécanique : ici on ne traite QUE les édifices du village
     const c = cible as CibleBatiment & { id: BuildingId }
@@ -2310,7 +2286,7 @@ function lancerAssaut(s: GameState, now: number): void {
         geo: GEO_VILLAGE,
         campJoueur: 'defense',
         tours: s.tours,
-        redoute: s.redoute ?? 0,
+        redoute: s.buildings.redoute.level,
         fronts: frontsAnnonces(s),
         wallHpTotal: s.wallHp,
         // les alliés ferment la ligne, à leurs couleurs : on doit voir
@@ -2337,6 +2313,13 @@ function lancerAssaut(s: GameState, now: number): void {
        * autre mur, où ils manqueraient là où l'on cogne.
        */
       s.battle.ordres = ordresDefense(s.planDefense, s.battle.secteurs)
+      /*
+       * Et les héros, NOMMÉMENT. Ils ne peuvent pas passer par `ordres.secteurs`,
+       * qui est indexé par TYPE d'unité : le moteur les compte comme des hoplites,
+       * donc y écrire le pan d'Hector y enverrait aussi les trente hoplites - et
+       * déplacerait Ajax avec lui. Chacun est donc posté à son nom.
+       */
+      appliquerPlanHeros(s.battle, s.planDefense)
       if (s.buildings.ferme.level > 0) {
         s.resources.grain = Math.max(0, s.resources.grain * 0.97) // champs piétinés
       }
@@ -2951,6 +2934,34 @@ export const useGame = create<GameState>()(
             s.buildings = Object.fromEntries(
               BUILDING_IDS.map((b) => [b, { level: 0, ...((s.buildings?.[b] ?? {}) as Partial<BuildingState>) }]),
             ) as Record<BuildingId, BuildingState>
+            /*
+             * LA REDOUTE ENTRE DANS LA TABLE DES BÂTIMENTS. Elle a d'abord vécu
+             * comme un compteur greffé sur le panneau des remparts (`s.redoute`,
+             * `s.redouteHp`) ; ceux qui l'ont bâtie sous cette forme ne doivent
+             * pas la perdre.
+             *
+             * On reporte le NIVEAU tel quel, et la structure en PROPORTION plutôt
+             * qu'en points : l'ancienne échelle valait `220 + (n−1)·160`, la
+             * nouvelle suit `structureMax`, et copier le nombre brut aurait donné
+             * une Redoute à 380/520 sans qu'elle ait reçu un seul coup. Plancher à
+             * 1 point : un ouvrage qu'on avait laissé debout ne doit pas se
+             * réveiller abattu.
+             *
+             * La garde `level === 0` compte : sans elle, un joueur qui a depuis
+             * rasé sa Redoute la verrait ressusciter à chaque ouverture du jeu.
+             */
+            const ancien = s as unknown as { redoute?: number; redouteHp?: number }
+            if (ancien.redoute && s.buildings.redoute.level === 0) {
+              const niv = Math.min(REDOUTE_MAX, Math.max(1, Math.round(ancien.redoute)))
+              s.buildings.redoute.level = niv
+              const avant = 220 + (niv - 1) * 160
+              const part = Math.max(0, Math.min(1, (ancien.redouteHp ?? avant) / avant))
+              s.buildings.redoute.hp = Math.max(1, Math.round(structureMax('redoute', niv) * part))
+            }
+            // les deux champs fantômes sont entrés par `Object.assign` depuis le
+            // fichier, alors que `CHAMPS_SAUVES` ne les écrit plus : on les efface
+            delete ancien.redoute
+            delete ancien.redouteHp
             s.gods = Object.fromEntries(
               GOD_IDS.map((g) => [
                 g,
@@ -3472,7 +3483,9 @@ export const useGame = create<GameState>()(
             mods: modsBataille(s.meteo),
             cibles,
             defenses: s.defenses,
-            redouteHp: s.redouteHp ?? 0,
+            // `hp` n'est posé qu'au premier battement où l'ouvrage devient cible :
+            // sans ce repli, une Redoute neuve serait muette à sa première brèche
+            redouteHp: s.buildings.redoute.hp ?? structureMax('redoute', s.buildings.redoute.level),
           })
           s.wallHp = out.wallHp
           if (cibles) encaisserBatiments(s, cibles, now)
@@ -3683,31 +3696,6 @@ export const useGame = create<GameState>()(
       })
     },
 
-    /*
-     * Remettre la Redoute en batterie. Ce sont les mêmes maçons qu'à l'enceinte,
-     * donc le même tarif - un huitième de la structure manquante, en pierre - et
-     * les charpentiers pour retendre les scorpions. Une Redoute réduite au
-     * silence n'est PAS perdue : le joueur qui a payé trois chantiers ne doit pas
-     * les payer deux fois, seulement remonter la machine.
-     */
-    reparerRedoute: () => {
-      set((s) => {
-        if (s.battle) return
-        const n = s.redoute ?? 0
-        if (n <= 0) return
-        const max = redouteHp(n)
-        const manque = max - (s.redouteHp ?? 0)
-        if (manque <= 0) return
-        const cout = { pierre: Math.ceil(manque / 8), bois: Math.ceil(manque / 14) }
-        if (!payer(s, cout)) {
-          pushToast(s, '❌', `Il faut ${cout.pierre} 🪨 et ${cout.bois} 🪵 pour remonter la Redoute.`)
-          return
-        }
-        s.redouteHp = max
-        pushToast(s, '🎯', 'La Redoute est remise en batterie : ses scorpions sont retendus.')
-      })
-    },
-
     construireTour: () => {
       set((s) => {
         const max = TOURS_MAX[s.buildings.remparts.level]
@@ -3726,41 +3714,6 @@ export const useGame = create<GameState>()(
         }
         s.tours++
         pushToast(s, '🏹', `Tour d’archers dressée (${s.tours}/${max}). Sa silhouette attire l’œil des pillards…`)
-      })
-      get().save()
-    },
-
-    /*
-     * La Redoute, seule défense du dedans qui riposte. Rehausser remet sa
-     * structure à neuf : c'est un chantier, pas un replâtrage - et cela donne au
-     * joueur une raison de la monter entre deux assauts plutôt qu'en pleine
-     * bataille, ce que le garde-fou `s.battle` interdit de toute façon.
-     */
-    construireRedoute: () => {
-      set((s) => {
-        if (s.battle) return
-        if (s.buildings.remparts.level < REDOUTE_REMPARTS_REQUIS) {
-          pushToast(s, '🎯', `Il faut des remparts de niveau ${REDOUTE_REMPARTS_REQUIS} : sans enceinte, pas de dedans à tenir.`)
-          return
-        }
-        const n = s.redoute ?? 0
-        if (n >= REDOUTE_MAX) {
-          pushToast(s, '🎯', 'La Redoute porte déjà ses trois scorpions.')
-          return
-        }
-        if (!payer(s, REDOUTE_COUTS[n])) {
-          pushToast(s, '❌', 'Ressources insuffisantes.')
-          return
-        }
-        s.redoute = n + 1
-        s.redouteHp = redouteHp(s.redoute)
-        pushToast(
-          s,
-          '🎯',
-          n === 0
-            ? 'La Redoute est élevée au sud de l’agora : son scorpion attend la brèche.'
-            : `La Redoute arme un ${s.redoute}ᵉ scorpion.`,
-        )
       })
       get().save()
     },

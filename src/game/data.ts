@@ -47,6 +47,17 @@ export function structureMax(id: BuildingId, level: number): number {
   if (level <= 0) return 0
   if (id === 'agora') return 240 * level
   if (id === 'remparts') return 0 // les remparts ont leurs propres secteurs
+  /*
+   * La Redoute est le seul édifice du village qui soit un OUVRAGE : un massif de
+   * pierre appareillée, pas une grange. Elle tient donc deux fois ce que tient
+   * un atelier - et il faut bien qu'elle tienne, puisque la réduire au silence
+   * est le seul moyen d'arrêter ses traits.
+   *
+   * Ni plus : à 130 par niveau, cinq pillards acharnés (9 points par seconde
+   * chacun, soit 45) démolissent le premier niveau en une demi-minute. La brèche
+   * ne devient pas une formalité.
+   */
+  if (id === 'redoute') return 130 * level
   return 65 * level
 }
 
@@ -152,32 +163,68 @@ export const TOUR_ANGLES = [0.42, -0.42, 1.55, -1.55]
  * après Troie. C'est le prix d'une défense intérieure qui COMBATTE vraiment -
  * et il reste bien plus proche du monde d'Homère qu'un canon.
  */
-/** trois niveaux : un scorpion, puis deux, puis trois */
-export const REDOUTE_MAX = 3
-export const REDOUTE_REMPARTS_REQUIS = 2
+/*
+ * ── ELLE EST UN BÂTIMENT, ET PLUS UN COMPTEUR ──
+ *
+ * La Redoute était un `s.redoute` de 0 à 3, bâti depuis le panneau des remparts
+ * et interdit avant des remparts de niveau 2. Elle est désormais le onzième
+ * `BuildingId` : quatre niveaux, un coût et une durée par niveau, sa case sur la
+ * carte, son panneau, sa structure via `structureMax`. Et CONSTRUCTIBLE
+ * D'EMBLÉE : `REDOUTE_REMPARTS_REQUIS` n'existe plus.
+ *
+ * L'ÉQUILIBRE, parce que « d'emblée » change tout. La première bande arrive à la
+ * onzième minute avec une menace de 10, soit un budget de 55 : cinq ou six
+ * pillards, 30 points de vie chacun. Un unique scorpion à 30 de dégâts en tuait
+ * donc un par trait et rendait ce premier assaut sans objet. Deux leviers
+ * répondent à cela, et aucun n'est une interdiction :
+ *
+ *  1. LE TRAIT MONTE AVEC L'OUVRAGE (`REDOUTE_DMG` par niveau). À 18, le trait
+ *     du premier niveau ne tue plus un pillard d'un coup : cinq pillards, c'est
+ *     trente secondes de tir pour une pièce seule. À 38, celui du quatrième
+ *     abat un mercenaire en trois traits.
+ *  2. LE BRONZE. Le niveau 1 en demande 18 quand la partie en donne 24 et qu'un
+ *     lancier en coûte 6 : élever la Redoute au premier jour, c'est renoncer à
+ *     trois lances. C'est un arbitrage, pas un verrou - exactement ce qu'on veut
+ *     d'un bâtiment ouvert dès le début.
+ */
+/** quatre niveaux : un scorpion, puis deux, trois, quatre */
+export const REDOUTE_MAX = 4
+/**
+ * Le coût, calé sur les autres niveaux 1 (90 à 140 de matière) : la Redoute est
+ * le plus cher de tous, et le seul à réclamer du bronze pour naître. Un ouvrage
+ * de guerre se paie ; une palissade non.
+ */
 export const REDOUTE_COUTS: Cost[] = [
-  { pierre: 220, bois: 120, bronze: 20 },
-  { pierre: 360, bois: 160, bronze: 55 },
-  { pierre: 540, bois: 200, bronze: 95 },
+  { pierre: 110, bois: 70, bronze: 18 },
+  { pierre: 240, bois: 130, bronze: 45 },
+  { pierre: 430, bois: 180, bronze: 80 },
+  { pierre: 720, bois: 260, bronze: 130 },
 ]
 /** courte portée : elle tient la place, pas la plaine */
 export const REDOUTE_PORTEE = 210
-/** un trait de scorpion vaut trois flèches - mais il part trois fois moins souvent */
-export const REDOUTE_DMG = 30
+/**
+ * Dégâts d'un trait, par niveau (index 0 = niveau 1). Un trait de scorpion vaut
+ * plusieurs flèches - mais il part trois fois moins souvent, et le premier
+ * niveau ne suffit PAS à coucher un pillard d'un coup.
+ */
+export const REDOUTE_DMG = [18, 24, 30, 38]
 export const REDOUTE_CADENCE_MS = 3600
 /** vitesse du trait (px/s) : plus tendu qu'une flèche, presque à plat */
 export const REDOUTE_VITESSE = 420
-/** au sud de l'agora, à portée du cœur : c'est lui qu'elle couvre d'abord */
-export const REDOUTE_POS = { x: 570, y: 610 }
-/** structure de l'ouvrage : on peut la faire taire en l'abattant */
-export function redouteHp(n: number): number {
-  return n <= 0 ? 0 : 220 + (n - 1) * 160
+/** force du trait au niveau donné - hors chantier, elle ne tire pas */
+export function redouteDmg(n: number): number {
+  return REDOUTE_DMG[Math.max(1, Math.min(REDOUTE_MAX, n)) - 1]
 }
-/** postes de tir, un par niveau - décalés pour que les trois se voient */
+/**
+ * Postes de tir, un par niveau - décalés pour que les quatre se voient. Le
+ * quatrième est le plus haut : le massif du dernier niveau porte son plancher
+ * plus haut, et l'affût du milieu se lisait mal collé aux trois autres.
+ */
 export const REDOUTE_POSTES = [
   { dx: -2, dy: -44 },
   { dx: -24, dy: -38 },
   { dx: 21, dy: -38 },
+  { dx: 43, dy: -34 },
 ]
 
 /**
@@ -647,9 +694,72 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     ],
     pos: { x: 165, y: 745 },
   },
+  redoute: {
+    id: 'redoute',
+    nom: 'La Redoute',
+    emoji: '🎯',
+    desc:
+      'Plateforme de tir armée de scorpions, dressée dans l’enceinte. Muette tant que le mur tient - elle ne voit pas la plaine - elle ouvre le feu dès la brèche, sur ce qui est entré.',
+    interieur: true,
+    costs: REDOUTE_COUTS,
+    /*
+     * Le plus long des chantiers, au niveau 1 comme au niveau 4 : il faut tailler
+     * le massif ET monter la machine. Les remparts de niveau 1 demandent 40 s,
+     * la caserne 35 : la Redoute en demande 45, et l'écart se creuse.
+     */
+    times: [45, 110, 230, 430],
+    niveaux: [
+      'Terre et rondins derrière un clayonnage d’osier : un scorpion, monté à la hâte.',
+      'Massif de pierre à embrasures : deux scorpions, à l’abri de la maçonnerie.',
+      'Massif appareillé à créneaux : trois scorpions et le fanion de la pièce.',
+      'Ouvrage à bastionnets et échauguette : quatre scorpions, un magasin à traits.',
+    ],
+    /*
+     * ── SA PLACE, TROUVÉE PAR LA MESURE ET PAR L'ŒIL ──
+     *
+     * Elle était en dur à (570, 610), c'est-à-dire ASSISE sur la face intérieure
+     * du rempart sud : mesuré au zoom d'ensemble, la maçonnerie du mur monte
+     * jusqu'à y ≈ 613 à cette longitude, là où l'ellipse médiane `MAP.mur` passe
+     * à 640. D'où la remarque du joueur : elle était collée au bord.
+     *
+     * Les boîtes réelles des dix autres édifices au niveau 4, relevées par
+     * `getBBox` sur la vraie carte : temple 311-543 × 245-357, forge 634-769 ×
+     * 273-372, agora 474-649 × 382-469, maisons 349-515 × 435-549, caserne
+     * 639-794 × 456-548. L'emprise de la Redoute au niveau 4, relevée sur son
+     * art : 79 px à gauche, 80 à droite, 76 au-dessus pour la maçonnerie (104
+     * avec les traits armés) et 20 au-dessous - soit 159 × 96 de masse pleine.
+     *
+     * IL N'EXISTE AUCUNE PLACE À CHEVAUCHEMENT NUL. Le balayage de l'enceinte au
+     * pas de 3 px le dit : 7 225 positions tiennent dans les murs, aucune ne
+     * laisse la masse libre de tout voisin. La moins mordante était (757, 437) -
+     * la bande entre la forge et la caserne, 1 117 px² de contact seulement. On y
+     * a posé l'ouvrage, on a REGARDÉ la carte : la file d'arcs des scorpions,
+     * qui ne pèse rien dans le calcul parce qu'elle est ajourée, couvrait la
+     * forge presque en entier. Le modèle avait raison et l'œil l'a démenti.
+     *
+     * D'où cette place, choisie sur capture : PLEIN SUD DE L'AGORA, à 140 pas de
+     * son centre, entre les habitations et la caserne et à trente pixels francs
+     * du chemin de ronde. La forge reste entièrement visible, les deux voisins ne
+     * sont effleurés que par le pied de la rampe - et l'ouvrage étant peint après
+     * eux, il les occulte par devant, ce qui est le sens de la vue trois quarts et
+     * ce que l'agora fait déjà aux habitations.
+     *
+     * Et cette place la SERT : ses postes de tir sont à une centaine de pas de
+     * `MAP.place` (600, 445), le cœur que les assaillants viennent piller. Elle
+     * couvre le Palladion, pas la porte - c'est bien sa raison d'être.
+     */
+    pos: { x: 575, y: 585 },
+  },
 }
 
 export const BUILDING_IDS = Object.keys(BUILDINGS) as BuildingId[]
+
+/**
+ * Raccourci de lecture pour le combat : la position de l'ouvrage. Elle vit
+ * désormais dans `BUILDINGS` - la Redoute est un bâtiment - et cet alias évite
+ * d'aller la chercher par une table dans la boucle de bataille.
+ */
+export const REDOUTE_POS = BUILDINGS.redoute.pos
 
 // ── Unités ────────────────────────────────────────────────────────────────────
 export const UNITS: Record<UnitId, UnitDef> = {

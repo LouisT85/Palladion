@@ -25,8 +25,17 @@ import { Anim, AnimT } from '../smil'
  * l'ombre, ombre portée au sud-est. Zéro contour noir - le modelé vient des
  * valeurs, jamais d'un trait.
  *
- * Trois niveaux : terre et rondins, puis pierre à embrasures, puis massif
- * appareillé à créneaux. Un scorpion de plus à chacun.
+ * QUATRE niveaux : terre et rondins, puis pierre à embrasures, puis massif
+ * appareillé à créneaux, puis l'ouvrage du règne - deux bastionnets en saillie,
+ * un parapet en encorbellement qui porte une quatrième pièce. Un scorpion de plus
+ * à chacun.
+ *
+ * La progression se lit à quatre traits, et c'est voulu : la MATIÈRE change au
+ * niveau 2 (la terre devient pierre), le COURONNEMENT change au niveau 3 (les
+ * embrasures deviennent créneaux), le PLAN change au niveau 4 (le massif cesse
+ * d'être un rectangle - il pousse des flancs, et sa crête déborde sur des
+ * corbeaux). Un niveau qui ne change que de
+ * deux pixels de haut ne se voit pas ; un niveau qui change de silhouette, si.
  */
 
 /** un scorpion : affût, treuil, bras d'arc recourbés, glissière et trait armé */
@@ -126,16 +135,126 @@ function Clayonnage({ larg, y }: { larg: number; y: number }) {
   )
 }
 
+/*
+ * BASTIONNET du quatrième niveau : un saillant carré qui déborde du front et
+ * descend jusqu'au sol. C'est lui qui fait qu'on voit le dernier niveau sans lire
+ * l'infobulle - le plan cesse d'être un rectangle. Il flanque le mur : de là, on
+ * prend d'écharpe celui qui vient cogner la face.
+ *
+ * `cote` = −1 à gauche (pris par la lumière du nord-ouest), +1 à droite (dans
+ * l'ombre). Le volume vient de trois faces et de rien d'autre : face avant, joue
+ * latérale, dessus - aucun contour.
+ */
+function Bastionnet({ x, haut, cote }: { x: number; haut: number; cote: -1 | 1 }) {
+  const w = 21
+  const h = haut * 0.82
+  // la joue latérale s'enfonce vers le nord : en vue 3/4 elle monte de 4 px
+  const j = 8
+  const x0 = x - (cote < 0 ? 0 : w)
+  const x1 = x0 + w
+  return (
+    <g>
+      {/* ombre portée au pied, vers le sud-est */}
+      <ellipse cx={x0 + w / 2 + 4} cy={5} rx={w * 0.72} ry={4} fill={PAL.ombrePortee} opacity={0.2} />
+      {/* face avant */}
+      <path d={`M${x0},4 L${x0},${-h} L${x1},${-h} L${x1},4 Z`} fill={PAL.pierreMi} />
+      {/* joue latérale, du côté où l'on voit l'épaisseur */}
+      {cote < 0 ? (
+        <path d={`M${x0},4 L${x0 - j},${4 - j * 0.42} L${x0 - j},${-h - j * 0.42} L${x0},${-h} Z`} fill={PAL.pierreLit} />
+      ) : (
+        <path d={`M${x1},4 L${x1 + j},${4 - j * 0.42} L${x1 + j},${-h - j * 0.42} L${x1},${-h} Z`} fill={PAL.pierreOmbre} />
+      )}
+      {/* glacis : chaud à gauche, refroidi à droite - la lumière tient tout */}
+      <path
+        d={`M${x0},4 L${x0},${-h} L${x1},${-h} L${x1},4 Z`}
+        fill={cote < 0 ? '#e8cf9e' : '#6b5f47'}
+        opacity={cote < 0 ? 0.2 : 0.16}
+      />
+      {/* assises : deux joints suffisent à dire l'appareil */}
+      <path d={`M${x0},${-h * 0.34} L${x1},${-h * 0.34} M${x0},${-h * 0.67} L${x1},${-h * 0.67}`} stroke={PAL.pierreJoint} strokeWidth={0.8} opacity={0.5} />
+      {/* dessus, en raccourci : la tablette qu'on foule */}
+      <path
+        d={`M${x0},${-h} L${x0 - (cote < 0 ? j : 0)},${-h - (cote < 0 ? j * 0.42 : 0)} L${x1 + (cote > 0 ? j : 0)},${-h - (cote > 0 ? j * 0.42 : 0)} L${x1},${-h} Z`}
+        fill={PAL.marbreLit}
+      />
+      <path d={`M${x0 - (cote < 0 ? j : 0)},${-h - (cote < 0 ? j * 0.42 : 0) - 2.2} L${x1 + (cote > 0 ? j : 0)},${-h - (cote > 0 ? j * 0.42 : 0) - 2.2} L${x1 + (cote > 0 ? j : 0)},${-h - (cote > 0 ? j * 0.42 : 0)} L${x0 - (cote < 0 ? j : 0)},${-h - (cote < 0 ? j * 0.42 : 0)} Z`} fill={PAL.pierreLit} />
+      {/* une archère étroite : le saillant tire d'écharpe */}
+      <path d={`M${x0 + w / 2 - 1.4},${-h * 0.66} L${x0 + w / 2 + 1.4},${-h * 0.66} L${x0 + w / 2 + 1.4},${-h * 0.3} L${x0 + w / 2 - 1.4},${-h * 0.3} Z`} fill="#655b4c" />
+      <path d={`M${x0 + w / 2 - 1.4},${-h * 0.66} L${x0 + w / 2 - 0.5},${-h * 0.66} L${x0 + w / 2 - 0.5},${-h * 0.3} L${x0 + w / 2 - 1.4},${-h * 0.3} Z`} fill={PAL.pierreLit} opacity={0.7} />
+    </g>
+  )
+}
+
+/*
+ * LE COURONNEMENT DU QUATRIÈME NIVEAU : un parapet EN ENCORBELLEMENT, porté par
+ * des corbeaux qui débordent le massif de treize pixels de chaque côté.
+ *
+ * Il a fallu trois essais REGARDÉS pour y venir, et les deux premiers valent
+ * d'être dits, sans quoi on les refera :
+ *
+ *  1. « plus large » - `larg` porté à 60. À la vue d'ensemble de la carte,
+ *     l'ouvrage devenait une dalle grise de cent trente pixels qu'on lisait comme
+ *     un pan de courtine. C'est l'écueil que ce dessin avait déjà rencontré à sa
+ *     toute première version.
+ *  2. « plus haut » - un réduit dressé derrière, portant la quatrième pièce d'un
+ *     cran plus haut. Le parapet du bas, peint APRÈS lui puisqu'il est devant,
+ *     l'avalait presque entièrement : il n'en restait qu'un bloc ambigu au-dessus
+ *     de la crête, et le dernier niveau se lisait « le troisième, en plus
+ *     encombré ».
+ *
+ * L'encorbellement, lui, résout les trois problèmes d'un coup : il donne les
+ * trente pixels de crête qu'il faut pour poser une quatrième pièce sans que les
+ * bras d'arc se chevauchent, il n'ajoute RIEN à l'emprise au sol (les corbeaux
+ * sont en l'air, et l'enceinte est comptée au sol), et la file de corbeaux fait
+ * sous la crête une bande sombre pointillée qui se voit de loin - c'est elle, et
+ * non un détail de sculpture, qui dit « ouvrage du règne ».
+ */
+function Encorbellement({ larg, deb, y }: { larg: number; deb: number; y: number }) {
+  return (
+    <g>
+      {/* les corbeaux, par paquets, sous chaque débord */}
+      {[-1, 1].map((cote) =>
+        [0, 1, 2, 3].map((i) => {
+          const x = cote * (larg - 4) + cote * i * 4.4
+          return (
+            <g key={`${cote}-${i}`}>
+              <path d={`M${x - 1.9},${y} L${x + 1.9},${y} L${x + 1.3},${y + 5.4} L${x - 1.3},${y + 5.4} Z`} fill={PAL.pierreMi} />
+              <path
+                d={`M${x - 1.9},${y} L${x - 0.6},${y} L${x - 0.1},${y + 5.4} L${x - 1.3},${y + 5.4} Z`}
+                fill={cote < 0 ? PAL.pierreLit : PAL.pierreOmbre}
+              />
+            </g>
+          )
+        }),
+      )}
+      {/* le dessous du débord, dans l'ombre : c'est lui qui creuse */}
+      <path d={`M${-larg - deb},${y} L${larg + deb},${y} L${larg + deb},${y + 2.6} L${-larg - deb},${y + 2.6} Z`} fill={PAL.ombrePortee} opacity={0.24} />
+      {/* la tablette portée, qui déborde franchement */}
+      <path d={`M${-larg - deb},${y - 3.4} L${larg + deb},${y - 3.4} L${larg + deb},${y} L${-larg - deb},${y} Z`} fill={PAL.pierreLit} />
+      <path d={`M${-larg - deb},${y - 3.4} L${larg + deb},${y - 3.4}`} stroke={PAL.marbreLit} strokeWidth={1.3} />
+    </g>
+  )
+}
+
 export function Redoute({ n }: { n: number }) {
   if (n <= 0) return null
-  const niv = Math.max(1, Math.min(3, n))
+  const niv = Math.max(1, Math.min(4, n))
   /*
    * Gabarit : TRAPU. Un massif d'environ 90 px de large pour 26 à 38 de haut,
    * là où les bâtiments du village occupent jusqu'à 270 px. La Redoute doit
    * paraître un ouvrage de campagne monté à la hâte, pas un édifice du règne.
+   *
+   * LE QUATRIÈME NIVEAU NE S'ÉLARGIT PAS - il MONTE. Premier essai fait à
+   * `larg = 60`, regardé sur la carte : à la vue d'ensemble l'ouvrage devenait
+   * une dalle grise de cent trente pixels qui se lisait comme un pan de courtine,
+   * précisément l'écueil déjà rencontré à la première version de ce dessin. Le
+   * dernier niveau garde donc la largeur du troisième et gagne huit pixels de
+   * haut, deux saillants, une échauguette et un second étage de feu. Un ouvrage
+   * de guerre impressionne par sa HAUTEUR, pas par son étalement - et l'enceinte,
+   * mesurée, n'avait de toute façon pas cent trente pixels à lui donner.
    */
-  const larg = 40 + niv * 5
-  const haut = 20 + niv * 6
+  const larg = niv === 4 ? 55 : 40 + niv * 5
+  const haut = niv === 4 ? 50 : 20 + niv * 6
   // profondeur de la joue droite : ce qui donne le volume en vue 3/4
   const joue = 11 + niv * 1.5
   // niveau du plancher de tir, où les affûts sont calés
@@ -151,22 +270,32 @@ export function Redoute({ n }: { n: number }) {
       <ellipse cx={2} cy={2} rx={larg * 1.26} ry={14 + niv} fill="#b0a075" opacity={0.4} />
       <ellipse cx={-larg * 0.4} cy={5} rx={larg * 0.78} ry={9.5} fill="#c6b68b" opacity={0.44} />
 
-      {/* ── la rampe de service : c'est par là qu'on monte les traits ── */}
+      {/*
+        ── la rampe de service : c'est par là qu'on monte les traits ──
+
+        RACCOURCIE de dix pixels (elle partait de −larg−34), et cela n'est pas de
+        la cosmétique. La Redoute est désormais un bâtiment posé DANS l'enceinte,
+        et l'enceinte est pleine : sa place a été trouvée par la mesure des boîtes
+        réelles des dix autres édifices, dans la bande de 84 px qui sépare la
+        forge de la caserne. Chaque pixel d'emprise à gauche était un pixel qui
+        mordait sur l'agora. La rampe est donc plus RAIDE - ce qui, pour un
+        ouvrage de campagne, se défend très bien.
+      */}
       <g>
         {/* le remblai, en volume, avec sa propre ombre au sol */}
-        <path d={`M${-larg - 34},7 L${-larg + 2},${pont + 5} L${-larg + 2},${pont + 13} L${-larg - 28},13 Z`} fill="#8e7f59" />
-        <path d={`M${-larg - 34},7 L${-larg + 2},${pont + 5} L${-larg + 2},${pont + 8} L${-larg - 32},9.6 Z`} fill="#c2b285" />
-        <path d={`M${-larg - 28},13 L${-larg + 2},${pont + 13} L${-larg + 2},${pont + 15} L${-larg - 27},15 Z`} fill="#6f6247" />
+        <path d={`M${-larg - 24},7 L${-larg + 2},${pont + 5} L${-larg + 2},${pont + 13} L${-larg - 19},13 Z`} fill="#8e7f59" />
+        <path d={`M${-larg - 24},7 L${-larg + 2},${pont + 5} L${-larg + 2},${pont + 8} L${-larg - 22},9.6 Z`} fill="#c2b285" />
+        <path d={`M${-larg - 19},13 L${-larg + 2},${pont + 13} L${-larg + 2},${pont + 15} L${-larg - 18},15 Z`} fill="#6f6247" />
         {/* traverses de rondins qui retiennent la terre */}
         {[0.14, 0.32, 0.5, 0.68, 0.86].map((f) => {
-          const x0 = -larg - 34 + f * 36
+          const x0 = -larg - 24 + f * 26
           const y0 = 7 + f * (pont + 5 - 7)
           return <path key={f} d={`M${x0},${y0 + 0.8} L${x0 + 1.4},${y0 + 6.6}`} stroke="#7a6c4c" strokeWidth={1.8} />
         })}
         {/* garde-corps de perches, côté vide */}
-        <path d={`M${-larg - 32},6 L${-larg},${pont + 4}`} stroke={PAL.boisOmbre} strokeWidth={1.3} />
+        <path d={`M${-larg - 22},6 L${-larg},${pont + 4}`} stroke={PAL.boisOmbre} strokeWidth={1.3} />
         {[0.25, 0.6, 0.9].map((f) => {
-          const x0 = -larg - 32 + f * 32
+          const x0 = -larg - 22 + f * 22
           const y0 = 6 + f * (pont + 4 - 6)
           return <path key={f} d={`M${x0},${y0} L${x0},${y0 + 7}`} stroke={PAL.boisOmbre} strokeWidth={1.2} />
         })}
@@ -250,6 +379,18 @@ export function Redoute({ n }: { n: number }) {
           <path d={`M${-larg},0 L${-larg - 6},4 L${larg + 4},4 L${larg},0 Z`} fill={PAL.pierreOmbre} opacity={0.85} />
           <path d={`M${-larg},0 L${-larg - 6},4 L${-larg * 0.2},4 L${-larg * 0.16},0 Z`} fill={PAL.pierreMi} />
 
+          {/*
+            Les deux saillants du dernier niveau, PEINTS APRÈS la façade et avant
+            le cordon : ils sont DEVANT le front, et leur tablette s'arrête sous
+            la corniche. Peints avant, ils auraient disparu sous le parement.
+          */}
+          {niv === 4 && (
+            <>
+              <Bastionnet x={-larg + 2} haut={haut} cote={-1} />
+              <Bastionnet x={larg - 2} haut={haut} cote={1} />
+            </>
+          )}
+
           {/* cordon de couronnement, puis le plancher de tir */}
           <path d={`M${-larg - 4},${-haut} L${larg + 3},${-haut} L${larg + joue},${pont} L${-larg},${pont} Z`} fill={PAL.pierreLit} />
           <path d={`M${-larg},${pont} L${larg + joue},${pont}`} stroke={PAL.marbreLit} strokeWidth={1.4} />
@@ -257,12 +398,35 @@ export function Redoute({ n }: { n: number }) {
           {/* ombre du cordon sur la façade : le débord se voit */}
           <path d={`M${-larg + 1},${-haut} L${larg - 1},${-haut} L${larg - 1},${-haut + 3.6} L${-larg + 1},${-haut + 3.6} Z`} fill={PAL.ombrePortee} opacity={0.15} />
 
-          {/* les machines d'abord : le parapet leur passera devant */}
-          {REDOUTE_POSTES.slice(0, niv).map((p, i) => (
-            <Scorpion key={i} x={p.dx} y={pont - (niv === 2 ? 9 : 12)} s={1.08} seed={i + 1} tour={i} />
+          {/*
+            Les machines d'abord : le parapet leur passera devant.
+
+            DEUX ÉTAGES DE FEU au dernier niveau, et c'est le trait qui le fait
+            reconnaître d'un coup d'œil. Le quatrième scorpion ne se serre pas sur
+            la crête - quatre affûts de quarante pixels sur cent dix de parapet se
+            chevauchaient et faisaient une haie de bâtons - il descend sur la
+            tablette du bastionnet droit. Une batterie à deux niveaux se lit ; une
+            rangée trop dense ne se compte pas.
+          */}
+          {/*
+            La crête élargie du dernier niveau est peinte AVANT les machines : les
+            corbeaux et la tablette passent derrière les affûts, la dentelle des
+            merlons passera devant. C'est le même ordre qu'aux autres niveaux.
+          */}
+          {niv === 4 && <Encorbellement larg={larg} deb={14} y={pont + 1} />}
+          {/*
+            Les positions des affûts sur le plancher. Aux trois premiers niveaux
+            elles suivent `REDOUTE_POSTES` ; au quatrième la batterie se REDISPOSE
+            sur la crête portée - quatre machines à trente pixels d'écart, pour que
+            les bras d'arc ne se chevauchent pas. C'est la seule mise en place qui
+            permette de COMPTER les pièces d'un coup d'œil, et compter les pièces
+            est la manière dont le joueur lit le niveau.
+          */}
+          {(niv === 4 ? [-51, -21, 9, 39] : REDOUTE_POSTES.slice(0, niv).map((p) => p.dx)).map((dx, i) => (
+            <Scorpion key={i} x={dx} y={pont - (niv === 2 ? 9 : 12)} s={1.08} seed={i + 1} tour={i} />
           ))}
 
-          {/* parapet : embrasures taillées au niveau 2, créneaux au niveau 3 */}
+          {/* parapet : embrasures au niveau 2, créneaux aux niveaux 3 et 4 */}
           {niv === 2 ? (
             <g>
               <path
@@ -300,18 +464,44 @@ export function Redoute({ n }: { n: number }) {
             </g>
           ) : (
             <g>
-              {/* mur d'allège continu, puis les merlons */}
-              <path d={`M${-larg + 1},${pont + 1} L${larg + 2},${pont + 1} L${larg + 2},${pont - 7} L${-larg + 1},${pont - 7} Z`} fill={PAL.pierreMi} />
-              <path d={`M${-larg + 1},${pont - 7} L${larg + 2},${pont - 7} L${larg + 2},${pont - 9} L${-larg + 1},${pont - 9} Z`} fill={PAL.pierreLit} />
-              <path d={`M${-larg + 1},${pont + 1} L${-larg * 0.1},${pont + 1} L${-larg * 0.1},${pont - 9} L${-larg + 1},${pont - 9} Z`} fill="#e8cf9e" opacity={0.16} />
-              {[-0.9, -0.42, 0.06, 0.54, 0.94].map((f, i) => {
-                const bx = larg * f - 7
+              {/* mur d'allège continu, puis les merlons - élargi au niveau 4 */}
+              {(() => {
+                const g0 = niv === 4 ? -larg - 14 : -larg + 1
+                const g1 = niv === 4 ? larg + 14 : larg + 2
+                return (
+                  <>
+                    <path d={`M${g0},${pont + 1} L${g1},${pont + 1} L${g1},${pont - 7} L${g0},${pont - 7} Z`} fill={PAL.pierreMi} />
+                    <path d={`M${g0},${pont - 7} L${g1},${pont - 7} L${g1},${pont - 9} L${g0},${pont - 9} Z`} fill={PAL.pierreLit} />
+                    <path d={`M${g0},${pont + 1} L${-larg * 0.1},${pont + 1} L${-larg * 0.1},${pont - 9} L${g0},${pont - 9} Z`} fill="#e8cf9e" opacity={0.16} />
+                  </>
+                )
+              })()}
+              {/*
+                Sept merlons au dernier niveau contre cinq au troisième, sur la
+                même largeur : la crête se resserre, et c'est ce qui distingue les
+                deux couronnements à l'œil, la hauteur étant presque la même.
+              */}
+              {/*
+                Sept merlons au dernier niveau contre cinq au troisième, de MÊME
+                épaisseur et de même hauteur : la crête est plus longue parce
+                qu'elle est portée en encorbellement, elle n'est ni plus maigre ni
+                plus haute. Une version à merlons rétrécis a été essayée puis
+                regardée : le dernier niveau paraissait plus FAIBLE que le
+                précédent, ce qui est exactement le contraire du propos.
+              */}
+              {(niv === 4
+                ? [-1.12, -0.75, -0.37, 0, 0.37, 0.75, 1.12]
+                : [-0.9, -0.42, 0.06, 0.54, 0.94]
+              ).map((f, i) => {
+                const w = 14
+                const hm = 19
+                const bx = larg * f - w / 2
                 return (
                   <g key={f}>
-                    <rect x={bx} y={pont - 19} width={14} height={11} fill={i % 2 ? PAL.pierreMi : PAL.pierreLit} />
-                    <rect x={bx} y={pont - 19} width={14} height={2} fill={PAL.marbreLit} />
-                    <rect x={bx + 11.6} y={pont - 19} width={2.4} height={11} fill={PAL.pierreOmbre} opacity={0.65} />
-                    {f < 0 && <rect x={bx} y={pont - 19} width={14} height={11} fill="#e8cf9e" opacity={0.13} />}
+                    <rect x={bx} y={pont - hm} width={w} height={hm - 8} fill={i % 2 ? PAL.pierreMi : PAL.pierreLit} />
+                    <rect x={bx} y={pont - hm} width={w} height={2} fill={PAL.marbreLit} />
+                    <rect x={bx + w - 2.4} y={pont - hm} width={2.4} height={hm - 8} fill={PAL.pierreOmbre} opacity={0.65} />
+                    {f < 0 && <rect x={bx} y={pont - hm} width={w} height={hm - 8} fill="#e8cf9e" opacity={0.13} />}
                   </g>
                 )
               })}
@@ -322,7 +512,7 @@ export function Redoute({ n }: { n: number }) {
 
       {/* ── le train : ce qui sert les machines ── */}
       {/* râtelier de traits, dressé au pied de la rampe */}
-      <g transform={`translate(${-larg - 26},7)`}>
+      <g transform={`translate(${-larg - 15},7)`}>
         <ellipse cx={2.4} cy={1} rx={7.5} ry={2.4} fill={PAL.ombrePortee} opacity={0.17} />
         <path d="M-6.4,0 L6.4,0" stroke={PAL.boisOmbre} strokeWidth={2} />
         {[0, 1, 2, 3, 4, 5].map((i) => {
@@ -345,9 +535,13 @@ export function Redoute({ n }: { n: number }) {
         <path d="M-5,-3.4 L5,-3.4 M-5.2,-6.8 L5.2,-6.8" stroke="#5f4a2c" strokeWidth={1} />
       </g>
 
-      {/* le fanion de la pièce, planté DANS le parapet : l'ouvrage est en batterie */}
+      {/*
+        Le fanion de la pièce : l'ouvrage est en batterie. Au dernier niveau il
+        descend sur la tablette du bastionnet droit - le quatrième scorpion prend
+        toute la droite du parapet, et la hampe se plantait au milieu de ses bras.
+      */}
       {niv >= 2 && (
-        <g transform={`translate(${larg * 0.9},${pont - (niv === 2 ? 12 : 8)})`}>
+        <g transform={`translate(${niv === 4 ? larg + 11 : larg * 0.9},${pont - (niv === 2 ? 12 : 8)})`}>
           <path d="M0,0 L0,-24" stroke={PAL.boisOmbre} strokeWidth={1.6} />
           <path d="M-0.5,-24 L-0.5,-21" stroke={PAL.boisLit} strokeWidth={0.8} />
           <path d="M0.8,-24 L14,-20 L0.8,-16 Z" fill="#8e4a2e">

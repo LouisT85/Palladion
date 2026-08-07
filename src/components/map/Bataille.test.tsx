@@ -227,6 +227,7 @@ function batiments(niveaux: Record<string, number>, hp: Record<string, number> =
     'caserne',
     'temple',
     'port',
+    'redoute',
   ] as const
   const out = {} as Record<(typeof ids)[number], { level: number; hp?: number }>
   for (const id of ids) out[id] = { level: niveaux[id] ?? 0, hp: hp[id] }

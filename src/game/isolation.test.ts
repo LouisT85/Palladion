@@ -156,7 +156,7 @@ function cite() {
     tours: s.tours,
     wallHp: s.wallHp,
     defenses: { ...s.defenses },
-    redoute: s.redoute,
+    // la Redoute est un bâtiment depuis : son niveau est déjà dans `buildings`
     threat: s.threat,
     threatMod: s.threatMod,
     relationsDivines: Object.fromEntries(Object.entries(s.gods).map(([g, v]) => [g, v.relation])),

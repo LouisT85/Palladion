@@ -1,3 +1,5 @@
+import type { Malade } from './epidemies'
+
 // ── Identifiants ──────────────────────────────────────────────────────────────
 export type ResourceId = 'bois' | 'pierre' | 'grain' | 'bronze'
 export type BuildingId =
@@ -197,6 +199,13 @@ export interface Villageois {
   conjoint?: string
   /** prénoms de ses parents, pour le recensement : « fils de Damon et Théano » */
   parents?: [string, string]
+  /**
+   * La fièvre, s'il l'a. Elle se marque SUR l'habitant et non dans une table à
+   * la racine de l'état : une table parallèle aurait divergé à la première mort
+   * - le mort quitte `villageois`, sa fiche de maladie reste, et le panneau
+   * proposerait un lit à quelqu'un qu'on a enterré.
+   */
+  malade?: Malade
 }
 
 export interface RecruitJob {

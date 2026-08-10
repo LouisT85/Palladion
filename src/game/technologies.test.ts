@@ -45,10 +45,10 @@ const snap = (level = 4, res: Partial<Record<ResourceId, number>> = {}, technos:
   technos,
 })
 
-describe('la table des vingt découvertes', () => {
+describe('la table des vingt-trois découvertes', () => {
   it('en compte vingt, aux identifiants uniques et retrouvables', () => {
-    expect(TECHNOS).toHaveLength(20)
-    expect(new Set(TECHNO_IDS).size).toBe(20)
+    expect(TECHNOS).toHaveLength(23)
+    expect(new Set(TECHNO_IDS).size).toBe(23)
     for (const t of TECHNOS) expect(TECHNO_PAR_ID[t.id], t.id).toBe(t)
   })
 

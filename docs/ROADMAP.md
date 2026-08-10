@@ -16,7 +16,7 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Boucle de gestion | ✅ complet | rien de bloquant |
 | Défense et batailles | ✅ complet | ordres, moral, **sept unités**, champions nommés, structure des bâtiments, cinq ouvrages intérieurs, **la Redoute, onzième bâtiment, qui riposte**, et un plan de défense réglé en temps de paix - héros compris |
 | Offensive (8 places fortes) | ✅ complet | rien de bloquant - pillage/secours, alliances, tribut, **caravanes**, **espionnage**, **ouvrages ennemis à abattre** |
-| Économie | ✅ complet | rien de bloquant - **marché à cours flottants**, **arbre de vingt découvertes**, **six merveilles** |
+| Économie | ✅ complet | rien de bloquant - **marché à cours flottants**, **arbre de vingt-trois découvertes**, **six merveilles** |
 | Dieux et ferveur | ✅ complet | arbre de faveur, **oracles**, **colère graduée**, **reliques**, **hécatombe de saison** |
 | Héros (8, arcs, entretien) | ✅ complet | rien de bloquant |
 | Diplomatie | ✅ complet | rien de bloquant - relations, présents, pactes, mariages, trahisons |

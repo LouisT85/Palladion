@@ -69,6 +69,18 @@ export interface EffetsTechnos {
   consoPct: number
   /** durée des recherches suivantes, en moins */
   recherchePct: number
+  /**
+   * L'ART DU MÉDECIN. Il sert à DEUX choses dans le système des épidémies -
+   * soigner ceux qu'on couche au lazaret ET ralentir la contagion dans tout le
+   * village - et c'est délibéré : l'adduction d'eau fait littéralement les deux à
+   * la fois, et deux pourcentages séparés auraient obligé le joueur à lire deux
+   * chiffres pour comprendre une seule idée.
+   *
+   * ⚠️ AJOUTÉE EN DERNIER, comme dans `TECHNOS_NEUTRES` et dans le tableau de
+   * `resumeEffets` : ce dernier filtre par INDEX sur `CLES_EFFETS`, et une clé
+   * insérée au milieu décalerait tous les libellés d'un cran.
+   */
+  medecinePct: number
 }
 
 export const TECHNOS_NEUTRES: EffetsTechnos = {
@@ -88,6 +100,7 @@ export const TECHNOS_NEUTRES: EffetsTechnos = {
   butinPct: 0,
   consoPct: 0,
   recherchePct: 0,
+  medecinePct: 0,
 }
 
 export const CLES_EFFETS = Object.keys(TECHNOS_NEUTRES) as (keyof EffetsTechnos)[]
@@ -111,7 +124,8 @@ export interface TechnoDef {
 }
 
 /**
- * Les vingt découvertes. Toutes attestées dans l'Égée du bronze récent ou dans
+ * Les vingt-trois découvertes. Toutes attestées dans l'Égée du bronze récent ou
+ * dans
  * son voisinage immédiat : rien qui vienne d'un âge postérieur, pas de fer, pas
  * d'alphabet, pas de moulin. L'ordre du tableau est celui de la lecture, pas
  * celui de l'arbre - `arbreTechnos()` calcule les colonnes.
@@ -353,6 +367,52 @@ export const TECHNOS: TechnoDef[] = [
     batiment: { id: 'temple', niveau: 3 },
     bonus: { margePortPct: 0.1, faveurPct: 0.1, bronzePct: 0.08 },
   },
+
+  /*
+   * ── LA BRANCHE DE LA MÉDECINE : ce qu'on oppose à la fièvre ────────────────
+   *
+   * Trois découvertes seulement, et leur somme (+34 % d'art du médecin) ne suffit
+   * jamais à annuler une épidémie : le soin plafonne à 75 % et l'hygiène à 60 %.
+   * C'est voulu - une branche qui rendrait le lazaret inutile supprimerait le
+   * triage, qui est la décision du système. Elle rend la fièvre TRAVERSABLE, pas
+   * inexistante. Toutes trois attestées dans l'Égée du bronze récent : le jardin
+   * de simples, l'eau conduite, et les sanctuaires guérisseurs.
+   */
+  {
+    id: 'simples',
+    nom: 'Simples et onguents',
+    emoji: '🌿',
+    desc: 'Pavot, hysope, résine de térébinthe, miel sur les plaies. Un jardin de simples derrière le temple, et une femme qui sait lequel prendre.',
+    effet: '+8 % d’art du médecin (contagion et mortalité de la fièvre)',
+    cout: { grain: 90, bois: 60 },
+    duree: 110,
+    requiert: [],
+    batiment: { id: 'temple', niveau: 1 },
+    bonus: { medecinePct: 0.08 },
+  },
+  {
+    id: 'adduction',
+    nom: 'Adduction et latrines',
+    emoji: '🚰',
+    desc: 'La source captée et conduite au village par des rigoles de pierre, les fosses reportées sous le vent. Personne ne sait pourquoi cela sauve des vies ; tout le monde voit que cela en sauve.',
+    effet: '+12 % d’art du médecin',
+    cout: { pierre: 220, bois: 90 },
+    duree: 200,
+    requiert: ['arpentage'],
+    bonus: { medecinePct: 0.12 },
+  },
+  {
+    id: 'asclepios',
+    nom: 'Le sanctuaire d’Asclépios',
+    emoji: '🐍',
+    desc: 'Un enclos, des lits, des serpents inoffensifs, et des prêtres qui notent sur l’argile ce qu’ils ont vu guérir. La médecine devient une archive avant d’être une science.',
+    effet: '+14 % d’art du médecin, +5 % de faveur',
+    cout: { pierre: 260, bronze: 45, grain: 140 },
+    duree: 280,
+    requiert: ['simples', 'ecriture'],
+    batiment: { id: 'temple', niveau: 3 },
+    bonus: { medecinePct: 0.14, faveurPct: 0.05 },
+  },
 ]
 
 export const TECHNO_PAR_ID: Record<string, TechnoDef> = Object.fromEntries(TECHNOS.map((t) => [t.id, t]))
@@ -472,6 +532,7 @@ export function resumeEffets(e: EffetsTechnos): { label: string; valeur: string 
     { label: 'Butin', valeur: pct(e.butinPct) },
     { label: 'Grain consommé', valeur: moins(e.consoPct) },
     { label: 'Durée des recherches', valeur: moins(e.recherchePct) },
+    { label: 'Art du médecin', valeur: pct(e.medecinePct) },
   ]
   // on ne récapitule que ce qui a été gagné : une colonne de « +0 % » n'informe personne
   return lignes.filter((_, i) => e[CLES_EFFETS[i]] !== 0)

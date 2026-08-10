@@ -33,6 +33,15 @@ export interface EffectCtx {
   /** retire jusqu'à n soldats au hasard ; retourne le nombre effectif */
   loseSoldiers(n: number): number
   droughtFor(ms: number): void
+  /**
+   * Ouvre une épidémie au village (souche d'`epidemies.ts` : 'camp', 'butin',
+   * 'convoi', 'entassement'), avec un nombre de premiers cas éventuellement
+   * forcé. Un dilemme de fièvre ne retire PLUS de la population : il décide
+   * combien d'habitants NOMMÉS la maladie prend en entrant, et le système fait
+   * le reste - avec leurs métiers, leurs maisons, et une journée pleine avant le
+   * premier bûcher.
+   */
+  epidemie(souche: string, cas?: number): void
 }
 
 export interface EventChoice {
@@ -4040,6 +4049,22 @@ export const EVENTS: EventDef[] = [
       }),
     ],
   },
+  /*
+   * ═══════════ CE DILEMME N'EST PLUS UN DÉ : C'EST UNE PORTE ═══════════
+   *
+   * Chaque option finissait par `ctx.pop(-n)`. Ce que cela faisait RÉELLEMENT :
+   * `syncVillageois` recomplète les habitants jusqu'à `pop` en retirant « d'abord
+   * les OISIFS » - la grande peste de l'Iliade tuait donc des chômeurs, jamais le
+   * forgeron, jamais une lignée, et tout était réglé en un clic.
+   *
+   * Chaque option OUVRE maintenant l'épidémie, et ce qu'elle décide c'est
+   * COMBIEN d'habitants nommés on trouve couchés au matin - un, deux ou quatre.
+   * La suite se joue au lazaret, journée par journée, avec des lits qu'il faut
+   * avoir bâtis avant. Les trois options gardent leur nature : la quarantaine est
+   * dure et efficace, l'hécatombe achète la faveur des dieux et RIEN de plus (les
+   * dieux ne font pas bouillir les linges - c'est la leçon), la veille de tous
+   * coûte du grain et rapporte de l'ambiance.
+   */
   {
     id: 'peste',
     emoji: '☠️',
@@ -4052,29 +4077,30 @@ export const EVENTS: EventDef[] = [
     priorite: true,
     choices: [
       choix({
-        label: 'Isoler les malades hors des murs',
+        label: 'Fermer les maisons du bas et porter l’eau à la perche',
         issues: [
           {
             p: 5,
-            murmure: '« Dur, et efficace. Deux mourront seuls, le reste vivra. »',
+            murmure: '« Dur, et efficace. Deux resteront couchés, et la contagion s’arrêtera là. »',
             effet: (ctx) => {
-              ctx.pop(-2)
-              ctx.morale(-6, 'Les malades hors des murs', 9 * MIN)
+              ctx.epidemie('camp', 2)
+              ctx.morale(-6, 'Les maisons du bas fermées', 9 * MIN)
               return [
-                'On dresse des abris de branches à trois cents pas. On y porte l’eau au bout d’une perche.',
-                'Deux n’en reviennent pas, la fièvre n’entre pas. (Population −2, ambiance −6)',
+                'On dresse des abris de branches à trois cents pas et l’on y porte l’eau au bout d’une perche.',
+                'Deux des nôtres y sont couchés ce soir ; le reste du village dort chez lui. (2 malades, ambiance −6)',
+                'C’est vous qui décidez maintenant qui prend un lit - et de quel métier le village se passe.',
               ]
             },
           },
           {
             p: 3,
-            murmure: '« Trop tard : elle est déjà dans les maisons du bas. »',
+            murmure: '« Trop tard : elle couve déjà dans quatre maisons. »',
             effet: (ctx) => {
-              ctx.pop(-3)
-              ctx.morale(-11, 'La fièvre a gagné', 10 * MIN)
+              ctx.epidemie('camp', 4)
+              ctx.morale(-11, 'La fièvre avait pris de l’avance', 10 * MIN)
               return [
-                'On isole les premiers malades - mais la contagion couvait déjà dans les maisons du bas.',
-                'Trois bûchers en huit jours. (Population −3, ambiance −11)',
+                'On ferme les maisons du bas - mais la fièvre couvait déjà de l’autre côté de la ruelle.',
+                'Quatre des nôtres ne se lèvent plus. (4 malades, ambiance −11)',
               ]
             },
           },
@@ -4082,12 +4108,12 @@ export const EVENTS: EventDef[] = [
             p: 2,
             murmure: '« Ta mesure est la bonne, et le village finira par le reconnaître. »',
             effet: (ctx) => {
-              ctx.pop(-1)
+              ctx.epidemie('camp', 1)
               ctx.morale(-3, 'Quarantaine tenue', 7 * MIN)
               ctx.relation('athena', 8)
               return [
                 'La quarantaine est tenue durement, sans exception, même pour la belle-sœur du chef.',
-                'Un seul mort. Athéna respecte les décisions froides. (Population −1, Athéna +8, ambiance −3)',
+                'Un seul malade. Athéna respecte les décisions froides. (1 malade, Athéna +8, ambiance −3)',
               ]
             },
           },
@@ -4099,84 +4125,87 @@ export const EVENTS: EventDef[] = [
         issues: [
           {
             p: 5,
-            murmure: '« La fumée sera acceptée. Un seul bûcher, et la fièvre reflue. »',
+            murmure: '« La fumée sera acceptée. Cela ne guérira personne, mais le dieu s’en souviendra. »',
             effet: (ctx) => {
-              ctx.pop(-1)
+              ctx.epidemie('camp', 2)
               ctx.faveur(20)
               ctx.relation('zeus', 10)
               ctx.morale(6, 'Le dieu apaisé', 10 * MIN)
               return [
                 'Cent bêtes, ou presque, sur l’autel ; la fumée couvre le village trois jours durant.',
-                'La fièvre reflue. Un seul enterrement. (Population −1, +20 ✨, Zeus +10, ambiance +6)',
+                'Deux des nôtres sont couchés, et le village a le cœur haut. (2 malades, +20 ✨, Zeus +10, ambiance +6)',
+                'Les dieux ne font pas bouillir les linges : c’est au lazaret que la fièvre se joue.',
               ]
             },
           },
           {
             p: 3,
-            murmure: '« Tu brûleras tout pour rien. Le dieu n’écoute pas aujourd’hui. »',
+            murmure: '« Tu brûleras tout pour rien, et elle entrera par quatre portes. »',
             effet: (ctx) => {
-              ctx.pop(-3)
+              ctx.epidemie('camp', 4)
               ctx.relation('zeus', 4)
               ctx.morale(-9, 'Les dieux n’ont pas entendu', 10 * MIN)
               return [
-                'On brûle tout ce qu’on a. La fièvre emporte trois personnes de plus, dont le prêtre qui sacrifiait.',
-                'Le grain est parti en fumée avec eux. (Population −3, Zeus +4, ambiance −9)',
+                'On brûle tout ce qu’on a. Pendant qu’on regardait la fumée, la fièvre a fait le tour des maisons.',
+                'Quatre malades, dont le prêtre qui sacrifiait. (4 malades, Zeus +4, ambiance −9)',
               ]
             },
           },
           {
             p: 2,
-            murmure: '« Fais-le. La fièvre tombera avant que les cendres refroidissent. »',
+            murmure: '« Fais-le : un seul des nôtres sera couché demain. »',
             effet: (ctx) => {
+              ctx.epidemie('camp', 1)
               ctx.faveur(28)
               ctx.relation('zeus', 12)
               ctx.morale(12, 'Le miracle du soir', 12 * MIN)
               return [
-                'La fièvre tombe le soir même de l’hécatombe, d’un coup, comme un vent qui cesse.',
-                'On en parlera pendant deux générations. (+28 ✨, Zeus +12, ambiance +12)',
+                'La fumée monte droit, et l’on jure que la fièvre a reculé avant que les cendres refroidissent.',
+                'Un seul malade. On en parlera pendant deux générations. (1 malade, +28 ✨, Zeus +12, ambiance +12)',
               ]
             },
           },
         ],
       }),
       choix({
-        label: 'Soigner tout le monde, quoi qu’il en coûte (−80 🌾)',
+        label: 'Veiller tout le monde, quoi qu’il en coûte (−80 🌾)',
         cout: { grain: 80 },
         issues: [
           {
             p: 5,
-            murmure: '« Veillez-les tous. Il n’y aura qu’un bûcher, et une fierté qui restera. »',
+            murmure: '« Veillez-les tous : deux seront couchés, et une fierté restera. »',
             effet: (ctx) => {
-              ctx.pop(-1)
+              ctx.epidemie('camp', 2)
               ctx.morale(8, 'Personne n’a été abandonné', 11 * MIN)
               ctx.relation('zeus', 6)
               return [
                 'Bouillons, linges changés, veilles à tour de rôle : le village se soigne lui-même, maison par maison.',
-                'Un seul mort, et une fierté qui durera. (Population −1, Zeus +6, ambiance +8)',
+                'Deux malades, et personne d’abandonné. (2 malades, Zeus +6, ambiance +8)',
               ]
             },
           },
           {
             p: 3,
-            murmure: '« Ne fais pas cela : tes veilleurs tomberont avec les malades. Quatre bûchers. »',
+            murmure: '« Ne fais pas cela : tes veilleurs tomberont avec les malades. »',
             effet: (ctx) => {
-              ctx.pop(-4)
-              ctx.morale(-13, 'La contagion générale', 11 * MIN)
+              ctx.epidemie('camp', 4)
+              ctx.morale(-13, 'Les veilleurs sont tombés', 11 * MIN)
               return [
-                'À force de veiller les malades, les veilleurs tombent à leur tour. Quatre bûchers, dont deux enfants.',
-                'On aurait dû fermer des portes. (Population −4, ambiance −13)',
+                'À force de veiller les malades, les veilleurs tombent à leur tour : quatre couchés, dont deux enfants.',
+                'On aurait dû fermer des portes. (4 malades, ambiance −13)',
               ]
             },
           },
           {
             p: 2,
-            murmure: '« Soigne-les tous : la fièvre passera sans prendre personne. »',
+            murmure: '« Soigne-les tous : la fièvre n’en prendra qu’un. »',
             effet: (ctx) => {
-              ctx.morale(12, 'Aucun mort', 12 * MIN)
+              ctx.epidemie('camp', 1)
+              ctx.morale(12, 'Les linges propres', 12 * MIN)
               ctx.relation('athena', 8)
               return [
-                'La fièvre passe sur le village sans prendre personne - quinze jours de veille et pas un bûcher.',
-                'Les vieux appellent cela le miracle des linges propres. (Athéna +8, ambiance +12)',
+                'Quinze jours de veille, de l’eau bouillie et des linges changés trois fois par jour.',
+                'Un seul malade dans tout le village. Les vieux appellent cela le miracle des linges propres. (Athéna +8, ambiance +12)',
               ]
             },
           },

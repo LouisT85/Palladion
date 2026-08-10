@@ -238,6 +238,31 @@ import { MERVEILLE_PAR_ID, coutMerveille, dureeMerveille, effetEnVigueur, peutBa
 import { ORACLES, consulterOracle, type OracleId } from './oracles'
 import { TECHNO_PAR_ID, coutTechno, dureeTechno, effetsTechnos, manquePourTechno } from './technologies'
 import {
+  GRAIN_PAR_LIT,
+  ID_MORALE_FIEVRE,
+  SOUCHES,
+  TEMPLE_LAZARET,
+  coutLazaret,
+  efficaciteMalade,
+  epidemieActive,
+  estMalade,
+  litsTotal,
+  moraleFievre,
+  motifAliter,
+  porteOuverte,
+  premiersCas,
+  refusAliter,
+  resoudreAbsence,
+  resoudreJournee,
+  resumeEpidemie,
+  risqueEntreeJournee,
+  risquePorte,
+  type EtatEpidemie,
+  type IssueJournee,
+  type SnapEpidemie,
+  type SoucheId,
+} from './epidemies'
+import {
   delaiProchaineCalamite,
   paliersColere,
   tirerCalamite,
@@ -621,6 +646,24 @@ export interface GameState {
    * voulu : on choisit quel métier on accepte de perdre.
    */
   dynastie: Dynastie
+  /**
+   * LA FIÈVRE EN COURS - ou la MÉMOIRE de la dernière, quand `finLe` est posé.
+   * Aucune échéance en millisecondes, seulement des index de journée : le bloc
+   * de vitesse du tick n'a donc rien à reculer, et huit heures hors ligne ne
+   * peuvent pas lui faire expédier soixante journées de contagion. Le souvenir
+   * SERT : il donne au village un répit de huit journées après l'épreuve, sans
+   * quoi un convoi rentré le lendemain rallumerait la même fièvre.
+   */
+  epidemie: EtatEpidemie | null
+  /**
+   * Le lazaret, 0 à 3. À la racine et non dans `buildings`, comme `tours` et
+   * `defenses` : ce n'est pas un atelier à postes, et l'ajouter à `BuildingId`
+   * aurait obligé à lui inventer une ligne dans POSTES, PROD, STRUCTURE et dans
+   * l'art de la carte pour trois lits de branches. Il donne des LITS - trois,
+   * six, dix - toujours moins que de malades : un lazaret qui suffirait à tous
+   * supprimerait le triage, qui est la seule décision que ce système apporte.
+   */
+  lazaret: number
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -657,6 +700,7 @@ export interface GameState {
     | 'plandefense'
     | 'hecatombe'
     | 'flotte'
+    | 'lazaret'
     | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
@@ -717,6 +761,18 @@ export interface GameState {
    * moins, et son métier avec lui. C'est l'arbitrage du panneau, pas un détail.
    */
   couronner: (villageoisId: string) => void
+  /** ouvrir ou agrandir le lazaret - trois, six, puis dix lits */
+  batirLazaret: () => void
+  /**
+   * Coucher un malade au lazaret, ou le renvoyer à son poste. C'est LA décision
+   * du système : couché il ne rend plus rien et mange six mesures par journée,
+   * mais il vit quatre fois plus souvent et ne contamine plus personne.
+   */
+  aliter: (villageoisId: string, oui: boolean) => void
+  /** ouvre une fièvre par une des quatre portes - refusée si une autre brûle */
+  declencherFievre: (souche: SoucheId) => void
+  /** résout UNE journée de fièvre (le crochet quotidien passe par le même chemin) */
+  resoudreFievre: (jour: number) => void
   /** changer la posture de la ligne ou la façon de tirer, pendant la bataille */
   donnerOrdre: (quoi: 'ligne' | 'tir', valeur: OrdreLigne | OrdreTir) => void
   /** affecter un type d'unité à un secteur de l'enceinte (null = au plus pressé) */
@@ -844,7 +900,18 @@ export function metierDe(v: Villageois): string {
  */
 export function efficaciteDe(v: Villageois, jour = 9999): number {
   if (v.poste === null) return 0
-  return (v.poste === v.metier ? 1 : RENDEMENT_HORS_METIER) * rendementAge(ageDe(v, jour))
+  /*
+   * ET LA FIÈVRE, en dernier facteur. Un alité rend ZÉRO (il est couché derrière
+   * une palissade de branches, et son poste l'attend - `postesPourvus` le compte
+   * toujours, on ne peut pas le remplacer), un fiévreux debout rend 35 % : il se
+   * traîne au sillon sans tenir la journée.
+   *
+   * Sans ce facteur, une fièvre qui ne tue pas ne coûterait RIEN, et le meilleur
+   * jeu serait de ne rien faire - ni lazaret, ni triage, ni médecine.
+   */
+  return (
+    (v.poste === v.metier ? 1 : RENDEMENT_HORS_METIER) * rendementAge(ageDe(v, jour)) * efficaciteMalade(v)
+  )
 }
 
 /**
@@ -1034,6 +1101,187 @@ export function merFermee(s: Pick<GameState, 'saison'> & { graces?: string[] }):
 /** jour de jeu en cours (1 = jour de la fondation) */
 export function jourDe(s: Pick<GameState, 'lastSeen' | 'createdAt'>): number {
   return Math.floor((s.lastSeen - s.createdAt) / DAY_MS) + 1
+}
+
+// ── LA FIÈVRE ────────────────────────────────────────────────────────────────
+
+/**
+ * L'instantané que le module des épidémies demande. UN SEUL composeur, et il est
+ * EXPORTÉ : le panneau du lazaret lit exactement ce que la résolution lit, donc
+ * le pronostic affiché sur une fiche ne peut pas différer du tirage qui suivra.
+ * Deux composeurs auraient fini par mentir au joueur - c'est déjà arrivé sur les
+ * traits des héritiers, et il avait fallu regarder l'image pour s'en apercevoir.
+ */
+export function snapEpidemie(s: GameState): SnapEpidemie {
+  return {
+    jour: jourDe(s),
+    saison: s.saison,
+    pop: s.pop,
+    popCap: popCap(s),
+    grain: s.resources.grain,
+    morale: s.morale,
+    lazaret: s.lazaret ?? 0,
+    medecine: effetsTechnos(s.technos).medecinePct,
+    // un prêtre couché ne veille personne : on ne compte que ceux qui tiennent debout
+    soigneurs: s.villageois.filter((v) => v.poste === 'temple' && !estMalade(v)).length,
+    villageois: s.villageois,
+    epidemie: s.epidemie ?? null,
+  }
+}
+
+/**
+ * Le poids de la fièvre sur l'ambiance : UN seul modificateur, réécrit à chaque
+ * changement. On passe par `moraleMods` plutôt que d'inventer un facteur
+ * « épidémie » : le canal existe, il est déjà reculé par le bloc de vitesse du
+ * tick, et il porte tout seul l'épidémie dans la production, la menace et la
+ * désertion. Un système qui s'ajoute à ce jeu n'invente pas son arithmétique.
+ */
+function majMoraleFievre(s: GameState): void {
+  s.moraleMods = s.moraleMods.filter((m) => m.id !== ID_MORALE_FIEVRE)
+  const nb = s.villageois.filter(estMalade).length
+  if (nb === 0) return
+  s.moraleMods.push({
+    id: ID_MORALE_FIEVRE,
+    label: 'La fièvre au village',
+    delta: moraleFievre(nb),
+    expiresAt: null,
+  })
+}
+
+/**
+ * LA FIÈVRE ENTRE. Rend `false` si la porte est fermée - une autre fièvre brûle,
+ * ou le répit de huit journées court encore, ou il n'y a personne à prendre.
+ *
+ * `jourResolu` est posé au jour de l'entrée, et c'est la garantie centrale du
+ * système : PERSONNE NE MEURT LE JOUR OÙ IL TOMBE MALADE. Le joueur a une
+ * journée pleine - huit minutes réelles à ×1 - pour ouvrir le lazaret et trier.
+ * Un système qui tue au tirage n'est pas un système, c'est un dé.
+ */
+/*
+ * ⚠️ LA SIGNATURE A PERDU SON `now`, ET C'EST UN PIÈGE À NE PAS REFERMER.
+ *
+ * Elle s'écrivait `(s, souche, now, cas?)` et ne lisait jamais `now` : sous
+ * `noUnusedParameters`, tsc l'a refusée. On a donc retiré le paramètre - mais les
+ * CINQ appels continuaient de passer `now` en troisième position, où l'attendait
+ * désormais `cas`. Un horodatage comme nombre de premiers malades : `Math.max(1,
+ * 1.78e12)` visait mille sept cents milliards de fiévreux, et la fièvre couchait
+ * TOUT le village d'un coup au lieu d'un seul homme.
+ *
+ * Ce que cela enseigne : `noUnusedParameters` ne protège que le paramètre qu'on
+ * RETIRE, jamais les appels qu'on oublie de suivre - le compilateur voyait un
+ * nombre passé à un paramètre nombre, et il avait raison. Le test qui l'a attrapé
+ * comparait le nombre de malades à `SOUCHES.convoi.premiersCas` : c'est la seule
+ * assertion du fichier qui pouvait le voir.
+ */
+function entrerFievre(s: GameState, souche: SoucheId, cas?: number): boolean {
+  const jour = jourDe(s)
+  if (!porteOuverte(s.epidemie, jour)) return false
+  const pris = premiersCas(snapEpidemie(s), souche, Math.random, cas)
+  if (pris.length === 0) return false
+  for (const v of s.villageois) {
+    if (pris.includes(v.id)) v.malade = { depuis: jour, alite: false }
+  }
+  s.epidemie = { souche, jourEntree: jour, jourResolu: jour, cas: pris.length, morts: 0, gueris: 0 }
+  majMoraleFievre(s)
+  const def = SOUCHES[souche]
+  const noms = s.villageois
+    .filter((v) => pris.includes(v.id))
+    .map((v) => `${v.nom} (${METIERS[v.metier] ?? BUILDINGS[v.metier].nom})`)
+    .join(', ')
+  noter(s, 'epidemies')
+  pushToast(s, def.emoji, `${def.nom} : ${noms} ne se lève${pris.length > 1 ? 'nt' : ''} plus.`)
+  pushReport(s, def.emoji, def.nom, [
+    ...def.recit,
+    `${noms} : la fièvre les a pris.`,
+    'Personne ne mourra aujourd’hui - vous avez la journée entière pour trier. Un lit au lazaret sauve un homme ET retire un contagieux ; un fiévreux laissé debout ne rend qu’un tiers à son poste et contamine ses voisins chaque journée.',
+    def.lecon,
+  ])
+  return true
+}
+
+/**
+ * UNE JOURNÉE DE FIÈVRE APPLIQUÉE À L'ÉTAT. Les deux gestes de chaque mort sont
+ * ici, et nulle part ailleurs.
+ */
+function appliquerFievre(s: GameState, issue: IssueJournee, jour: number, now: number): void {
+  const e = s.epidemie
+  if (!e) return
+  // le bouillon d'abord : sans grain, `soinDe` rendait déjà zéro - les lits ne
+  // soignent plus, mais ils mangent tant qu'il reste quelque chose à manger
+  if (issue.coutGrain > 0) s.resources.grain = Math.max(0, s.resources.grain - issue.coutGrain)
+
+  for (const id of issue.morts) {
+    const v = s.villageois.find((x) => x.id === id)
+    if (!v) continue
+    /*
+     * ⚠️ LES DEUX GESTES, ENSEMBLE. `syncVillageois` recomplète `s.villageois`
+     * jusqu'à `s.pop` à CHAQUE battement, en retirant « d'abord les oisifs » :
+     *  · retirer l'habitant sans décrémenter `pop` le fait RENAÎTRE au battement
+     *    suivant, sous un autre nom et avec un autre métier ;
+     *  · décrémenter `pop` sans retirer le bon fait disparaître UN OISIF AU
+     *    HASARD - et alors la peste tuerait des chômeurs, jamais le forgeron.
+     * C'était exactement le défaut du dilemme `peste` que ce système remplace :
+     * `ctx.pop(-3)` était un impôt sur les bras inemployés.
+     */
+    s.villageois = s.villageois.filter((x) => x.id !== id)
+    s.pop = Math.max(0, s.pop - 1)
+    // sans quoi son conjoint garde un foyer qui n'existe plus
+    veuvage(s, v)
+    e.morts++
+    noter(s, 'mortsFievre')
+    pushReport(s, '🕯️', `${v.nom} des ${v.lignee ?? 'sans maison'} emporté par la fièvre`, [
+      `${v.nom} est mort à ${ageDe(v, jour)} ans, ${v.poste ? `à son poste (${BUILDINGS[v.poste].nom})` : 'sans emploi'}.`,
+      `Son métier - ${METIERS[v.metier] ?? BUILDINGS[v.metier].nom} - ne se transmet plus que par ses enfants.`,
+    ])
+  }
+  for (const id of issue.gueris) {
+    const v = s.villageois.find((x) => x.id === id)
+    if (!v?.malade) continue
+    // il garde sa marque avec `gueriLe` : c'est ce qui l'immunise pour le reste
+    // de CETTE fièvre, et donc ce qui garantit qu'elle s'éteint au lieu de
+    // tourner en rond sur les mêmes maisons
+    v.malade.gueriLe = jour
+    v.malade.alite = false
+    e.gueris++
+  }
+  for (const id of issue.nouveaux) {
+    const v = s.villageois.find((x) => x.id === id)
+    if (v && v.malade === undefined) {
+      v.malade = { depuis: jour, alite: false }
+      e.cas++
+    }
+  }
+  e.jourResolu = jour
+  majMoraleFievre(s)
+
+  if (issue.finie) {
+    e.finLe = jour
+    /*
+     * Les marques s'effacent avec la fièvre. Sans cela, un village entier resté
+     * « relevé » serait immunisé à vie et la fièvre suivante n'aurait plus
+     * personne à prendre - le système se serait éteint après une seule épreuve.
+     */
+    for (const v of s.villageois) delete v.malade
+    s.moraleMods = s.moraleMods.filter((m) => m.id !== ID_MORALE_FIEVRE)
+    const lignes = resumeEpidemie(e, jour)
+    if (e.morts === 0 && e.cas > 0) {
+      s.moraleMods.push({ id: uid('m'), label: 'Pas un bûcher', delta: 8, expiresAt: now + 10 * 60_000 })
+      s.gods.athena.relation = Math.min(100, s.gods.athena.relation + 6)
+      noter(s, 'fievresSansMort')
+      lignes.push(
+        'Pas un bûcher. Les vieux appelleront cela le miracle des linges propres. (Athéna +6, ambiance +8)',
+      )
+    }
+    pushReport(s, SOUCHES[e.souche].emoji, `La fièvre est passée`, lignes)
+    pushToast(s, '🕯️', `La fièvre est passée : ${e.morts} mort(s), ${e.gueris} relevé(s).`)
+  } else if (issue.lignes.length > 0) {
+    pushReport(
+      s,
+      SOUCHES[e.souche].emoji,
+      `${SOUCHES[e.souche].nom} - ${jour - e.jourEntree}ᵉ journée`,
+      issue.lignes,
+    )
+  }
 }
 
 /**
@@ -1541,6 +1789,17 @@ function makeCtx(s: GameState, now: number): EffectCtx {
     droughtFor: (ms) => {
       s.droughtUntil = now + ms
     },
+    /*
+     * Ouvrir une épidémie depuis un dilemme. Un dilemme de fièvre ne retire plus
+     * de la population - `ctx.pop(-3)` faisait disparaître trois OISIFS par la
+     * grâce de `syncVillageois` - il décide COMBIEN d'habitants nommés on trouve
+     * couchés au matin. Sans effet si une fièvre brûle déjà ou si le répit court :
+     * l'option garde alors ses effets d'ambiance et de relation, et c'est très
+     * préférable à deux épidémies simultanées.
+     */
+    epidemie: (souche, cas) => {
+      entrerFievre(s, souche as SoucheId, cas)
+    },
   }
 }
 
@@ -1656,6 +1915,8 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     graces: [],
     planDefense: planParDefaut(),
     hecatombe: null,
+    epidemie: null,
+    lazaret: 0,
     dynastie: { chef: fonderChef(Math.random(), 1), vacanceDepuis: null, passes: [] },
     missionsNotifiees: [],
     battle: null,
@@ -1696,6 +1957,10 @@ type ActionsOnly = {
   acquerirGrace: unknown
   offrirHecatombe: unknown
   couronner: unknown
+  batirLazaret: unknown
+  aliter: unknown
+  declencherFievre: unknown
+  resoudreFievre: unknown
   donnerOrdre: unknown
   assignerSecteur: unknown
   reglerPlanDefense: unknown
@@ -1817,6 +2082,8 @@ const CHAMPS_SAUVES = [
   'planDefense',
   'hecatombe',
   'dynastie',
+  'epidemie',
+  'lazaret',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -2857,6 +3124,16 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
     s.stats.repousses++
     s.threatMod -= 5
     /*
+     * ── PORTE DE LA FIÈVRE : LE CHARNIER DEVANT LE MUR ──
+     * C'est celle de l'Iliade, et la plus meurtrière (souche `camp`, mortalité
+     * ×1,5). Une victoire n'est donc plus gratuite : on brûle les corps au vent,
+     * ou l'on paie le mois suivant. Huit pour cent par assaut repoussé, corrigés
+     * de l'hygiène - et le répit de huit journées borne la fréquence, de sorte
+     * que cela reste un événement de règne et non un tracas de tous les quarts
+     * d'heure.
+     */
+    if (Math.random() < risquePorte('camp', snapEpidemie(s))) entrerFievre(s, 'camp')
+    /*
      * En siège, une vague repoussée compte les points et ouvre le répit suivant.
      * C'est ici et nulle part ailleurs que le score s'écrit : la durée mesurée est
      * celle de la bataille, pas celle du répit.
@@ -3084,6 +3361,15 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     s.moraleMods.push({ id: uid('m'), label: 'Raid victorieux', delta: 6, expiresAt: now + 8 * 60_000 })
     s.expeditions[v.id] = { etoiles: Math.max(deja, etoiles), dernierRaid: now, pillages: pillages + 1 }
     /*
+     * ── PORTE DE LA FIÈVRE : LE BUTIN ──
+     * Ce qu'on rapporte d'une ville prise n'est pas seulement du bronze : les
+     * linges et les jarres viennent avec. Une chance sur dix, corrigée de
+     * l'hygiène du village. C'est le seul contrepoids SANITAIRE du raid - Zeus
+     * retirait déjà cinq points de relation, mais rien ne touchait au village
+     * lui-même, et piller restait la stratégie la moins risquée du jeu.
+     */
+    if (Math.random() < risquePorte('butin', snapEpidemie(s))) entrerFievre(s, 'butin')
+    /*
      * Une relique, parfois. Elle ne fait RIEN tant qu'elle dort au magasin : il
      * faut lui donner une niche du temple, et le temple en compte moins qu'on
      * n'en rapporte. C'est là tout l'intérêt - choisir ce qu'on expose.
@@ -3151,6 +3437,32 @@ function simulerHorsLigne(s: GameState, now: number): void {
   const dt = Math.min(Math.max(0, now - s.lastSeen), OFFLINE_CAP_MS)
   if (dt < 30_000) return
   const lignes: string[] = [`Pendant votre absence (${fmtDuree(dt)}) :`]
+
+  /*
+   * ── UNE FIÈVRE NE TRAVERSE PAS UNE ABSENCE ──
+   *
+   * Huit heures hors ligne avancent le calendrier de soixante journées. Les deux
+   * autres issues étaient mauvaises, et il faut les avoir en tête pour ne pas
+   * « corriger » celle-ci plus tard :
+   *  · rejouer soixante journées de contagion aurait rasé le village pendant une
+   *    nuit, en dépit de tout ce que le joueur avait bâti contre elle ;
+   *  · la laisser figée dans l'état l'aurait fait brûler des HEURES de jeu au
+   *    retour, puisque le crochet quotidien ne résout jamais plus d'une journée.
+   * On l'éteint donc : UNE seule journée de mortalité, les autres se sont
+   * relevés, les marques sont effacées, et le résumé de réveil le dit en clair.
+   * Le joueur perd une décision - le triage de la fin - et c'est le prix honnête
+   * d'être parti.
+   *
+   * Le seuil est UNE JOURNÉE DE JEU et non les trente secondes du garde-fou
+   * ci-dessus : un changement d'onglet de deux minutes ne doit pas éteindre une
+   * épidémie qu'on était en train de jouer.
+   */
+  if (dt >= DAY_MS && epidemieActive(s.epidemie)) {
+    const jourRetour = Math.floor((now - s.createdAt) / DAY_MS) + 1
+    const issue = resoudreAbsence({ ...snapEpidemie(s), jour: jourRetour }, Math.random)
+    appliquerFievre(s, issue, jourRetour, now)
+    lignes.push(...issue.lignes)
+  }
 
   // production (au taux courant)
   const minutes = dt / 60_000
@@ -3794,6 +4106,17 @@ export const useGame = create<GameState>()(
             pushReport(s, r.perdue ? '💀' : '🐫', r.perdue ? 'Caravane perdue' : 'Caravane rentrée', r.recit)
             pushToast(s, r.perdue ? '💀' : '🐫', r.recit[0])
           }
+          /*
+           * ── PORTE DE LA FIÈVRE : LE CONVOI RENTRÉ ──
+           * Un tirage par convoi arrivé, six pour cent, corrigés de l'hygiène du
+           * village. C'est la porte la plus FRÉQUENTE, donc la plus douce (souche
+           * `convoi` : virulence 0,85, mortalité 0,7) : aussi grave que celle du
+           * camp, elle aurait fait du commerce un piège, et l'on aurait cessé de
+           * lever des convois - ce que le comptoir arbitre déjà bien assez.
+           */
+          for (let n = 0; n < echues.length; n++) {
+            if (Math.random() < risquePorte('convoi', snapEpidemie(s)) && entrerFievre(s, 'convoi')) break
+          }
           s.caravanes = s.caravanes.filter((c) => now < c.retourA)
         }
 
@@ -4140,6 +4463,29 @@ export const useGame = create<GameState>()(
           if (jour !== s.dernierJourVecu) {
             s.dernierJourVecu = jour
             vieDesFamilles(s, jour)
+            /*
+             * ── LA FIÈVRE : UNE JOURNÉE, ET JAMAIS DEUX ──
+             *
+             * Elle vit dans le MÊME crochet quotidien que les noces et les
+             * enterrements, et elle hérite donc de sa règle : on ne rattrape
+             * jamais plus d'une journée. C'est délibéré et c'est vital ici -
+             * huit heures d'absence avancent le calendrier de soixante journées,
+             * et une contagion qui les rattraperait raserait le village pendant
+             * une nuit. Le retour d'absence est traité ailleurs, dans
+             * `simulerHorsLigne`, et il ÉTEINT la fièvre au lieu de la rejouer.
+             *
+             * Quand aucune fièvre ne brûle, on tire la QUATRIÈME porte : celle
+             * que le joueur s'ouvre lui-même en laissant sa population coller au
+             * plafond de ses maisons. Sous 85 % d'occupation, `risqueEntreeJournee`
+             * rend zéro - un village qui garde de la marge ne peut PAS engendrer
+             * sa propre peste, et c'est la récompense d'une dépense qu'on aurait
+             * autrement toujours reportée.
+             */
+            if (epidemieActive(s.epidemie)) {
+              appliquerFievre(s, resoudreJournee(snapEpidemie(s), Math.random), jour, now)
+            } else if (Math.random() < risqueEntreeJournee(snapEpidemie(s))) {
+              entrerFievre(s, 'entassement')
+            }
           }
         }
 
@@ -5961,6 +6307,94 @@ export const useGame = create<GameState>()(
      */
     openPanel: (p) => set((s) => void (s.panel = p)),
     fermerOffline: () => set((s) => void (s.offlineSummary = null)),
+    /*
+     * OUVRIR OU AGRANDIR LE LAZARET. C'est le seul achat du système, et il se
+     * décide contre une TOUR D'ARCHERS : mêmes ordres de grandeur, même moment de
+     * la partie. Des murs, ou des lits.
+     */
+    batirLazaret: () => {
+      set((s) => {
+        const niveau = s.lazaret ?? 0
+        const cout = coutLazaret(niveau)
+        if (!cout) return
+        if (s.buildings.temple.level < TEMPLE_LAZARET) {
+          pushToast(
+            s,
+            '⛺',
+            `Il faut un temple de niveau ${TEMPLE_LAZARET} : les purifications et les veilles sont l’affaire des prêtres.`,
+          )
+          return
+        }
+        if (!payer(s, cout)) {
+          pushToast(s, '❌', 'Les charpentes, les jarres et la conduite d’eau du lazaret ne sont pas payées.')
+          return
+        }
+        s.lazaret = niveau + 1
+        noter(s, 'lazaret')
+        pushToast(
+          s,
+          '⛺',
+          `Lazaret niveau ${s.lazaret} : ${litsTotal(s.lazaret)} lits, l’eau conduite et les fosses reportées sous le vent.`,
+        )
+      })
+      get().save()
+    },
+    /*
+     * LE TRIAGE, ET C'EST TOUTE LA DÉCISION DU SYSTÈME. Coucher un malade lui
+     * retire son rendement ENTIER (au lieu du tiers qu'il traînait encore),
+     * divise sa mortalité et le retire de la contagion. Les lits sont moins
+     * nombreux que les malades : chaque lit donné est un lit refusé à un autre,
+     * et le refus porte toujours son motif.
+     */
+    aliter: (villageoisId, oui) => {
+      set((s) => {
+        const v = s.villageois.find((x) => x.id === villageoisId)
+        if (!v?.malade) return
+        if (!oui) {
+          v.malade.alite = false
+          pushToast(s, '🚶', `${v.nom} retourne à son poste - et il redonne la fièvre à ses voisins.`)
+          return
+        }
+        const refus = refusAliter(snapEpidemie(s), villageoisId)
+        if (refus) {
+          pushToast(s, '⛺', motifAliter(refus))
+          return
+        }
+        v.malade.alite = true
+        pushToast(
+          s,
+          '🛏️',
+          `${v.nom} est couché au lazaret : ${GRAIN_PAR_LIT} 🌾 par journée, et son poste reste vide tant qu’il y est.`,
+        )
+      })
+      get().save()
+    },
+    /*
+     * OUVRIR LA PORTE À UNE FIÈVRE. Appelée par les quatre portes du jeu (convoi,
+     * butin, assaut, entassement) et par le dilemme, jamais par un bouton :
+     * l'exposer comme action sert au dilemme (`ctx.epidemie`) et aux tests, qui
+     * n'ont pas à attendre qu'un convoi rentre pour éprouver le triage.
+     */
+    declencherFievre: (souche) => {
+      set((s) => {
+        entrerFievre(s, souche)
+      })
+      get().save()
+    },
+    /*
+     * UNE JOURNÉE DE FIÈVRE, à la demande. Le crochet quotidien appelle le MÊME
+     * `appliquerFievre` avec la même résolution : cette action n'est pas un
+     * chemin parallèle, c'est le même chemin déclenché à la main - sans quoi ce
+     * qu'éprouvent les tests ne serait pas ce que le jeu exécute.
+     */
+    resoudreFievre: (jour) => {
+      set((s) => {
+        if (!epidemieActive(s.epidemie)) return
+        appliquerFievre(s, resoudreJournee({ ...snapEpidemie(s), jour }, Math.random), jour, Date.now())
+      })
+      get().save()
+    },
+
     fermerBattleReport: () => set((s) => void (s.battleReport = null)),
     fermerVictoire: () => set((s) => void (s.victoire = null)),
 

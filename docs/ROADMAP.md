@@ -1,6 +1,6 @@
 # PALLADION - feuille de route
 
-État au 5 août 2026.
+État au 10 août 2026.
 
 **Comment lire ce document.** Il est organisé par **priorité** puis par **domaine**, et non par
 ordre chronologique : ce qui est en haut est ce qu'il faut faire ensuite. Chaque entrée à venir
@@ -17,13 +17,13 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Défense et batailles | ✅ complet | ordres, moral, **sept unités**, champions nommés, structure des bâtiments, cinq ouvrages intérieurs, **la Redoute, onzième bâtiment, qui riposte**, et un plan de défense réglé en temps de paix - héros compris |
 | Offensive (8 places fortes) | ✅ complet | rien de bloquant - pillage/secours, alliances, tribut, **caravanes**, **espionnage**, **ouvrages ennemis à abattre** |
 | Économie | ✅ complet | rien de bloquant - **marché à cours flottants**, **arbre de vingt découvertes**, **six merveilles** |
-| Dieux et ferveur | ✅ complet | rien de bloquant - arbre de faveur, **oracles**, **colère graduée**, **reliques** |
+| Dieux et ferveur | ✅ complet | arbre de faveur, **oracles**, **colère graduée**, **reliques**, **hécatombe de saison** |
 | Héros (8, arcs, entretien) | ✅ complet | rien de bloquant |
 | Diplomatie | ✅ complet | rien de bloquant - relations, présents, pactes, mariages, trahisons |
-| Village vivant | ✅ complet | âges, foyers, lignées, transmission des métiers |
+| Village vivant | ✅ complet | âges, foyers, lignées, transmission des métiers, **un chef qui vieillit, meurt et se remplace** |
 | Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, 51 hauts faits, campagne en 5 actes |
 | Modes de jeu | ✅ **quatre** | bac à sable, campagne, **siège sans fin**, **défi hebdomadaire** - plus **Nouvelle Partie +** |
-| Tests | ✅ **911 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
+| Tests | ✅ **986 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
 | Art | ✅ complet | rien de bloquant - carte allégée, culling, palier de détail, temple refait, **remparts et tours redessinés par niveau** |
 | Accessibilité / mobile | ❌ non traité | tactile, contrastes, `prefers-reduced-motion` |
 | Multijoueur / serveur | ❌ non traité | hors périmètre pour l'instant |
@@ -43,17 +43,33 @@ désormais d'un autre ordre : le jeu est complet, il lui manque du polish et de 
 
 ## 🎯 Priorité 2 - ce qui donnerait encore de la profondeur
 
+Six des neuf entrées de cette liste sont **en cours de livraison** (lot 15, voir plus bas).
+Restent ici les trois que le joueur a explicitement laissées de côté.
+
 | Chantier | Effort | Impact | Domaine |
 |---|---|---|---|
 | **Mode Fer** : sauvegarde unique, mort définitive, aucun retour | S | ★★ | mode |
-| **Hécatombe** : sacrifice majeur pour un effet de saison entière | S | ★★ | divin |
-| **Flotte** : des navires à bâtir au port, pour escorter les caravanes et porter les expéditions maritimes | M | ★★ | militaire |
-| **Sièges de places fortes** : assiéger au lieu de razzier - couper l'eau, attendre, négocier une reddition | M | ★★★ | militaire |
-| **Successions** : à la mort du chef, un héritier choisi parmi les lignées, avec ses traits | M | ★★★ | village |
-| **Épidémies et médecine** : la peste comme système et non comme dilemme | M | ★★ | village |
-| **Colonies** : fonder un second village qu'on gère de loin | L | ★★★ | économie |
 | **Mode Historique** : sans dieux, économie plus dure, textes documentaires | M | ★ | mode |
 | **Localisation EN** | L | ★ | confort |
+
+## 🚧 Lot 15 - en cours
+
+Les six chantiers de la priorité 2 que le joueur a demandés, dans l'ordre de
+dépendance établi par le cadrage. **Le « socle partagé » que ce cadrage proposait en
+rang 0 a été supprimé** : son agrégateur additionnait des bonus que le store compose
+multiplicativement (Zeus Xenios et la charrue donnaient 1,35 au lieu de 1,38), c'était
+un changement d'équilibre déguisé en refactor. Chaque système suit donc l'idiome
+existant - une fonction `bonusX()` lue là où elle sert, et un terme de plus dans une
+somme qui existe déjà.
+
+| # | Chantier | État |
+|---|---|---|
+| 1 | **Hécatombe** | ✅ livré - 4 rites, un par Olympien, l'effet tient la saison entière |
+| 2 | **Successions** | ✅ livré - un chef nommé, 12 traits, héritier choisi parmi les lignées |
+| 3 | **Flotte** | 🚧 en cours |
+| 4 | **Épidémies et médecine** | 🚧 en cours |
+| 5 | **Blocus de places fortes** | 🚧 en cours |
+| 6 | **Colonies** | 🚧 en cours |
 
 ## 🎯 Priorité 3 - bon à prendre
 

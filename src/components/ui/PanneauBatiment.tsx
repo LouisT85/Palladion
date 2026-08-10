@@ -1,3 +1,4 @@
+import { BlocLazaret } from './Lazaret'
 import { useState } from 'react'
 import { BUILDINGS, DEFENSES_DEFS, DEFENSE_IDS, REDOUTE_CADENCE_MS, REDOUTE_MAX, REDOUTE_PORTEE, redouteDmg, structureMax, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
 import { candidatsPour, fmtDuree, metierDe, murMax, oisifs, peutPayer, popCap, postesPourvus, postesTotal, rendement, useGame } from '../../game/store'
@@ -705,6 +706,14 @@ export function PanneauBatiment() {
           })()}
         </div>
       )}
+      {/*
+        LA SANTÉ DU VILLAGE, cinquième usage du temple. Le bloc s'affiche même
+        quand personne n'est malade - c'est TOUT le point : il montre l'état
+        sanitaire (entassement, saison, greniers) avant qu'il y ait un bûcher.
+        Un lazaret qu'on ne peut ouvrir qu'en pleine épidémie ne sert qu'à la
+        suivante.
+      */}
+      {id === 'temple' && b.level > 0 && <BlocLazaret />}
 
       {!auMax && (
         <div className="bloc">

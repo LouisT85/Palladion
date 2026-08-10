@@ -1,3 +1,4 @@
+import { BlocFievre } from './Lazaret'
 import { BlocTrone } from './Trone'
 import { BUILDINGS, METIERS, RENDEMENT_HORS_METIER } from '../../game/data'
 import { AGE_ADULTE, ageDe, motAge, pyramide, rendementAge, saisonDeVie } from '../../game/lignees'
@@ -239,6 +240,13 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
           même information que le joueur cherchera au moment de choisir un héritier.
         */}
         <BlocTrone />
+
+        {/*
+          LA FIÈVRE, juste après le trône. Le bloc ne s'affiche que s'il y a une
+          épidémie, et il porte les noms : c'est ici que le joueur voit que son
+          forgeron est celui qui est debout, et qu'il n'a plus de lit.
+        */}
+        <BlocFievre />
 
         <div className="bloc">
           <h3>Ateliers et postes</h3>

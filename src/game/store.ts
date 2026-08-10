@@ -154,6 +154,9 @@ import {
 } from './diplomatie'
 import { GRACE_PAR_ID, cumulerFaveurs, dieuDe, graceSuivante, type BonusFaveurs } from './faveurs'
 import {
+  AGE_ADULTE,
+  AGE_LIMITE,
+  ANS_PAR_JOUR,
   ageDe,
   estAdulte,
   foyersFeconds,
@@ -243,6 +246,19 @@ import {
   riteActif,
   type EtatHecatombe,
 } from './hecatombe'
+import {
+  DYNASTIE_VIDE,
+  MEMOIRE_MAX,
+  TRAITS_PAR_ID,
+  ageDuChef,
+  candidats,
+  coutInterregne,
+  effetsChef,
+  fonderChef,
+  risqueDuChef,
+  type Chef,
+  type Dynastie,
+} from './successions'
 import {
   BONUS_ORAGE_ZEUS,
   DUREE_METEO_MS,
@@ -540,6 +556,15 @@ export interface GameState {
    * elle expire d'elle-même quand la saison tourne, sans une ligne de code.
    */
   hecatombe: EtatHecatombe | null
+  /**
+   * LA DYNASTIE. Le chef qui règne, ceux qui l'ont précédé, et la vacance si le
+   * trône est vide. Le chef ne figure PAS dans `villageois` et ne compte pas dans
+   * `pop` : `syncVillageois` recomplète cette liste à chaque battement en retirant
+   * « d'abord les oisifs », et elle aurait effacé le chef sans un mot. Couronner
+   * un héritier retire donc bien un habitant du village - c'est le prix, et c'est
+   * voulu : on choisit quel métier on accepte de perdre.
+   */
+  dynastie: Dynastie
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -620,6 +645,11 @@ export interface GameState {
    * serait perdre le prix, et le refus enseigne la règle au lieu de la punir.
    */
   offrirHecatombe: (dieu: GodId) => void
+  /**
+   * Couronner un héritier. Il quitte le village pour le sceptre : un bras de
+   * moins, et son métier avec lui. C'est l'arbitrage du panneau, pas un détail.
+   */
+  couronner: (villageoisId: string) => void
   /** changer la posture de la ligne ou la façon de tirer, pendant la bataille */
   donnerOrdre: (quoi: 'ligne' | 'tir', valeur: OrdreLigne | OrdreTir) => void
   /** affecter un type d'unité à un secteur de l'enceinte (null = au plus pressé) */
@@ -896,6 +926,34 @@ function vieDesFamilles(s: GameState, jour: number): void {
       `Son métier - ${METIERS[v.metier] ?? BUILDINGS[v.metier].nom} - ne se transmet plus que par ses enfants.`,
     ])
   }
+
+  /*
+   * ── ET LE CHEF, comme tout le monde ──
+   *
+   * Il meurt dans le même crochet quotidien que ses sujets, et sur la même
+   * horloge : c'est ce qui garantit qu'un règne voit passer trois générations sans
+   * qu'aucun compteur ne tourne. Sa mort n'intronise PERSONNE - elle ouvre une
+   * vacance. Le successeur est un choix, et ce choix attend le joueur : après huit
+   * heures d'absence le calendrier a avancé de soixante journées, soit cent vingt
+   * ans, et le chef est forcément mort. S'il fallait couronner sur-le-champ, on se
+   * réveillerait devant un inconnu sur le trône.
+   */
+  const chef = s.dynastie?.chef
+  if (chef && Math.random() < risqueDuChef(chef, jour)) {
+    const age = ageDuChef(chef, jour)
+    s.dynastie.passes.push({ nom: chef.nom, lignee: chef.lignee, jours: Math.max(1, jour - chef.depuis), mortA: age })
+    // la mémoire est bornée : une liste sauvegardée ne doit pas pouvoir enfler
+    if (s.dynastie.passes.length > MEMOIRE_MAX) s.dynastie.passes.splice(0, s.dynastie.passes.length - MEMOIRE_MAX)
+    s.dynastie.chef = null
+    s.dynastie.vacanceDepuis = jour
+    noter(s, 'chefsEnterres')
+    pushToast(s, '⚱️', `${chef.nom} des ${chef.lignee} est mort à ${age} ans. Le trône est vide.`)
+    pushReport(s, '👑', `Mort de ${chef.nom} des ${chef.lignee}`, [
+      `Il avait ${age} ans et régnait depuis ${Math.max(1, jour - chef.depuis)} journée(s).`,
+      'Le village attend un héritier. Tant que le trône reste vide, l’ambiance se défait et les corvées se répartissent mal.',
+      'Ouvrez le recensement pour choisir parmi les prétendants que les maisons présentent.',
+    ])
+  }
 }
 /**
  * L'hiver ferme la mer : plus une nef ne quitte le port. Sauf si l'Ébranleur du
@@ -944,8 +1002,18 @@ export function productionParMinute(s: GameState, now: number): Record<ResourceI
    * compenserait exactement cent bœufs égorgés. Il ne s'applique qu'au GRAIN.
    */
   const troupeau = 1 + bonusHecatombe(s.hecatombe, now, s.createdAt).grainPct
+  /*
+   * LE CHEF, ET LE TRÔNE VIDE. Un même facteur pour les deux, parce qu'ils disent
+   * la même chose - qui répartit les corvées, et comment. Le tempérament du chef
+   * touche le GRAIN seul (un bâtisseur ne fait pas pousser le blé), l'interrègne
+   * aussi : c'est aux champs que l'absence d'ordre se voit d'abord. Plancher à un
+   * cinquième : un village sans chef s'étiole, il ne cesse pas de manger.
+   */
+  const chefEffets = effetsChef(s.dynastie?.chef?.traits)
+  const troneVide = coutInterregne(s.dynastie?.vacanceDepuis ?? null, jourDe(s)).grainPct
+  const sceptre = Math.max(0.2, 1 + chefEffets.grainPct + troneVide)
   const g = (base: number, atelier: number, pct: number, r: ResourceId) =>
-    (base + atelier) * m * ciel(r) * zx * (1 + pct) * maladresse * (r === 'grain' ? troupeau : 1)
+    (base + atelier) * m * ciel(r) * zx * (1 + pct) * maladresse * (r === 'grain' ? troupeau * sceptre : 1)
   return {
     bois: g(BASE_PROD.bois, PROD.scierie[s.buildings.scierie.level] * rd('scierie'), rel.boisPct + tec.boisPct, 'bois'),
     pierre: g(
@@ -998,9 +1066,11 @@ export function murMax(
    * en silence les chiffres que `horsligne.test.ts` écrit en produits explicites.
    */
   const hec = bonusHecatombe(s.hecatombe, Date.now(), s.createdAt ?? 0).murPct
+  // le bâtisseur et le prudent : un terme de plus dans la même somme
+  const chef = effetsChef((s as Partial<GameState>).dynastie?.chef?.traits).murPct
   return Math.round(
     WALL_HP[s.buildings.remparts.level] *
-      (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct + rel + tec + mer + hec),
+      (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct + rel + tec + mer + hec + chef),
   )
 }
 
@@ -1008,8 +1078,19 @@ export function murMax(
  * Relation réellement pesée par un dieu : l'orgueil d'Agamemnon retranche dix
  * points à chaque Olympien tant qu'il siège à votre table.
  */
-export function relationEffective(s: Pick<GameState, 'gods' | 'heros'>, g: GodId): number {
-  return Math.max(-100, Math.min(100, s.gods[g].relation + bonusHeros(s).relationTous))
+export function relationEffective(
+  s: Pick<GameState, 'gods' | 'heros'> & Partial<Pick<GameState, 'dynastie'>>,
+  g: GodId,
+): number {
+  /*
+   * Le chef pèse sur ce que les dieux pensent de la cité, et cela se lit dans la
+   * relation EFFECTIVE et non dans la relation brute : le pieux ne gagne pas des
+   * points qu'il garderait après sa mort, il est mieux reçu tant qu'il règne. Un
+   * impie couronné fait retomber Zeus le jour même - et c'est ce qui rend le choix
+   * d'un héritier lourd de conséquences.
+   */
+  const chef = effetsChef(s.dynastie?.chef?.traits).relation[g] ?? 0
+  return Math.max(-100, Math.min(100, s.gods[g].relation + bonusHeros(s).relationTous + chef))
 }
 
 export interface ConditionHero {
@@ -1135,6 +1216,15 @@ function calcMorale(s: GameState, now: number): number {
   let m = 50 + s.buildings.agora.level * 2 + s.buildings.temple.level
   for (const mod of s.moraleMods) if (mod.expiresAt === null || mod.expiresAt > now) m += mod.delta
   if (s.resources.grain <= 0) m -= 20 // famine
+  /*
+   * LE CHEF ET L'INTERRÈGNE. Le tempérament du chef pèse sur l'ambiance tant qu'il
+   * règne, et un trône vide la défait un peu plus chaque journée. Les deux sont
+   * CALCULÉS ici plutôt que posés en `moraleMods` : un modificateur aurait dû être
+   * créé au couronnement et retiré à la mort, et la moindre branche oubliée aurait
+   * laissé un chef mort peser sur le moral de son successeur pour toujours.
+   */
+  m += effetsChef(s.dynastie?.chef?.traits).morale
+  m += coutInterregne(s.dynastie?.vacanceDepuis ?? null, jourDe(s)).morale
   /*
    * La citerne secrète. Ce qui brise les nerfs d'une cité assiégée, c'est la
    * soif : une réserve d'eau taillée dans le roc pose un plancher au moral tant
@@ -1495,6 +1585,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     graces: [],
     planDefense: planParDefaut(),
     hecatombe: null,
+    dynastie: { chef: fonderChef(Math.random(), 1), vacanceDepuis: null, passes: [] },
     missionsNotifiees: [],
     battle: null,
     renfortsEngages: null,
@@ -1531,6 +1622,7 @@ type ActionsOnly = {
   benir: unknown
   acquerirGrace: unknown
   offrirHecatombe: unknown
+  couronner: unknown
   donnerOrdre: unknown
   assignerSecteur: unknown
   reglerPlanDefense: unknown
@@ -1650,6 +1742,7 @@ const CHAMPS_SAUVES = [
   'graces',
   'planDefense',
   'hecatombe',
+  'dynastie',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -1926,9 +2019,29 @@ function appliquerActe(s: GameState, i: number, now: number): void {
   s.incomingFronts = null
   s.incomingChampion = null
   s.defRecompense = null
+  /*
+   * ⚠️ LE CALENDRIER REPART, DONC LE CHEF DOIT ÊTRE RÉANCRÉ.
+   *
+   * Un acte remet `createdAt` au premier matin de sa saison : `jourDe(s)` retombe
+   * alors de quarante à cinq, et un chef né au jour quarante deviendrait un
+   * NOURRISSON - `ageDe` rend zéro dès que la naissance est postérieure au jour
+   * courant. On préserve donc son ÂGE, qui est ce que le joueur voit, en
+   * recalculant sa date de naissance dans le nouveau calendrier. Même traitement
+   * pour la journée où il a pris le sceptre, et pour une vacance en cours.
+   */
+  const ageAvant = s.dynastie?.chef ? ageDuChef(s.dynastie.chef, jourDe(s)) : 0
+  const regneAvant = s.dynastie?.chef ? Math.max(0, jourDe(s) - s.dynastie.chef.depuis) : 0
   // le calendrier repart au premier matin de l'acte, dans la bonne saison
   s.createdAt = now - DAY_MS * (SAISON_IDS.indexOf(d.saison) * JOURS_PAR_SAISON + 0.15)
   s.lastSeen = now
+  if (s.dynastie?.chef) {
+    const jourNeuf = jourDe(s)
+    s.dynastie.chef.neLe = jourNeuf - ageAvant / ANS_PAR_JOUR
+    s.dynastie.chef.depuis = jourNeuf - regneAvant
+  }
+  if (s.dynastie?.vacanceDepuis !== null && s.dynastie?.vacanceDepuis !== undefined) {
+    s.dynastie.vacanceDepuis = jourDe(s)
+  }
   s.nextPopAt = now + 45_000
   s.battle = null
   s.expedition = null
@@ -2330,7 +2443,8 @@ function lancerAssaut(s: GameState, now: number): void {
       s.vitesse = 1
       const bh = bonusHeros(s)
       // la fureur d’Arès de la saison : le rite s’ajoute aux passifs, il ne les remplace pas
-      const hecDeg = bonusHecatombe(s.hecatombe, now, s.createdAt).degatsPct
+      const hecDeg =
+        bonusHecatombe(s.hecatombe, now, s.createdAt).degatsPct + effetsChef(s.dynastie?.chef?.traits).degatsPct
       // les alliés dépêchent des hommes : ils tomberont avant les vôtres
       const renf = renfortsAllies(s)
       const totalRenf = UNIT_IDS.reduce((a, u) => a + renf[u], 0)
@@ -2768,6 +2882,8 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
         bonusFaveurs(s).butinPct +
         // le sang sur l'autel d'Arès : la saison où l'on pille
         bonusHecatombe(s.hecatombe, Date.now(), s.createdAt).butinPct +
+        // et le tempérament du chef : le pillard rapporte, le laboureur non
+        effetsChef(s.dynastie?.chef?.traits).butinPct +
         rase * 0.25)
     const butinTxt: string[] = []
     for (const [r, n] of Object.entries(v.butin) as [ResourceId, number][]) {
@@ -2862,7 +2978,10 @@ function simulerHorsLigne(s: GameState, now: number): void {
   }
   s.faveur = Math.min(
     FAVEUR_MAX,
-    s.faveur + PROD.temple[s.buildings.temple.level] * minutes * (1 + bonusFaveurs(s).faveurPct),
+    s.faveur +
+      PROD.temple[s.buildings.temple.level] *
+        minutes *
+        (1 + bonusFaveurs(s).faveurPct + effetsChef(s.dynastie?.chef?.traits).faveurPct),
   )
 
   // constructions terminées
@@ -3088,6 +3207,67 @@ export const useGame = create<GameState>()(
                 { relation: 0, cooldownUntil: 0, ...((s.gods?.[g] ?? {}) as Partial<GodState>) },
               ]),
             ) as Record<GodId, GodState>
+            /*
+             * ═══ LA DYNASTIE, ET LE CHEF MORT-NÉ QU'IL FALLAIT ÉVITER ═══
+             *
+             * `Object.assign(s, etatInitial(now), data, …)` : une sauvegarde
+             * antérieure aux successions n'a pas de clé `dynastie`, elle garde donc
+             * celle d'`etatInitial` - un fondateur né au jour 1. Mais `jourDe(s)` se
+             * calcule sur le `createdAt` DU FICHIER : un village de quarante journées
+             * aurait rendu un chef de cent vingt ans, c'est-à-dire au-delà de l'âge
+             * limite, donc mort au premier battement. Le joueur se serait réveillé en
+             * interrègne sans avoir rien fait, et sans comprendre pourquoi.
+             *
+             * On refonde donc le chef sur le jour REPRIS, et on lui donne les
+             * maisons déjà portées par le village pour qu'il ne prenne pas une
+             * lignée occupée. Un chef qui existait, lui, est laissé intact : son âge
+             * est déjà juste, puisqu'il est écrit dans la même horloge.
+             */
+            const jourDuChef = Math.max(1, Math.floor((s.lastSeen - s.createdAt) / DAY_MS) + 1)
+            if (!s.dynastie || typeof s.dynastie !== 'object') s.dynastie = { ...DYNASTIE_VIDE, passes: [] }
+            s.dynastie.passes = Array.isArray(s.dynastie.passes) ? s.dynastie.passes : []
+            if (s.dynastie.vacanceDepuis === undefined) s.dynastie.vacanceDepuis = null
+            if (!s.dynastie.chef && s.dynastie.vacanceDepuis === null) {
+              s.dynastie.chef = fonderChef(
+                Math.random(),
+                jourDuChef,
+                s.villageois?.map((v) => v.lignee ?? '') ?? [],
+              )
+            }
+            /*
+             * ⚠️ ET L'ON RÉANCRE UN CHEF DONT L'ÂGE EST IMPOSSIBLE.
+             *
+             * C'est ici que se joue le vrai piège, et la première version le
+             * manquait. `Object.assign(s, etatInitial(now), data, …)` laisse la
+             * dynastie d'`etatInitial` quand le fichier n'en a pas - donc un chef
+             * qui EXISTE, né au jour 1. La garde `!s.dynastie.chef` ci-dessus ne
+             * voyait donc rien, et sur un village de quarante journées ce chef avait
+             * cent vingt-deux ans : au-delà de l'âge limite, mort au premier
+             * battement, et un interrègne que le joueur n'avait pas provoqué.
+             *
+             * On ne cherche pas à savoir SI le fichier portait une dynastie - on
+             * regarde si l'âge est possible. Un chef réel ne peut pas dépasser l'âge
+             * limite (il serait mort avant) ni être un enfant : hors de ces bornes,
+             * c'est forcément un décalage de calendrier, et l'on refonde son
+             * ancrage en gardant son identité. Ce test-là couvre du même coup les
+             * fichiers repris à la main et tout déplacement futur du calendrier.
+             */
+            const chefRepris = s.dynastie.chef
+            if (chefRepris) {
+              const age = ageDe(chefRepris, jourDuChef)
+              if (age >= AGE_LIMITE || age < AGE_ADULTE) {
+                chefRepris.neLe = jourDuChef - 16
+                chefRepris.depuis = Math.min(chefRepris.depuis, jourDuChef)
+              }
+            }
+            /*
+             * Une vacance ouverte AVANT une longue absence est ramenée au jour repris.
+             * Sans cela, le prix de l'interrègne - plafonné, mais réel - serait celui
+             * de soixante journées de trône vide pour une nuit de sommeil.
+             */
+            if (s.dynastie.vacanceDepuis !== null && s.dynastie.vacanceDepuis > jourDuChef) {
+              s.dynastie.vacanceDepuis = jourDuChef
+            }
             /*
              * Et l'on désinfecte les nombres. Un NaN écrit une fois dans le fichier
              * y reste pour toujours et contamine tout ce qu'il touche - c'est
@@ -3432,7 +3612,11 @@ export const useGame = create<GameState>()(
           s.faveur = Math.min(
             FAVEUR_MAX,
             s.faveur +
-              ((PROD.temple[s.buildings.temple.level] * rendement(s, 'temple') * (1 + bonusFaveurs(s).faveurPct)) / 60) *
+              ((PROD.temple[s.buildings.temple.level] *
+                rendement(s, 'temple') *
+                // le chef pieux fait monter la fumée plus haut
+                (1 + bonusFaveurs(s).faveurPct + effetsChef(s.dynastie?.chef?.traits).faveurPct)) /
+                60) *
                 dtJeu,
           )
         }
@@ -3823,7 +4007,9 @@ export const useGame = create<GameState>()(
             // « Métier » : Athéna presse les casernes, pour toujours
             (1 - bonusFaveurs(s).recruesPct) *
             // et le péplos les presse le temps d'une saison
-            (1 - bonusHecatombe(s.hecatombe, now, s.createdAt).recruesPct)
+            (1 - bonusHecatombe(s.hecatombe, now, s.createdAt).recruesPct) *
+            // la main dure presse la caserne, le pieux la retarde
+            Math.max(0.4, 1 - effetsChef(s.dynastie?.chef?.traits).recruesPct)
         const dernier = s.recruitQueue[s.recruitQueue.length - 1]
         const debut = dernier ? dernier.finishAt + (dernier.restant - 1) * UNITS[dernier.unit].time * 1000 * vitesse : now
         s.recruitQueue.push({ unit: u, restant: n, finishAt: debut + def.time * 1000 * vitesse })
@@ -4198,6 +4384,66 @@ export const useGame = create<GameState>()(
         pushReport(s, rite.emoji, `Hécatombe à ${GODS[g].nom} - ${rite.nom}`, [
           ...rite.recit,
           `L’effet tient jusqu’au basculement de saison. Le troupeau saigné coûte un cinquième du grain.`,
+        ])
+      })
+      get().save()
+    },
+
+    /*
+     * COURONNER UN HÉRITIER. Trois gestes, et l'ordre compte.
+     *
+     * On vérifie d'abord que le prétendant est bien de la liste que le panneau a
+     * montrée - et non n'importe quel habitant passé par un appel direct : la
+     * liste des candidats est la règle, pas une commodité d'affichage.
+     *
+     * Puis on le RETIRE du village, en deux gestes simultanés. C'est le piège de
+     * `syncVillageois`, qui recomplète la liste jusqu'à `pop` à chaque battement :
+     * retirer l'habitant sans décrémenter `pop` l'aurait fait renaître au battement
+     * suivant sous un autre nom, et décrémenter `pop` sans retirer le bon aurait
+     * fait disparaître un oisif au hasard. Son conjoint devient veuf comme pour
+     * n'importe quel départ - sans quoi il resterait un foyer qui n'existe plus.
+     *
+     * Enfin le trône se referme et la vacance s'éteint.
+     */
+    couronner: (villageoisId) => {
+      set((s) => {
+        if (s.dynastie.vacanceDepuis === null) return
+        const jour = jourDe(s)
+        const liste = candidats(s.villageois, jour, s.dynastie.passes.at(-1)?.lignee ?? null)
+        const choisi = liste.find((c) => c.id === villageoisId)
+        if (!choisi) {
+          pushToast(s, '👑', 'Ce prétendant n’est plus de ceux que le village reconnaîtrait.')
+          return
+        }
+        const habitant = s.villageois.find((v) => v.id === villageoisId)
+        if (!habitant) return
+
+        const chef: Chef = {
+          nom: choisi.nom,
+          lignee: choisi.lignee,
+          neLe: habitant.neLe ?? jour - Math.round(choisi.age / 2),
+          depuis: jour,
+          traits: choisi.traits,
+          metier: choisi.metier,
+        }
+        // il quitte le village pour le sceptre : les DEUX gestes, ensemble
+        s.villageois = s.villageois.filter((v) => v.id !== villageoisId)
+        s.pop = Math.max(0, s.pop - 1)
+        veuvage(s, habitant)
+
+        s.dynastie.chef = chef
+        s.dynastie.vacanceDepuis = null
+        noter(s, 'chefs')
+
+        const noms = chef.traits.map((id) => TRAITS_PAR_ID[id]?.nom).filter(Boolean)
+        pushToast(s, '👑', `${chef.nom} des ${chef.lignee} prend le sceptre. ${noms.join(', ')}.`)
+        pushReport(s, '👑', `${chef.nom} des ${chef.lignee} règne`, [
+          `${choisi.age} ans, ${choisi.metierNom.toLowerCase()} de son métier - le village perd ce bras.`,
+          ...chef.traits.map((id) => {
+            const d = TRAITS_PAR_ID[id]
+            return d ? `${d.emoji} ${d.nom} - ${d.effet}` : ''
+          }).filter(Boolean),
+          'L’interrègne s’achève : les corvées se répartissent de nouveau.',
         ])
       })
       get().save()
@@ -4843,7 +5089,8 @@ export const useGame = create<GameState>()(
         }))
         const bh = bonusHeros(s)
         // la fureur d’Arès de la saison : le rite s’ajoute aux passifs, il ne les remplace pas
-        const hecDegExp = bonusHecatombe(s.hecatombe, now, s.createdAt).degatsPct
+        const hecDegExp =
+          bonusHecatombe(s.hecatombe, now, s.createdAt).degatsPct + effetsChef(s.dynastie?.chef?.traits).degatsPct
         // en secours, on se bat en rase campagne contre les assiégeants : aucun mur
         const ruse = !secours && s.siegeGratuit
         const mur = secours ? 0 : v.mur

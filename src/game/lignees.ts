@@ -42,7 +42,7 @@ export const AGE_LIMITE = 88
 export type Saison2 = 'enfant' | 'adulte' | 'ancien'
 
 /** âge en années d'un habitant, au jour de jeu donné */
-export function ageDe(v: Villageois, jour: number): number {
+export function ageDe(v: { neLe?: number }, jour: number): number {
   // une sauvegarde antérieure aux lignées ne porte pas de date de naissance :
   // on la traite comme celle d'un adulte accompli, jamais comme un nourrisson
   if (v.neLe === undefined) return 30

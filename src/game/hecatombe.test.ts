@@ -41,20 +41,26 @@ import type { GodId } from './types'
 
 /** un règne prêt à offrir : temple bâti, dieu conquis, faveur en caisse */
 /*
- * ⚠️ L'ANCRE EST CALCULÉE, PAS ÉCRITE À ZÉRO.
+ * ⚠️ L'ANCRE, ET LES DEUX FLAKES QU'ELLE A COÛTÉS.
  *
  * `offrirHecatombe` lit `Date.now()`, l'horloge réelle, et refuse l'offrande dans
- * le dernier cinquième de la saison. Avec `createdAt: 0`, la saison en cours au
- * moment du test dépend donc de l'heure qu'il est : une fois sur cinq, le rite
- * était refusé et le test tombait sans qu'une ligne de code ait changé. Le premier
- * jet de ce fichier avait ce défaut, et il n'a été vu que parce qu'une assertion
- * VOISINE a échoué le même jour.
+ * le dernier cinquième de la saison. Il faut donc que le règne de test commence au
+ * MATIN d'une saison, sans quoi le résultat dépend de l'heure qu'il est.
  *
- * On ancre donc la fondation au début exact de la saison courante : il reste
- * toujours une saison pleine, et l'index de saison vaut toujours 0.
+ *  · Premier jet : `createdAt: 0`. La saison en cours dépendait de l'horloge, et
+ *    une fois sur cinq le rite était refusé sans qu'une ligne de code ait changé.
+ *  · Deuxième jet : `Date.now() - (Date.now() % SAISON_MS)`. Cela ancre la
+ *    fondation sur un multiple de la durée de saison - ce qui ne dit rien du temps
+ *    ÉCOULÉ depuis. `now - createdAt` valait alors `Date.now() % SAISON_MS`, un
+ *    reste quelconque entre zéro et trente-deux minutes : le même tirage, déguisé.
+ *    Il a passé une fois, puis échoué à 134 secondes de saison restante.
+ *
+ * La bonne ancre est la plus simple : la cité est fondée MAINTENANT. Le temps
+ * écoulé vaut zéro, il reste une saison pleine, et l'index de saison vaut 0 - sans
+ * arithmétique modulaire à relire.
  */
 function ancreDeSaison(): number {
-  return Date.now() - (Date.now() % SAISON_MS)
+  return Date.now()
 }
 
 function regnePieux(dieu: GodId = 'poseidon') {

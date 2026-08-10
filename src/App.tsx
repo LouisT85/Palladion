@@ -32,6 +32,7 @@ import { Pantheon } from './components/ui/Pantheon'
 import { ExpeditionScene, PanneauExpeditions } from './components/ui/Expeditions'
 import { PanneauPlanDefense } from './components/ui/PlanDefense'
 import { PanneauFlotte } from './components/ui/Flotte'
+import { PanneauBlocus } from './components/ui/Blocus'
 import { PanneauHecatombe } from './components/ui/Hecatombe'
 import { PanneauLazaret } from './components/ui/Lazaret'
 import {
@@ -252,6 +253,7 @@ export default function App() {
       {panel === 'defi' && <PanneauDefi onFermer={() => openPanel(null)} />}
       {panel === 'plandefense' && <PanneauPlanDefense onFermer={() => openPanel(null)} />}
       {panel === 'hecatombe' && <PanneauHecatombe onFermer={() => openPanel(null)} />}
+      {panel === 'blocus' && <PanneauBlocus onFermer={() => openPanel(null)} />}
       {panel === 'lazaret' && <PanneauLazaret onFermer={() => openPanel(null)} />}
       {panel === 'flotte' && <PanneauFlotte onFermer={() => openPanel(null)} />}
       {panel === 'expeditions' && !expedition && <PanneauExpeditions />}

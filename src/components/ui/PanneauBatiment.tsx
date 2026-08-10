@@ -6,6 +6,7 @@ import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
 import { Astuce } from './Infobulle'
 import { chantiersMenes } from '../../game/store'
+import { VILLAGES_PAR_ID } from '../../game/expeditions'
 import { riteActif } from '../../game/hecatombe'
 import { nbLibres, resumeFlotte } from '../../game/flotte'
 import { flotteDe } from './Flotte'
@@ -673,6 +674,17 @@ export function PanneauBatiment() {
           </div>
           <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('espions')}>
             Envoyer un éclaireur
+          </button>
+          {/*
+            LE BLOCUS, deuxième chose qu'on fait sortir de la caserne. Le libellé
+            porte la ligne EN COURS quand il y en a une : c'est le seul endroit de
+            la carte où l'on peut apprendre que huit de ses hommes sont dehors sans
+            ouvrir un panneau pour le vérifier.
+          */}
+          <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('blocus')}>
+            {s.blocus
+              ? `⛓️ Ligne devant ${VILLAGES_PAR_ID[s.blocus.villageId]?.nom ?? 'une place'} (jour ${s.blocus.jours})`
+              : '⛓️ Assiéger une place forte'}
           </button>
         </div>
       )}

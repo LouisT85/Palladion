@@ -4390,3 +4390,315 @@ button.plan-jeton.hero.vide:disabled {
   color: #b6c2d4;
   line-height: 1.7;
 }
+
+/* ═══════════════════════ LE BLOCUS ═══════════════════════
+   Un panneau de DURÉE se lit autrement qu'un panneau d'assaut : ce qui doit
+   sauter aux yeux n'est pas un rapport de force, c'est la COURSE entre deux
+   comptes à rebours - « journées avant qu'ils ne cèdent » contre « journées que
+   la ligne tient ». Ils sont donc en gros chiffres, côte à côte, en tête, et le
+   cadre passe en teinte d'alerte quand le second est le plus petit. */
+.blocus {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bl-tete {
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 11px 12px;
+}
+/* la ligne cédera avant eux : la teinte le dit avant qu'on ait lu un chiffre */
+.bl-tete.perdu {
+  border-color: #7a4a2e;
+  background: #2a1f19;
+}
+.bl-tete-titre {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.bl-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.bl-nom {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+.bl-sous {
+  font-size: 11.5px;
+  color: #98a6bc;
+  line-height: 1.45;
+}
+
+/* TROIS COLONNES, ET C'EST LE MINIMUM UTILE. Les deux comptes à rebours ne
+   veulent rien dire l'un sans l'autre, et la ration est ce qui rend la course
+   coûteuse : les séparer les rendrait illisibles. À l'étroit, ils se replient
+   en deux lignes plutôt que de se tronquer. */
+.bl-comptes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+.bl-compte {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: #101725;
+  border: 1px solid #2a374d;
+  border-radius: 7px;
+  padding: 7px 6px;
+  text-align: center;
+}
+.bl-chiffre {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e8c46a;
+  line-height: 1.1;
+}
+.bl-label {
+  font-size: 10.5px;
+  color: #8c9ab0;
+  line-height: 1.3;
+}
+
+.bl-alerte {
+  margin-top: 9px;
+  font-size: 12px;
+  color: #e0956a;
+  background: #2a1f19;
+  border: 1px solid #7a4a2e;
+  border-radius: 7px;
+  padding: 7px 9px;
+  line-height: 1.5;
+}
+
+.bl-jauges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+  gap: 10px;
+}
+.bl-jauge-bloc {
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.bl-jauge-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+.bl-jauge {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: #101725;
+  overflow: hidden;
+}
+.bl-jauge-plein {
+  height: 100%;
+  transition: width 0.4s linear;
+}
+/* le seuil où la place parlemente, matérialisé : c'est lui qui donne un but à
+   la jauge, et qui apprend qu'on ne prend pas une place, on l'amène à traiter */
+.bl-jauge-seuil {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e8c46a;
+  opacity: 0.85;
+}
+.bl-note {
+  font-size: 11.5px;
+  color: #8c9ab0;
+  font-style: italic;
+  margin-top: 7px;
+  line-height: 1.5;
+}
+
+/* CE QUI MANQUE AUX REMPARTS. Le bandeau est cliquable (il porte une astuce) :
+   il ne s'agit pas d'un ornement mais du prix du système, et il doit pouvoir
+   se déplier. */
+.bl-engage {
+  font-size: 12.5px;
+  color: #b6c2d4;
+  background: #101725;
+  border: 1px solid #2a374d;
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-top: 8px;
+  cursor: help;
+  line-height: 1.5;
+}
+/* plus de la moitié de la force est dehors : le village est nu, et cela se voit */
+.bl-engage.fort {
+  color: #e0956a;
+  border-color: #7a4a2e;
+  background: #2a1f19;
+}
+
+/* LE RÉCIT DE LA DERNIÈRE JOURNÉE. Dans un système où il ne se passe rien à
+   l'écran, c'est le seul endroit où le blocus EXISTE : sans lui, le joueur ne
+   regarde qu'une jauge descendre. */
+.bl-recit {
+  background: #141c2a;
+  border-left: 3px solid #c9a24a;
+  border-radius: 0 7px 7px 0;
+  padding: 9px 12px;
+}
+.bl-recit-tete {
+  font-size: 12px;
+  font-weight: 700;
+  color: #c9a24a;
+  margin-bottom: 5px;
+}
+.bl-recit-ligne {
+  font-size: 12.5px;
+  color: #b6c2d4;
+  line-height: 1.6;
+}
+
+.bl-travaux h3 {
+  margin: 0;
+  font-size: 13.5px;
+}
+.bl-travail {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 8px;
+}
+/* fait, mais TOUJOURS LISIBLE : son effet court jusqu'au bout du blocus, et le
+   joueur doit pouvoir se rappeler ce qu'il a acheté */
+.bl-travail.fait {
+  border-color: #4a7a52;
+  background: #182318;
+}
+.bl-travail-corps {
+  flex: 1;
+  min-width: 0;
+}
+.bl-travail-nom {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+.bl-travail-desc {
+  font-size: 11.5px;
+  color: #98a6bc;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+.bl-travail-effet {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e8c46a;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.bl-travail-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.bl-prix {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.bl-gratuit {
+  font-size: 11.5px;
+  color: #8c9ab0;
+  font-style: italic;
+}
+/* le motif du refus : jamais un bouton éteint sans sa raison */
+.bl-motif {
+  font-size: 11.5px;
+  color: #e0956a;
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
+.bl-decisions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bl-offre {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: #241f16;
+  border: 1px solid #c9a24a;
+  border-radius: 8px;
+  padding: 11px;
+}
+.bl-offre-tete {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: #e8c46a;
+}
+.bl-offre-texte {
+  font-size: 12.5px;
+  color: #b6c2d4;
+  line-height: 1.55;
+}
+.bl-boutons {
+  display: flex;
+  gap: 8px;
+}
+.bl-boutons > * {
+  flex: 1;
+}
+
+/* ── poser une ligne ── */
+.bl-place {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.bl-bloc {
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.bl-bloc h3 {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+}
+.bl-choix {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 8px;
+}
+.bl-choix.bloquee {
+  opacity: 0.62;
+}
+.bl-choix-corps {
+  flex: 1;
+  min-width: 0;
+}

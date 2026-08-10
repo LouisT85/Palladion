@@ -91,11 +91,47 @@ import {
   assiegeants,
   garnisonEffective,
   puissanceAssiegeants,
+  puissanceEffective,
   renfortsDe,
   tributDe,
   type Intention,
   type VillageCible,
 } from './expeditions'
+import {
+  INCENDIE_VOISINS,
+  TENUE_MAX,
+  TRAVAUX,
+  TRAVAUX_IDS,
+  VOLONTE_MAX,
+  accepterReddition as redditionDe,
+  coutTravail,
+  forceDeLaLigne,
+  garnisonDesarmee,
+  hommesDeLaLigne,
+  leverBlocus as leveeDe,
+  motTroupes,
+  motifRefusBlocus,
+  nouvelleDuVillage,
+  ouvrirBlocus as poserLigneBlocus,
+  partEngagee,
+  partMurApresBlocus,
+  rationDuJour,
+  assainirBlocus,
+  colonneDAssaut,
+  refusBlocus,
+  /*
+   * ⚠️ ALIAS OBLIGATOIRE. `blocus.ts` et `epidemies.ts` exportent tous deux une
+   * `resoudreJournee` - deux systèmes écrits en parallèle qui ont eu la même idée
+   * de nom pour la même forme de chose : « ce qu'une journée fait à cet état ».
+   * Sans alias, TypeScript refuse les deux imports et l'erreur ne dit pas laquelle
+   * des deux on voulait. Le blocus prend l'alias parce que ses trois appels sont
+   * groupés, là où la fièvre est appelée depuis deux endroits éloignés.
+   */
+  resoudreJournee as resoudreJourneeBlocus,
+  type EtatBlocus,
+  type TravailId,
+} from './blocus'
+
 import { ouvragesDe, partAbattue, type Ouvrage } from './ouvrages'
 import {
   appliquerPlanHeros,
@@ -638,6 +674,22 @@ export interface GameState {
    */
   hecatombe: EtatHecatombe | null
   /**
+   * LA LIGNE POSTÉE DEVANT UNE PLACE FORTE - un blocus à la fois.
+   *
+   * Il vit à côté de `s.expedition` sans jamais en être un, et c'est ce qui le
+   * rend possible : `expedition` est un état RUNTIME que `init()` remet à `null`,
+   * qui force la vitesse à ×1 et qui demande le joueur devant l'écran. Un blocus
+   * dure des journées de jeu - quarante minutes réelles - il n'aurait donc pas
+   * survécu au premier rechargement de la page, et aurait interdit l'accéléré tout
+   * du long.
+   *
+   * Il ne porte AUCUNE échéance en millisecondes : seulement `jours`, un compteur
+   * de journées tenues qu'incrémente le crochet quotidien. Rien à reculer dans le
+   * bloc de vitesse du tick, et rien qui survive intact à huit heures d'absence -
+   * c'est le patron de l'hécatombe, transposé aux journées.
+   */
+  blocus: EtatBlocus | null
+  /**
    * LA DYNASTIE. Le chef qui règne, ceux qui l'ont précédé, et la vacance si le
    * trône est vide. Le chef ne figure PAS dans `villageois` et ne compte pas dans
    * `pop` : `syncVillageois` recomplète cette liste à chaque battement en retirant
@@ -699,6 +751,7 @@ export interface GameState {
     | 'defi'
     | 'plandefense'
     | 'hecatombe'
+    | 'blocus'
     | 'flotte'
     | 'lazaret'
     | null
@@ -756,6 +809,19 @@ export interface GameState {
    * serait perdre le prix, et le refus enseigne la règle au lieu de la punir.
    */
   offrirHecatombe: (dieu: GodId) => void
+  /**
+   * Poster une ligne devant une place forte. Les hommes QUITTENT la garnison : ils
+   * ne défendront pas le village, et c'est le prix du système.
+   */
+  ouvrirBlocus: (villageId: string, postes: Partial<Record<UnitId, number>>) => void
+  /** couper l'eau, brûler les moissons, miner le mur - chacun une fois, tout le siège */
+  ordonnerTravail: (id: TravailId) => void
+  /** la place a offert de se rendre : on encaisse la rançon et on la laisse debout */
+  accepterReddition: () => void
+  /** on renonce. Les hommes rentrent les mains vides, et le village le voit. */
+  leverBlocus: () => void
+  /** on n'attend plus : la ligne devient une colonne, par le moteur d'expédition */
+  donnerAssautBlocus: () => void
   /**
    * Couronner un héritier. Il quitte le village pour le sceptre : un bras de
    * moins, et son métier avec lui. C'est l'arbitrage du panneau, pas un détail.
@@ -1915,6 +1981,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     graces: [],
     planDefense: planParDefaut(),
     hecatombe: null,
+    blocus: null,
     epidemie: null,
     lazaret: 0,
     dynastie: { chef: fonderChef(Math.random(), 1), vacanceDepuis: null, passes: [] },
@@ -1956,6 +2023,11 @@ type ActionsOnly = {
   benir: unknown
   acquerirGrace: unknown
   offrirHecatombe: unknown
+  ouvrirBlocus: unknown
+  ordonnerTravail: unknown
+  accepterReddition: unknown
+  leverBlocus: unknown
+  donnerAssautBlocus: unknown
   couronner: unknown
   batirLazaret: unknown
   aliter: unknown
@@ -2081,6 +2153,7 @@ const CHAMPS_SAUVES = [
   'graces',
   'planDefense',
   'hecatombe',
+  'blocus',
   'dynastie',
   'epidemie',
   'lazaret',
@@ -2386,6 +2459,16 @@ function appliquerActe(s: GameState, i: number, now: number): void {
   s.nextPopAt = now + 45_000
   s.battle = null
   s.expedition = null
+  /*
+   * ⚠️ ET LA LIGNE POSTÉE AU LOIN, QUE `choisirMode` ET `reset` LÈVENT DÉJÀ.
+   *
+   * Eux passent par `Object.assign(s, etatInitial(…))`, qui repose `blocus: null`.
+   * `appliquerActe` non : `acteSuivant` et `rejouerActe` l'appellent SANS repartir de
+   * l'état initial, et la ligne traversait l'acte - ses hommes effacés avec
+   * l'ancienne armée, sa ration prélevée chaque journée sur un grenier tout neuf, et
+   * le rapport du matin nommant une place forte d'un monde qui n'existe plus.
+   */
+  s.blocus = null
   s.activeEvent = null
   s.eventOutcome = null
   s.pendingEffects = []
@@ -3188,6 +3271,8 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
     ])
     s.battleReport = r
   }
+  // un coureur part vers le camp : la ligne au loin apprend ce qui s'est passé ici
+  nouvelleAuCamp(s, victoire)
   // les héros présents apprennent de chaque assaut - même perdu, mais moins
   gagnerXp(s, victoire ? XP_ASSAUT_REPOUSSE : Math.round(XP_ASSAUT_REPOUSSE * 0.4))
   // Achille ne supporte pas d'avoir regardé la bataille sans y entrer
@@ -3432,6 +3517,91 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   }
 }
 
+// ── Le blocus ─────────────────────────────────────────────────────────────────
+/**
+ * UNE JOURNÉE DE BLOCUS. Appelée depuis le crochet quotidien du tick, celui qui ne
+ * rattrape JAMAIS plus d'une journée - et c'est la réponse à « que devient un
+ * blocus après huit heures d'absence » : il avance d'UNE journée, paie UNE ration,
+ * et si la place est à bout elle OFFRE sa reddition et attend. Rien ne se décide
+ * sans le joueur (corollaire tiré des successions).
+ */
+function journeeDeBlocus(s: GameState): void {
+  const e = s.blocus
+  if (!e) return
+  const v = VILLAGES_PAR_ID[e.villageId]
+  if (!v) {
+    s.blocus = null
+    return
+  }
+  const j = resoudreJourneeBlocus(
+    e,
+    {
+      forceLigne: forceDeLaLigne(e.postes),
+      puissancePlace: puissanceEffective(v, s.expeditions[e.villageId]?.pillages ?? 0),
+      grain: s.resources.grain,
+      nomPlace: v.nom,
+    },
+    Math.random(),
+  )
+  /*
+   * ⚠️ LA RATION SORT EN DIRECT, PAS PAR `payer()`. Sous `MODE_TEST` celui-ci
+   * renvoie toujours vrai : une ration payée par `payer()` serait gratuite dans
+   * toute la suite de tests du dépôt, et le blocus y deviendrait un système sans
+   * prix. C'est la même raison qui fait débiter directement ailleurs dans ce
+   * fichier. Le module a déjà borné `grainPaye` à ce qu'il y avait en magasin.
+   */
+  s.resources.grain = Math.max(0, s.resources.grain - j.grainPaye)
+  // les survivants d'une ligne qui se défait rentrent ; les morts ne rentrent pas
+  for (const u of UNIT_IDS) {
+    const n = j.rentrent[u] ?? 0
+    if (n > 0) s.army[u] += n
+  }
+  s.blocus = j.etat
+  pushReport(s, j.emoji, j.titre, j.lignes)
+  if (j.offreNouvelle) pushToast(s, '🕊️', `${v.nom} offre sa reddition - votre parole les attend.`)
+  if (j.fin) {
+    pushToast(s, '🏳️', `La ligne devant ${v.nom} s’est défaite.`)
+    s.moraleMods.push({
+      id: uid('m'),
+      label: 'Siège abandonné',
+      delta: -6,
+      expiresAt: Date.now() + 8 * 60_000,
+    })
+  }
+}
+
+/**
+ * LE COUREUR QUI ARRIVE AU CAMP. Un assaut sur le village doit se SENTIR sur la
+ * ligne au loin, autrement qu'en arithmétique : un village pillé, et les hommes
+ * s'en vont - on ne garde pas la porte des autres quand la sienne brûle. Un assaut
+ * repoussé sans eux, au contraire, raffermit la ligne.
+ *
+ * ⚠️ DEUX APPELANTS, ET LE SECOND EST CELUI QU'ON OUBLIE : `finirBataille` pour
+ * l'assaut qu'on joue, `simulerHorsLigne` pour ceux qui tombent pendant la nuit -
+ * jusqu'à TROIS par absence. N'en câbler qu'un, c'est laisser un joueur revenir
+ * devant un village pillé deux fois dont la ligne n'a jamais rien su.
+ */
+function nouvelleAuCamp(s: GameState, victoire: boolean): void {
+  const e = s.blocus
+  if (!e) return
+  const v = VILLAGES_PAR_ID[e.villageId]
+  const n = nouvelleDuVillage(e, victoire)
+  e.tenue = n.tenue
+  e.dernier = [n.ligne, ...e.dernier].slice(0, 4)
+  if (!n.rompu) {
+    pushToast(s, victoire ? '🏕️' : '📨', n.ligne)
+    return
+  }
+  for (const u of UNIT_IDS) {
+    const k = e.postes[u] ?? 0
+    if (k > 0) s.army[u] += k
+  }
+  s.blocus = null
+  pushReport(s, '🏳️', `La ligne devant ${v?.nom ?? 'la place'} se défait`, [
+    n.ligne,
+    'Ils ont plié la palissade avant l’aube et pris la route du village. Il n’y a plus de blocus.',
+  ])
+}
 // ── Hors-ligne ────────────────────────────────────────────────────────────────
 function simulerHorsLigne(s: GameState, now: number): void {
   const dt = Math.min(Math.max(0, now - s.lastSeen), OFFLINE_CAP_MS)
@@ -3578,6 +3748,8 @@ function simulerHorsLigne(s: GameState, now: number): void {
     s.incomingChampion = null
     s.warned = false
     s.defRecompense = null
+    // jusqu'à trois assauts par nuit : la ligne en entend parler autant de fois
+    nouvelleAuCamp(s, res.victoire)
     s.nextAttackAt += ASSAUT_MIN_MS + Math.random() * (ASSAUT_MAX_MS - ASSAUT_MIN_MS)
   }
 
@@ -3859,6 +4031,54 @@ export const useGame = create<GameState>()(
             })
             // on ne rejoue pas d'un coup les noces et les deuils des journées passées
             s.dernierJourVecu = jourRepris
+            /*
+             * ═══ UNE LIGNE FANTÔME MANGERAIT DU GRAIN SANS RIEN FERMER ═══
+             *
+             * Une sauvegarde d'avant le blocus n'a pas la clé et garde le `null`
+             * d'`etatInitial` : ce cas-là va tout seul. Les deux qui ne vont pas - un
+             * objet incomplet dont `postes` porterait `'4'` au lieu de `4` (le crochet
+             * quotidien écrirait alors `NaN` dans le grain, où il resterait pour
+             * toujours : c'est ce qui est arrivé aux ressources à l'ajout des trois
+             * unités), et une ligne dont la place n'existe plus - sont jugés par
+             * `assainirBlocus`, qui est PUR et éprouvé. Le store ne relit rien
+             * lui-même : une désinfection écrite ici n'aurait pas eu de test.
+             */
+            s.blocus = assainirBlocus(s.blocus, jourRepris)
+/*
+ * ═══ UNE LIGNE FANTÔME MANGERAIT DU GRAIN SANS RIEN FERMER ═══
+ *
+ * Une sauvegarde d'avant le blocus n'a pas la clé et garde donc le `null`
+ * d'`etatInitial` : ce cas-là va tout seul. Les deux qui ne vont pas :
+ *
+ *  · un fichier repris à la main, ou écrit par une version antérieure du système,
+ *    peut porter un objet INCOMPLET - et le crochet quotidien lirait alors
+ *    `undefined.jours` puis écrirait `NaN` dans la volonté, où il resterait pour
+ *    toujours (c'est exactement ce qui est arrivé aux ressources à l'ajout des
+ *    trois unités) ;
+ *  · une ligne dont la place n'existe plus (table remaniée, id renommé) resterait
+ *    ouverte pour l'éternité, à prélever sa ration sans qu'aucun panneau puisse
+ *    l'afficher.
+ *
+ * On désinfecte donc la forme sans jeter ce qui a été joué, et l'on lève une ligne
+ * qui n'a plus ni place ni hommes.
+ */
+if (s.blocus && (typeof s.blocus !== 'object' || !VILLAGES_PAR_ID[s.blocus.villageId])) s.blocus = null
+if (s.blocus) {
+  const bl = s.blocus as EtatBlocus
+  bl.jours = Math.max(0, Math.round(nombre(bl.jours, 0)))
+  bl.depuis = Math.max(1, Math.round(nombre(bl.depuis, jourRepris)))
+  bl.volonte = Math.max(0, Math.min(VOLONTE_MAX, nombre(bl.volonte, VOLONTE_MAX)))
+  bl.tenue = Math.max(0, Math.min(TENUE_MAX, nombre(bl.tenue, TENUE_MAX)))
+  bl.postes = bl.postes ?? {}
+  bl.travaux = Array.isArray(bl.travaux)
+    ? (bl.travaux.filter((t) => TRAVAUX_IDS.includes(t as TravailId)) as TravailId[])
+    : []
+  bl.offre = !!bl.offre
+  bl.sortieFaite = !!bl.sortieFaite
+  bl.dernier = Array.isArray(bl.dernier) ? bl.dernier : []
+  // une ligne sans un homme ne ferme rien : on ne garde pas un fantôme au budget
+  if (hommesDeLaLigne(bl.postes) <= 0) s.blocus = null
+}
             // une sauvegarde antérieure à la campagne est un bac à sable : on ne
             // rouvre pas l'écran de choix à un joueur qui a déjà une cité
             if (s.mode == null) s.mode = 'bac-a-sable'
@@ -4463,6 +4683,9 @@ export const useGame = create<GameState>()(
           if (jour !== s.dernierJourVecu) {
             s.dernierJourVecu = jour
             vieDesFamilles(s, jour)
+            // et la ligne postée au loin mange sa ration : même horloge, même règle -
+            // une journée par journée, jamais soixante parce qu'on est parti déjeuner
+            journeeDeBlocus(s)
             /*
              * ── LA FIÈVRE : UNE JOURNÉE, ET JAMAIS DEUX ──
              *
@@ -5837,6 +6060,13 @@ export const useGame = create<GameState>()(
         const hecDegExp =
           bonusHecatombe(s.hecatombe, now, s.createdAt).degatsPct + effetsChef(s.dynastie?.chef?.traits).degatsPct
         // en secours, on se bat en rase campagne contre les assiégeants : aucun mur
+        /*
+         * LA LIGNE QU'ON TIENT DEVANT CETTE PLACE, s'il y en a une. Elle change deux
+         * choses à la bataille qui s'ouvre - la garnison a désarmé, le mur est peut-
+         * être miné - et elle sera levée en fin d'action, quelle que soit la porte par
+         * laquelle le joueur est arrivé.
+         */
+        const blocusIci = s.blocus?.villageId === villageId ? s.blocus : null
         const ruse = !secours && s.siegeGratuit
         const mur = secours ? 0 : v.mur
         s.expedition = {
@@ -5846,10 +6076,34 @@ export const useGame = create<GameState>()(
           // le retour se juge sur ce qu'on a osé au départ, pas sur la saison qu'il
           // fera dans trois minutes
           detroitForce: traversee.passage === 'flotte',
-          wallHp: ruse || secours ? 0 : WALL_HP[v.mur],
+          // la sape a travaillé sous l'assise : ce n'est plus la même enceinte
+          wallHp: ruse || secours ? 0 : Math.round(WALL_HP[v.mur] * partMurApresBlocus(blocusIci)),
           battle: creerBataille({
             attaquants,
-            defenseurs: secours ? assiegeants(v) : garnisonEffective(v, s.expeditions[villageId]?.pillages ?? 0),
+            /*
+             * UNE PLACE QU'ON A TENUE DES JOURNÉES ENTIÈRES N'EST PAS CELLE DE LA
+             * TABLE : sa garnison a désarmé avec sa volonté, et il lui en reste un
+             * tiers au plus bas - jamais rien, sinon l'assaut serait une promenade.
+             * C'est ce qui donne un sens à « attendre une journée de plus » quand on
+             * compte entrer par la brèche plutôt que par la porte ouverte.
+             */
+            defenseurs: secours
+              ? assiegeants(v)
+              : blocusIci
+                ? garnisonDesarmee(
+                    garnisonEffective(v, s.expeditions[villageId]?.pillages ?? 0),
+                    blocusIci.volonte,
+                  )
+                : garnisonEffective(v, s.expeditions[villageId]?.pillages ?? 0),
+            /*
+             * ⚠️ ET IL FAUT LE DIRE DEUX FOIS. `exp.wallHp` (au-dessus) est la jauge
+             * que le tick fait descendre ; `wallHpTotal` est ce que `creerBataille`
+             * répartit entre les SECTEURS, et sans lui la bataille aurait opposé aux
+             * hommes une enceinte pleine pendant que le panneau annonçait 55 %. Sans
+             * blocus, `partMurApresBlocus` rend 1 et la valeur est celle du défaut :
+             * cette ligne ne change rien à un raid ordinaire.
+             */
+            wallHpTotal: Math.round(WALL_HP[mur] * partMurApresBlocus(blocusIci)),
             wallLevel: mur,
             now,
             geo: GEO_EXPEDITION,
@@ -5870,6 +6124,19 @@ export const useGame = create<GameState>()(
         // le plan emporte la posture et le tir, jamais les pans : loin de chez soi
         // il n'y a pas de pan à tenir
         s.expedition.battle.ordres = ordresExpedition(s.planDefense)
+        /*
+         * L'ASSAUT ACHÈVE LE BLOCUS, PAR QUELQUE PORTE QUE LE JOUEUR SOIT PASSÉ.
+         *
+         * `donnerAssautBlocus` vide déjà `postes` avant d'appeler ceci - la boucle
+         * n'y rend donc personne. Mais le panneau des expéditions permet aussi de
+         * lancer un raid ORDINAIRE, avec d'autres hommes, sur la place qu'on tient :
+         * il aurait alors profité de la garnison désarmée en laissant la ligne debout,
+         * hommes et ration compris. On la lève ici, et ceux qui y restaient rentrent.
+         */
+        if (blocusIci) {
+          for (const u of UNIT_IDS) s.army[u] += blocusIci.postes[u] ?? 0
+          s.blocus = null
+        }
         // même règle qu'en défense : une expédition se regarde en temps réel
         s.vitesse = 1
         if (ruse) {
@@ -5885,6 +6152,281 @@ export const useGame = create<GameState>()(
       })
     },
 
+    /*
+     * ═══════════ POSER UNE LIGNE ═══════════
+     *
+     * Le seul geste du système qui coûte des HOMMES et non des ressources. Ils
+     * sortent de `s.army` exactement comme ceux d'une colonne, et c'est tout le
+     * coût d'opportunité : s'ils y restaient, un blocus serait gratuit et il n'y
+     * aurait rien à arbitrer. Corollaire voulu et non secondaire : ils cessent du
+     * même coup de compter dans `armeeTotale(s.army) * CONSO_SOLDAT`, donc la
+     * ration du camp REMPLACE leur solde au village au lieu de s'y ajouter - une
+     * double facture aurait fait du blocus un système qu'on n'ouvre jamais.
+     */
+    ouvrirBlocus: (villageId, postes) => {
+      set((s) => {
+        const v = VILLAGES_PAR_ID[villageId]
+        if (!v) return
+        const snap = {
+          place: v,
+          army: s.army,
+          postes,
+          grain: s.resources.grain,
+          blocus: s.blocus,
+          enBataille: s.battle !== null,
+          colonneDehors: s.expedition !== null,
+          merFermee: merFermee(s),
+          allie: !!s.alliances[villageId],
+          assiege: s.mode === 'siege',
+        }
+        const refus = refusBlocus(snap)
+        if (refus) {
+          // jamais un geste refusé sans son motif : le refus enseigne la règle
+          pushToast(s, '⛓️', motifRefusBlocus(refus, snap))
+          return
+        }
+        for (const u of UNIT_IDS) s.army[u] -= postes[u] ?? 0
+        s.blocus = poserLigneBlocus(villageId, postes, jourDe(s))
+        const p = partEngagee(s.blocus.postes, s.army)
+        s.panel = null
+        pushToast(
+          s,
+          '⛓️',
+          `La ligne est posée devant ${v.nom} - ${Math.round(p.partForce * 100)} % de votre force est dehors.`,
+        )
+        pushReport(s, '⛓️', `Blocus de ${v.nom}`, [
+          ...s.blocus.dernier,
+          `${motTroupes(s.blocus.postes)} y sont postés, et ils mangeront ${rationDuJour(s.blocus)} mesures par journée de jeu.`,
+          'Ils ne sont plus sur vos remparts : un assaut sur le village se passera sans eux.',
+        ])
+        /*
+         * Poser une ligne devant une porte, cela se sait avant le soir - et cela se
+         * paie tout de suite, à peu près le quart d'un sac (−45) : on ne l'a pas
+         * encore pillée, mais on est venu en armes.
+         */
+        s.threatMod += 2
+        bougerRelation(s, villageId, -12)
+        ondeDiplomatique(s, villageId, -3)
+      })
+      get().save()
+    },
+    /*
+     * ═══════════ LES TRAVAUX DE SIÈGE ═══════════
+     *
+     * Chacun une seule fois, et son effet court jusqu'au bout du blocus : c'est
+     * ici qu'on ACHÈTE des journées. Brûler les moissons est le seul dont le prix
+     * n'est pas en bois et en bronze - il se paie en crédit auprès de toute la
+     * côte, et il se paie comptant.
+     */
+    ordonnerTravail: (id) => {
+      set((s) => {
+        const e = s.blocus
+        if (!e) return
+        const v = VILLAGES_PAR_ID[e.villageId]
+        if (!v) return
+        if (e.travaux.includes(id)) return
+        const cout = coutTravail(id, v)
+        if (!payer(s, cout)) {
+          pushToast(s, '⛏️', 'Vos réserves n’y suffisent pas : on ne creuse pas sans outils.')
+          return
+        }
+        e.travaux.push(id)
+        const def = TRAVAUX[id]
+        e.dernier = [def.recit, ...e.dernier].slice(0, 4)
+        pushToast(s, def.emoji, `${def.nom} : ${def.effet}`)
+        pushReport(s, def.emoji, `${def.nom} - ${v.nom}`, [def.recit, def.effet])
+        if (id === 'recoltes') {
+          ondeDiplomatique(s, e.villageId, INCENDIE_VOISINS)
+          // Zeus Xenios ne juge pas seulement l'hôte : affamer une cité entière se
+          // voit de l'Olympe, et cela ne s'annule pas en acceptant sa reddition
+          s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 6)
+        }
+      })
+      get().save()
+    },
+    /*
+     * ═══════════ ACCEPTER LA REDDITION ═══════════
+     *
+     * Aucune bataille, aucun mort, une place qui reste DEBOUT - et c'est là toute
+     * la récompense du système :
+     *
+     *  · la rançon ignore `BUTIN_REPETE`. Une place razziée trois fois ne rend plus
+     *    que 40 % de son butin à un raid ; elle PAIE 70 à 100 % du sien pour qu'on
+     *    la laisse vivre. Sur la côte déjà pillée, le blocus rapporte le double ;
+     *  · ⚠️ ON NE TOUCHE PAS À `pillages`. La place n'a pas été saccagée, sa
+     *    garnison ne se renforce donc pas : on pourra la ré-assiéger l'an prochain
+     *    au même prix, quand chaque raid rend la visite suivante plus chère ;
+     *  · Zeus MONTE et Arès descend, c'est-à-dire l'inverse exact d'un pillage
+     *    (Zeus −5, Arès +4). Le blocus n'est pas un raid plus lent : c'est l'autre
+     *    bout de la table diplomatique, et la seule façon de s'enrichir sur une
+     *    place forte sans que le dieu de l'hospitalité compte un village de plus.
+     */
+    accepterReddition: () => {
+      set((s) => {
+        const e = s.blocus
+        if (!e || !e.offre) return
+        const v = VILLAGES_PAR_ID[e.villageId]
+        if (!v) return
+        const r = redditionDe(e, v)
+        for (const [res, n] of Object.entries(r.rancon) as [ResourceId, number][]) {
+          s.resources[res] = clampRes(s, res, s.resources[res] + n)
+        }
+        // ils rentrent TOUS : il n'y a pas eu de bataille
+        for (const u of UNIT_IDS) {
+          const n = e.postes[u] ?? 0
+          if (n > 0) s.army[u] += n
+        }
+        s.blocus = null
+        s.gods.zeus.relation = Math.min(100, s.gods.zeus.relation + r.zeus)
+        s.gods.ares.relation = Math.max(-100, s.gods.ares.relation + r.ares)
+        bougerRelation(s, v.id, r.relation)
+        ondeDiplomatique(s, v.id, r.voisins)
+        s.moraleMods.push({
+          id: uid('m'),
+          label: 'Une place s’est rendue',
+          delta: 10,
+          expiresAt: Date.now() + 10 * 60_000,
+        })
+        noter(s, 'redditions')
+        gagnerXp(s, XP_EXPEDITION)
+        s.battleReport = pushReport(s, '🕊️', `Reddition - ${v.nom}`, r.lignes)
+        s.victoire = { at: Date.now(), type: 'expedition', etoiles: 3, detail: `${v.nom} s’est rendu` }
+      })
+      get().save()
+    },
+    /*
+     * ═══════════ LEVER LE SIÈGE ═══════════
+     *
+     * Il faut que renoncer soit possible - une décision dont on ne peut pas sortir
+     * n'est pas une décision - et il faut que cela coûte, sinon on ouvrirait des
+     * lignes à l'essai. Le prix est le grain déjà mangé, plus l'ambiance : le
+     * village a vu partir huit hommes pendant cinq journées et les voit revenir les
+     * mains vides.
+     */
+    leverBlocus: () => {
+      set((s) => {
+        const e = s.blocus
+        if (!e) return
+        const v = VILLAGES_PAR_ID[e.villageId]
+        if (!v) return
+        const l = leveeDe(e, v)
+        for (const u of UNIT_IDS) {
+          const n = e.postes[u] ?? 0
+          if (n > 0) s.army[u] += n
+        }
+        s.blocus = null
+        s.moraleMods.push({
+          id: uid('m'),
+          label: 'Siège levé pour rien',
+          delta: l.morale,
+          expiresAt: Date.now() + 10 * 60_000,
+        })
+        s.gods.ares.relation = Math.max(-100, s.gods.ares.relation + l.ares)
+        pushReport(s, '🏳️', `Siège levé - ${v.nom}`, l.lignes)
+        pushToast(s, '🏳️', `La ligne devant ${v.nom} est levée.`)
+      })
+      get().save()
+    },
+    /*
+     * ═══════════ DONNER L'ASSAUT ═══════════
+     *
+     * L'impatience, et son prix. On n'attend pas la porte ouverte : on entre. Et
+     * l'on repart par le MOTEUR EXISTANT - `lancerExpedition`, `creerBataille` -
+     * sans écrire une seule ligne de combat neuve. C'était la condition du système :
+     * le jeu a une bataille, il n'en aura pas deux.
+     *
+     * L'assaut trouve la place telle que le blocus l'a faite (garnison désarmée,
+     * enceinte minée si l'on a payé la sape), mais c'est un SAC en règle : butin de
+     * pillage, Zeus −5, garnison renforcée pour la prochaine fois. On échange la
+     * moitié de ce que le blocus rapportait contre les journées qu'il restait à
+     * tenir, et c'est l'arbitrage qu'on voulait offrir.
+     *
+     * ⚠️ UNE LIGNE PEUT ÊTRE PLUS GROSSE QU'UNE COLONNE, ET C'EST LE PIÈGE.
+     * `refusBlocus` ne borne les hommes postés que par `PART_MAX_DEHORS` : avec
+     * quarante soldats on en poste vingt-huit. `MAX_TROUPES` vaut 20 et
+     * `lancerExpedition` refuse alors EN SILENCE (`if (total === 0 || total >
+     * MAX_TROUPES) return`, sans un toast) - la bataille n'avait pas lieu, le joueur
+     * ne lisait rien, et la ligne restait posée sans un homme jusqu'à se défaire au
+     * matin. Cinq journées de grain et la place, perdues sans une phrase. On tranche
+     * donc la colonne AVANT d'appeler, par le plus nombreux : les lanciers restent au
+     * village, les hoplites payés en bronze montent à l'assaut.
+     */
+    donnerAssautBlocus: () => {
+      const avant = get()
+      const e = avant.blocus
+      if (!e) return
+      const v = VILLAGES_PAR_ID[e.villageId]
+      if (!v) return
+      // même garde que `lancerExpedition` : une expédition FINIE dont le rapport
+      // n'est pas encore fermé la fait refuser tout autant qu'une bataille en cours
+      if (avant.battle || avant.expedition) return
+      // …et le même test de mer que `lancerExpedition`, au caractère près : deux
+      // lectures différentes de l'hiver auraient fait passer ici ce qu'elle refuse
+      if (v.maritime && SAISONS[avant.saison].merFermee) {
+        set((s) => {
+          pushToast(s, '❄️', `${v.nom} est au-delà du détroit et la mer est prise : la colonne ne partira pas.`)
+        })
+        return
+      }
+      const dernier = avant.expeditions[e.villageId]?.dernierRaid ?? 0
+      if (Date.now() - dernier < RAID_COOLDOWN_MS / (MODE_TEST ? 10 : 1)) {
+        set((s) => {
+          pushToast(s, '⏳', `Vos hommes rentrent à peine de ${v.nom} : l’assaut attendra.`)
+        })
+        return
+      }
+      const { colonne, restent, trop } = colonneDAssaut(e.postes)
+      const postesAvant = { ...e.postes }
+      /*
+       * ⚠️ ET L'ON VIDE `postes` SANS TOUCHER AU RESTE DE LA LIGNE.
+       *
+       * `s.blocus` doit rester posé le temps de l'appel : c'est lui que
+       * `lancerExpedition` lit pour désarmer la garnison et alléger l'enceinte. Mais
+       * ce même appel LÈVE la ligne en fin de course et rend ses hommes à l'armée -
+       * s'ils y étaient encore, les huit hoplites seraient rendus DEUX fois et
+       * l'armée se clonerait à chaque assaut. La ligne garde donc sa volonté et ses
+       * travaux, et n'a plus un seul homme.
+       */
+      set((s) => {
+        if (!s.blocus) return
+        for (const u of UNIT_IDS) s.army[u] += s.blocus.postes[u] ?? 0
+        s.blocus.postes = {}
+      })
+      get().lancerExpedition(e.villageId, troupes(colonne), 'pillage')
+      /*
+       * ⚠️ ET SI LA COLONNE N'EST PAS PARTIE, ON REPOSE LA LIGNE TELLE QU'ELLE ÉTAIT.
+       *
+       * `lancerExpedition` compte SIX `return` muets au milieu de son `set`. Les
+       * quatre premiers sont pré-jugés ci-dessus, avec leur motif ; ce filet couvre
+       * les autres, et surtout ceux qu'on ajoutera plus tard sans penser au blocus.
+       * Sans lui, un seul refus silencieux laissait `s.blocus` sans un homme : la
+       * ligne se défaisait au matin suivant, l'assaut n'avait pas eu lieu, et le
+       * joueur n'avait rien lu. Le prix d'un système qui dure, c'est qu'un geste
+       * avalé ne se voit qu'une heure plus tard.
+       */
+      if (get().expedition === null) {
+        set((s) => {
+          if (!s.blocus) return
+          s.blocus.postes = postesAvant
+          for (const u of UNIT_IDS) s.army[u] = Math.max(0, s.army[u] - (postesAvant[u] ?? 0))
+          pushToast(s, '⛓️', `La colonne n’est pas partie : la ligne reste postée devant ${v.nom}.`)
+        })
+        get().save()
+        return
+      }
+      if (trop > 0) {
+        // le surplus est resté dans `s.army` : la boucle ci-dessus les y a remis et
+        // `lancerExpedition` n'a retiré que la colonne. Il reste à le DIRE.
+        set((s) => {
+          pushToast(
+            s,
+            '⚔️',
+            `Une colonne ne passe pas ${MAX_TROUPES} hommes : ${motTroupes(restent)} restent au village.`,
+          )
+        })
+      }
+      get().save()
+    },
     ignorerSecours: () => {
       set((s) => {
         if (!s.appelSecours) return

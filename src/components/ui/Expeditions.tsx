@@ -508,6 +508,30 @@ export function PanneauExpeditions() {
                     </button>
                   </Astuce>
                 )}
+                {/*
+                  LE TROISIÈME VERBE. Il est HORS du ternaire au-dessus, et à
+                  dessein : un raid en cooldown est précisément le moment où l'on
+                  songe à fermer la place au lieu de la frapper, et le cacher là
+                  aurait rendu le système invisible pendant les huit minutes où il
+                  est le plus utile.
+                */}
+                <Astuce
+                  titre={`⛓️ Assiéger ${v.nom}`}
+                  resume="Aucune bataille : on poste des hommes devant la place, ils y mangent votre grain des journées entières, et elle finit par offrir sa reddition. Ils ne défendront pas le village pendant ce temps."
+                  lignes={[
+                    { label: 'Rançon d’une reddition', valeur: 'de 70 à 100 % du butin, même si la place a déjà été pillée' },
+                    { label: 'Zeus Xenios', valeur: '+4 - on a tenu une supplication', fort: true },
+                    { label: 'Arès', valeur: '−6 - il ne compte pas les victoires sans lance' },
+                  ]}
+                  note="Un blocus à la fois, et jamais pendant qu’une colonne est dehors."
+                >
+                  <button
+                    disabled={s.battle !== null || s.expedition !== null || s.blocus !== null}
+                    onClick={() => s.openPanel('blocus')}
+                  >
+                    ⛓️ Assiéger
+                  </button>
+                </Astuce>
               </div>
             </div>
           )

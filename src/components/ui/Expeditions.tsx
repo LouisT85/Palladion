@@ -51,6 +51,8 @@ import { Meteo, VoileSaison } from '../map/Ciel'
 import { Murailles } from '../map/Murailles'
 import { CoeurVillage, DecorExpedition, signatureAbattus } from '../map/VillageEnnemi'
 import { DieuxRapides } from './Hud'
+import { verdictTraversee } from '../../game/flotte'
+import { BlocTraversee, flotteDe } from './Flotte'
 import { Astuce } from './Infobulle'
 import { BarreOrdres } from './Ordres'
 
@@ -332,6 +334,14 @@ export function PanneauExpeditions() {
                   : '⚠️ Rapport de force défavorable : vos troupes risquent d’y rester.'}
             </div>
           </div>
+          {/*
+            LA TRAVERSÉE. Elle ne s'affiche que pour une place d'outre-mer, et elle dit
+            les trois choses que le joueur ne peut pas deviner : combien de cales SA
+            colonne demande, ce que les cales ajoutent au butin, et ce que la mer risque
+            de prendre au retour. Elle est placée juste au-dessus du bouton d'assaut,
+            parce que c'est la dernière chose à lire avant de le presser.
+          */}
+          <BlocTraversee villageId={cible.id} hommes={total} />
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
             <button style={{ flex: 1 }} onClick={() => setCibleId(null)}>
               Retour
@@ -451,11 +461,24 @@ export function PanneauExpeditions() {
                 </div>
               </div>
               <div className="action-exp">
-                {v.maritime && merFermee(s) ? (
+                {v.maritime &&
+                merFermee(s) &&
+                /*
+                  ON JUGE LA PLACE SUR UNE COLONNE MINIMALE (un homme, donc une cale et
+                  une galère). La liste répond « peut-on y aller », l'écran de
+                  préparation répond « avec combien d'hommes » - et c'est lui qui dira
+                  qu'il manque une cale pour en emmener vingt. L'inverse aurait barré
+                  Ténédos à un joueur qui pouvait parfaitement y jeter six hoplites.
+                */
+                !verdictTraversee(
+                  { port: s.buildings.port.level, flotte: flotteDe(s), merFermee: true, now: Date.now() },
+                  v.id,
+                  1,
+                ).possible ? (
                   <Astuce
                     titre="❄️ La mer est prise"
-                    resume="L’hiver ferme la mer : les places d’outre-mer sont hors d’atteinte jusqu’au printemps."
-                    note="La grâce « Mer ouverte » de Poséidon lève cette saison morte."
+                    resume="L’hiver ferme la mer : les places d’outre-mer sont hors d’atteinte jusqu’au printemps - à moins d’avoir la flotte pour forcer le détroit."
+                    note="Une nef de charge et une pentécontère suffisent à passer. La grâce « Mer ouverte » de Poséidon lève la saison morte sans une seule coque."
                   >
                     <span className="cd">❄️ mer prise</span>
                   </Astuce>

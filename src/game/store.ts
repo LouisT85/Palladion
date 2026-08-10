@@ -185,6 +185,36 @@ import {
   type Cours,
   type SnapCommerce,
 } from './commerce'
+import {
+  BUTIN_PAR_NEF,
+  NAVIRES,
+  PAR_COLONNE,
+  PAR_ESCORTE,
+  PERTE_ESCORTE,
+  chantiersEchus,
+  coquesEmbarquees,
+  couler,
+  creerChantier,
+  escorteMax,
+  flotteVide,
+  libres,
+  motifRefusChantier,
+  naufrages,
+  nbCoques,
+  partPerte,
+  recitEscorteCoulee,
+  recitNaufrage,
+  recuperationDesarmement,
+  refusChantier,
+  relacher,
+  retenir,
+  retenues,
+  risqueEscorte,
+  verdictTraversee,
+  type EtatFlotte,
+  type SnapFlotte,
+  type TypeNavire,
+} from './flotte'
 import { creerAlea, defiDeLaSemaine, poserAlea } from './defi'
 import {
   CIBLES,
@@ -325,6 +355,14 @@ export interface ExpeditionEnCours {
    * pas de place à démolir.
    */
   ouvrages?: Ouvrage[]
+  /**
+   * Le détroit a été forcé hors saison. Ce drapeau ne sert qu'au RETOUR : c'est lui
+   * qui ajoute la part d'hiver au tirage de naufrage. On ne relit pas `merFermee(s)`
+   * à la fin du raid parce que la saison peut avoir tourné entre-temps - une colonne
+   * partie au dernier jour de l'automne rentrerait alors sous une pénalité qu'elle
+   * n'a pas encourue, et l'inverse est vrai aussi.
+   */
+  detroitForce?: boolean
   result: { victoire: boolean; etoiles: number; lignes: string[] } | null
 }
 
@@ -526,6 +564,24 @@ export interface GameState {
   cours: Cours
   /** convois en route vers la Troade */
   caravanes: Caravane[]
+  /**
+   * La flotte du règne : les coques à flot et les quilles en cale.
+   *
+   * AUCUNE COQUE NE PORTE D'ÉCHÉANCE - elle est retenue par une RÉFÉRENCE (l'id du
+   * convoi qu'elle escorte, la colonne qui l'a emportée) et se libère quand l'objet
+   * référencé se résout. Ce n'est pas une élégance : un `libreA` en millisecondes
+   * aurait dû être reculé à la main dans le bloc de vitesse du tick (sans quoi une
+   * escorte durerait huit fois trop longtemps à ×8) et il aurait survécu tel quel à
+   * huit heures d'absence. Seul `chantiers[].finAt` est une échéance, et elle est
+   * reculée dans le même bloc que les `busyUntil` des bâtiments.
+   *
+   * `retenue.par` est une chaîne ouverte : le blocus et la colonie, écrits en
+   * parallèle, retiendront leurs coques sous leur propre nom et les rendront
+   * eux-mêmes. La seule question qu'un système en aval doit poser est
+   * `nbLibres(s.flotte, 'nef')` - non pas « combien en ai-je » mais « combien
+   * puis-je encore engager ».
+   */
+  flotte: EtatFlotte
   /** reliques rapportées de Troade */
   reliques: string[]
   /** celles qui occupent une niche du temple - les seules qui agissent */
@@ -600,6 +656,7 @@ export interface GameState {
     | 'defi'
     | 'plandefense'
     | 'hecatombe'
+    | 'flotte'
     | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
@@ -627,8 +684,18 @@ export interface GameState {
   /** vend des charretées au comptoir, au cours du jour */
   vendre: (res: ResourceId, lots: number) => void
   acheter: (res: ResourceId, lots: number) => void
-  /** lève un convoi vers une place forte : meilleur prix, mais du temps et du risque */
-  envoyerCaravane: (villageId: string, res: ResourceId, lots: number) => void
+  /**
+   * Lève un convoi vers une place forte : meilleur prix, mais du temps et du
+   * risque. `escorte` est le nombre de pentécontères qu'on lui donne - il est borné
+   * par ce qui est réellement au mouillage, et il entre dans le risque FIGÉ au
+   * départ, parce que c'est ce risque-là qu'on a montré au joueur avant qu'il
+   * charge.
+   */
+  envoyerCaravane: (villageId: string, res: ResourceId, lots: number, escorte?: number) => void
+  /** met une quille en cale au port : la coque n'existe qu'à l'échéance du chantier */
+  batirNavire: (type: TypeNavire) => void
+  /** dépèce une coque au mouillage : deux cinquièmes du bois, et la place au port */
+  desarmerNavire: (id: string) => void
   poserQuestion: (q: OracleId, cible?: string | null) => void
   exposerRelique: (id: string) => void
   retirerRelique: (id: string) => void
@@ -1578,6 +1645,10 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     merveille: null,
     cours: coursInitiaux(),
     caravanes: [],
+    // une FONCTION et non une constante de module partagée : `etatInitial()` et la
+    // migration se seraient passé les MÊMES tableaux, et le premier `push` d'une
+    // coque aurait rempli la flotte de la partie suivante, dans la même page
+    flotte: flotteVide(),
     reliques: [],
     reliquesExposees: [],
     oracleReponse: null,
@@ -1613,6 +1684,8 @@ type ActionsOnly = {
   vendre: unknown
   acheter: unknown
   envoyerCaravane: unknown
+  batirNavire: unknown
+  desarmerNavire: unknown
   poserQuestion: unknown
   exposerRelique: unknown
   retirerRelique: unknown
@@ -1737,6 +1810,7 @@ const CHAMPS_SAUVES = [
   'merveille',
   'cours',
   'caravanes',
+  'flotte',
   'reliques',
   'reliquesExposees',
   'graces',
@@ -2200,7 +2274,16 @@ function tirerAppelSecours(s: GameState, now: number): void {
   if (now < s.prochainAppelAt) return
   // seuls les villages ni alliés ni fraîchement pillés appellent le voisin
   const pool = VILLAGES_CIBLES.filter(
-    (v) => !s.alliances[v.id] && (s.expeditions[v.id]?.pillages ?? 0) === 0 && !(v.maritime && SAISONS[s.saison].merFermee),
+    /*
+     * ⚠️ `merFermee(s)` ET NON `SAISONS[s.saison].merFermee`, comme partout ailleurs
+     * désormais. La grâce « Mer ouverte » de Poséidon lève la saison morte du port,
+     * et cette lecture-là de la saison NUE l'ignorait : un joueur qui l'avait payée
+     * voyait bien ses nefs partir en hiver, mais aucune île ne l'appelait plus au
+     * secours de décembre à mars - la moitié de la Troade devenait muette sans
+     * qu'aucun message ne le dise. Troisième et dernière lecture directe de la
+     * saison, trouvée en câblant la flotte.
+     */
+    (v) => !s.alliances[v.id] && (s.expeditions[v.id]?.pillages ?? 0) === 0 && !(v.maritime && merFermee(s)),
   )
   s.prochainAppelAt = now + 7 * 60_000 + Math.random() * 5 * 60_000
   if (pool.length === 0 || armeeTotale(s.army) < 3) return
@@ -2553,6 +2636,90 @@ function snapCommerce(s: GameState, now: number): SnapCommerce {
   }
 }
 
+/**
+ * L'instantané que la flotte lit. Il vit dans le store et non dans `flotte.ts`
+ * parce qu'il dépend de `merFermee`, qui dépend des grâces et de la saison :
+ * l'importer là-bas nous rendrait le cycle - c'est la même raison qui a mis
+ * `snapCommerce` ici.
+ */
+function snapFlotte(s: GameState, now: number): SnapFlotte {
+  return { port: s.buildings.port.level, flotte: flotteSaine(s), merFermee: merFermee(s), now }
+}
+
+/**
+ * LA FLOTTE SE RECOMPOSE AVANT QU'ON LA LISE, en un seul endroit.
+ *
+ * Le tick la lit quatre fois par seconde et six actions y touchent : un `?? []`
+ * semé dans quinze endroits aurait fini par en oublier un, et le jour où un
+ * fichier repris à la main porte `flotte: null` sous cette clé, c'est le battement
+ * entier qui tombe. Une fonction, appelée partout, et l'état est toujours sain.
+ */
+function flotteSaine(s: GameState): EtatFlotte {
+  if (!s.flotte || typeof s.flotte !== 'object') s.flotte = flotteVide()
+  if (!Array.isArray(s.flotte.coques)) s.flotte.coques = []
+  if (!Array.isArray(s.flotte.chantiers)) s.flotte.chantiers = []
+  return s.flotte
+}
+
+/**
+ * LES RETENUES ORPHELINES, rendues à chaque battement.
+ *
+ * Une coque retenue par un convoi déjà résolu, ou par une colonne qui n'existe
+ * plus, serait immobilisée POUR TOUJOURS - et le joueur lirait « il vous manque
+ * une nef » en en possédant trois, sans aucun moyen de comprendre ni de corriger.
+ * C'est la contrepartie de la retenue par référence : la référence est robuste au
+ * temps qui s'accélère, elle ne l'est pas à la disparition de l'objet référencé.
+ *
+ * ⚠️ ON NE TOUCHE QUE LES DEUX MOTIFS DE CE SYSTÈME. Une coque retenue par un
+ * blocus ou par une colonie appartient à un autre système, qui la rendra
+ * lui-même : la balayer ici serait rendre une coque que personne n'a rappelée, et
+ * la colonie se retrouverait sans la nef qui la relie au continent.
+ */
+function veillerFlotte(s: GameState): void {
+  const f = flotteSaine(s)
+  if (retenues(f, PAR_ESCORTE).length > 0) {
+    const vivantes = new Set((s.caravanes ?? []).map((c) => c.id))
+    f.coques = f.coques.map((c) =>
+      c.retenue?.par === PAR_ESCORTE && !vivantes.has(c.retenue.ref ?? '') ? { ...c, retenue: null } : c,
+    )
+  }
+  if (!s.expedition && retenues(f, PAR_COLONNE).length > 0) {
+    f.coques = relacher(f.coques, PAR_COLONNE)
+  }
+}
+
+/**
+ * LES COQUES RENTRENT - OU NE RENTRENT PAS.
+ *
+ * Les trois causes se cumulent en UN SEUL tirage par coque (`partPerte`, qui les
+ * compose en probabilité de survie et non en somme) : la mer prend son dû même
+ * après un triomphe, un raid manqué se rembarque sous les traits, et le détroit
+ * forcé hors saison ne pardonne pas au retour. Le pire cas laisse 44 % de chaque
+ * coque au fond. C'est ce qui fait FONDRE la flotte - sans quoi elle serait un
+ * achat unique, et le système mourrait au bout de dix minutes.
+ */
+function rentrerFlotte(s: GameState, victoire: boolean): void {
+  const f = flotteSaine(s)
+  const engagees = retenues(f, PAR_COLONNE)
+  if (engagees.length === 0) return
+  const circonstances = { echec: !victoire, hiver: !!s.expedition?.detroitForce }
+  const perdues = naufrages(
+    engagees,
+    partPerte(circonstances),
+    engagees.map(() => Math.random()),
+  )
+  f.coques = relacher(couler(f.coques, perdues), PAR_COLONNE)
+  if (perdues.length > 0) {
+    const coulees = engagees.filter((c) => perdues.includes(c.id))
+    const recit = recitNaufrage(coulees, circonstances)
+    pushReport(s, '🌊', `Coques perdues (${coulees.length})`, [
+      ...recit,
+      `Il vous reste ${nbCoques(f)} coque${nbCoques(f) > 1 ? 's' : ''} au port.`,
+    ])
+    pushToast(s, '🌊', recit[0])
+  }
+}
+
 function appliquerCalamite(s: GameState, e: EffetCalamite, now: number): void {
   switch (e.type) {
     case 'foudre': {
@@ -2783,6 +2950,21 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   // un héros mis à terre au loin rentre blessé, pas mort
   relverHerosTombes(s, b, now)
 
+  /*
+   * LES COQUES RENTRENT - ET L'ON COMPTE LES CALES AVANT DE LES RENDRE.
+   *
+   * Ici, en tête, et jamais dans les branches qui suivent : celle du SECOURS sort
+   * par un `return`, et la flotte y serait restée en mer pour toujours, retenue par
+   * une expédition qui n'existe plus. Un seul point de retour, quelle que soit
+   * l'issue - c'est la même leçon que `veuvage` pour un habitant qui part.
+   *
+   * `nefsPortees` se lit AVANT `rentrerFlotte` parce que c'est lui qui majore le
+   * butin plus bas : les cales rendues - ou coulées - ne sont plus là pour être
+   * comptées.
+   */
+  const nefsPortees = retenues(flotteSaine(s), PAR_COLONNE).filter((c) => c.type === 'nef').length
+  rentrerFlotte(s, victoire)
+
   // survivants (les fuyards hp>0 rentrent au village) - et ceux qu'Énée arrache
   // à la déroute : sa capacité ne joue qu'une fois, et seulement sur une défaite
   const partEnee = !victoire && s.sauverTroupes > 0 ? s.sauverTroupes : 0
@@ -2884,6 +3066,9 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
         bonusHecatombe(s.hecatombe, Date.now(), s.createdAt).butinPct +
         // et le tempérament du chef : le pillard rapporte, le laboureur non
         effetsChef(s.dynastie?.chef?.traits).butinPct +
+        // les cales de la flotte : on ne rapporte que ce qu'on peut charger, et sans
+        // elles la moitié du sac reste sur la grève
+        nefsPortees * BUTIN_PAR_NEF +
         rase * 0.25)
     const butinTxt: string[] = []
     for (const [r, n] of Object.entries(v.butin) as [ResourceId, number][]) {
@@ -3285,6 +3470,27 @@ export const useGame = create<GameState>()(
             s.morale = Math.max(0, Math.min(100, nombre(s.morale, 50)))
             s.relations = s.relations ?? {}
             s.graces = Array.isArray(s.graces) ? s.graces : []
+            /*
+             * LA FLOTTE D'UNE SAUVEGARDE QUI N'EN A PAS.
+             *
+             * `Object.assign(s, etatInitial(now), data, …)` laisse la flotte
+             * d'`etatInitial` - donc une flotte vide - quand le fichier est antérieur
+             * au système : c'est le bon état, rien à faire. Mais un fichier repris à la
+             * main peut porter n'importe quoi sous cette clé, et le tick lit la flotte
+             * quatre fois par seconde : `flotteSaine` recompose les deux tableaux
+             * plutôt que de semer quinze `?? []` dans le store.
+             *
+             * ET L'ON RELÂCHE CE QUE LA COLONNE RETENAIT. `expedition` n'est PAS dans
+             * `CHAMPS_SAUVES` - elle ne survit jamais à un rechargement - tandis que
+             * les coques, elles, sont sauvegardées. Sans cette ligne, un joueur qui
+             * quitte pendant un raid d'outre-mer reprend une partie dont trois coques
+             * sont bloquées au large POUR TOUJOURS, sans un mot et sans aucun moyen de
+             * les rappeler. Les escortes ne sont pas touchées ici : leurs caravanes
+             * SONT sauvegardées, et `veillerFlotte` rendra au premier battement celles
+             * dont le convoi a réellement disparu.
+             */
+            s.flotte = flotteSaine(s)
+            s.flotte.coques = relacher(s.flotte.coques, PAR_COLONNE)
             // un plan illisible - sauvegarde d'avant le plan, fichier repris à la main,
             // pan renommé depuis - vaut pas de plan : `planValide` recompose toujours
             // un plan sain sans jeter ce qui est encore valable
@@ -3422,6 +3628,12 @@ export const useGame = create<GameState>()(
           for (const k of Object.keys(s.alliances)) s.alliances[k].tributAt -= avance
           s.prochainAppelAt -= avance
           if (s.appelSecours) s.appelSecours.expireAt -= avance
+          /*
+           * LA SEULE ÉCHÉANCE DE LA FLOTTE. Les coques, elles, sont retenues par une
+           * RÉFÉRENCE et non par un instant : il n'y a rien d'autre à reculer ici, et
+           * c'est précisément pourquoi elles ont été conçues ainsi.
+           */
+          for (const ch of s.flotte?.chantiers ?? []) ch.finAt -= avance
         }
 
         // les habitants suivent la population (naissances, pertes, récompenses)
@@ -3527,6 +3739,26 @@ export const useGame = create<GameState>()(
          * ciel, mer fermée, ruines à rebâtir - lentement et sans tirage au sort,
          * pour qu'attendre un bon cours soit une décision et non un pari.
          */
+        /*
+         * LA FLOTTE. Deux gestes, et l'ordre compte : les quilles achevées touchent
+         * l'eau, PUIS l'on rend les coques que plus rien ne retient - et la veille
+         * passe AVANT la résolution des caravanes, sinon elle rendrait l'escorte d'un
+         * convoi que ce même battement va résoudre, et le naufrage de l'escorte ne
+         * serait jamais tiré.
+         */
+        const laFlotte = flotteSaine(s)
+        const quilles = chantiersEchus(laFlotte, now)
+        if (quilles.length > 0) {
+          for (const q of quilles) {
+            laFlotte.coques.push({ id: uid('coque'), type: q.type, retenue: null })
+            const defNav = NAVIRES[q.type]
+            pushToast(s, defNav.emoji, `${defNav.nom} mise à l’eau.`)
+            pushReport(s, defNav.emoji, `${defNav.nom} à flot`, [defNav.desc, defNav.role])
+          }
+          laFlotte.chantiers = laFlotte.chantiers.filter((c) => now < c.finAt)
+        }
+        veillerFlotte(s)
+
         if (!s.cours) s.cours = coursInitiaux()
         if (!s.caravanes) s.caravanes = []
         s.cours = deriverCours(s.cours, snapCommerce(s, now), dtMs * vitesse)
@@ -3537,6 +3769,27 @@ export const useGame = create<GameState>()(
             const r = resoudreCaravane(car, snapMarche, Math.random())
             if (!r.perdue && r.gain.bronze) {
               s.resources.bronze = clampRes(s, 'bronze', s.resources.bronze + r.gain.bronze)
+            }
+            /*
+             * L'ESCORTE RENTRE, OU COULE AVEC LE CONVOI. Le tirage n'a lieu que sur
+             * un convoi PRIS : une galère qui a ramené sa charge n'a pas plus risqué
+             * que la traversée. C'est le canal par lequel la flotte fond du côté du
+             * négoce - une escorte rentable finit tout de même par se payer en coques.
+             */
+            const fl = flotteSaine(s)
+            const escortes = retenues(fl, PAR_ESCORTE, car.id)
+            if (escortes.length > 0) {
+              const perdues = r.perdue
+                ? naufrages(
+                    escortes,
+                    PERTE_ESCORTE,
+                    escortes.map(() => Math.random()),
+                  )
+                : []
+              fl.coques = relacher(couler(fl.coques, perdues), PAR_ESCORTE, car.id)
+              if (perdues.length > 0) {
+                r.recit.push(...recitEscorteCoulee(escortes.filter((c) => perdues.includes(c.id))))
+              }
             }
             pushReport(s, r.perdue ? '💀' : '🐫', r.perdue ? 'Caravane perdue' : 'Caravane rentrée', r.recit)
             pushToast(s, r.perdue ? '💀' : '🐫', r.recit[0])
@@ -4171,7 +4424,7 @@ export const useGame = create<GameState>()(
       get().save()
     },
 
-    envoyerCaravane: (villageId, res, lots) => {
+    envoyerCaravane: (villageId, res, lots, escorte = 0) => {
       set((s) => {
         const now = Date.now()
         const snap = snapCommerce(s, now)
@@ -4196,8 +4449,106 @@ export const useGame = create<GameState>()(
           return
         }
         s.resources[res] -= quantite
-        s.caravanes.push(creerCaravane(uid('car'), villageId, charge, snap))
-        pushToast(s, '🐫', `Convoi parti pour ${VILLAGES_PAR_ID[villageId]?.nom ?? 'la Troade'}.`)
+        /*
+         * L'ESCORTE, ET POURQUOI ELLE S'APPLIQUE ICI ET NULLE PART AILLEURS.
+         *
+         * `Caravane.risque` est FIGÉ AU DÉPART, et son commentaire dit pourquoi : on
+         * l'a MONTRÉ au joueur avant qu'il charge, il serait déloyal de le recalculer
+         * au retour. L'escorte doit donc entrer dans le nombre figé, et par la MÊME
+         * fonction que celle dont le panneau s'est servi (`risqueEscorte`) - deux
+         * arithmétiques auraient fini par diverger d'un point, et c'est exactement ce
+         * point que le joueur relit sur la carte du convoi.
+         *
+         * Le nombre de galères est BORNÉ par `escorteMax` : un appel direct qui en
+         * demanderait cinq n'en obtient pas plus que la flotte n'en a au mouillage, et
+         * une route de terre n'en obtient aucune - on n'escorte pas des mulets.
+         */
+        const f = flotteSaine(s)
+        const galeres = Math.max(0, Math.min(Math.round(escorte), escorteMax(f, villageId)))
+        const car = creerCaravane(uid('car'), villageId, charge, snap)
+        if (galeres > 0) {
+          car.risque = risqueEscorte(car.risque, galeres)
+          f.coques = retenir(
+            f.coques,
+            libres(f, 'pentecontere')
+              .slice(0, galeres)
+              .map((c) => c.id),
+            { par: PAR_ESCORTE, ref: car.id },
+          )
+        }
+        s.caravanes.push(car)
+        pushToast(
+          s,
+          '🐫',
+          `Convoi parti pour ${VILLAGES_PAR_ID[villageId]?.nom ?? 'la Troade'}${galeres > 0 ? ` sous ${galeres} galère${galeres > 1 ? 's' : ''}` : ''}.`,
+        )
+      })
+      get().save()
+    },
+
+    /*
+     * LE CHANTIER NAVAL. Trois gestes, et l'ordre compte, comme pour l'hécatombe :
+     *  1. on juge la recevabilité AVANT de toucher à quoi que ce soit, et le refus
+     *     est DIT - un bouton qui ne fait rien est pire qu'un bouton absent ;
+     *  2. on ne pose la quille qu'APRÈS le paiement, sinon un paiement refusé
+     *     laisserait une cale occupée par une coque que personne n'a payée ;
+     *  3. la coque N'EXISTE QU'À L'ÉCHÉANCE. `batirNavire` ne crée aucune coque -
+     *     c'est le battement qui la met à l'eau. C'est pour cela que le plafond du
+     *     port compte les chantiers (`coquesComptees`) : sans quoi on mettrait neuf
+     *     quilles en cale au petit quai et le plafond ne serait plus qu'un délai.
+     */
+    batirNavire: (type) => {
+      set((s) => {
+        const now = Date.now()
+        const defNav = NAVIRES[type]
+        if (!defNav) return
+        flotteSaine(s)
+        const refus = refusChantier(snapFlotte(s, now))
+        if (refus) {
+          pushToast(s, '🚢', motifRefusChantier(refus, s.buildings.port.level))
+          return
+        }
+        if (!payer(s, defNav.cout)) {
+          pushToast(s, '❌', `Il faut ${defNav.cout.bois ?? 0} 🪵 et ${defNav.cout.bronze ?? 0} 🪙 pour cette coque.`)
+          return
+        }
+        s.flotte.chantiers.push(creerChantier(uid('coque'), type, now))
+        pushToast(
+          s,
+          defNav.emoji,
+          `${defNav.nom} : quille en cale, à l’eau dans ${Math.round(defNav.chantierMs / 1000)} s.`,
+        )
+      })
+      get().save()
+    },
+
+    /*
+     * DÉSARMER UNE COQUE. Ce n'est pas une commodité de rangement : sans elle, trois
+     * nefs et aucune galère au petit quai forment un CUL-DE-SAC dont on ne sort qu'en
+     * payant deux niveaux de port. Le plafond doit être un arbitrage, pas une
+     * punition irréversible.
+     *
+     * On ne rend que le BOIS, et seulement les deux cinquièmes : les clous, l'éperon
+     * et les ferrures sont repartis dans les armes depuis longtemps. Et l'on ne dépèce
+     * jamais une coque en mer - elle est retenue par un convoi ou par la colonne, et
+     * la faire disparaître laisserait un convoi escorté par un fantôme.
+     */
+    desarmerNavire: (id) => {
+      set((s) => {
+        const f = flotteSaine(s)
+        const cible = f.coques.find((c) => c.id === id)
+        if (!cible) return
+        if (cible.retenue) {
+          pushToast(s, '🚢', 'Cette coque est en mer. On ne dépèce pas un navire qu’on attend.')
+          return
+        }
+        const defNav = NAVIRES[cible.type]
+        const rendu = recuperationDesarmement(cible.type)
+        f.coques = couler(f.coques, [id])
+        for (const [r, n] of Object.entries(rendu) as [ResourceId, number][]) {
+          s.resources[r] = clampRes(s, r, s.resources[r] + n)
+        }
+        pushToast(s, '🪓', `${defNav.nom} dépecée sur la grève : +${rendu.bois ?? 0} 🪵, un mouillage libéré.`)
       })
       get().save()
     },
@@ -5042,8 +5393,41 @@ export const useGame = create<GameState>()(
         }
         const v = VILLAGES_PAR_ID[villageId]
         if (!v) return
-        if (v.maritime && SAISONS[s.saison].merFermee) {
-          pushToast(s, '❄️', `${v.nom} est au-delà du détroit : la mer est prise, aucune nef ne partira avant le dégel.`)
+        /*
+         * LA MER, ET LA FLOTTE QUI LA FORCE.
+         *
+         * La règle tenait en une ligne : l'hiver, les places d'outre-mer étaient
+         * inatteignables, et c'était tout. Elle le RESTE pour qui n'a pas de flotte -
+         * `verdictTraversee` rend le même refus, enrichi de ce qui manque. Ce qui
+         * change, c'est qu'on peut désormais passer quand même : une cale par huit
+         * hommes, une galère pour ouvrir la route, et la mer d'hiver prend son dû au
+         * retour. On a tranché pour « malgré la saison » plutôt que « plus vite »
+         * parce que ce moteur n'a AUCUN trajet d'expédition à raccourcir - la bataille
+         * est créée dans le même geste que le départ, cinquante lignes plus bas.
+         *
+         * ⚠️ ON COMPTE LES HOMMES ICI, alors que leur validation se fait cinquante
+         * lignes plus bas : le nombre de cales dépend de la taille de la colonne, et
+         * juger la mer sans la connaître aurait laissé partir vingt hommes dans une
+         * seule nef. Rien n'est RETENU à ce stade - la retenue attend que les effectifs
+         * soient validés, sinon un refus tardif laisserait la flotte en mer sans
+         * colonne.
+         *
+         * ⚠️ ET L'ON PASSE DE `SAISONS[s.saison].merFermee` À `merFermee(s)` (que
+         * `snapFlotte` lit). Ce n'est pas un détail de refactorisation : le panneau des
+         * expéditions jugeait déjà par `merFermee(s)`, grâce de Poséidon comprise, et le
+         * store refusait par la saison nue. Un joueur qui avait payé « Mer ouverte »
+         * voyait donc le bouton allumé et l'assaut refusé. Les deux disent maintenant
+         * la même chose.
+         */
+        const hommesEmbarques = UNIT_IDS.reduce((a, u) => a + Math.max(0, troupes[u] ?? 0), 0)
+        const traversee = verdictTraversee(snapFlotte(s, Date.now()), villageId, hommesEmbarques)
+        if (!traversee.possible) {
+          pushToast(
+            s,
+            '❄️',
+            traversee.motif ??
+              `${v.nom} est au-delà du détroit : la mer est prise, aucune nef ne partira avant le dégel.`,
+          )
           return
         }
         const secours = intention === 'secours'
@@ -5083,6 +5467,21 @@ export const useGame = create<GameState>()(
         }
         if (total === 0 || total > MAX_TROUPES) return
         for (const u of UNIT_IDS) s.army[u] -= troupes[u] ?? 0
+        /*
+         * LES COQUES EMBARQUENT MAINTENANT, ET PAS PLUS TÔT : tous les refus sont
+         * passés (place, cooldown, effectifs). Elles sont retenues par le motif
+         * `colonne` et rendues en tête de `finirExpedition`, quelle que soit l'issue -
+         * et `veillerFlotte` rattrape le cas où l'expédition disparaîtrait sans
+         * conclure, sans quoi elles resteraient en mer pour toujours.
+         */
+        const embarquees = coquesEmbarquees(flotteSaine(s), traversee)
+        if (embarquees.length > 0) {
+          s.flotte.coques = retenir(
+            s.flotte.coques,
+            embarquees.map((c) => c.id),
+            { par: PAR_COLONNE, ref: null },
+          )
+        }
         const attaquants = UNIT_IDS.filter((u) => (troupes[u] ?? 0) > 0).map((u) => ({
           enemy: u,
           count: troupes[u],
@@ -5098,6 +5497,9 @@ export const useGame = create<GameState>()(
           villageId,
           intention,
           envoyes: { ...troupes },
+          // le retour se juge sur ce qu'on a osé au départ, pas sur la saison qu'il
+          // fera dans trois minutes
+          detroitForce: traversee.passage === 'flotte',
           wallHp: ruse || secours ? 0 : WALL_HP[v.mur],
           battle: creerBataille({
             attaquants,

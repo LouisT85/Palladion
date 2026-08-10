@@ -26,8 +26,10 @@ import {
 } from '../../game/commerce'
 import { STATUTS, statutVillage } from '../../game/diplomatie'
 import { VILLAGES_CIBLES, VILLAGES_PAR_ID } from '../../game/expeditions'
+import { escorteMax, risqueEscorte } from '../../game/flotte'
 import { merFermee, useGame, type GameState } from '../../game/store'
 import type { ResourceId } from '../../game/types'
+import { ChoixEscorte, flotteDe } from './Flotte'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
@@ -59,7 +61,7 @@ interface EtatCommerce {
   caravanes?: Caravane[]
   vendre?: (res: ResourceId, lots: number) => void
   acheter?: (res: ResourceId, lots: number) => void
-  envoyerCaravane?: (villageId: string, res: ResourceId, lots: number) => void
+  envoyerCaravane?: (villageId: string, res: ResourceId, lots: number, escorte?: number) => void
 }
 
 function commerce(s: GameState): EtatCommerce {
@@ -241,6 +243,14 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
   const snap = snapCommerce(s, now)
   const [res, setRes] = useState<ResourceId>('grain')
   const [lots, setLots] = useState(2)
+  /*
+   * LES GALÈRES QU'ON DONNE AU CONVOI. Un seul état pour toutes les cartes - on ne
+   * charge qu'un convoi à la fois - et chaque carte le CLAMPE à ce que sa route
+   * autorise (`escorteMax`). Le choix vit dans l'écran de chargement, et pas
+   * ailleurs, parce que le risque est figé au départ : ce que cette ligne montre est
+   * exactement ce que le store écrira dans la caravane.
+   */
+  const [escorte, setEscorte] = useState(0)
 
   const port = snap.port
   const marge = MARGE_PORT[port] ?? 0
@@ -331,6 +341,11 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
               destinations.map((d) => {
                 const gain = gainCaravane(d.village.id, charge, snap.cours)
                 const fiche = STATUTS[d.statut]
+                // une route de terre n'escorte pas, et la flotte n'a peut-être qu'une
+                // galère au mouillage : c'est `escorteMax` qui tranche, ici et dans le
+                // store, avec la même fonction
+                const galeres = Math.min(escorte, escorteMax(flotteDe(s), d.village.id))
+                const risque = risqueEscorte(d.risque, galeres)
                 return (
                   <div key={d.village.id} style={CADRE}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
@@ -346,8 +361,9 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
                       <span style={{ color: '#c9a86a', fontSize: 13 }}>≈ {gain} 🪙</span>
-                      <span style={{ color: d.risque > 0.25 ? '#c0563f' : '#7fb069', fontSize: 12.5 }}>
-                        risque {pourcent(d.risque)}
+                      <span style={{ color: risque > 0.25 ? '#c0563f' : '#7fb069', fontSize: 12.5 }}>
+                        risque {pourcent(risque)}
+                        {galeres > 0 && <span style={{ color: '#7f97a8' }}> (nu : {pourcent(d.risque)})</span>}
                       </span>
                       <span style={{ color: '#7f97a8', fontSize: 12 }}>prix majoré de {Math.round((d.prime - 1) * 100)} %</span>
                       <Astuce
@@ -356,7 +372,8 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
                         lignes={[
                           { label: 'Charge', valeur: `${aBord} ${RES[res].nom.toLowerCase()}` },
                           { label: 'Gain estimé', valeur: `${gain} lingots`, fort: true },
-                          { label: 'Risque de pillage', valeur: pourcent(d.risque) },
+                          { label: 'Risque de pillage', valeur: pourcent(risque) },
+                          ...(galeres > 0 ? [{ label: 'Sans escorte', valeur: pourcent(d.risque) }] : []),
                           { label: 'Retour dans', valeur: mmss(d.duree) },
                         ]}
                         note="Le risque tient à la longueur de la route, à la menace du moment et à ce que ce village pense de vous. Un allié laisse passer."
@@ -364,12 +381,23 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
                         <button
                           style={{ marginLeft: 'auto' }}
                           disabled={!c.envoyerCaravane || complet || dePlus}
-                          onClick={() => c.envoyerCaravane?.(d.village.id, res, lots)}
+                          onClick={() => c.envoyerCaravane?.(d.village.id, res, lots, galeres)}
                         >
                           Charger
                         </button>
                       </Astuce>
                     </div>
+                    {/*
+                      Le choix des galères est DANS la carte, et non au-dessus de la
+                      liste : le risque qu'on fige est celui que cette ligne-là montre,
+                      et une route de terre doit dire elle-même qu'elle ne s'escorte pas.
+                    */}
+                    <ChoixEscorte
+                      villageId={d.village.id}
+                      galeres={galeres}
+                      onChanger={setEscorte}
+                      risqueNu={d.risque}
+                    />
                   </div>
                 )
               })

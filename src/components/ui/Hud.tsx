@@ -14,6 +14,7 @@ import {
   popCap,
   stockageMax,
   tauxParMinute,
+  merFermee,
   useGame,
 } from '../../game/store'
 import { METEOS, SAISONS } from '../../game/saisons'
@@ -414,7 +415,8 @@ export function JetonsEtat() {
           note={
             <>
               {METEOS[s.meteo].emoji} <b>{METEOS[s.meteo].nom}</b> - {METEOS[s.meteo].desc}
-              {SAISONS[s.saison].merFermee && <div>❄️ La mer est prise : port au tiers, îles hors d’atteinte.</div>}
+              {/* la grâce « Mer ouverte » lève la saison morte : l'écriteau doit la suivre */}
+              {merFermee(s) && <div>❄️ La mer est prise : port au tiers, îles hors d’atteinte.</div>}
             </>
           }
         >

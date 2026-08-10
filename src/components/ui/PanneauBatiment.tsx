@@ -6,6 +6,8 @@ import { Icone, Montant, type IconeId } from './Icones'
 import { Astuce } from './Infobulle'
 import { chantiersMenes } from '../../game/store'
 import { riteActif } from '../../game/hecatombe'
+import { nbLibres, resumeFlotte } from '../../game/flotte'
+import { flotteDe } from './Flotte'
 import { nichesTemple } from '../../game/reliques'
 import { BlocPlanDefense } from './PlanDefense'
 import { couleurRendement } from './Population'
@@ -631,6 +633,16 @@ export function PanneauBatiment() {
           </div>
           <button className="principal" style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('commerce')}>
             Ouvrir le comptoir
+          </button>
+          {/*
+            LE CHANTIER NAVAL, troisième usage du port - le quai produit, le comptoir
+            négocie, la cale bâtit. Le libellé porte l'état de la flotte : sans lui,
+            rien depuis la carte ne disait combien de coques sont EN MER, et c'est
+            justement ce nombre qui décide si l'on peut escorter ou traverser.
+          */}
+          <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('flotte')}>
+            🚢 Le chantier naval ({resumeFlotte(flotteDe(s))}
+            {nbLibres(flotteDe(s)) > 0 ? `, ${nbLibres(flotteDe(s))} au mouillage` : ''})
           </button>
         </div>
       )}

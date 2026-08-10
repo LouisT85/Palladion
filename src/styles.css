@@ -349,9 +349,36 @@ main.scene {
    cents filtres gaussiens, pour rien, sous un voile opaque. On la retire du
    rendu - l'état React, lui, reste intact, et le règne retrouve son décor à
    l'identique au retour du raid.
+
+   MAIS PAS AVEC `display: none`, ET C'EST TOUTE L'HISTOIRE DES « BÂTIMENTS
+   TRANSPARENTS EN EXPÉDITION ».
+
+   `DefsArt` est monté dans DEUX <svg> : la carte du village et la scène du raid.
+   Les deux jeux portent les mêmes identifiants, et un `url(#a-bois-l)` se résout
+   sur le PREMIER du document - celui de la carte. Éteinte par `display: none`,
+   cette carte ne fournit plus de serveur de peinture : tout ce qui, dans la
+   scène d'expédition, est peint d'un dégradé disparaît. Restent les à-plats -
+   d'où des maisons réduites à leurs chevrons et à leur porte, sur cinq décors
+   des six. Le camp de pillards, lui, n'a que des tentes en à-plats : c'est
+   pourquoi il était le seul intact, et pourquoi le défaut a mis si longtemps à
+   se laisser cerner.
+
+   `content-visibility: hidden` saute le rendu du contenu SANS le retirer du
+   document : les dégradés restent résolvables. Relevé au pixel, au centre du fût
+   de la tour de guet du fort achéen :
+
+     display: none .............. (170,168,112) - l'herbe : rien n'est peint
+     content-visibility: hidden . (145,114,75)  - le bois
+
+   Et le prix, mêlée gelée, en images par seconde :
+
+     display: none 31,8 · content-visibility: hidden 31,2 · carte peinte 10,4
+
+   Un dixième d'image par seconde pour cinq décors qui se peignent : le gain de
+   performance qui motivait la règle est intégralement conservé.
 */
 main.scene.scene-derriere > svg.carte {
-  display: none;
+  content-visibility: hidden;
 }
 
 /* la carte occupe tout le conteneur : le viewBox 1200×800 se met à l'échelle seul */

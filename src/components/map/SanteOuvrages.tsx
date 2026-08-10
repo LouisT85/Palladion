@@ -41,7 +41,11 @@ import { Jauge } from './SanteBatiments'
  *   content-visibility:hidden . (145,114,75)  - le bois
  * et le prix en images par seconde, mêlée gelée, cas entrelacés :
  *   display:none 31,8 · content-visibility:hidden 31,2 · carte peinte 10,4
- * Le correctif ne coûte donc rien. Il est hors de ce fichier : voir `aCabler`.
+ *
+ * CORRIGÉ. `styles.css` pose désormais `content-visibility: hidden` sur la carte
+ * du village pendant un raid, et le parcours e2e 04 garde les DEUX faces du
+ * contrat : la carte ne doit pas être peinte, et elle ne doit pas quitter le
+ * rendu. Les cinq décors à dégradés ont été regardés un par un.
  */
 
 export function SanteOuvrages({ ouvrages, actif }: { ouvrages: Ouvrage[] | undefined; actif: boolean }) {

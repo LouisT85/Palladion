@@ -4043,3 +4043,123 @@ button.plan-jeton.hero.vide:disabled {
   padding: 7px 9px;
   line-height: 1.45;
 }
+
+/* ─────────────────────────── LE TRÔNE ───────────────────────────
+   Deux états dans le même bloc du recensement : le chef en place, ou la
+   vacance et ses prétendants. Le second est un choix irréversible, il porte
+   donc la teinte d'alerte et son prix est écrit sur le bouton lui-même. */
+.trone-chef,
+.trone-candidat {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.trone-vacant {
+  border-color: #7a4a2e !important;
+  background: #241b16;
+}
+.trone-tete {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.trone-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+.trone-nom {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: #e8dcc0;
+}
+.trone-sous {
+  font-size: 11.5px;
+  color: #98a6bc;
+}
+.trone-sang {
+  color: #c9a24a;
+}
+
+.trone-traits {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.trone-traits li {
+  display: flex;
+  flex-direction: column;
+  background: #101725;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.trone-trait-nom {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e8dcc0;
+}
+.trone-trait-effet {
+  font-size: 11.5px;
+  color: #a8b6cc;
+  line-height: 1.4;
+}
+/* le fondateur n'a pas de trait, et c'est une information, pas un vide */
+.trone-fondateur,
+.trone-consigne,
+.trone-interregne,
+.trone-personne,
+.trone-humeur {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #b6c2d4;
+}
+.trone-interregne {
+  color: #e0956a;
+}
+.trone-consigne {
+  color: #dcc478;
+  font-weight: 600;
+}
+.trone-avertit {
+  font-size: 12px;
+  color: #e0956a;
+  background: #2a1f19;
+  border-radius: 6px;
+  padding: 7px 9px;
+  line-height: 1.45;
+}
+
+/* les prétendants côte à côte : on ne choisit pas un héritier sans comparer */
+.trone-candidats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+  gap: 9px;
+  margin-top: 8px;
+}
+.trone-candidat {
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 10px;
+}
+/* le sang du défunt se distingue : le village le reconnaîtrait d'abord */
+.trone-candidat.du-sang {
+  border-color: #c9a24a;
+}
+
+.trone-passes {
+  margin-top: 9px;
+  font-size: 12px;
+  color: #98a6bc;
+}
+.trone-passes summary {
+  cursor: pointer;
+  color: #b6c2d4;
+}
+.trone-passes ul {
+  margin: 6px 0 0;
+  padding-left: 17px;
+  line-height: 1.6;
+}

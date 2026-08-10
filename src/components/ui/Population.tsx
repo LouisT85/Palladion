@@ -1,3 +1,4 @@
+import { BlocTrone } from './Trone'
 import { BUILDINGS, METIERS, RENDEMENT_HORS_METIER } from '../../game/data'
 import { AGE_ADULTE, ageDe, motAge, pyramide, rendementAge, saisonDeVie } from '../../game/lignees'
 import {
@@ -230,6 +231,14 @@ export function PanneauPopulation({ onFermer }: { onFermer: () => void }) {
             côte, dont on ne choisit pas le métier.
           </div>
         </div>
+
+        {/*
+          LE TRÔNE EN TÊTE. Quand il est vide, c'est la décision la plus lourde du
+          panneau et elle ne doit pas se trouver sous trois écrans de postes. Quand
+          il est tenu, le bloc dit qui règne et ce que son tempérament change - la
+          même information que le joueur cherchera au moment de choisir un héritier.
+        */}
+        <BlocTrone />
 
         <div className="bloc">
           <h3>Ateliers et postes</h3>

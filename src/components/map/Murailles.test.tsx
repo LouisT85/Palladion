@@ -103,6 +103,73 @@ describe('Murailles - aucune cote indéfinie', () => {
   })
 })
 
+/*
+ * LA FACE INTERNE SE TIENT PAR LA VALEUR.
+ *
+ * Elle a été refusée deux fois de suite, et pour deux raisons opposées : d'abord
+ * parce qu'elle était une bande pâle et vide sur huit cents pixels d'arc, ensuite
+ * parce que le remblai de terre censé la remplir « rendait mal » - une nappe brune
+ * que ni ventre, ni sentier, ni rigoles, ni herbe n'ont sauvée. Ce qui a fini par
+ * tenir n'est pas un objet de plus : le parement descend au sol et s'ASSOMBRIT
+ * vers son pied.
+ *
+ * Ces deux tests protègent l'un et l'autre bout de cette leçon. Ils ne jugent pas
+ * le dessin - ils interdisent de revenir à l'un des deux échecs : le remblai qui
+ * revient, ou l'aplat d'un seul ton qui reparaît.
+ */
+describe('Murailles - la face interne a une valeur, pas un remblai', () => {
+  /** un remplissage littéral, décomposé en luminance et en saturation */
+  function tons(mo: Montage): { lum: number; sat: number; hex: string }[] {
+    const vus = new Set<string>()
+    const out: { lum: number; sat: number; hex: string }[] = []
+    for (const el of mo.qq('svg *')) {
+      const f = el.getAttribute('fill')
+      if (!f || !/^#[0-9a-f]{6}$/i.test(f) || vus.has(f)) continue
+      vus.add(f)
+      const n = parseInt(f.slice(1), 16)
+      const r = (n >> 16) & 255
+      const v = (n >> 8) & 255
+      const b = n & 255
+      const hi = Math.max(r, v, b)
+      out.push({ lum: (r * 0.299 + v * 0.587 + b * 0.114) / 255, sat: hi ? (hi - Math.min(r, v, b)) / hi : 0, hex: f })
+    }
+    return out
+  }
+
+  for (const niveau of [2, 3, 4]) {
+    it(`remparts ${niveau} : le parement du dedans s’étage en trois tons sourds`, () => {
+      m = monterSvg(
+        <Murailles niveau={niveau} hp={10} max={10} breche={false} layer="back" geo={GEO_CARTE} tours={niveau - 1} />,
+      )
+      const t = tons(m)
+      // la plage complète : un aplat d’un seul ton ne passe pas
+      const lums = t.map((x) => x.lum).sort((a, b) => a - b)
+      expect(lums.length, 'la couche interne ne peint aucun ton littéral').toBeGreaterThan(6)
+      expect(lums[lums.length - 1] - lums[0]).toBeGreaterThan(0.3)
+      /*
+       * ET SURTOUT les nappes qui font tomber la valeur vers le pied. On les
+       * reconnaît à ce qu’elles sont SOURDES et NEUTRES : le bois du chaînage et
+       * du hourd est sourd lui aussi, mais franchement coloré (saturation > 0,49
+       * contre 0,34 pour la pierre à l’ombre). Sans ces trois marches, la face
+       * redevient la bande pâle et vide qu’on a refusée.
+       */
+      const marches = t.filter((x) => x.lum > 0.12 && x.lum < 0.32 && x.sat < 0.42)
+      expect(marches.map((x) => x.hex).join(' ')).toSatisfy(() => marches.length >= 3)
+    })
+  }
+
+  it('le remblai de terre ne revient pas', () => {
+    for (const niveau of [2, 3, 4]) {
+      const mo = monterSvg(
+        <Murailles niveau={niveau} hp={10} max={10} breche={false} layer="back" geo={GEO_CARTE} tours={1} />,
+      )
+      const html = mo.qq('svg')[0]?.outerHTML ?? ''
+      mo.demonter()
+      expect(html, `remparts ${niveau}`).not.toContain('mur-terre')
+    }
+  })
+})
+
 describe('Murailles - le chemin de ronde est la cote de référence', () => {
   /*
    * `hauteurRonde` est le contrat que la tour, la garnison et les jauges doivent

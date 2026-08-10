@@ -101,7 +101,49 @@ def jouer_la_scene(sc: Scene) -> None:
         "la scène de bataille de l’expédition ne s’affiche pas",
     )
     exige("Vos troupes" in sc.texte_de(".statut-exp"), "le statut de la mêlée n’est pas affiché")
+    la_carte_reste_une_source_de_peinture(sc)
     sc.capture("scene-raid")
+
+
+def la_carte_reste_une_source_de_peinture(sc: Scene) -> None:
+    """
+    LES « BÂTIMENTS TRANSPARENTS EN EXPÉDITION », ET POURQUOI CE CONTRAT A DEUX
+    FACES.
+
+    `DefsArt` est monté dans DEUX <svg> - la carte du village et la scène du raid -
+    avec les MÊMES identifiants. Un `url(#a-bois-l)` se résout sur le PREMIER du
+    document, celui de la carte. Éteindre cette carte par `display: none` pendant
+    le raid supprimait donc le serveur de peinture : tout ce qui est peint d'un
+    dégradé dans la scène d'expédition disparaissait - murs des maisons, fût de la
+    tour de guet, occlusion des bases. Restaient les à-plats, d'où des bâtisses
+    réduites à leurs chevrons et à leur porte, sur cinq décors des six. Le camp de
+    pillards, tout en à-plats, était le seul intact : c'est ce qui a rendu le
+    défaut si long à cerner, et c'est pourquoi ce parcours - qui joue le camp - ne
+    peut PAS le voir au pixel. Il vérifie donc la cause, pas le symptôme.
+
+    Les deux faces du contrat :
+      · la carte ne doit PAS être peinte (4900 nœuds et deux cents flous gaussiens
+        sous un voile opaque : 10,4 i/s contre 31,2) ;
+      · elle doit RESTER dans le rendu, sans quoi ses dégradés ne se résolvent plus.
+    `content-visibility: hidden` tient les deux. `display: none` n'en tient qu'une.
+    """
+    etat = sc.page.evaluate(
+        "() => { const s = document.querySelector('main.scene.scene-derriere > svg.carte');"
+        "  if (!s) return null;"
+        "  const c = getComputedStyle(s);"
+        "  return { display: c.display, cv: c.contentVisibility } }"
+    )
+    exige(etat is not None, "la carte du village n’est plus sous la scène pendant le raid")
+    exige(
+        etat["display"] != "none",
+        "la carte du village est retirée du rendu par « display: none » : ses dégradés "
+        "ne se résolvent plus et les bâtiments de l’expédition redeviennent transparents",
+    )
+    exige(
+        etat["cv"] == "hidden",
+        f"la carte du village est peinte pendant le raid (content-visibility : {etat['cv']}) - "
+        "le jeu retombe à 10 images par seconde",
+    )
 
 
 def lire_le_rapport_de_raid(sc: Scene) -> None:

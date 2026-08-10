@@ -23,7 +23,7 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Village vivant | ✅ complet | âges, foyers, lignées, transmission des métiers, **un chef qui vieillit, meurt et se remplace** |
 | Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, 51 hauts faits, campagne en 5 actes |
 | Modes de jeu | ✅ **quatre** | bac à sable, campagne, **siège sans fin**, **défi hebdomadaire** - plus **Nouvelle Partie +** |
-| Tests | ✅ **986 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
+| Tests | ✅ **1 268 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
 | Art | ✅ complet | rien de bloquant - carte allégée, culling, palier de détail, temple refait, **remparts et tours redessinés par niveau** |
 | Accessibilité / mobile | ❌ non traité | tactile, contrastes, `prefers-reduced-motion` |
 | Multijoueur / serveur | ❌ non traité | hors périmètre pour l'instant |
@@ -52,7 +52,7 @@ Restent ici les trois que le joueur a explicitement laissées de côté.
 | **Mode Historique** : sans dieux, économie plus dure, textes documentaires | M | ★ | mode |
 | **Localisation EN** | L | ★ | confort |
 
-## 🚧 Lot 15 - en cours
+## ✅ Lot 15 - livré
 
 Les six chantiers de la priorité 2 que le joueur a demandés, dans l'ordre de
 dépendance établi par le cadrage. **Le « socle partagé » que ce cadrage proposait en
@@ -62,14 +62,18 @@ un changement d'équilibre déguisé en refactor. Chaque système suit donc l'id
 existant - une fonction `bonusX()` lue là où elle sert, et un terme de plus dans une
 somme qui existe déjà.
 
-| # | Chantier | État |
+| # | Chantier | Ce qui a été fait |
 |---|---|---|
-| 1 | **Hécatombe** | ✅ livré - 4 rites, un par Olympien, l'effet tient la saison entière |
-| 2 | **Successions** | ✅ livré - un chef nommé, 12 traits, héritier choisi parmi les lignées |
-| 3 | **Flotte** | 🚧 en cours |
-| 4 | **Épidémies et médecine** | 🚧 en cours |
-| 5 | **Blocus de places fortes** | 🚧 en cours |
-| 6 | **Colonies** | 🚧 en cours |
+| 1 | **Hécatombe** | Quatre rites, un par Olympien, dont l'effet tient la SAISON entière. L'état ne porte aucune échéance en millisecondes - un index de saison - donc rien à reculer à ×8 et rien à craindre d'un rattrapage de huit heures. La trêve de Zeus DIFFÈRE l'assaut au lieu de le supprimer (chiffré : elle en effaçait deux à quatre pour 40 de faveur) et se rompt si l'on part piller. |
+| 2 | **Successions** | Un chef nommé, douze traits dont aucun n'est un cadeau, un héritier choisi parmi les adultes des lignées. Le chef n'est PAS dans `villageois` (sinon `syncVillageois` l'effacerait) : le couronner retire donc un bras au village, et l'on choisit quel métier perdre. Le fondateur n'a aucun trait - sinon le défi de la semaine cesserait d'être comparable. |
+| 3 | **Flotte** | Deux coques aux métiers disjoints, bâties au port, plafonnées par son niveau. Escorte décidée au chargement d'un convoi, traversée forcée en hiver, cales qui rapportent du butin. Aucune coque ne porte d'échéance : elle est retenue par une RÉFÉRENCE et se libère quand l'objet référencé se résout. |
+| 4 | **Épidémies et médecine** | Une fièvre qui entre par quatre portes identifiables, se propage, tue des habitants NOMMÉS et finit. En face le lazaret, ouvert au temple, et trois découvertes de médecine - l'arbre passe de vingt à vingt-trois. Le dilemme `peste` devient une porte du système au lieu d'un doublon. |
+| 5 | **Blocus** | Une troisième façon de marcher sur une place : pas une bataille, une DURÉE. Les hommes postés sortent de la garnison et mangent le grain chaque journée ; la place s'affaiblit et finit par offrir sa reddition. Quatre décisions pendant la ligne, et chacune rend les hommes. |
+| 6 | **Colonies** | Un second foyer outre-mer qui n'est PAS un second village jouable : quatre décisions par règne. Fonder coûte des habitants qui partent pour de bon avec leurs métiers, une nef retenue à vie, et des soldats laissés sur place. Un seul champ d'état, huit propriétés par colonie, tout le reste déduit. |
+
+**1 268 tests unitaires** (+282 sur ce lot) et 7 parcours e2e. Les six systèmes comptent
+en JOURNÉES DE JEU partout où c'est possible : c'est ce qui les rend insensibles au
+bloc de vitesse du tick et au rattrapage de soixante journées d'une absence de nuit.
 
 ## 🎯 Priorité 3 - bon à prendre
 

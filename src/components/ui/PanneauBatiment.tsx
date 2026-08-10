@@ -1,3 +1,5 @@
+import { PORT_MINIMUM } from '../../game/colonies'
+import { BlocColonies } from './Colonies'
 import { BlocLazaret } from './Lazaret'
 import { useState } from 'react'
 import { BUILDINGS, DEFENSES_DEFS, DEFENSE_IDS, REDOUTE_CADENCE_MS, REDOUTE_MAX, REDOUTE_PORTEE, redouteDmg, structureMax, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
@@ -648,6 +650,8 @@ export function PanneauBatiment() {
           </button>
         </div>
       )}
+      {/* le port est aussi la porte de l'outre-mer : on ne fonde pas depuis une grève */}
+      {id === 'port' && b.level >= PORT_MINIMUM && <BlocColonies />}
       {/* l'agora tient le conseil : c'est là qu'on cherche et qu'on rêve grand */}
       {id === 'agora' && b.level >= 2 && (
         <div className="bloc">

@@ -4702,3 +4702,349 @@ button.plan-jeton.hero.vide:disabled {
   flex: 1;
   min-width: 0;
 }
+
+/* ── Les colonies ──────────────────────────────────────────────────────────── */
+.colonies {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* deux moments d'une colonie, deux onglets : fonder n'est pas tenir */
+.col-onglets {
+  display: flex;
+  gap: 6px;
+}
+.col-onglets button {
+  flex: 1;
+  font-size: 12.5px;
+}
+.col-onglets button.actif {
+  border-color: #c9a24a;
+  color: #e8c46a;
+}
+
+.col-cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 10px;
+}
+.col-carte {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 11px;
+}
+/* une colonie qui appelle doit se voir depuis l'autre bout du panneau */
+.col-carte.en-peril {
+  border-color: #7a4a2e;
+  background: #241c17;
+}
+.col-carte-tete {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.col-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.col-nom {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+.col-sous {
+  font-size: 11.5px;
+  color: #98a6bc;
+  line-height: 1.4;
+}
+.col-desc {
+  font-size: 12px;
+  color: #b6c2d4;
+  line-height: 1.5;
+}
+.col-chiffre {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #e8c46a;
+}
+
+.col-convoi {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12.5px;
+  background: #101725;
+  border-radius: 6px;
+  padding: 7px 9px;
+}
+.col-metiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.col-metier {
+  font-size: 11px;
+  color: #a8b6cc;
+  background: #101725;
+  border: 1px solid #2a364b;
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+.col-garnison {
+  font-size: 12px;
+  color: #a8b6cc;
+  line-height: 1.4;
+}
+/* la palissade sous-tenue : la teinte le dit avant que la loyauté ne tombe */
+.col-garnison.insuffisante {
+  color: #e0956a;
+}
+
+/* ── La loyauté, et la raison de sa dérive ─────────────────────────────────── */
+.col-loyaute {
+  background: #101725;
+  border: 1px solid #2a364b;
+  border-radius: 6px;
+  padding: 8px 9px;
+}
+.col-loyaute.alerte {
+  border-color: #7a4a2e;
+}
+.col-loyaute-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.col-jauge {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: #0a0f19;
+  overflow: hidden;
+}
+.col-jauge-plein {
+  height: 100%;
+  background: linear-gradient(90deg, #4a7a5a, #7ac98a);
+}
+.col-loyaute.alerte .col-jauge-plein {
+  background: linear-gradient(90deg, #7a4a2e, #e0956a);
+}
+/* le seuil de sécession, matérialisé : on doit le voir approcher */
+.col-jauge-seuil {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0562e;
+}
+.col-raisons {
+  margin: 7px 0 0;
+  padding-left: 16px;
+  font-size: 11.5px;
+  color: #a8b6cc;
+  line-height: 1.55;
+}
+
+/* ── L'appel au secours ────────────────────────────────────────────────────── */
+.col-epreuve {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: #2a1f19;
+  border: 1px solid #7a4a2e;
+  border-radius: 6px;
+  padding: 9px;
+}
+.col-epreuve-tete {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.col-sursis {
+  font-size: 11.5px;
+  color: #e0956a;
+  font-weight: 600;
+}
+.col-recit {
+  font-size: 12px;
+  color: #c4ccd8;
+  line-height: 1.5;
+}
+.col-demande {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e8c46a;
+}
+.col-prix {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  font-size: 13px;
+}
+.col-soldats {
+  color: #d98a4e;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+/* le motif du refus : jamais un bouton éteint sans sa raison */
+.col-motif {
+  font-size: 11.5px;
+  color: #e0956a;
+  line-height: 1.45;
+}
+.col-avertit {
+  font-size: 12px;
+  color: #e0956a;
+  background: #2a1f19;
+  border-radius: 6px;
+  padding: 7px 9px;
+  line-height: 1.45;
+}
+
+/* ── Les quatre arbitrages, et rien d'autre ────────────────────────────────── */
+.col-arbitrages {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid #2a364b;
+  padding-top: 8px;
+}
+.col-boutons {
+  display: flex;
+  gap: 5px;
+}
+.col-boutons button {
+  flex: 1;
+  font-size: 11.5px;
+  padding: 5px 4px;
+}
+.col-volet {
+  background: #101725;
+  border-radius: 6px;
+  padding: 8px 9px;
+}
+.col-compteur {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 12.5px;
+  margin-top: 6px;
+}
+.col-compteur button {
+  min-width: 28px;
+  padding: 3px 7px;
+}
+
+/* ── Fonder : le contrat ───────────────────────────────────────────────────── */
+.col-fondation {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.col-etape h3 {
+  margin: 0 0 7px;
+  font-size: 13px;
+  color: #c9a24a;
+}
+.col-sites,
+.col-vocations {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+  gap: 6px;
+}
+.col-site,
+.col-vocation {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 9px;
+  line-height: 1.35;
+}
+.col-site.actif,
+.col-vocation.actif {
+  border-color: #c9a24a;
+  background: #241f16;
+}
+.col-consigne {
+  font-size: 12px;
+  color: #e8c46a;
+  margin-bottom: 7px;
+  line-height: 1.45;
+}
+.col-habitants {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 5px;
+  /* un village de cinquante-deux âmes ne doit pas repousser le contrat hors de l'écran */
+  max-height: 260px;
+  overflow-y: auto;
+}
+.col-habitant {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  text-align: left;
+  padding: 6px 8px;
+  line-height: 1.3;
+}
+/* celui dont le métier est celui de la colonie : il rend deux fois plus */
+.col-habitant.utile {
+  border-color: #4a7a5a;
+}
+.col-habitant.pris {
+  border-color: #c9a24a;
+  background: #241f16;
+}
+
+/*
+ * LE CONTRAT. Encadré, et non glissé dans une ligne de texte : c'est la seule
+ * information que le joueur ne peut pas reconstituer de tête, et le seul endroit
+ * du jeu où l'on prive le village d'un métier entier.
+ */
+.col-contrat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 11px;
+}
+.col-contrat.saigne {
+  border-color: #7a4a2e;
+}
+.col-contrat h3 {
+  margin: 0;
+  font-size: 13px;
+  color: #c9a24a;
+}
+.col-saignee {
+  margin: 0;
+  padding-left: 17px;
+  font-size: 12px;
+  color: #a8b6cc;
+  line-height: 1.6;
+}
+.col-saignee li.dernier {
+  color: #e0956a;
+  font-weight: 600;
+}
+/* la phrase qui arrête la main */
+.col-phrase {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e0956a;
+  line-height: 1.45;
+}

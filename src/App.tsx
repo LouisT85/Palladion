@@ -34,6 +34,7 @@ import { PanneauPlanDefense } from './components/ui/PlanDefense'
 import { PanneauFlotte } from './components/ui/Flotte'
 import { PanneauBlocus } from './components/ui/Blocus'
 import { PanneauHecatombe } from './components/ui/Hecatombe'
+import { PanneauColonies } from './components/ui/Colonies'
 import { PanneauLazaret } from './components/ui/Lazaret'
 import {
   ModaleAide,
@@ -253,6 +254,7 @@ export default function App() {
       {panel === 'defi' && <PanneauDefi onFermer={() => openPanel(null)} />}
       {panel === 'plandefense' && <PanneauPlanDefense onFermer={() => openPanel(null)} />}
       {panel === 'hecatombe' && <PanneauHecatombe onFermer={() => openPanel(null)} />}
+      {panel === 'colonies' && <PanneauColonies onFermer={() => openPanel(null)} />}
       {panel === 'blocus' && <PanneauBlocus onFermer={() => openPanel(null)} />}
       {panel === 'lazaret' && <PanneauLazaret onFermer={() => openPanel(null)} />}
       {panel === 'flotte' && <PanneauFlotte onFermer={() => openPanel(null)} />}

@@ -338,6 +338,33 @@ import {
   type EtatHecatombe,
 } from './hecatombe'
 import {
+  COUT_FONDATION,
+  EPREUVES,
+  LOYAUTE_REORIENTATION,
+  LOYAUTE_SECOURS,
+  SITES_PAR_ID,
+  SURSIS_SECOURS,
+  VOCATIONS,
+  cargaison,
+  colonieDe,
+  colonsDe,
+  convoiPret,
+  coutSecours,
+  creerColonie,
+  garnisonRequise,
+  issueEpreuve,
+  loyauteApres,
+  motifRefusColonie,
+  raidRepousse,
+  refusFondation,
+  resumeCargaison,
+  soldatsDetachables,
+  soldatsSecours,
+  tirerEpreuve,
+  type Colonie,
+  type VocationId,
+} from './colonies'
+import {
   DYNASTIE_VIDE,
   MEMOIRE_MAX,
   TRAITS_PAR_ID,
@@ -699,6 +726,21 @@ export interface GameState {
    */
   dynastie: Dynastie
   /**
+   * LES COLONIES. UN SEUL CHAMP, et huit propriétés par colonie - tout le reste se
+   * déduit (le nombre de colons EST `metiers.length`, la date du prochain convoi
+   * sort de `dernierConvoi + site.journees`, le nom et la distance sortent de
+   * `SITES_PAR_ID`). C'était le risque numéro un de ce chantier : un second village
+   * jouable aurait doublé la surface d'état du jeu pour zéro décision nouvelle.
+   *
+   * Aucune propriété n'est une échéance en millisecondes : `fondeeLe` et
+   * `dernierConvoi` sont des NUMÉROS DE JOURNÉE sur l'horloge de `jourDe(s)`, que le
+   * bloc de vitesse du tick accélère déjà par `createdAt`. Rien à décaler, et rien
+   * qui survive à huit heures d'absence en faisant rentrer vingt cargaisons.
+   */
+  colonies: Colonie[]
+
+  // runtime (non sauvegardé)
+  /**
    * LA FIÈVRE EN COURS - ou la MÉMOIRE de la dernière, quand `finLe` est posé.
    * Aucune échéance en millisecondes, seulement des index de journée : le bloc
    * de vitesse du tick n'a donc rien à reculer, et huit heures hors ligne ne
@@ -754,6 +796,7 @@ export interface GameState {
     | 'blocus'
     | 'flotte'
     | 'lazaret'
+    | 'colonies'
     | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
@@ -827,6 +870,21 @@ export interface GameState {
    * moins, et son métier avec lui. C'est l'arbitrage du panneau, pas un détail.
    */
   couronner: (villageoisId: string) => void
+  /**
+   * Fonder une colonie : des habitants qui partent POUR DE BON avec leurs métiers,
+   * une nef retenue à vie, et des soldats laissés sur place qui ne défendent plus
+   * vos murs. Le geste le plus lourd du règne après la merveille.
+   */
+  fonderColonie: (siteId: string, vocation: VocationId, villageoisIds: string[], garnison: number) => void
+  /** changer ce à quoi elle se consacre - payé en loyauté, et en convoi perdu */
+  reorienterColonie: (siteId: string, vocation: VocationId) => void
+  /** détacher des soldats pour tenir sa palissade : ils ne reviennent pas */
+  renforcerColonie: (siteId: string, soldats: number) => void
+  /** répondre à l'appel : du grain, du bronze, ou des hommes selon l'épreuve */
+  secourirColonie: (siteId: string) => void
+  /** la lâcher : la garnison rembarque, les colons restent là-bas */
+  abandonnerColonie: (siteId: string) => void
+  /** changer la posture de la ligne ou la façon de tirer, pendant la bataille */
   /** ouvrir ou agrandir le lazaret - trois, six, puis dix lits */
   batirLazaret: () => void
   /**
@@ -1079,6 +1137,115 @@ function veuvage(s: GameState, parti: Villageois): void {
   if (!parti.conjoint) return
   const reste = s.villageois.find((v) => v.id === parti.conjoint)
   if (reste) delete reste.conjoint
+}
+
+/*
+ * Les hommes qu'on laisse dans une colonie, ou qu'on lui envoie. On prend les plus
+ * faciles à remplacer d'abord au lieu du tirage au sort de `retirerSoldats` : ce
+ * tirage convient à une DÉSERTION, pas à un ordre qu'on donne. Perdre au hasard un
+ * hoplite payé trente-cinq lingots quand on voulait détacher trois lanciers, ce
+ * n'est pas une décision, c'est une taxe. Les engins (bélier, char) ne partent
+ * jamais : ils servent à percer une muraille, pas à tenir une palissade.
+ */
+const ORDRE_DETACHEMENT: UnitId[] = ['lancier', 'frondeur', 'peltaste', 'archer', 'hoplite']
+function detacherSoldats(s: GameState, n: number): number {
+  const veut = Math.max(0, Math.round(n))
+  let pris = 0
+  for (const u of ORDRE_DETACHEMENT) {
+    while (pris < veut && s.army[u] > 0) {
+      s.army[u]--
+      pris++
+    }
+  }
+  return pris
+}
+
+/**
+ * CE QUE LA JOURNÉE FAIT AUX COLONIES.
+ *
+ * Appelé par le MÊME crochet quotidien que `vieDesFamilles`, et c'est tout l'enjeu :
+ * ce crochet ne rattrape JAMAIS plus d'une journée. Une absence de huit heures
+ * avance le calendrier de soixante journées ; elle ne fait donc rentrer qu'UN
+ * convoi, ne consomme qu'UNE journée de sursis, et ne peut pas emporter une colonie
+ * que le joueur n'a pas vue appeler. C'est la leçon des successions - ce qui se
+ * décide ne se résout pas tout seul pendant l'absence - transposée à un flux.
+ *
+ * L'ordre des quatre gestes n'est pas indifférent :
+ *  1. le convoi rentre AVANT que la loyauté ne bouge : la cargaison est celle que
+ *     le panneau annonçait hier, pas une autre ;
+ *  2. la loyauté évolue ensuite, et c'est elle qui pourra ouvrir la sécession ;
+ *  3. l'épreuve en cours consomme son sursis, et se dénoue s'il est épuisé ;
+ *  4. une épreuve nouvelle ne se tire que sur une colonie qui n'en porte pas.
+ */
+function vieDesColonies(s: GameState, jour: number): void {
+  if (!s.colonies || s.colonies.length === 0) return
+  const hiver = s.saison === 'hiver'
+  for (const c of [...s.colonies]) {
+    const site = SITES_PAR_ID[c.site]
+    if (!site) continue
+
+    // ── 1. le convoi. UNE cargaison, de taille NOMINALE ──
+    if (convoiPret(c, jour)) {
+      const { res, n } = cargaison(c)
+      c.dernierConvoi = jour
+      s.resources[res] = clampRes(s, res, s.resources[res] + n)
+      noter(s, 'convoisColonies')
+      pushToast(s, site.emoji, `Convoi de ${site.nom} : ${resumeCargaison(res, n)}.`)
+    }
+
+    // ── 2. la loyauté ──
+    c.loyaute = loyauteApres(c)
+
+    // ── 3. l'épreuve en cours ──
+    if (c.epreuve) {
+      c.epreuve.sursis -= 1
+      if (c.epreuve.sursis <= 0) {
+        const out = issueEpreuve(c)
+        if (out.perdue) {
+          s.colonies = s.colonies.filter((x) => x.site !== c.site)
+          noter(s, 'coloniesPerdues')
+          pushToast(s, '💔', `${site.nom} n’est plus à vous.`)
+          pushReport(s, '💔', `${site.nom} est perdue`, out.recit)
+        } else {
+          c.metiers = out.metiers
+          c.loyaute = out.loyaute
+          c.epreuve = null
+          noter(s, 'coloniesPillees')
+          pushToast(s, EPREUVES.raid.emoji, `${site.nom} a été pillée.`)
+          pushReport(s, EPREUVES.raid.emoji, `${site.nom} pillée`, out.recit)
+        }
+      }
+      continue
+    }
+
+    // ── 4. une épreuve nouvelle ──
+    const quoi = tirerEpreuve(c, { hiver, menace: s.threat }, Math.random(), Math.random())
+    if (!quoi) continue
+    if (quoi === 'raid' && raidRepousse(c)) {
+      /*
+       * La garnison a fait son office, et l'on n'ouvre AUCUNE épreuve : c'est
+       * exactement ce que le joueur a acheté en laissant des soldats là-bas. Un
+       * homme y reste - une palissade tenue n'est pas une palissade gratuite - et
+       * la colonie s'attache à qui la couvre.
+       */
+      c.garnison = Math.max(0, c.garnison - 1)
+      c.loyaute = Math.min(100, c.loyaute + 2)
+      pushReport(s, '🛡️', `Raid repoussé à ${site.nom}`, [
+        'Une bande est venue compter les défenseurs, en a trouvé assez, et s’est retirée avant l’aube.',
+        `Un homme y est resté : la garnison tombe à ${c.garnison} sur ${garnisonRequise(c)}.`,
+        'Les colons ont vu que le sceptre les couvrait. Ils s’en souviendront.',
+      ])
+      continue
+    }
+    const def = EPREUVES[quoi]
+    c.epreuve = { id: quoi, sursis: SURSIS_SECOURS }
+    pushToast(s, def.emoji, `${site.nom} : ${def.nom.toLowerCase()} !`)
+    pushReport(s, def.emoji, `${site.nom} appelle - ${def.nom}`, [
+      def.recit,
+      def.demande,
+      `Vous avez ${SURSIS_SECOURS} journées. Passé ce délai, ${def.fatale ? 'la colonie est perdue' : 'la palissade tombera'}.`,
+    ])
+  }
 }
 
 /**
@@ -1985,6 +2152,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     epidemie: null,
     lazaret: 0,
     dynastie: { chef: fonderChef(Math.random(), 1), vacanceDepuis: null, passes: [] },
+    colonies: [],
     missionsNotifiees: [],
     battle: null,
     renfortsEngages: null,
@@ -2029,6 +2197,11 @@ type ActionsOnly = {
   leverBlocus: unknown
   donnerAssautBlocus: unknown
   couronner: unknown
+  fonderColonie: unknown
+  reorienterColonie: unknown
+  renforcerColonie: unknown
+  secourirColonie: unknown
+  abandonnerColonie: unknown
   batirLazaret: unknown
   aliter: unknown
   declencherFievre: unknown
@@ -2155,6 +2328,7 @@ const CHAMPS_SAUVES = [
   'hecatombe',
   'blocus',
   'dynastie',
+  'colonies',
   'epidemie',
   'lazaret',
 ] as const
@@ -3817,6 +3991,14 @@ export const useGame = create<GameState>()(
             s.exploits = s.exploits ?? {}
             s.alliances = s.alliances ?? {}
             /*
+             * Une sauvegarde antérieure aux colonies n'a pas la clé : `Object.assign`
+             * laisse donc celle d'`etatInitial`, un tableau vide, et c'est exactement
+             * ce qu'il faut. On ne fabrique rien - mais on garantit le TYPE, parce que
+             * `vieDesColonies` et le panneau lisent `.length` au premier battement et
+             * qu'un fichier repris à la main pourrait porter autre chose.
+             */
+            s.colonies = Array.isArray(s.colonies) ? s.colonies : []
+            /*
              * ⚠️ L'ARMÉE, D'ABORD. `Object.assign` REMPLACE la table des effectifs
              * par celle du fichier : une sauvegarde écrite avant le frondeur, le
              * peltaste et le bélier arrive donc avec trois clés manquantes. Tout ce
@@ -4683,6 +4865,12 @@ if (s.blocus) {
           if (jour !== s.dernierJourVecu) {
             s.dernierJourVecu = jour
             vieDesFamilles(s, jour)
+            /*
+             * Les colonies vivent sur le MÊME crochet, et pour la même raison : il ne
+             * rattrape jamais plus d'une journée. Une nuit d'absence fait donc rentrer
+             * un convoi et consomme une journée de sursis - pas soixante de chaque.
+             */
+            vieDesColonies(s, jour)
             // et la ligne postée au loin mange sa ration : même horloge, même règle -
             // une journée par journée, jamais soixante parce qu'on est parti déjeuner
             journeeDeBlocus(s)
@@ -5364,6 +5552,218 @@ if (s.blocus) {
             return d ? `${d.emoji} ${d.nom} - ${d.effet}` : ''
           }).filter(Boolean),
           'L’interrègne s’achève : les corvées se répartissent de nouveau.',
+        ])
+      })
+      get().save()
+    },
+
+    /*
+     * FONDER UNE COLONIE. Le geste le plus lourd du jeu après la merveille, et le
+     * seul qui coûte des habitants NOMMÉS.
+     *
+     * ⚠️ LES DEUX GESTES, ENSEMBLE (piège de `syncVillageois`). Cette boucle tourne à
+     * chaque battement et recomplète `s.villageois` jusqu'à `s.pop` en retirant
+     * « d'abord les oisifs ». Retirer les colons sans décrémenter `pop` les ferait
+     * renaître au battement suivant sous d'autres noms et avec d'autres métiers - le
+     * joueur aurait embarqué ses tailleurs de pierre et retrouvé deux inconnus à leur
+     * place. Décrémenter `pop` sans retirer les bons ferait disparaître des oisifs au
+     * hasard. Et `veuvage` pour chacun, sinon le conjoint resté au village garde un
+     * lien vers un absent : il n'est plus un parti possible et compte comme un foyer
+     * qui ne fera jamais d'enfant - le village cesse de croître sans qu'on sache
+     * pourquoi.
+     */
+    fonderColonie: (siteId, vocation, villageoisIds, garnison) => {
+      set((s) => {
+        const site = SITES_PAR_ID[siteId]
+        if (!site) return
+        const jour = jourDe(s)
+        /*
+         * On ne retient que des ADULTES, et AVANT de juger. Un enfant ne tient pas
+         * une rame et ne rend rien à la carrière ; filtrer après `refusFondation`
+         * aurait laissé passer une nef de quatre noms dont deux enfants, qui partait
+         * donc à deux.
+         */
+        const partants = (villageoisIds ?? [])
+          .map((id) => s.villageois.find((v) => v.id === id))
+          .filter((v): v is Villageois => !!v && ageDe(v, jour) >= AGE_ADULTE)
+        const refus = refusFondation(
+          {
+            port: s.buildings.port.level,
+            colonies: s.colonies,
+            pop: s.pop,
+            // ⚠️ FLOTTE : remplacer par la lecture de `flotte.ts` (une nef libre)
+            nefLibre: true,
+          },
+          siteId,
+          partants.map((v) => v.metier),
+        )
+        if (refus) {
+          pushToast(s, '🏝️', motifRefusColonie(refus))
+          return
+        }
+        if (!payer(s, COUT_FONDATION)) {
+          pushToast(s, '❌', 'Il faut une nef, ses agrès et les vivres de la première saison.')
+          return
+        }
+        const ids = new Set(partants.map((v) => v.id))
+        s.villageois = s.villageois.filter((v) => !ids.has(v.id))
+        s.pop = Math.max(0, s.pop - partants.length)
+        for (const v of partants) veuvage(s, v)
+
+        // les soldats laissés là-bas quittent votre armée pour de bon
+        const laisses = detacherSoldats(s, garnison)
+        s.colonies.push(
+          creerColonie(siteId, vocation, partants.map((v) => v.metier), laisses, jour),
+        )
+        noter(s, 'coloniesFondees')
+
+        const voc = VOCATIONS[vocation]
+        pushToast(s, site.emoji, `${site.nom} est fondée. ${partants.length} colons ne reverront pas le village.`)
+        pushReport(s, site.emoji, `Fondation de ${site.nom}`, [
+          `${partants.map((v) => v.nom).join(', ')} ont embarqué avec les vivres d’une saison.`,
+          `${voc.emoji} ${voc.nom} : le premier convoi est attendu dans ${site.journees} journée(s).`,
+          laisses >= site.menace
+            ? `${laisses} hommes tiennent la palissade : un raid sera repoussé sans vous.`
+            : `${laisses} homme(s) sur ${site.menace} : la palissade ne tiendra pas seule, et ils le savent.`,
+          'Ils ne reviendront pas. Une colonie ne se reprend pas - elle se perd.',
+        ])
+      })
+      get().save()
+    },
+
+    /*
+     * RÉORIENTER. Le seul arbitrage qui ne coûte rien en marchandises, et c'est
+     * délibéré : arracher un homme à son sillon pour le mettre au front de taille se
+     * paie par CEUX QUI LE SUBISSENT, pas par un coffre. Quinze de loyauté, et le
+     * convoi en préparation est défait - on repart d'un trajet plein.
+     */
+    reorienterColonie: (siteId, vocation) => {
+      set((s) => {
+        const c = colonieDe(s.colonies, siteId)
+        if (!c || c.vocation === vocation || !VOCATIONS[vocation]) return
+        const site = SITES_PAR_ID[siteId]
+        c.vocation = vocation
+        c.loyaute = Math.max(0, c.loyaute - LOYAUTE_REORIENTATION)
+        c.dernierConvoi = jourDe(s)
+        noter(s, 'coloniesReorientees')
+        const voc = VOCATIONS[vocation]
+        const carg = cargaison(c)
+        pushToast(s, '🧭', `${site?.nom ?? siteId} passe à : ${voc.nom.toLowerCase()}.`)
+        pushReport(s, '🧭', `${site?.nom ?? siteId} change de main-d’œuvre`, [
+          `On abandonne l’ouvrage en cours pour ${voc.nom.toLowerCase()}. Le convoi qui se chargeait est défait.`,
+          `Prochain convoi dans ${site?.journees ?? 3} journée(s) : ${resumeCargaison(carg.res, carg.n)}.`,
+          `Les colons l’ont pris pour ce que c’est : −${LOYAUTE_REORIENTATION} de loyauté.`,
+        ])
+      })
+      get().save()
+    },
+
+    /*
+     * RENFORCER. Des hommes qui partent tenir une palissade qu'on ne verra jamais.
+     * Ils quittent `s.army` définitivement : c'est le prix de défendre là où l'on ne
+     * peut pas se rendre, et c'est ce qui fait de la garnison un arbitrage plutôt
+     * qu'une case à cocher.
+     */
+    renforcerColonie: (siteId, n) => {
+      set((s) => {
+        const c = colonieDe(s.colonies, siteId)
+        if (!c) return
+        const pris = detacherSoldats(s, Math.max(1, Math.round(n)))
+        if (pris === 0) {
+          pushToast(s, '🛡️', 'Aucun homme sous les armes à détacher.')
+          return
+        }
+        c.garnison += pris
+        const site = SITES_PAR_ID[siteId]
+        noter(s, 'coloniesRenforcees')
+        pushToast(
+          s,
+          '🛡️',
+          `${pris} homme(s) partent tenir ${site?.nom ?? 'la colonie'} - ils ne défendront plus vos murs.`,
+        )
+      })
+      get().save()
+    },
+
+    /*
+     * SECOURIR. La famine et la révolte se paient en marchandises ; le raid se COUVRE
+     * avec des hommes, et ces hommes restent là-bas.
+     *
+     * On vérifie l'effectif AVANT de détacher quoi que ce soit, et non après : un
+     * premier jet prenait les soldats puis les « rendait » en lanciers quand le compte
+     * n'y était pas - il transformait donc silencieusement un hoplite en lancier à
+     * chaque secours refusé.
+     */
+    secourirColonie: (siteId) => {
+      set((s) => {
+        const c = colonieDe(s.colonies, siteId)
+        if (!c || !c.epreuve) return
+        const site = SITES_PAR_ID[siteId]
+        const quoi = c.epreuve.id
+        const def = EPREUVES[quoi]
+        if (def.soldats) {
+          const besoin = soldatsSecours(c)
+          /*
+           * ⚠️ `soldatsDetachables` ET NON `armeeTotale`, et le panneau le faisait déjà
+           * bien - c'était l'action qui portait encore le mauvais calcul.
+           *
+           * `armeeTotale` additionne les SEPT unités, béliers et chars compris, alors
+           * que `detacherSoldats` ne prend jamais un engin : ils ne montent pas sur une
+           * nef pour tenir une palissade. Un règne à six béliers et zéro fantassin
+           * franchissait donc le contrôle, ne détachait PERSONNE, et l'épreuve se
+           * fermait quand même : le raid était couvert gratuitement.
+           */
+          if (soldatsDetachables(s.army) < besoin) {
+            pushToast(s, '🛡️', `Il faut ${besoin} homme(s) sous les armes pour couvrir ${site?.nom ?? 'la colonie'}.`)
+            return
+          }
+          c.garnison += detacherSoldats(s, besoin)
+        } else if (!payer(s, coutSecours(quoi))) {
+          pushToast(s, '❌', 'Les coffres n’y suffisent pas.')
+          return
+        }
+        c.loyaute = Math.min(100, c.loyaute + LOYAUTE_SECOURS[quoi])
+        c.epreuve = null
+        noter(s, 'coloniesSecourues')
+        pushToast(s, '⛵', `${site?.nom ?? siteId} est secourue.`)
+        pushReport(s, '⛵', `Secours porté à ${site?.nom ?? siteId}`, [
+          quoi === 'famine'
+            ? 'La nef est entrée dans la baie au troisième jour. On a déchargé le grain sur la grève, devant tout le monde.'
+            : quoi === 'raid'
+              ? 'Les hommes détachés ont pris place sur la palissade. La bande a compté, et n’est pas revenue.'
+              : 'Le présent a été porté sur la place, et la fête a duré la nuit. Personne n’a reparlé d’élire un chef.',
+          `La colonie s’en souviendra : +${LOYAUTE_SECOURS[quoi]} de loyauté.`,
+        ])
+      })
+      get().save()
+    },
+
+    /*
+     * ABANDONNER. Il faut une porte de sortie : sans elle, une colonie condamnée
+     * saigne le règne pour toujours et le joueur n'a que le choix de regarder.
+     *
+     * La garnison rembarque, les COLONS NON - et c'est tout le poids du système. Des
+     * soldats obéissent à un ordre de retraite ; des familles qui ont brûlé leurs
+     * nefs et enterré leurs morts là-bas ne rentrent pas. `pop` ne remonte donc pas
+     * d'un seul point. Ils reviennent en LANCIERS : la garnison est un nombre et non
+     * une table d'unités (voir le commentaire de `Colonie.garnison`), et leur
+     * équipement est resté sur la palissade.
+     */
+    abandonnerColonie: (siteId) => {
+      set((s) => {
+        const c = colonieDe(s.colonies, siteId)
+        if (!c) return
+        const site = SITES_PAR_ID[siteId]
+        const rentres = c.garnison
+        const restes = colonsDe(c)
+        s.army.lancier += rentres
+        s.colonies = s.colonies.filter((x) => x.site !== siteId)
+        noter(s, 'coloniesAbandonnees')
+        pushToast(s, '🏳️', `${site?.nom ?? siteId} est abandonnée. ${restes} colons restent là-bas.`)
+        pushReport(s, '🏳️', `${site?.nom ?? siteId} est abandonnée`, [
+          `La garnison - ${rentres} homme(s) - a rembarqué et rejoint vos rangs comme lanciers.`,
+          `Les ${restes} colons restent. Ils ont brûlé leurs nefs en arrivant ; ils ne rentreront pas.`,
+          'La nef que la colonie retenait est rendue au mouillage.',
         ])
       })
       get().save()

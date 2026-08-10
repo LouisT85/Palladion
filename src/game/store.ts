@@ -231,6 +231,19 @@ import { ACTES_CAMPAGNE, NB_ACTES, acteAccompli, type EtatActe } from './campagn
 import { cleEmplacement, emplacementActif, poserEmplacementActif } from './sauvegardes'
 import { NB_ETAPES, type SnapTuto } from './tutoriel'
 import {
+  COUT_FAVEUR_HECATOMBE,
+  COUT_HECATOMBE,
+  DUREE_MORALE_MS as HECATOMBE_MORALE_MS,
+  GAIN_RELATION as HECATOMBE_RELATION,
+  RITES_HECATOMBE,
+  bonusHecatombe,
+  indexSaison,
+  motifRefus,
+  refusHecatombe,
+  riteActif,
+  type EtatHecatombe,
+} from './hecatombe'
+import {
   BONUS_ORAGE_ZEUS,
   DUREE_METEO_MS,
   JOURS_PAR_SAISON,
@@ -520,6 +533,13 @@ export interface GameState {
    * bataille l'adopte à son ouverture ; ses ordres en sont une copie.
    */
   planDefense: PlanDefense
+  /**
+   * L'hécatombe de la saison, s'il en brûle une. Elle ne porte AUCUNE échéance en
+   * millisecondes, seulement l'index de sa saison : c'est ce qui la rend immune
+   * au bloc de vitesse du tick comme au rattrapage de huit heures hors ligne -
+   * elle expire d'elle-même quand la saison tourne, sans une ligne de code.
+   */
+  hecatombe: EtatHecatombe | null
 
   // runtime (non sauvegardé)
   /** missions déjà signalées « prêtes » (toast unique) */
@@ -554,6 +574,7 @@ export interface GameState {
     | 'heritage'
     | 'defi'
     | 'plandefense'
+    | 'hecatombe'
     | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit
@@ -593,6 +614,12 @@ export interface GameState {
   benir: (g: GodId) => void
   /** verser des points de relation contre une grâce permanente */
   acquerirGrace: (id: string) => void
+  /**
+   * Offrir l'hécatombe à un Olympien : cent bêtes, et la saison entière engagée.
+   * Une seule par saison, et jamais dans son dernier cinquième - offrir trop tard
+   * serait perdre le prix, et le refus enseigne la règle au lieu de la punir.
+   */
+  offrirHecatombe: (dieu: GodId) => void
   /** changer la posture de la ligne ou la façon de tirer, pendant la bataille */
   donnerOrdre: (quoi: 'ligne' | 'tir', valeur: OrdreLigne | OrdreTir) => void
   /** affecter un type d'unité à un secteur de l'enceinte (null = au plus pressé) */
@@ -909,8 +936,16 @@ export function productionParMinute(s: GameState, now: number): Record<ResourceI
    * touche l'économie, et il se voit tout de suite dans le HUD.
    */
   const maladresse = now < (s.malusDivins?.maladresseJusqua ?? 0) ? 1 - (s.malusDivins?.maladressePart ?? 0) : 1
+  /*
+   * LE TROUPEAU SAIGNÉ. Un facteur à lui, et non un terme de `pct` : `pct`
+   * agrège les bonus de RENDEMENT (reliques, découvertes, merveille), qui disent
+   * « on récolte mieux ». Le troupeau, lui, dit « il y a moins de bêtes » - ce
+   * n'est pas la même chose, et les mêler ferait qu'une découverte agricole
+   * compenserait exactement cent bœufs égorgés. Il ne s'applique qu'au GRAIN.
+   */
+  const troupeau = 1 + bonusHecatombe(s.hecatombe, now, s.createdAt).grainPct
   const g = (base: number, atelier: number, pct: number, r: ResourceId) =>
-    (base + atelier) * m * ciel(r) * zx * (1 + pct) * maladresse
+    (base + atelier) * m * ciel(r) * zx * (1 + pct) * maladresse * (r === 'grain' ? troupeau : 1)
   return {
     bois: g(BASE_PROD.bois, PROD.scierie[s.buildings.scierie.level] * rd('scierie'), rel.boisPct + tec.boisPct, 'bois'),
     pierre: g(
@@ -950,13 +985,22 @@ export function bonusHeros(s: Pick<GameState, 'heros'>): BonusHeros {
 
 /** points de structure maximaux de l'enceinte - Hector l'épaissit, Poséidon aussi */
 export function murMax(
-  s: Pick<GameState, 'buildings' | 'heros' | 'graces'> & Partial<Pick<GameState, 'reliquesExposees'>>,
+  s: Pick<GameState, 'buildings' | 'heros' | 'graces'> &
+    Partial<Pick<GameState, 'reliquesExposees' | 'hecatombe' | 'createdAt'>>,
 ): number {
   const rel = s.reliquesExposees ? bonusReliques(s as Pick<GameState, 'reliquesExposees' | 'buildings'>).murPct : 0
   const tec = effetsTechnos((s as Partial<GameState>).technos).murPct
   const mer = effetEnVigueur((s as Partial<GameState>).merveille).murPct ?? 0
+  /*
+   * Les taureaux de Poséidon. Le terme s'ajoute à la MÊME somme que les autres
+   * sources, jamais dans une parenthèse à lui : ces cinq-là se composent
+   * additivement depuis toujours, et introduire un facteur séparé aurait changé
+   * en silence les chiffres que `horsligne.test.ts` écrit en produits explicites.
+   */
+  const hec = bonusHecatombe(s.hecatombe, Date.now(), s.createdAt ?? 0).murPct
   return Math.round(
-    WALL_HP[s.buildings.remparts.level] * (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct + rel + tec + mer),
+    WALL_HP[s.buildings.remparts.level] *
+      (1 + bonusHeros(s).wallHpPct + bonusFaveurs(s).murPct + rel + tec + mer + hec),
   )
 }
 
@@ -1450,6 +1494,7 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     campagne: null,
     graces: [],
     planDefense: planParDefaut(),
+    hecatombe: null,
     missionsNotifiees: [],
     battle: null,
     renfortsEngages: null,
@@ -1485,6 +1530,7 @@ type ActionsOnly = {
   sacrifier: unknown
   benir: unknown
   acquerirGrace: unknown
+  offrirHecatombe: unknown
   donnerOrdre: unknown
   assignerSecteur: unknown
   reglerPlanDefense: unknown
@@ -1603,6 +1649,7 @@ const CHAMPS_SAUVES = [
   'reliquesExposees',
   'graces',
   'planDefense',
+  'hecatombe',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -2282,6 +2329,8 @@ function lancerAssaut(s: GameState, now: number): void {
       // dans le calcul, pour que le règne ne bondisse pas au rapport de bataille
       s.vitesse = 1
       const bh = bonusHeros(s)
+      // la fureur d’Arès de la saison : le rite s’ajoute aux passifs, il ne les remplace pas
+      const hecDeg = bonusHecatombe(s.hecatombe, now, s.createdAt).degatsPct
       // les alliés dépêchent des hommes : ils tomberont avant les vôtres
       const renf = renfortsAllies(s)
       const totalRenf = UNIT_IDS.reduce((a, u) => a + renf[u], 0)
@@ -2308,7 +2357,7 @@ function lancerAssaut(s: GameState, now: number): void {
         // qui est venu mourir pour vos murs
         renforts: totalRenf > 0 ? renf : undefined,
         // la fureur d'Arès s'ajoute aux passifs des héros
-        bonusAtkJoueur: 1 + bh.degatsMeleePct + bonusFaveurs(s).degatsPct,
+        bonusAtkJoueur: 1 + bh.degatsMeleePct + bonusFaveurs(s).degatsPct + hecDeg,
         // `gardeDuCorpsPct` porte désormais la valeur ANNONCÉE au joueur :
         // plus de division cachée par deux entre la fiche et l'usage
         reducJoueur: 1 - bh.gardeDuCorpsPct,
@@ -2713,7 +2762,13 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
      */
     const rase = partAbattue(exp.ouvrages ?? [])
     const mult =
-      (deja > 0 ? BUTIN_REPETE : 1) * (1 + bonusHeros(s).butinPct + bonusFaveurs(s).butinPct + rase * 0.25)
+      (deja > 0 ? BUTIN_REPETE : 1) *
+      (1 +
+        bonusHeros(s).butinPct +
+        bonusFaveurs(s).butinPct +
+        // le sang sur l'autel d'Arès : la saison où l'on pille
+        bonusHecatombe(s.hecatombe, Date.now(), s.createdAt).butinPct +
+        rase * 0.25)
     const butinTxt: string[] = []
     for (const [r, n] of Object.entries(v.butin) as [ResourceId, number][]) {
       const gain = Math.round(n * mult)
@@ -3704,7 +3759,20 @@ export const useGame = create<GameState>()(
           return
         }
         b.targetLevel = cible
-        b.busyUntil = Date.now() + (MODE_TEST ? 1500 : def.times[cible - 1] * 1000)
+        /*
+         * LE PÉPLOS D'ATHÉNA - et une dette réglée au passage. `chantierPct`
+         * existait déjà dans l'arbre des découvertes, où deux techniques le
+         * promettent (« Durée des chantiers −8 % », −12 %) ; il n'était lu QUE
+         * par `merveilles.ts`. Un joueur qui avait payé les deux recherches
+         * bâtissait donc exactement aussi lentement qu'avant, et l'arbre lui
+         * mentait. Les deux sources s'additionnent, plancher à 40 % de la durée :
+         * un chantier instantané ôterait tout arbitrage à la file d'attente.
+         */
+        const presse = Math.max(
+          0.4,
+          1 - effetsTechnos(s.technos).chantierPct - bonusHecatombe(s.hecatombe, Date.now(), s.createdAt).chantierPct,
+        )
+        b.busyUntil = Date.now() + (MODE_TEST ? 1500 : def.times[cible - 1] * 1000 * presse)
         pushToast(s, '🏗️', `${def.nom} : chantier du niveau ${cible} lancé.`)
       })
     },
@@ -3753,7 +3821,9 @@ export const useGame = create<GameState>()(
           : (s.buildings.caserne.level >= 4 ? 0.75 : 1) *
             (now < s.aresBoostUntil ? 0.5 : 1) *
             // « Métier » : Athéna presse les casernes, pour toujours
-            (1 - bonusFaveurs(s).recruesPct)
+            (1 - bonusFaveurs(s).recruesPct) *
+            // et le péplos les presse le temps d'une saison
+            (1 - bonusHecatombe(s.hecatombe, now, s.createdAt).recruesPct)
         const dernier = s.recruitQueue[s.recruitQueue.length - 1]
         const debut = dernier ? dernier.finishAt + (dernier.restant - 1) * UNITS[dernier.unit].time * 1000 * vitesse : now
         s.recruitQueue.push({ unit: u, restant: n, finishAt: debut + def.time * 1000 * vitesse })
@@ -4074,6 +4144,63 @@ export const useGame = create<GameState>()(
         s.faveur = Math.min(FAVEUR_MAX, s.faveur + 5)
         pushToast(s, GODS[g].emoji, `La fumée du sacrifice plaît à ${GODS[g].nom}. (+8 relation, +5 ✨)`)
       })
+    },
+
+    /*
+     * L'HÉCATOMBE. Tout ce qui suit est ORDONNÉ, et l'ordre compte :
+     *  1. on juge la recevabilité AVANT de toucher à quoi que ce soit, et le
+     *     refus est DIT - un bouton qui ne fait rien est pire qu'un bouton absent ;
+     *  2. on pose l'état AVANT les effets à un coup, parce que `murRefait` lit
+     *     `murMax(s)`, qui lit à son tour le `murPct` du rite : l'enceinte doit se
+     *     remaçonner à sa hauteur NOUVELLE, pas à l'ancienne ;
+     *  3. le répit est un `Math.max` et non une addition : deux appels ne peuvent
+     *     pas empiler deux cycles, et une trêve n'avance jamais l'assaut qu'elle
+     *     est censée repousser.
+     */
+    offrirHecatombe: (g) => {
+      set((s) => {
+        const now = Date.now()
+        const rite = RITES_HECATOMBE[g]
+        if (!rite) return
+        const refus = refusHecatombe(
+          {
+            temple: s.buildings.temple.level,
+            relation: relationEffective(s, g),
+            faveur: s.faveur,
+            hecatombe: s.hecatombe,
+            now,
+            createdAt: s.createdAt,
+          },
+          g,
+        )
+        if (refus) {
+          pushToast(s, GODS[g].emoji, motifRefus(refus, g))
+          return
+        }
+        if (!payer(s, COUT_HECATOMBE)) {
+          pushToast(s, '❌', 'Il faut 350 🌾 et 90 🪙 pour cent bêtes.')
+          return
+        }
+        s.faveur -= COUT_FAVEUR_HECATOMBE
+        s.hecatombe = { dieu: g, saison: indexSaison(now, s.createdAt) }
+        s.gods[g].relation = Math.min(100, s.gods[g].relation + HECATOMBE_RELATION)
+        noter(s, 'hecatombes')
+
+        // les effets à UN COUP, une fois l'état posé (voir le point 2 ci-dessus)
+        if (rite.effet.murRefait && murMax(s) > 0) s.wallHp = murMax(s)
+        if (rite.effet.repitMs > 0) {
+          s.nextAttackAt = Math.max(s.nextAttackAt, now + rite.effet.repitMs)
+          s.warned = false
+        }
+        s.moraleMods.push({ id: uid('m'), label: rite.nom, delta: rite.morale, expiresAt: now + HECATOMBE_MORALE_MS })
+
+        pushToast(s, rite.emoji, `${rite.nom} - ${rite.promesse}`)
+        pushReport(s, rite.emoji, `Hécatombe à ${GODS[g].nom} - ${rite.nom}`, [
+          ...rite.recit,
+          `L’effet tient jusqu’au basculement de saison. Le troupeau saigné coûte un cinquième du grain.`,
+        ])
+      })
+      get().save()
     },
 
     benir: (g) => {
@@ -4682,6 +4809,26 @@ export const useGame = create<GameState>()(
         const now = Date.now()
         // porter secours n'attend pas la fin d'un cooldown de pillage
         if (!secours && now - dernier < RAID_COOLDOWN_MS / (MODE_TEST ? 10 : 1)) return
+        /*
+         * ZEUS XENIOS NE COUVRE PAS QUI PILLE PENDANT SA TRÊVE. Le rite du roi
+         * repousse la colonne annoncée ; s'en servir comme d'un abri pour aller
+         * razzier soi-même, c'est rompre le serment qu'on vient d'acheter - et le
+         * dieu qui juge les serments ne laisse pas passer cela.
+         *
+         * On ne rompt QUE sur le pillage : secourir un allié assiégé est
+         * précisément ce que la xenia demande, et le rite y survit. C'est ce qui
+         * distingue les deux intentions autrement qu'en butin.
+         */
+        const riteEnCours = riteActif(s.hecatombe, now, s.createdAt)
+        if (!secours && riteEnCours?.effet.romptSiGuerre) {
+          s.hecatombe = null
+          s.gods.zeus.relation = Math.max(-100, s.gods.zeus.relation - 12)
+          pushToast(s, '⚡', 'Vous rompez la trêve que vous avez achetée. Zeus le voit. (−12 relation)')
+          pushReport(s, '⚡', 'Trêve rompue', [
+            `La colonne part sur ${v.nom} alors que la fumée de l’hécatombe monte encore.`,
+            'Zeus Xenios juge les serments, et celui-ci était le vôtre. Le rite s’éteint sur l’autel.',
+          ])
+        }
         let total = 0
         for (const u of UNIT_IDS) {
           const n = troupes[u] ?? 0
@@ -4695,6 +4842,8 @@ export const useGame = create<GameState>()(
           count: troupes[u],
         }))
         const bh = bonusHeros(s)
+        // la fureur d’Arès de la saison : le rite s’ajoute aux passifs, il ne les remplace pas
+        const hecDegExp = bonusHecatombe(s.hecatombe, now, s.createdAt).degatsPct
         // en secours, on se bat en rase campagne contre les assiégeants : aucun mur
         const ruse = !secours && s.siegeGratuit
         const mur = secours ? 0 : v.mur
@@ -4711,7 +4860,8 @@ export const useGame = create<GameState>()(
             geo: GEO_EXPEDITION,
             campJoueur: 'attaque',
             sansSiege: ruse,
-            bonusAtkJoueur: 1 + bh.degatsMeleePct + bh.degatsExpeditionPct + bonusFaveurs(s).degatsPct,
+            bonusAtkJoueur:
+              1 + bh.degatsMeleePct + bh.degatsExpeditionPct + bonusFaveurs(s).degatsPct + hecDegExp,
             // la garde d'Ajax vaut aussi loin de chez soi : sa fiche la promet sans
             // réserve, et le store l'oubliait en expédition
             reducJoueur: 1 - bh.gardeDuCorpsPct,

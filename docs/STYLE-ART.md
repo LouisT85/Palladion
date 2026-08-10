@@ -75,3 +75,32 @@ incohérente ? échelle ? silhouette illisible ?) et corriger. **Minimum
 3 cycles** modifier→capturer→critiquer avant de conclure. `npx tsc
 --noEmit` doit passer à la fin. Comparer le dernier rendu au Temple de
 référence : même niveau de finition exigé.
+
+## Une grande surface se traite par le ton, jamais par le détail
+
+La face interne des remparts l'a appris deux fois. Elle a d'abord été refusée
+comme « une bande vide sur huit cents pixels » ; on l'a remplie d'un remblai de
+terre, auquel on a ensuite ajouté un ventre, un sentier battu, des rigoles, des
+replats, des cailloux et de l'herbe — et elle a été refusée une seconde fois,
+« l'espèce de terre qui rend mal ». La garniture ne sauve pas une nappe : elle
+l'encombre.
+
+Ce qui a fini par tenir n'était pas un objet de plus. Le parement descend au sol
+et **s'assombrit vers son pied** en trois marches — rien ne l'éclaire là, la
+lumière du nord-ouest rase la crête et n'atteint jamais l'empattement. Trois
+`<path>` là où la terre en demandait quarante.
+
+Deux corollaires payés cher :
+
+- **Ce qu'on assombrit déteint sur ses voisins.** Les éperons, restés d'un ton
+  égal du haut en bas, sont redevenus dix stèles pâles dès que le mur derrière
+  eux a foncé. Un ouvrage adossé prend la valeur de ce à quoi il s'adosse.
+- **Un bois noyé dans la pierre ne montre que ses ABOUTS.** Le chaînage courait
+  en bandeaux continus, doublés d'un creux et d'un sous-lit : deux étagères
+  ceinturant la place, « des trucs en bois qui ont du volume et reviennent vers
+  l'intérieur ». Il ne reste que les carrés de bois de bout, au nu du parement,
+  avec leur trou d'ombre — et cela suffit à dire qu'une charpente tient le mur.
+
+Le garde-fou est dans `src/components/map/Murailles.test.tsx` : la couche interne
+doit étager au moins trois tons sourds et neutres, et ne plus jamais référencer
+le dégradé de terre.

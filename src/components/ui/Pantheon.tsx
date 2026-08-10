@@ -300,6 +300,20 @@ export function Pantheon() {
                           Sacrifice (<Montant n={-50} id="grain" taille={13} />)
                         </button>
                       </Astuce>
+                      {/*
+                        LE TROISIÈME LEVIER. Le sacrifice se paie en grain, la grâce
+                        en relation, l'hécatombe en tout - et c'est le seul des
+                        trois qui engage une saison entière. Les mettre côte à côte
+                        est ce qui rend la progression lisible : on sacrifie pour
+                        être écouté, on est écouté pour pouvoir offrir.
+                      */}
+                      <Astuce
+                        titre={`🔥 Hécatombe à ${dieu.nom}`}
+                        resume="Cent bêtes, une fois par saison : l’effet tient jusqu’au basculement. Chaque Olympien a son rite, et ils ne se ressemblent pas."
+                        note="Le troupeau saigné coûte un cinquième du grain tant que la fumée monte. Offrez au MATIN d’une saison : à son soir, le rite se refuse."
+                      >
+                        <button onClick={() => s.openPanel('hecatombe')}>Hécatombe…</button>
+                      </Astuce>
                       {etat.relation < 0 && (
                         <span style={{ fontSize: 11.5, color: '#d98a4e', alignSelf: 'center' }}>
                           Son bras est mou tant qu’il vous garde rancune.

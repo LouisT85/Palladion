@@ -3882,3 +3882,164 @@ button.plan-jeton.hero.vide:disabled {
   line-height: 1;
   cursor: help;
 }
+
+/* ─────────────────────────── L'HÉCATOMBE ───────────────────────────
+   Un rite se lit en trois temps : ce qu'il reste de saison (la donnée qui
+   décide), les quatre choix côte à côte, et le motif de chaque refus. Les
+   cartes sont en grille auto-ajustée : à quatre elles tiennent sur deux
+   rangs, et sur un seul si la fenêtre est large - jamais de défilement
+   horizontal, qui est la plaie des panneaux de ce jeu. */
+.hecatombe {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hec-saison {
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+/* le dernier cinquième : le rite se refuse, la teinte le dit AVANT le clic */
+.hec-saison.tard {
+  border-color: #7a4a2e;
+  background: #2a1f19;
+}
+.hec-saison-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 7px;
+}
+.hec-reste {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #a8b6cc;
+}
+.hec-saison.tard .hec-reste {
+  color: #e0956a;
+}
+.hec-jauge {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: #101725;
+  overflow: hidden;
+}
+.hec-jauge-plein {
+  height: 100%;
+  background: linear-gradient(90deg, #c9a24a, #e8c46a);
+  transition: width 0.4s linear;
+}
+/* le seuil de refus, matérialisé : c'est ce trait qui apprend à offrir tôt */
+.hec-jauge-seuil {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #d9714a;
+  opacity: 0.85;
+}
+.hec-note {
+  font-size: 11.5px;
+  color: #8c9ab0;
+  font-style: italic;
+  margin-top: 7px;
+  line-height: 1.45;
+}
+
+/* DEUX COLONNES, ET C'EST MESURÉ. À 255 px de minimum les quatre cartes
+   tombaient l'une sous l'autre : la modale offre 520 px utiles, et deux
+   colonnes de 255 plus la gouttière en demandent exactement 520 - un pixel
+   de trop. À 225 elles tiennent, et le panneau se lit sans dérouler quatre
+   fois pour comparer quatre rites qui s'excluent. */
+.hec-cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+  gap: 10px;
+}
+
+.hec-carte,
+.hec-actif {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 11px;
+}
+.hec-actif {
+  border-color: #c9a24a;
+  background: #241f16;
+}
+/* grisée, mais LISIBLE : on doit pouvoir comparer un rite qu'on ne peut pas
+   encore offrir, sinon la progression ne se voit pas */
+.hec-carte.bloquee {
+  opacity: 0.62;
+}
+
+.hec-carte-tete,
+.hec-actif-tete {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.hec-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.hec-nom {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+.hec-dieu {
+  font-size: 11.5px;
+  color: #98a6bc;
+}
+.hec-desc {
+  font-size: 12px;
+  color: #b6c2d4;
+  line-height: 1.5;
+}
+.hec-promesse {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e8c46a;
+  line-height: 1.4;
+}
+.hec-effets {
+  margin: 0;
+  padding-left: 17px;
+  font-size: 12px;
+  color: #a8b6cc;
+  line-height: 1.6;
+}
+.hec-prix {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  padding-top: 2px;
+}
+.hec-faveur {
+  color: #d98a4e;
+  font-weight: 600;
+}
+/* le motif du refus : jamais un bouton éteint sans sa raison */
+.hec-motif {
+  font-size: 11.5px;
+  color: #e0956a;
+  line-height: 1.45;
+}
+.hec-avertit {
+  font-size: 12px;
+  color: #e0956a;
+  background: #2a1f19;
+  border-radius: 6px;
+  padding: 7px 9px;
+  line-height: 1.45;
+}

@@ -5,6 +5,7 @@ import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
 import { Astuce } from './Infobulle'
 import { chantiersMenes } from '../../game/store'
+import { riteActif } from '../../game/hecatombe'
 import { nichesTemple } from '../../game/reliques'
 import { BlocPlanDefense } from './PlanDefense'
 import { couleurRendement } from './Population'
@@ -676,6 +677,20 @@ export function PanneauBatiment() {
           <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('reliques')}>
             🏺 Reliques et niches ({(s.reliquesExposees ?? []).length}/{nichesTemple(b.level)})
           </button>
+          {/*
+            L'HÉCATOMBE, quatrième usage du temple. Le libellé porte le rite EN
+            COURS quand il y en a un : sans cela, rien depuis la carte ne disait
+            qu'on avait déjà offert cette saison, et le joueur rouvrait le panneau
+            pour le vérifier.
+          */}
+          {(() => {
+            const rite = riteActif(s.hecatombe, Date.now(), s.createdAt)
+            return (
+              <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('hecatombe')}>
+                {rite ? `🔥 ${rite.emoji} ${rite.nom}` : '🔥 Offrir une hécatombe'}
+              </button>
+            )
+          })()}
         </div>
       )}
 

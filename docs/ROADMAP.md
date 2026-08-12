@@ -1,6 +1,6 @@
 # PALLADION - feuille de route
 
-État au 10 août 2026.
+État au 12 août 2026.
 
 **Comment lire ce document.** Il est organisé par **priorité** puis par **domaine**, et non par
 ordre chronologique : ce qui est en haut est ce qu'il faut faire ensuite. Chaque entrée à venir
@@ -21,12 +21,12 @@ L'historique des lots livrés est relégué en fin de document, pour mémoire.
 | Héros (8, arcs, entretien) | ✅ complet | rien de bloquant |
 | Diplomatie | ✅ complet | rien de bloquant - relations, présents, pactes, mariages, trahisons |
 | Village vivant | ✅ complet | âges, foyers, lignées, transmission des métiers, **un chef qui vieillit, meurt et se remplace** |
-| Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, 51 hauts faits, campagne en 5 actes |
+| Contenu narratif | ✅ complet | 41 dilemmes, 55 missions, **54 hauts faits**, campagne en 5 actes |
 | Modes de jeu | ✅ **quatre** | bac à sable, campagne, **siège sans fin**, **défi hebdomadaire** - plus **Nouvelle Partie +** |
-| Tests | ✅ **1 268 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
+| Tests | ✅ **1 525 tests + 7 parcours e2e** | tests de règles, de rendu et de bout en bout |
 | Art | ✅ complet | rien de bloquant - carte allégée, culling, palier de détail, temple refait, **remparts et tours redessinés par niveau** |
 | Accessibilité / mobile | ❌ non traité | tactile, contrastes, `prefers-reduced-motion` |
-| Multijoueur / serveur | ❌ non traité | hors périmètre pour l'instant |
+| Multijoueur / serveur | ✅ **asynchrone, sans serveur** | cartes de défense et rapports échangés en TEXTE, vérifiés par rejeu. « Comptes et sauvegarde serveur » reste non traité et n'est plus nécessaire à ce mode |
 
 ---
 
@@ -75,6 +75,34 @@ somme qui existe déjà.
 en JOURNÉES DE JEU partout où c'est possible : c'est ce qui les rend insensibles au
 bloc de vitesse du tick et au rattrapage de soixante journées d'une absence de nuit.
 
+## ✅ Lot 16 - le multijoueur asynchrone, sans serveur
+
+PALLADION est une application STATIQUE : pas de serveur, pas de compte, l'état vit dans
+le navigateur. « Comptes et sauvegarde serveur » est une entrée séparée de cette liste,
+et elle n'a pas été nécessaire. Le multijoueur prend la forme du COURRIER - trois codes
+en texte, comme les sauvegardes s'échangent déjà.
+
+| # | Chantier | Ce qui a été fait |
+|---|---|---|
+| 1 | **Moteur rejouable** | Le point dur, mesuré avant de concevoir : `combat.ts` appelait `Math.random()` VINGT ET UNE FOIS en direct, et le mode défi - qui se croit déterministe depuis le lot 10 - ne détournait que `hasard()`, dont le moteur ne comptait que QUATRE appelants. Deux exécutions du même assaut à graine égale divergeaient : le classement du défi ne valait rien. Tout passe par `hasard()`, la météo comprise (elle entre dans la bataille). Les quatre `Math.hypot` deviennent `Math.sqrt` - ECMA n'impose de résultat exact qu'aux quatre opérations et à `sqrt`. |
+| 2 | **Codec** | Deux codes collables. Une carte de cité de niveau 4 complète : **187 caractères** mesurés, 7,7 fois moins qu'un JSON. Version en tête, somme de contrôle, huit refus motivés, deux portes contre un texte énorme qu'on ne doit ni décoder ni parcourir. 14 868 mutations d'un caractère éprouvées : aucune acceptée en silence. |
+| 3 | **Duel** | Une carte de défense publie une CIBLE - murs, tours, Redoute, ouvrages, garnison, **le plan de défense entier**, héros, tempérament du chef - et rien d'autre : ni réserves, ni chantiers, ni habitants. L'adversaire frappe chez lui, renvoie un rapport, et le client du défenseur REJOUE l'assaut avant de le croire. L'anti-triche est la reproductibilité. Le butin est plafonné et calculé sur la carte ÉMISE : publier n'est pas signer un chèque en blanc. |
+| 4 | **Interface** | Trois onglets pour trois gestes - ma cité, attaquer, le courrier - et l'onglet d'ouverture suit l'urgence : un pli à renvoyer ouvre ATTAQUER, une revanche ouvre LE COURRIER, un règne sans carte ouvre MA CITÉ. On entre par l'AGORA (le conseil reçoit les hérauts) et par les EXPÉDITIONS. Aucun bouton de plus dans la barre du haut. |
+
+**La boucle entière a été éprouvée entre deux navigateurs indépendants** : A publie
+(122 caractères), B décode et frappe, B renvoie son rapport (275 caractères), A le
+rejoue - la simulation confirme - et gagne 22 d'honneur pour avoir tenu. Le même
+rapport présenté une seconde fois est refusé ; un seul caractère changé est refusé
+avec son motif.
+
+⚠️ **UNE LIMITE, ÉCRITE DANS LE CODE.** `Math.sin`, `Math.cos` et `Math.atan2` - dont
+la géométrie se sert dix fois - sont « approchés par l'implémentation » selon ECMA-262.
+La reproductibilité est donc garantie DANS un navigateur, pas au bit près ENTRE deux.
+Trois conséquences tenues : un rapport n'est jamais refusé sur un écart de position ni
+sur un nombre de battements ; un désaccord n'est pas à lui seul une preuve de triche,
+et le motif le dit ; la fermeture complète passerait par une table d'angles
+précalculée.
+
 ## 🎯 Priorité 3 - bon à prendre
 
 | Chantier | Effort | Impact | Domaine |
@@ -83,7 +111,6 @@ bloc de vitesse du tick et au rattrapage de soixante journées d'une absence de 
 | Rejouer une bataille passée (les annales gardent déjà de quoi) | M | ★ | confort |
 | Éditeur de défis à partager par lien | M | ★ | mode |
 | Comptes et sauvegarde serveur | L | ★ | technique |
-| Multijoueur asynchrone (raider le village d'un autre joueur) | XL | ★★★ | technique |
 
 ---
 

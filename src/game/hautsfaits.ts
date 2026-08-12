@@ -257,6 +257,31 @@ export const HAUTS_FAITS: HautFaitDef[] = [
     points: 35,
     atteint: (s) => (s.expeditions['forteresse-mysienne']?.etoiles ?? 0) >= 1,
   },
+  /*
+   * LE DUEL. Trois faits, et aucun ne se gagne contre le jeu : ils se gagnent contre
+   * un autre joueur, par courrier. Les compteurs viennent de `noter()` -
+   * `duelsGagnes`, `duelsTenus`, `honneurDuel` - et non d'un champ de plus dans
+   * `SnapHautFait` : un haut fait ne doit jamais élargir l'instantané, sans quoi
+   * ajouter un fait deviendrait toucher au store.
+   */
+  {
+    id: 'duel-premier-sang',
+    emoji: '📜',
+    titre: 'Le héraut est parti',
+    desc: 'Percer les murs d’une cité tenue par un autre joueur.',
+    cat: 'guerre',
+    points: 20,
+    atteint: (s) => (s.exploits.duelsGagnes ?? 0) >= 1,
+  },
+  {
+    id: 'duel-le-plan-tint',
+    emoji: '🛡️',
+    titre: 'Le plan qui tint',
+    desc: 'Repousser le raid d’un autre joueur avec le plan réglé en temps de paix.',
+    cat: 'guerre',
+    points: 25,
+    atteint: (s) => (s.exploits.duelsTenus ?? 0) >= 1,
+  },
 
   // ── Olympe ─────────────────────────────────────────────────────────────────
   {
@@ -535,6 +560,15 @@ export const HAUTS_FAITS: HautFaitDef[] = [
     cat: 'legende',
     points: 45,
     atteint: (s) => Object.keys(s.alliances).length >= 3,
+  },
+  {
+    id: 'duel-egal-des-atrides',
+    emoji: '👑',
+    titre: 'Égal des Atrides',
+    desc: 'Amasser trois cents points d’honneur en duel - une vingtaine de raids gagnés ou tenus.',
+    cat: 'legende',
+    points: 60,
+    atteint: (s) => (s.exploits.honneurDuel ?? 0) >= 300,
   },
   {
     id: 'le-traitre',

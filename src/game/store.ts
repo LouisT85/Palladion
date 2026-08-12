@@ -847,6 +847,7 @@ export interface GameState {
     | 'flotte'
     | 'lazaret'
     | 'colonies'
+    | 'duel'
     | null
   /**
    * Recensement des habitants ouvert. C'est de l'affichage pur, mais il vit

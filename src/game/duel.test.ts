@@ -295,7 +295,14 @@ describe('une carte venue d’ailleurs est bornée, jamais crue', () => {
   it('un défenseur ne se donne pas quatre fois la force d’un homme', () => {
     const c = carteValide({ ...carte(), atk: 40, reduc: 0 })
     expect(c.atk).toBe(ATK_MAX)
-    expect(c.reduc).toBe(REDUC_MIN)
+    /*
+     * `reduc: 0` rend 1 - aucune réduction - et non `REDUC_MIN`. `borne` clampe, et
+     * zéro est fini : une carte tronquée ou fabriquée se donnait donc la MEILLEURE
+     * réduction possible. Un champ vide doit se lire « rien », jamais « le mieux ».
+     */
+    expect(c.reduc).toBe(1)
+    // et une réduction ÉCRITE, hors bornes par le bas, se clampe bien au minimum
+    expect(carteValide({ ...carte(), reduc: 0.1 }).reduc).toBe(REDUC_MIN)
   })
 
   it('un héros de niveau cent n’est qu’un héros de niveau cinq', () => {

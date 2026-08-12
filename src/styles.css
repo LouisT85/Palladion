@@ -5048,3 +5048,343 @@ button.plan-jeton.hero.vide:disabled {
   color: #e0956a;
   line-height: 1.45;
 }
+
+/* ═══════════════════════ LES DUELS — LE COURRIER DES HÉRAUTS ═══════════════════
+   Un système d'échange par codes n'a rien à montrer de lui-même : ni jauge, ni
+   carte, ni compte à rebours. Tout le poids tombe donc sur la mise en page, et
+   elle a trois devoirs.
+
+   · LE CODE DOIT AVOIR L'AIR D'UN CODE. Un `<textarea>` en fonte à chasse fixe,
+     fond noir, bordure d'or : on voit du premier coup d'œil ce qui se copie et ce
+     qui se colle. Écrit dans la couleur du corps de texte, il se lisait comme une
+     phrase, et les joueurs en sélectionnaient la moitié.
+   · CE QU'ON PUBLIE DOIT SE LIRE COMME UNE FICHE D'ENNEMI, pas comme un export.
+     Quatre fiches de rang égal - l'enceinte, la garnison, le plan, le chef - dans
+     une grille `minmax(225px, 1fr)` : à 520 px utiles dans la modale elles font
+     deux colonnes, et une seule sous 255 px, sans jamais couper un chiffre.
+   · LE RISQUE ET LE VERDICT SONT DES ENCADRÉS, jamais des lignes de texte. Ce sont
+     les deux endroits où le joueur engage quelque chose qui ne se reprend pas. */
+.duel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* trois gestes, trois onglets - comme les colonies, où fonder n'est pas tenir */
+.duel-onglets {
+  display: flex;
+  gap: 6px;
+}
+.duel-onglets button {
+  flex: 1;
+  font-size: 12.5px;
+}
+.duel-onglets button.actif {
+  border-color: #c9a24a;
+  color: #e8c46a;
+}
+.duel-onglet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.duel-bloc {
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 11px 12px;
+}
+.duel-bloc h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #c9a24a;
+}
+.duel-sous {
+  font-size: 11.5px;
+  color: #98a6bc;
+  line-height: 1.5;
+}
+.duel-ligne {
+  font-size: 12.5px;
+  color: #b6c2d4;
+  line-height: 1.6;
+}
+.duel-nom {
+  font-weight: 700;
+  font-size: 14.5px;
+}
+.duel-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.duel-vide {
+  font-size: 12px;
+  color: #7e8ca3;
+  font-style: italic;
+}
+.duel-prix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── Le code : ce qui se copie et ce qui se colle ─────────────────────────── */
+/* La fonte à chasse fixe n'est pas un ornement : un code de huit cents caractères
+   se relit à la main quand il a mal voyagé, et « l » contre « 1 » décide alors de
+   tout. Le champ est TOLÉRANT par construction (`nettoyerCode`) : il accepte les
+   retours à la ligne, d'où `white-space: pre-wrap` et non `nowrap`. */
+.duel-champ {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  word-break: break-all;
+  white-space: pre-wrap;
+  color: #d8e0ec;
+  background: #0b1220;
+  border: 1px solid #2a364b;
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-top: 6px;
+}
+.duel-champ:focus {
+  outline: none;
+  border-color: #c9a24a;
+}
+.duel-champ.code {
+  color: #e8c46a;
+  border-color: #4a3c1e;
+  background: #100d06;
+}
+.duel-code {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.duel-code-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.duel-code-actions button {
+  flex: 1;
+}
+.duel-code-long {
+  font-size: 11px;
+  color: #7e8ca3;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.duel-ok {
+  font-size: 12px;
+  color: #7fb069;
+}
+/* le motif d'un refus : sous le champ où l'on vient de coller, jamais au bas du
+   panneau - on regarde là où l'on a agi */
+.duel-motif {
+  font-size: 12px;
+  color: #e0956a;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+/* ── La fiche d'une cité — la même des deux côtés du courrier ─────────────── */
+.duel-carte {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #1b2536;
+  border: 1px solid #33415a;
+  border-radius: 8px;
+  padding: 11px 12px;
+}
+.duel-carte-tete {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.duel-fiches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+  gap: 9px;
+}
+.duel-fiche {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #101725;
+  border: 1px solid #2a364b;
+  border-radius: 6px;
+  padding: 8px 9px;
+}
+.duel-fiche h4 {
+  margin: 0;
+  font-size: 12px;
+  color: #c9a24a;
+}
+
+.duel-troupes,
+.duel-heros,
+.duel-traits,
+.duel-batiments,
+.duel-ordres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.duel-troupe,
+.duel-hero,
+.duel-trait,
+.duel-bat,
+.duel-ordre {
+  font-size: 11px;
+  color: #a8b6cc;
+  background: #162030;
+  border: 1px solid #2a364b;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.duel-troupe {
+  font-size: 12.5px;
+  color: #d8e0ec;
+}
+.duel-ordre {
+  color: #e8c46a;
+  border-color: #4a3c1e;
+}
+/* ce qui est HORS des murs tombe sans qu'on enfonce la porte : la pastille le dit
+   avant qu'on ait lu la ligne d'explication */
+.duel-bat.dehors {
+  color: #c88f63;
+  border-color: #5a4227;
+}
+.duel-pans {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: #b6c2d4;
+  line-height: 1.6;
+}
+
+/* ── Ce qu'on met en jeu, et ce qu'il y a à prendre ───────────────────────── */
+/* Encadré, et non glissé dans une phrase : publier sa carte est le seul geste du
+   jeu qui autorise un autre joueur à vous prendre quelque chose. Le plafond est la
+   seule information qui répond à « qu'est-ce que je risque » - et elle doit y
+   répondre AVANT le clic, pas dans le journal du lendemain. */
+.duel-plafond {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #101725;
+  border: 1px solid #2a364b;
+  border-radius: 6px;
+  padding: 9px 10px;
+}
+.duel-plafond.mienne {
+  border-color: #7a4a2e;
+  background: #241c17;
+}
+.duel-plafond h4 {
+  margin: 0;
+  font-size: 12.5px;
+  color: #c9a24a;
+}
+.duel-plafond.mienne h4 {
+  color: #e0956a;
+}
+
+.duel-avertit {
+  background: #241c17;
+  border: 1px solid #7a4a2e;
+  border-radius: 8px;
+  padding: 10px 11px;
+  font-size: 12px;
+  color: #d9c9b4;
+  line-height: 1.55;
+}
+.duel-avertit h4 {
+  margin: 0 0 5px;
+  font-size: 13px;
+  color: #e0956a;
+}
+
+/* ── Le pli à renvoyer : la seule chose de ce panneau qui bloque quelqu'un ── */
+.duel-pli {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: #1a2418;
+  border: 1px solid #4c6b3a;
+  border-radius: 8px;
+  padding: 10px 11px;
+}
+.duel-pli h4 {
+  margin: 0;
+  font-size: 13px;
+  color: #9ecb78;
+}
+
+/* ── Ce que le rapport prétend, et ce que la simulation en dit ────────────── */
+.duel-issue {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin: 4px 0 6px;
+}
+.duel-issue.pris {
+  color: #e0956a;
+}
+.duel-issue.repousse {
+  color: #9ecb78;
+}
+.duel-graine {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #7e8ca3;
+  margin-top: 6px;
+}
+/* Le verdict est le cœur du système : sans serveur, c'est la reproductibilité du
+   combat qui tient lieu d'arbitre. Il a donc la place et la couleur d'un jugement,
+   et jamais la teinte neutre d'un message d'information. */
+.duel-verdict {
+  border-radius: 8px;
+  padding: 10px 11px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.duel-verdict h4 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+.duel-verdict.ok {
+  background: #16240f;
+  border: 1px solid #4c6b3a;
+  color: #cfe0c0;
+}
+.duel-verdict.ok h4 {
+  color: #9ecb78;
+}
+.duel-verdict.ko {
+  background: #2a1f19;
+  border: 1px solid #7a4a2e;
+  color: #d9c9b4;
+}
+.duel-verdict.ko h4 {
+  color: #e0956a;
+}
+
+.duel-revanche {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  background: #101725;
+  border: 1px solid #2a364b;
+  border-radius: 6px;
+  padding: 8px 9px;
+  margin-top: 6px;
+}

@@ -134,6 +134,12 @@ function regneTotal(modif: Partial<SnapHautFait> = {}): SnapHautFait {
       mariages: 10,
       // deux alliances scellées par mariage avec les places fortes
       mariagesDiplomatiques: 2,
+      // le duel : un raid d’honneur gagné, un raid d’honneur repoussé, et l’honneur
+      // du rang le plus haut. Sans ces trois clés, les trois hauts faits du duel
+      // paraîtraient HORS D’ATTEINTE dans le filet ci-dessous.
+      duelsGagnes: 1,
+      duelsTenus: 1,
+      honneurDuel: 300,
     },
     ...modif,
   })
@@ -174,7 +180,8 @@ describe('le tableau des hauts faits', () => {
     expect(new Set(ids).size).toBe(ids.length)
     // deux hauts faits de même titre seraient indiscernables dans le panneau
     expect(new Set(HAUTS_FAITS.map((h) => h.titre)).size).toBe(HAUTS_FAITS.length)
-    expect(HAUTS_FAITS).toHaveLength(51)
+    // 51 + les trois du duel : « Le héraut est parti », « Le plan qui tint », « Égal des Atrides »
+    expect(HAUTS_FAITS).toHaveLength(54)
     for (const h of HAUTS_FAITS) {
       // l'index sert à retrouver les points d'un id sauvegardé : il doit viser LA bonne fiche
       expect(HF_PAR_ID[h.id], h.id).toBe(h)
@@ -195,7 +202,8 @@ describe('le tableau des hauts faits', () => {
       expect(Number.isInteger(h.points), h.id).toBe(true)
       expect(h.points, h.id).toBeGreaterThan(0)
     }
-    expect(POINTS_TOTAUX).toBe(1485)
+    // 1485 + 20 + 25 + 60 : les trois hauts faits du duel
+    expect(POINTS_TOTAUX).toBe(1590)
     /*
      * Le panneau affiche « gagnés / POINTS_TOTAUX ». La jauge ne doit pas pouvoir
      * dépasser 100 % : un palmarès complet vaut exactement le total annoncé, ce
@@ -460,6 +468,8 @@ describe('les conditions', () => {
       ['grand-hiver', 'hiverTraverse'],
       ['le-sauveur', 'secours'],
       ['le-traitre', 'trahisons'],
+      ['duel-premier-sang', 'duelsGagnes'],
+      ['duel-le-plan-tint', 'duelsTenus'],
     ]
     for (const [id, cle] of ponctuels) {
       // compteur absent : le `?? 0` doit refuser le haut fait

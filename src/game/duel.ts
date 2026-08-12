@@ -586,7 +586,14 @@ export function hommesDe(colonne: Partial<Record<UnitId, number>>): number {
  */
 export function carteValide(brut: unknown): CarteDefense {
   const c = (brut ?? {}) as Partial<CarteDefense>
-  const mur = borne(c.mur, 0, WALL_HP.length - 1, 0)
+  /*
+   * ⚠️ ENTIER, ET C'EST LE CODEC QUI L'A TROUVÉ. Sans le plancher, une carte à
+   * `mur: 2.5` passait la désinfection : `WALL_HP[2.5]` vaut alors `undefined`,
+   * `murHp` retombait à zéro, et le fil - qui n'écrit le niveau que sur trois bits -
+   * la relisait à 2. C'était le SEUL cas où l'aller-retour d'un code n'était pas
+   * exact, et il aurait fait refuser un rapport honnête pour « inconnue ».
+   */
+  const mur = Math.floor(borne(c.mur, 0, WALL_HP.length - 1, 0))
   const garnison: Partial<Record<UnitId, number>> = {}
   const gsrc = (c.garnison ?? {}) as Record<string, unknown>
   for (const u of UNIT_IDS) {
@@ -622,7 +629,14 @@ export function carteValide(brut: unknown): CarteDefense {
     if (n > 0) niveaux[b] = n
   }
   return {
-    cite: typeof c.cite === 'string' && c.cite.trim() ? c.cite.slice(0, 40) : 'Une cité sans nom',
+    /*
+     * ⚠️ ON COUPE PUIS ON RETAILLE, dans cet ordre. `nom.slice(0, 40)` seul n'est pas
+     * IDEMPOTENT : un nom de quarante et un caractères dont les quarante premiers sont
+     * des blancs devenait quarante espaces, et un second passage - il y en a un à
+     * chaque décodage - le remplaçait par « Une cité sans nom ». Deux empreintes pour
+     * une même carte, donc un rapport honnête refusé pour « inconnue ».
+     */
+    cite: typeof c.cite === 'string' && c.cite.trim() ? c.cite.trim().slice(0, 40).trim() : 'Une cité sans nom',
     mur,
     /*
      * L'enceinte publiée ne peut pas dépasser le DOUBLE de ce que son niveau vaut
@@ -646,7 +660,14 @@ export function carteValide(brut: unknown): CarteDefense {
     plan: planValide(c.plan),
     heros,
     atk: borne(c.atk, 1, ATK_MAX, 1),
-    reduc: borne(c.reduc, REDUC_MIN, 1, 1),
+    /*
+     * ⚠️ ZÉRO N'EST PAS « PAS DE VALEUR ». `borne` clampe, et zéro est fini : une carte
+     * tout à zéro - code tronqué, code fabriqué - rendait donc `REDUC_MIN`, soit la
+     * MEILLEURE réduction de dégâts possible. Sans conséquence exploitable (une telle
+     * carte n'a ni mur ni garnison, `refusRaid` la rejette pour « carte »), mais c'est
+     * l'inverse de ce qu'on veut lire dans un champ vide.
+     */
+    reduc: typeof c.reduc === 'number' && c.reduc > 0 ? borne(c.reduc, REDUC_MIN, 1, 1) : 1,
     niveaux,
     butin,
     jour: Math.floor(borne(c.jour, 0, 1e7, 0)),
@@ -662,7 +683,7 @@ export function rapportValide(brut: unknown): RapportRaid {
   const envoyes = hommesDe(colonne)
   const morts = Math.floor(borne(issueBrute.morts, 0, envoyes, 0))
   return {
-    cite: typeof r.cite === 'string' && r.cite.trim() ? r.cite.slice(0, 40) : 'Une cité sans nom',
+    cite: typeof r.cite === 'string' && r.cite.trim() ? r.cite.trim().slice(0, 40).trim() : 'Une cité sans nom',
     cible: carteValide(r.cible),
     colonne,
     pans: pansValides(r.pans),

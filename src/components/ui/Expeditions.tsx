@@ -54,6 +54,7 @@ import { DieuxRapides } from './Hud'
 import { verdictTraversee } from '../../game/flotte'
 import { BlocTraversee, flotteDe } from './Flotte'
 import { Astuce } from './Infobulle'
+import { BlocDuel } from './Duel'
 import { BarreOrdres } from './Ordres'
 
 /**
@@ -405,6 +406,14 @@ export function PanneauExpeditions() {
             </div>
           </div>
         )}
+        {/*
+          LA NEUVIÈME CIBLE N'EST PAS DANS LA TROADE : c'est la cité d'un autre
+          joueur, et c'est la seule qui rende les coups. Elle est en tête de la
+          liste et non en bas, parce que c'est ici qu'on choisit qui frapper - un
+          système qu'on ne découvre qu'en déroulant huit places fortes n'est
+          découvert par personne.
+        */}
+        <BlocDuel />
         {VILLAGES_CIBLES.map((v) => {
           const etat = s.expeditions[v.id]
           const resteCd = Math.max(0, (etat?.dernierRaid ?? 0) + cooldown - now)

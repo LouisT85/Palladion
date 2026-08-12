@@ -1,5 +1,6 @@
 import { PORT_MINIMUM } from '../../game/colonies'
 import { BlocColonies } from './Colonies'
+import { BlocDuel } from './Duel'
 import { BlocLazaret } from './Lazaret'
 import { useState } from 'react'
 import { BUILDINGS, DEFENSES_DEFS, DEFENSE_IDS, REDOUTE_CADENCE_MS, REDOUTE_MAX, REDOUTE_PORTEE, redouteDmg, structureMax, LOT_ECHANGE, MARGE_PORT, METIERS, PROD, RENDEMENT_HORS_METIER, RES, TOURS_MAX, TOUR_COUTS, TOUR_PORTEE, UNITS, UNIT_IDS, coutEchange } from '../../game/data'
@@ -668,6 +669,14 @@ export function PanneauBatiment() {
           </button>
         </div>
       )}
+      {/*
+        LE CONSEIL REÇOIT AUSSI LES HÉRAUTS. C'est par l'agora qu'entre le courrier
+        des duels, et non par un onzième bouton dans la barre du haut : elle en
+        compte dix et la navigation a déjà été jugée peu fluide. Le libellé du bloc
+        porte l'urgence - un pli qu'on n'a pas renvoyé laisse un AUTRE joueur sans
+        nouvelles de son propre village, et rien ailleurs sur la carte ne le dirait.
+      */}
+      {id === 'agora' && b.level >= 2 && <BlocDuel />}
       {/* la caserne envoie aussi des hommes qui ne se battent pas */}
       {id === 'caserne' && b.level > 0 && (
         <div className="bloc">

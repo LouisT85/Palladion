@@ -365,6 +365,40 @@ import {
   type VocationId,
 } from './colonies'
 import {
+  COUT_RAID,
+  carteValide,
+  colonneValide,
+  consequences as consequencesDuel,
+  deroulerRaid,
+  duelApresEmission,
+  duelApresRaid,
+  duelApresRapport,
+  duelApresRevanche,
+  duelJouable,
+  duelSain,
+  duelVide,
+  emettreCarte,
+  empreinteCarte,
+  graineRaid,
+  honneurAttaque,
+  motifRefusRaid,
+  motifRefusRapport,
+  pansValides,
+  rangDe,
+  rapportDuRaid,
+  rapportValide,
+  refusRaid,
+  refusRapport,
+  resoudreRaid,
+  resumeButin,
+  type CarteDefense,
+  type EtatDuel,
+  type PanId,
+  type RapportRaid,
+  type SnapCarte,
+  type SnapDuel,
+} from './duel'
+import {
   DYNASTIE_VIDE,
   MEMOIRE_MAX,
   TRAITS_PAR_ID,
@@ -738,6 +772,22 @@ export interface GameState {
    * qui survive à huit heures d'absence en faisant rentrer vingt cargaisons.
    */
   colonies: Colonie[]
+  /*
+   * ═══════════ LE DUEL ═══════════
+   *
+   * Sept champs, et pas une échéance en millisecondes : `dernierRaid` est un NUMÉRO
+   * DE JOURNÉE sur l'horloge de `jourDe(s)`, que le bloc de vitesse du tick fait
+   * déjà courir (piège 2). Les quatre listes sont BORNÉES par `duel.ts` lui-même -
+   * six cartes émises, douze cartes frappées, vingt-quatre rapports vus, trois
+   * vengeances - parce qu'une liste qui enfle est une sauvegarde qui casse.
+   *
+   * Et RIEN ici ne s'y résout tout seul : aucun crochet quotidien ne le lit, aucune
+   * vengeance n'expire. Huit heures d'absence avancent le calendrier de soixante
+   * journées ; un joueur qui revient de son déjeuner doit retrouver ses vengeances
+   * intactes, faute de quoi il aurait perdu quelque chose sans l'avoir décidé
+   * (piège 4).
+   */
+  duel: EtatDuel
 
   // runtime (non sauvegardé)
   /**
@@ -917,6 +967,22 @@ export interface GameState {
   fermerEvenement: () => void
   lancerMaintenant: () => void
   lancerExpedition: (villageId: string, troupes: Record<UnitId, number>, intention?: Intention) => void
+  /**
+   * Publie la carte de défense de la cité et la retient. Rend la carte : c'est
+   * `encoderCarte` (cartes.ts) qui en fait un code collable - le store ne connaît
+   * pas le codec, et le codec ne connaît pas le store.
+   */
+  publierCarte: () => CarteDefense
+  /**
+   * Frappe la carte d'un autre joueur. Rend le RAPPORT à lui renvoyer, ou `null` si
+   * le geste a été refusé (le motif est alors passé en toast). Le combat se tranche
+   * hors écran, au pas fixe : c'est la seule façon qu'il soit reproductible chez lui.
+   */
+  lancerRaidDuel: (carte: unknown, colonne: Partial<Record<UnitId, number>>, pans: PanId[]) => RapportRaid | null
+  /** Juge le rapport d'un adversaire en rejouant l'assaut, et l'applique s'il tient */
+  appliquerRapport: (rapport: unknown) => boolean
+  /** Renonce à une vengeance sans la prendre */
+  oublierRevanche: (ref: string) => void
   ignorerSecours: () => void
   abdiquer: () => void
   fermerFin: () => void
@@ -1334,6 +1400,70 @@ export function merFermee(s: Pick<GameState, 'saison'> & { graces?: string[] }):
 /** jour de jeu en cours (1 = jour de la fondation) */
 export function jourDe(s: Pick<GameState, 'lastSeen' | 'createdAt'>): number {
   return Math.floor((s.lastSeen - s.createdAt) / DAY_MS) + 1
+}
+
+// ── LE DUEL ──────────────────────────────────────────────────────────────────
+/**
+ * L'instantané que publier une carte demande. UN SEUL composeur, et il est EXPORTÉ :
+ * le panneau du duel montre exactement la place que l'adversaire attaquera. Deux
+ * composeurs auraient fini par se contredire, et la contradiction se paierait au
+ * pire endroit - la carte annoncerait un mur, l'assaut en trouverait un autre, et le
+ * rapport HONNÊTE de l'adversaire serait refusé sans que personne comprenne.
+ *
+ * ⚠️ `murMax(s)` et non `WALL_HP[niveau]`. Six systèmes majorent l'enceinte - Hector,
+ * les grâces, les reliques exposées, les technologies, la merveille, le chef - et ils
+ * s'additionnent dans UNE parenthèse (piège 5). Publier la table nue aurait promis
+ * une place bien plus tendre que celle qu'on croit tenir.
+ */
+export function snapCarteDuel(s: GameState): SnapCarte {
+  const bh = bonusHeros(s)
+  const chef = s.dynastie?.chef
+  const niveaux: Partial<Record<BuildingId, number>> = {}
+  for (const b of BUILDING_IDS) if (s.buildings[b].level > 0) niveaux[b] = s.buildings[b].level
+  return {
+    cite: chef ? `${chef.nom} des ${chef.lignee}` : 'Une cité sans chef',
+    mur: s.buildings.remparts.level,
+    murHp: murMax(s),
+    tours: s.tours,
+    redoute: s.buildings.redoute.level,
+    garnison: { ...s.army },
+    interieur: s.defenses,
+    plan: s.planDefense,
+    // ceux qui tiennent vraiment les murs : recrutés et vivants. Un héros qu'on rêve
+    // d'avoir n'a pas à figurer sur une carte qui sert de cible.
+    heros: HERO_IDS.filter((h) => s.heros?.[h]?.recrute && !s.heros[h].mort).map((h) => ({
+      id: h,
+      niveau: s.heros[h].niveau,
+    })),
+    /*
+     * LES DEUX SOURCES PERMANENTES, ET SEULEMENT ELLES : les passifs de mêlée des
+     * héros et le tempérament du chef. Le camp qui défend, chez lui, y ajoute
+     * `bonusFaveurs(s).degatsPct` et `bonusHecatombe(...).degatsPct` (voir la ligne de
+     * `bonusAtkJoueur` de la défense du village) - et on les LAISSE DEHORS exprès.
+     * Une grâce dure quelques minutes, la ferveur d'une hécatombe s'éteint : gelées
+     * dans une carte qui vivra des heures, elles auraient promis à l'attaquant un mur
+     * qui rend des coups que le défenseur n'avait plus, sans que personne puisse le
+     * vérifier. Une carte ne gèle que ce qui ne s'évapore pas.
+     */
+    atk: 1 + bh.degatsMeleePct + effetsChef(chef?.traits).degatsPct,
+    reduc: 1 - bh.gardeDuCorpsPct,
+    niveaux,
+    resources: { ...s.resources },
+    jour: jourDe(s),
+  }
+}
+
+/** l'instantané que le juge du duel demande - un seul composeur, ici aussi */
+export function snapDuel(s: GameState): SnapDuel {
+  return {
+    duel: s.duel ?? duelVide(),
+    army: { ...s.army },
+    grain: s.resources.grain,
+    colonneDehors: s.expedition !== null,
+    enBataille: s.battle !== null,
+    assiege: s.mode === 'siege',
+    jour: jourDe(s),
+  }
 }
 
 // ── LA FIÈVRE ────────────────────────────────────────────────────────────────
@@ -2153,6 +2283,9 @@ function etatInitial(now: number): Omit<GameState, keyof ActionsOnly> {
     lazaret: 0,
     dynastie: { chef: fonderChef(Math.random(), 1), vacanceDepuis: null, passes: [] },
     colonies: [],
+    // `duelVide()` et non `DUEL_VIDE` : deux règnes qui partageraient les mêmes
+    // tableaux verraient le second hériter des cartes publiées par le premier
+    duel: duelVide(),
     missionsNotifiees: [],
     battle: null,
     renfortsEngages: null,
@@ -2220,6 +2353,10 @@ type ActionsOnly = {
   fermerEvenement: unknown
   lancerMaintenant: unknown
   lancerExpedition: unknown
+  publierCarte: unknown
+  lancerRaidDuel: unknown
+  appliquerRapport: unknown
+  oublierRevanche: unknown
   ignorerSecours: unknown
   abdiquer: unknown
   fermerFin: unknown
@@ -2331,6 +2468,7 @@ const CHAMPS_SAUVES = [
   'colonies',
   'epidemie',
   'lazaret',
+  'duel',
 ] as const
 
 export const VITESSES = [1, 2, 4, 8] as const
@@ -3998,6 +4136,15 @@ export const useGame = create<GameState>()(
              * qu'un fichier repris à la main pourrait porter autre chose.
              */
             s.colonies = Array.isArray(s.colonies) ? s.colonies : []
+            /*
+             * Une sauvegarde antérieure au duel n'a pas la clé, et `Object.assign`
+             * laisse alors celle d'`etatInitial` : ce cas se règle tout seul. Celui
+             * qui ne se règle pas tout seul est le fichier repris à la main - le
+             * panneau lit `duel.cartes.some(...)` au premier clic, et un `cartes`
+             * qui serait une chaîne le ferait planter au lieu de refuser un geste.
+             * `duelSain` reconstruit champ par champ et RE-BORNE les quatre listes.
+             */
+            s.duel = duelSain(s.duel)
             /*
              * ⚠️ L'ARMÉE, D'ABORD. `Object.assign` REMPLACE la table des effectifs
              * par celle du fichier : une sauvegarde écrite avant le frondeur, le
@@ -6549,6 +6696,191 @@ if (s.blocus) {
           secours ? '🤝' : '🏴‍☠️',
           secours ? `Vos troupes courent délivrer ${v.nom} !` : `Vos troupes marchent sur ${v.nom} !`,
         )
+      })
+    },
+
+    /*
+     * ═══════════ LE DUEL : PUBLIER, FRAPPER, JUGER ═══════════
+     *
+     * Trois gestes, trois codes de texte, aucun serveur. Les RÈGLES sont dans
+     * `duel.ts`, qui est pur ; l'ENCODAGE est dans `cartes.ts`. Le store n'a donc que
+     * ce qu'il sait faire : retirer des hommes, créditer des coffres, poser un état.
+     *
+     * ⚠️ LE COMBAT SE TRANCHE HORS ÉCRAN, et ce n'est pas un choix de confort.
+     * `deroulerBataille` avance par pas de `TICK_MS` exactement ; le tick, lui, avance
+     * au rythme de la boucle d'animation - 250 ms, puis 263 parce que l'onglet a
+     * bronché. Un raid joué en temps réel dans `s.expedition` n'aurait PAS été
+     * reproductible chez l'adversaire, et toute la vérification se serait effondrée.
+     */
+    publierCarte: () => {
+      const avant = get()
+      const c = emettreCarte(snapCarteDuel(avant), avant.duel.emises)
+      set((s) => {
+        s.duel = duelApresEmission(s.duel, c)
+        pushToast(s, '📜', `Carte de défense publiée : vous mettez en jeu ${resumeButin(c.butin)}.`)
+        pushReport(s, '📜', 'Carte de défense publiée', [
+          `Le héraut porte la description de ${c.cite} : ses murs, sa garnison, ses héros, et le plan qui les commande.`,
+          `En jeu : ${resumeButin(c.butin)}, et pas un grain de plus. Une carte est un chèque, et il ne s’encaisse qu’une fois.`,
+          'Aucun secret n’y figure - ni coffres, ni faveur, ni habitants. Ce n’est pas une sauvegarde, c’est une cible.',
+          'Un plan qui tient rapporte autant qu’un mur percé : publier n’est pas seulement s’exposer.',
+        ])
+      })
+      return c
+    },
+
+    lancerRaidDuel: (brute, colonne, pans) => {
+      const avant = get()
+      const c = carteValide(brute)
+      const refus = refusRaid(snapDuel(avant), c, colonne, pans)
+      if (refus) {
+        // jamais un geste refusé sans son motif : le refus enseigne la règle
+        set((s) => pushToast(s, '⚔️', motifRefusRaid(refus)))
+        return null
+      }
+      const saine = colonneValide(colonne)
+      const sains = pansValides(pans)
+      const out = resoudreRaid(c, saine, sains, graineRaid(empreinteCarte(c), saine, sains))
+      if (!out) {
+        set((s) =>
+          pushToast(s, '⚔️', 'L’assaut ne s’achève pas : vos hommes n’ont rien pu trancher et rentrent au village.'),
+        )
+        return null
+      }
+      /*
+       * NOTRE PROPRE CARTE PART DANS LE RAPPORT, ET ELLE EST ENREGISTRÉE ICI MÊME.
+       * C'est ce qui ferme la boucle : frapper, c'est donner son adresse. Sans
+       * l'enregistrer, la revanche que l'adversaire prendrait citerait une carte que
+       * nous n'aurions jamais émise - notre propre client refuserait son rapport pour
+       * « inconnue », et la vengeance serait impossible à RECEVOIR.
+       */
+      const mienne = emettreCarte(snapCarteDuel(avant), avant.duel.emises)
+      const rapport = rapportDuRaid(mienne.cite, c, saine, sains, out.issue, mienne)
+      set((s) => {
+        payer(s, COUT_RAID)
+        // le duel se tranche d'un coup : ce qui rentre rentre le jour même, et l'on
+        // ne retire donc que les morts - pas la colonne entière comme une expédition
+        for (const u of UNIT_IDS) s.army[u] = Math.max(0, s.army[u] - (out.pertes[u] ?? 0))
+        s.duel = duelApresRevanche(
+          duelApresEmission(duelApresRaid(s.duel, c, jourDe(s)), mienne),
+          empreinteCarte(c),
+        )
+        const perdus = UNIT_IDS.filter((u) => (out.pertes[u] ?? 0) > 0)
+          .map((u) => `${out.pertes[u]} ${UNITS[u].nom.toLowerCase()}${(out.pertes[u] ?? 0) > 1 ? 's' : ''}`)
+          .join(', ')
+        const now = Date.now()
+        if (out.issue.victoire) {
+          const butinTxt: string[] = []
+          for (const [r, n] of Object.entries(c.butin) as [ResourceId, number][]) {
+            s.resources[r] = clampRes(s, r, s.resources[r] + n)
+            butinTxt.push(`+${n} ${RES[r].emoji}`)
+          }
+          const gain = honneurAttaque(out.issue)
+          s.duel.honneur += gain
+          noter(s, 'duelsGagnes')
+          noter(s, 'honneurDuel', gain)
+          s.moraleMods.push({ id: uid('m'), label: 'Raid d’honneur', delta: 6, expiresAt: now + 8 * 60_000 })
+          pushReport(s, '🏆', `Raid d’honneur - ${c.cite}`, [
+            `${c.cite} est tombée ! ${'★'.repeat(out.issue.etoiles)}${'☆'.repeat(3 - out.issue.etoiles)}`,
+            `Butin : ${butinTxt.join(', ')}.`,
+            perdus ? `Vos pertes : ${perdus}.` : 'Aucune perte - un triomphe digne d’Achille.',
+            `Honneur +${gain} - vous êtes ${rangDe(s.duel.honneur).nom}.`,
+            'Renvoyez-lui le rapport : il ne perdra ce butin qu’en le portant à son conseil, et il y trouvera votre carte pour se venger.',
+            /*
+             * ⚠️ ON DIT CE QU'ON MET EN JEU EN FRAPPANT. `lancerRaidDuel` ÉMET la
+             * carte de l'attaquant - il faut bien, sans elle la revanche n'existerait
+             * pas et notre propre client refuserait le rapport de l'adversaire pour
+             * « inconnue ». Mais émettre une carte, c'est mettre douze pour cent de ses
+             * greniers en jeu : sans cette ligne le joueur risquait huit cents mesures
+             * à chaque raid sans qu'un mot le lui dise, et ne l'apprenait qu'en se
+             * faisant piller. « On ne perd jamais ce qu'on n'a pas mis en jeu » suppose
+             * qu'on SACHE ce qu'on met en jeu.
+             */
+            `Car frapper, c’est donner son adresse : votre carte part avec le rapport, et vous mettez donc à votre tour en jeu ${resumeButin(mienne.butin)}.`,
+          ])
+          pushToast(s, '🏆', `${c.cite} est tombée - honneur +${gain}`)
+        } else {
+          s.moraleMods.push({
+            id: uid('m'),
+            label: 'Raid d’honneur repoussé',
+            delta: -4,
+            expiresAt: now + 8 * 60_000,
+          })
+          pushReport(s, '🏳️', `Raid d’honneur - repoussé devant ${c.cite}`, [
+            `Le plan de ${c.cite} a tenu : vos hommes n’ont pas atteint le cœur de la place.`,
+            perdus ? `Vos pertes : ${perdus}.` : 'Vos troupes ont rompu le contact à temps.',
+            'Renvoyez-lui tout de même le rapport - un plan qui tient vaut de l’honneur, et la courtoisie du duel est là.',
+            // repoussé ou non, la carte est partie : le compte rendu chiffre la mise
+            `Et votre carte est partie avec : vous mettez en jeu ${resumeButin(mienne.butin)}, qu’il viendra prendre s’il perce vos murs.`,
+          ])
+          pushToast(s, '🏳️', `Le plan de ${c.cite} a tenu.`)
+        }
+      })
+      return rapport
+    },
+
+    appliquerRapport: (brut) => {
+      const avant = get()
+      const r = rapportValide(brut)
+      /*
+       * ⚠️ ON DEMANDE LA PERMISSION AVANT DE REJOUER. `resoudreRaid` pose une source
+       * de hasard le temps de la bataille et la RETIRE ensuite : appelé pendant une
+       * partie de défi, il effacerait la graine du classement sans qu'aucun refus ne
+       * s'en plaigne, et le défi cesserait d'être comparable au milieu d'une partie.
+       */
+      if (!duelJouable()) {
+        set((s) => pushToast(s, '📜', motifRefusRapport('defi')))
+        return false
+      }
+      const rejoue = deroulerRaid(r.cible, r.colonne, r.pans, r.graine)
+      const refus = refusRapport(snapDuel(avant), r, rejoue)
+      if (refus) {
+        set((s) => {
+          pushToast(s, '🚫', motifRefusRapport(refus))
+          pushReport(s, '🚫', `Rapport REFUSÉ - ${r.cite}`, [
+            motifRefusRapport(refus),
+            'Rien n’a été emporté, et aucune revanche ne s’ouvre : un rapport qu’on ne peut pas vérifier ne vaut rien.',
+          ])
+        })
+        return false
+      }
+      const cons = consequencesDuel(snapDuel(avant), r, avant.resources)
+      set((s) => {
+        const prisTxt: string[] = []
+        for (const [res, n] of Object.entries(cons.pris) as [ResourceId, number][]) {
+          s.resources[res] = clampRes(s, res, s.resources[res] - n)
+          prisTxt.push(`−${n} ${RES[res].emoji}`)
+        }
+        s.duel = duelApresRapport(s.duel, r, cons, jourDe(s))
+        const now = Date.now()
+        if (r.issue.victoire) {
+          s.moraleMods.push({ id: uid('m'), label: 'La cité pillée', delta: -6, expiresAt: now + 8 * 60_000 })
+          pushReport(s, '🏴‍☠️', `Raid subi - ${r.cite}`, [
+            `${r.cite} a marché sur vos murs et les a percés. ${'★'.repeat(r.issue.etoiles)}${'☆'.repeat(3 - r.issue.etoiles)}`,
+            prisTxt.length > 0 ? `Emporté : ${prisTxt.join(', ')}.` : (cons.note ?? 'Ils n’ont rien trouvé à charger.'),
+            `Leurs pertes : ${r.issue.morts} homme${r.issue.morts > 1 ? 's' : ''} sur ${r.issue.envoyes}.`,
+            'Votre garnison n’a pas bougé d’un homme : la carte est une image, pas votre armée.',
+            'Sa carte est dans le rapport. La revanche est ouverte.',
+          ])
+          pushToast(s, '🏴‍☠️', `${r.cite} vous a pillé - la revanche est ouverte.`)
+        } else {
+          noter(s, 'duelsTenus')
+          noter(s, 'honneurDuel', cons.honneur)
+          s.moraleMods.push({ id: uid('m'), label: 'Le mur a tenu', delta: 6, expiresAt: now + 8 * 60_000 })
+          pushReport(s, '🛡️', `Raid repoussé - ${r.cite}`, [
+            `${r.cite} a marché sur vos murs. Votre plan a tenu.`,
+            `${r.issue.morts} de ses ${r.issue.envoyes} hommes sont restés devant l’enceinte.`,
+            `Honneur +${cons.honneur} - vous êtes ${rangDe(s.duel.honneur).nom}.`,
+            cons.note ?? '',
+          ].filter(Boolean))
+          pushToast(s, '🛡️', `Votre plan a tenu devant ${r.cite} - honneur +${cons.honneur}`)
+        }
+      })
+      return true
+    },
+
+    oublierRevanche: (ref) => {
+      set((s) => {
+        s.duel = duelApresRevanche(s.duel, ref)
       })
     },
 

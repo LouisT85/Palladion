@@ -1,3 +1,4 @@
+import { hasard } from './defi'
 import type { ResourceId } from './types'
 
 /*
@@ -210,7 +211,16 @@ export function anneeDe(jour: number): number {
 export function tirerMeteo(saison: SaisonId): MeteoId {
   const pool = SAISONS[saison].meteos
   const somme = pool.reduce((a, m) => a + m.poids, 0)
-  let r = Math.random() * somme
+  /*
+   * Le ciel se tire par `hasard()` et non par `Math.random`, et ce n'est pas de
+   * la cosmétique : la météo entre DANS la bataille (`ctx.mods` - portée, allure,
+   * force des tirs), si bien qu'un assaut rejoué sous un autre ciel diverge dès
+   * le premier coup de flèche. Sans alea posé, `hasard()` EST `Math.random` : le
+   * tirage du bac à sable ne change pas d'un cheveu, et l'espion que
+   * `saisons.test.ts` pose sur `Math.random` reste pris en compte, puisque
+   * `hasard()` relit `Math.random` à chaque appel.
+   */
+  let r = hasard() * somme
   for (const m of pool) {
     r -= m.poids
     if (r <= 0) return m.id

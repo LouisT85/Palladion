@@ -9,6 +9,7 @@ import {
   REDOUTE_POSTES,
   REDOUTE_VITESSE,
   redouteDmg,
+  TICK_MS,
   TOUR_ANGLES,
   TOUR_CADENCE_MS,
   TOUR_DMG,
@@ -16,6 +17,8 @@ import {
   UNITS,
   WALL_HP,
 } from './data'
+import { hasard } from './defi'
+import { EXPEDITION_TIMEOUT_MS } from './expeditions'
 import { statsCombatHeros } from './heros'
 import type {
   BattleGeo,
@@ -34,9 +37,96 @@ import type {
   WaveUnit,
 } from './types'
 
+/*
+ * ═══════════════════ POURQUOI CE MOTEUR EST REJOUABLE ═══════════════════
+ *
+ * Deux joueurs qui n'ont pas de serveur ne peuvent se dire la vérité que d'une
+ * seule façon : que chacun REJOUE chez lui la bataille de l'autre et retrouve la
+ * même issue. C'est toute l'honnêteté du courrier de raid, et cela impose au
+ * moteur trois disciplines - aucune n'est décorative, chacune répare un défaut
+ * qu'on a mesuré. Une quatrième section dit ce qui n'est PAS garanti, car s'en
+ * taire coûterait plus cher que le trou lui-même.
+ *
+ *  1. TOUT TIRAGE PASSE PAR `hasard()` (defi.ts). Ce fichier appelait
+ *     `Math.random` vingt et une fois en direct : la position de départ de chaque
+ *     assaillant, la seconde de la première salve de chaque archer, le jet de
+ *     panique de chaque battement. Deux simulations du même assaut avec la même
+ *     graine ne rendaient donc PAS le même résultat, et le mode défi, qui croyait
+ *     être déterministe, ne l'était que pour les quatre appels du store. Sans
+ *     alea posé, `hasard()` EST `Math.random` : le bac à sable, la campagne et le
+ *     siège se comportent exactement comme avant.
+ *
+ *  2. AUCUN TRI NE DÉPEND DE LA STABILITÉ DU MOTEUR JAVASCRIPT. Deux
+ *     assaillants à distance égale de la brèche, deux pans au même nombre de
+ *     points, deux lanciers intacts : le comparateur rend zéro et c'est
+ *     l'implémentation de `Array.sort` qui choisit. Les comparateurs de ce
+ *     fichier sont donc TOTAUX (l'index de départ tranche les égalités), ou bien
+ *     remplacés par un balayage du minimum, qui n'a jamais d'égalité à trancher.
+ *     Un comparateur qui rendait `NaN` (un `maxHp` nul divisé) tombait dans le
+ *     même piège : l'ordre devenait indéfini.
+ *
+ *  3. AUCUNE HORLOGE. `now` et `dt` arrivent par le contexte, jamais de
+ *     `Date.now()` ici : c'est ce qui permet à `deroulerBataille` de rejouer une
+ *     bataille au pas fixe, hors écran, aussi vite que la machine le veut.
+ *
+ * ── CE QUI N'EST PAS GARANTI : LE DERNIER BIT, D'UN NAVIGATEUR À L'AUTRE ──
+ *
+ * Les trois disciplines ci-dessus rendent la bataille rejouable À L'IDENTIQUE
+ * DANS UN MÊME MOTEUR JAVASCRIPT, et c'est ce que `determinisme.test.ts`
+ * démontre. Elles ne suffisent PAS à garantir le bit près entre deux
+ * navigateurs différents, et il faut le savoir avant de bâtir un refus de
+ * rapport là-dessus : la norme ECMA-262 n'impose de résultat exact qu'aux
+ * quatre opérations et à `Math.sqrt`. `Math.sin`, `Math.cos` et `Math.atan2`
+ * - dont la géométrie de ce fichier se sert dix fois pour poser les pans, les
+ * tours et les points d'entrée - sont explicitement « approchées par
+ * l'implémentation ». Deux moteurs ont donc le droit de placer un pan de mur à
+ * un dernier bit près l'un de l'autre, et une bataille est un système chaotique :
+ * cet écart-là finit par désigner une autre cible, donc un autre mort, donc un
+ * autre nombre de battements.
+ *
+ * Trois conséquences pratiques, dans l'ordre où elles mordent :
+ *
+ *  · un rapport de raid ne doit PAS être refusé sur un écart de position ni sur
+ *    un nombre de battements. Ce qui se compare honnêtement, c'est le verdict et
+ *    les comptes entiers (qui a tenu, qui est mort, combien de butin) ;
+ *  · le désaccord n'est donc pas une preuve de triche à lui seul, et le motif de
+ *    refus doit le dire au joueur en ces termes ;
+ *  · pour fermer vraiment le trou, il faudrait précalculer la géométrie (une
+ *    table d'angles, posée une fois dans `data.ts`) au lieu de la recalculer par
+ *    `Math.cos`/`Math.sin` à chaque bataille. C'est un changement du décor du
+ *    moteur, pas du hasard : il n'appartient pas à ce chantier, mais il est la
+ *    suite à donner.
+ */
+
 let seq = 0
 export function uid(prefix: string): string {
   return `${prefix}-${++seq}`
+}
+
+/**
+ * Rejoue quelque chose en repartant des mêmes identifiants, puis rend au jeu
+ * vivant son compteur intact.
+ *
+ * `uid` est un compteur de module : la même bataille créée deux fois de suite
+ * dans le même onglet donne `atk-1…atk-12` puis `atk-13…atk-24`. Les
+ * identifiants ne changent RIEN à l'issue (on ne s'en sert que pour désigner une
+ * cible et une figurine à l'écran), mais ils empêchent de comparer deux états
+ * finaux champ par champ - or c'est précisément ce que fait la vérification d'un
+ * rapport de raid.
+ *
+ * Le compteur est REMIS À SA VALEUR au retour, et c'est indispensable : le store
+ * tire du même `uid` les identifiants des bandeaux, des rapports et des modifieurs
+ * de moral d'une partie en cours. Le remettre à zéro sans le restaurer ferait
+ * naître deux bandeaux portant `t-4`, et React en effacerait un.
+ */
+export function rejouerIsole<T>(f: () => T): T {
+  const garde = seq
+  seq = 0
+  try {
+    return f()
+  } finally {
+    seq = garde
+  }
 }
 
 /** stats communes ennemis / unités du joueur */
@@ -165,7 +255,7 @@ function secteurProche(b: BattleState, p: { x: number; y: number }): SecteurBata
 
 // ── Génération des vagues ennemies ────────────────────────────────────────────
 export function genererVague(threat: number): WaveUnit[] {
-  let budget = threat * 5.5 * (0.85 + Math.random() * 0.3)
+  let budget = threat * 5.5 * (0.85 + hasard() * 0.3)
   const counts: Partial<Record<EnemyId, number>> = {}
   const pool: { id: EnemyId; w: number }[] = [{ id: 'pillard', w: 50 }]
   if (threat >= 20) pool.push({ id: 'guerrier', w: 30 })
@@ -178,7 +268,7 @@ export function genererVague(threat: number): WaveUnit[] {
     const eligibles = pool.filter((p) => ENEMIES[p.id].budget <= budget && (p.id !== 'belier' || beliers < 2))
     if (eligibles.length === 0) break
     const somme = eligibles.reduce((a, p) => a + p.w, 0)
-    let r = Math.random() * somme
+    let r = hasard() * somme
     let choisi = eligibles[0].id
     for (const p of eligibles) {
       r -= p.w
@@ -529,15 +619,15 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         hp: st.hp,
         maxHp: st.hp,
         atk: st.atk,
-        x: f.spawn.x + dirX * recul + (Math.random() - 0.5) * 26,
-        y: f.spawn.y + dirY * recul + ((rang % 3) - 1) * 26 + (Math.random() - 0.5) * 30,
+        x: f.spawn.x + dirX * recul + (hasard() - 0.5) * 26,
+        y: f.spawn.y + dirY * recul + ((rang % 3) - 1) * 26 + (hasard() - 0.5) * 30,
         tx: slot.x,
         ty: slot.y,
         speed: st.speed,
         etat: 'marche',
         secteur: sIdx,
         nextHit: 0,
-        seed: Math.random(),
+        seed: hasard(),
       })
       i++
     }
@@ -571,14 +661,14 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         hp: def.hp * mult,
         maxHp: def.hp * mult,
         atk: def.atk * mult,
-        x: p.x - 12 - Math.random() * 16,
-        y: p.y + (Math.random() - 0.5) * 8,
+        x: p.x - 12 - hasard() * 16,
+        y: p.y + (hasard() - 0.5) * 8,
         tx: p.x,
         ty: p.y,
         speed: statsDe(u).speed,
         etat: 'melee',
         nextHit: 0,
-        seed: Math.random(),
+        seed: hasard(),
       })
     }
   }
@@ -612,7 +702,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
       etat: enDefense ? 'melee' : 'marche',
       secteur: enDefense ? undefined : 0,
       nextHit: 0,
-      seed: Math.random(),
+      seed: hasard(),
     })
   })
 
@@ -642,14 +732,14 @@ export function creerBataille(opts: OptionsBataille): BattleState {
         hp: def.hp * mult,
         maxHp: def.hp * mult,
         atk: def.atk * mult,
-        x: p.x + (Math.random() - 0.5) * 14,
+        x: p.x + (hasard() - 0.5) * 14,
         y: p.y - 6,
         tx: p.x,
         ty: p.y - 6,
         speed: 40,
         etat: 'siege', // sur les murs
-        nextHit: now + 800 + Math.random() * 800,
-        seed: Math.random(),
+        nextHit: now + 800 + hasard() * 800,
+        seed: hasard(),
       })
     }
   }
@@ -682,7 +772,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
       etat: 'marche',
       secteur: 0,
       nextHit: 0,
-      seed: Math.random(),
+      seed: hasard(),
     })
     champion = {
       id: opts.champion.id,
@@ -704,7 +794,7 @@ export function creerBataille(opts: OptionsBataille): BattleState {
   // Tours d'archers - postées sur l'enceinte, elles tirent tant que le mur tient
   const toursDef = TOUR_ANGLES.slice(0, wallLevel > 0 ? (opts.tours ?? 0) : 0).map((a) => {
     const p = geoPoint(geo, a)
-    return { x: p.x, y: p.y - 32, nextHit: now + 600 + Math.random() * 900 }
+    return { x: p.x, y: p.y - 32, nextHit: now + 600 + hasard() * 900 }
   })
 
   /*
@@ -818,12 +908,27 @@ export function secteurChaud(b: BattleState): SecteurBataille | null {
   return best
 }
 
+/*
+ * `Math.sqrt` et non `Math.hypot`, et ce n'est pas un détail de goût : la norme
+ * ECMA-262 range `hypot` parmi les fonctions « approchées par l'implémentation »
+ * - deux navigateurs ont le droit d'en rendre deux valeurs séparées d'un dernier
+ * bit -, alors que `Math.sqrt` et les quatre opérations sont EXACTES par
+ * IEEE-754, donc identiques partout. Or une distance décide de qui frappe qui :
+ * un dernier bit d'écart suffit à désigner une autre cible, et deux clients
+ * honnêtes concluraient à la triche. Les coordonnées de la carte tiennent entre
+ * 0 et 900, si bien que le débordement contre lequel `hypot` se protège ne peut
+ * pas se produire ici.
+ */
 function dist(a: { x: number; y: number }, b: { x: number; y: number }): number {
-  return Math.hypot(a.x - b.x, a.y - b.y)
+  const dx = a.x - b.x
+  const dy = a.y - b.y
+  return Math.sqrt(dx * dx + dy * dy)
 }
 
 function versCible(f: Fighter, dt: number): boolean {
-  const d = Math.hypot(f.tx - f.x, f.ty - f.y)
+  const ex = f.tx - f.x
+  const ey = f.ty - f.y
+  const d = Math.sqrt(ex * ex + ey * ey)
   if (d < 5) return true
   const pas = Math.min(d, f.speed * dt)
   f.x += ((f.tx - f.x) / d) * pas
@@ -846,6 +951,27 @@ function plusProche(f: { x: number; y: number }, cibles: Fighter[]): Fighter | n
     }
   }
   return best
+}
+
+/**
+ * Les `combien` plus proches d'un point, du plus près au plus loin, dans un ordre
+ * qui ne dépend que des données.
+ *
+ * Trier par distance seule laisse le sort du jeu à `Array.sort` dès que deux
+ * hommes sont à égale distance de l'épicentre - ce qui arrive tout le temps,
+ * puisque les colonnes sont posées symétriquement autour d'un angle de secteur.
+ * L'index de départ tranche donc l'égalité : c'est l'ordre de `b.fighters`, celui
+ * que le moteur emploie déjà partout ailleurs, et il rejoue à l'identique. Le
+ * `||` couvre aussi le cas `NaN` (deux positions confondues à distance nulle,
+ * `0 - 0` valant zéro et non `NaN`, mais une coordonnée corrompue le donnerait) :
+ * un comparateur qui rend `NaN` laisse l'ordre indéfini par la spécification.
+ */
+function lesPlusProches(cibles: Fighter[], p: { x: number; y: number }, combien: number): Fighter[] {
+  return cibles
+    .map((f, i) => ({ f, d: dist(f, p), i }))
+    .sort((a, c) => a.d - c.d || a.i - c.i)
+    .slice(0, combien)
+    .map((e) => e.f)
 }
 
 /**
@@ -878,7 +1004,7 @@ const CONTACT = 15
 function approcher(f: Fighter, cible: Fighter): void {
   const dx = cible.x - f.x
   const dy = cible.y - f.y
-  const d = Math.hypot(dx, dy)
+  const d = Math.sqrt(dx * dx + dy * dy)
   if (d <= CONTACT) {
     f.tx = f.x
     f.ty = f.y
@@ -922,7 +1048,7 @@ function frapper(b: BattleState, cible: Fighter, dmg: number, now: number): void
     return
   }
   if (b.effects.length < 40) {
-    b.effects.push({ id: uid('fx'), type: 'impact', x: cible.x + (Math.random() - 0.5) * 4, y: cible.y - 8, until: now + 320 })
+    b.effects.push({ id: uid('fx'), type: 'impact', x: cible.x + (hasard() - 0.5) * 4, y: cible.y - 8, until: now + 320 })
   }
 }
 
@@ -1125,8 +1251,19 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
             champ.terreurSeuil = e.seuil
             break
           case 'sape': {
-            // le pan le plus entamé encore debout : celui qui va lâcher
-            const cible = b.secteurs.filter((s) => !s.breche && s.hp > 0).sort((x, y) => x.hp - y.hp)[0]
+            /*
+             * Le pan le plus entamé encore debout : celui qui va lâcher. Balayage
+             * du minimum et non `sort(...)[0]` : deux pans intacts portent le même
+             * nombre de points (`hpTotal / fronts.length`), l'égalité est donc la
+             * règle et non l'exception. Le `<` strict garde le PREMIER des pans à
+             * égalité - la porte avant le mur du sud - au lieu de laisser
+             * `Array.sort` en décider.
+             */
+            let cible: SecteurBataille | undefined
+            for (const s of b.secteurs) {
+              if (s.breche || s.hp <= 0) continue
+              if (!cible || s.hp < cible.hp) cible = s
+            }
             if (cible) {
               cible.hp = Math.max(0, cible.hp * (1 - e.part))
               b.effects.push({ id: uid('fx'), type: 'poussiere', x: cible.x, y: cible.y - 10, until: now + 1400 })
@@ -1146,7 +1283,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
                 hp: st.hp,
                 maxHp: st.hp,
                 atk: st.atk,
-                x: geo.spawn.x + (Math.random() - 0.5) * 40,
+                x: geo.spawn.x + (hasard() - 0.5) * 40,
                 y: geo.spawn.y + (k - (e.count - 1) / 2) * 26,
                 tx: slot.x,
                 ty: slot.y,
@@ -1154,7 +1291,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
                 etat: 'marche',
                 secteur: 0,
                 nextHit: 0,
-                seed: Math.random(),
+                seed: hasard(),
               })
             }
             break
@@ -1223,8 +1360,25 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       const debout = vivants(b, camp)
       // un seul homme peut rompre par battement : une ligne s'effrite, elle
       // ne s'évapore pas - et l'on part par les plus mal en point
-      const candidat = debout.filter((f) => !f.heros).sort((x, y) => x.hp / x.maxHp - y.hp / y.maxHp)[0]
-      if (candidat && Math.random() < risque) {
+      /*
+       * On part par les plus mal en point. Balayage du minimum, pour deux raisons
+       * qui se cumulent : au premier battement TOUS les hommes sont intacts (part
+       * de PV égale à 1), et un `maxHp` nul - une figurine sans point de vie, ce
+       * que le moteur ne fabrique pas mais qu'un état rejoué pourrait porter -
+       * rendait `NaN`, ce qui laissait l'ordre du tri indéfini. Le `<` strict
+       * désigne le premier des ex æquo dans l'ordre de `b.fighters`.
+       */
+      let candidat: Fighter | undefined
+      let plusBas = Infinity
+      for (const f of debout) {
+        if (f.heros) continue
+        const part = f.maxHp > 0 ? f.hp / f.maxHp : 0
+        if (part < plusBas) {
+          plusBas = part
+          candidat = f
+        }
+      }
+      if (candidat && hasard() < risque) {
         candidat.etat = 'fuite'
         candidat.tx = camp === 'attaque' ? geo.spawn.x + 40 : geo.place.x
         candidat.ty = camp === 'attaque' ? geo.spawn.y : geo.place.y
@@ -1263,7 +1417,7 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
           // un héros adossé au pan encaisse sa part des coups de bélier
           const abri = now < (sect.abriJusqua ?? 0) ? 1 - (sect.abriPart ?? 0) : 1
           sect.hp -= statsDe(f.type).wallDps * multDegats(f) * abri
-          if (Math.random() < 0.22 && b.effects.length < 40) {
+          if (hasard() < 0.22 && b.effects.length < 40) {
             b.effects.push({ id: uid('fx'), type: 'poussiere', x: f.x - 5, y: f.y - 7, until: now + 650 })
           }
           if (sect.hp <= 0 && !sect.breche) {
@@ -1291,7 +1445,9 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
         let proche = bat[0]
         let bd = Infinity
         for (const c of bat) {
-          const d = Math.hypot(c.x - f.x, c.y - f.y)
+          const ux = c.x - f.x
+          const uy = c.y - f.y
+          const d = Math.sqrt(ux * ux + uy * uy)
           if (d < bd) {
             bd = d
             proche = c
@@ -1338,8 +1494,8 @@ export function tickBataille(b: BattleState, ctx: TickBatailleCtx): TickBataille
       // un tireur ne quitte le rempart que si SON pan de mur est tombé
       if (surMur && secteurProche(b, f).breche) {
         f.etat = 'melee'
-        f.tx = geo.ralliement.x + (Math.random() - 0.5) * 40
-        f.ty = geo.ralliement.y + (Math.random() - 0.5) * 40
+        f.tx = geo.ralliement.x + (hasard() - 0.5) * 40
+        f.ty = geo.ralliement.y + (hasard() - 0.5) * 40
         f.atk *= 0.6
       }
       if (f.etat === 'melee') versCible(f, dt)
@@ -1633,9 +1789,7 @@ export function foudreDeZeus(b: BattleState, now: number, force = 1, palier = 2)
   const campEnnemi = b.campJoueur === 'defense' ? 'attaque' : 'defense'
   const trou = b.secteurs.find((s) => s.breche)
   const epicentre = trou ?? b.geo.porte
-  const cibles = vivants(b, campEnnemi)
-    .sort((a, c) => dist(a, epicentre) - dist(c, epicentre))
-    .slice(0, 6)
+  const cibles = lesPlusProches(vivants(b, campEnnemi), epicentre, 6)
   for (const c of cibles) {
     c.hp -= (120 * force) / Math.max(1, cibles.length)
     if (c.hp <= 0 && c.etat !== 'mort') {
@@ -1673,9 +1827,7 @@ export function fureurHeros(b: BattleState, now: number, degats: number, heros: 
   const campEnnemi = b.campJoueur === 'defense' ? 'attaque' : 'defense'
   const s = secteurChaud(b)
   const epicentre = s ?? b.geo.porte
-  const cibles = vivants(b, campEnnemi)
-    .sort((a, c) => dist(a, epicentre) - dist(c, epicentre))
-    .slice(0, 8)
+  const cibles = lesPlusProches(vivants(b, campEnnemi), epicentre, 8)
   for (const c of cibles) {
     c.hp -= degats / Math.max(1, cibles.length)
     if (c.hp <= 0 && c.etat !== 'mort') {
@@ -1728,4 +1880,118 @@ export function sonnerRetraite(b: BattleState): void {
     f.tx = b.geo.spawn.x + 40
     f.ty = b.geo.spawn.y
   }
+}
+
+// ── Rejouer une bataille sans écran ───────────────────────────────────────────
+
+/*
+ * ═══════════════════ LE DÉROULÉ HORS ÉCRAN ═══════════════════
+ *
+ * Le store fait avancer une bataille battement par battement, au rythme de la
+ * boucle d'animation. Vérifier le rapport de raid d'un adversaire demande
+ * l'inverse : mener la MÊME bataille jusqu'à son terme en un seul appel, hors
+ * écran, en quelques millisecondes, et lire l'issue.
+ *
+ * Deux exigences, et ce sont elles qui décident de la signature :
+ *
+ *  · LE PAS EST FIXE. `dt` entre dans les déplacements, dans les cadences et
+ *    dans le jet de panique (`risque` est proportionnel à `dt`). Une bataille
+ *    déroulée au rythme réel de l'écran - 250 ms, puis 263, puis 241 parce que
+ *    l'onglet a bronché - ne se rejoue pas. On avance donc par pas de `TICK_MS`
+ *    exactement, comme le fait le store quand la machine suit.
+ *  · LE DÉROULÉ EST BORNÉ. Une bataille peut ne jamais finir : des assaillants
+ *    qui ne peuvent pas percer un mur qu'ils n'entament plus, une garnison
+ *    intuable. `MAX_BATTEMENTS` rend la main sans verdict plutôt que de figer
+ *    l'onglet - et `terminee: false` dit à l'appelant que l'issue ne vaut rien.
+ *    La retraite forcée reprend le délai des expéditions, faute de quoi une
+ *    colonne bloquée devant une place imprenable épuiserait la borne.
+ */
+
+/** au-delà, on rend la main sans verdict : douze minutes de jeu, largement de quoi finir */
+export const MAX_BATTEMENTS = 3000
+/**
+ * Au bout de trois minutes de bataille, la colonne rompt le contact.
+ *
+ * On REPREND la constante des expéditions plutôt que d'en recopier le nombre :
+ * c'est le même délai que celui que le store applique à une colonne partie au
+ * loin, et deux 180 000 écrits à deux endroits finissent par se séparer le jour
+ * où l'un des deux est réglé. Le jour venu, un raid rejoué sonnerait la retraite
+ * à un autre battement que le raid joué, et la vérification refuserait un
+ * rapport honnête. `expeditions.ts` ne dépend que de `data`, `heros` et `types` :
+ * l'emprunt ne crée aucun cycle.
+ */
+export const RETRAITE_APRES_MS = EXPEDITION_TIMEOUT_MS
+
+export interface OptionsDeroule {
+  /** niveau des remparts du camp défenseur : le moteur le relit à chaque battement */
+  wallLevel: number
+  /** instant du premier battement (par défaut celui de la création de la bataille) */
+  debut?: number
+  /** borne du déroulé, en battements */
+  maxBattements?: number
+  /** délai avant retraite forcée ; `0` pour n'en poser aucune */
+  retraiteApresMs?: number
+  /**
+   * Ce que le contexte porte en plus, recalculé à chaque battement : les
+   * bâtiments encore debout, les ouvrages, la météo. Rendre le MÊME tableau de
+   * cibles à chaque appel, comme le store rend le même état : un tableau neuf
+   * remettrait d'aplomb à chaque battement les bâtiments qu'on vient d'abattre.
+   *
+   * `now`, `dt` et `wallHp` ne s'y donnent pas : le déroulé pose l'horloge (les
+   * accepter d'ailleurs romprait le pas fixe) et reporte lui-même la structure
+   * restante d'un battement au suivant.
+   */
+  contexte?: (now: number) => Omit<TickBatailleCtx, 'now' | 'dt' | 'wallLevel' | 'wallHp'>
+}
+
+export interface Deroule {
+  /** l'issue du dernier battement, telle que le store la lit */
+  fin: TickBatailleOut
+  /** nombre de battements joués */
+  battements: number
+  /** faux si la borne a été atteinte avant le terme : l'issue ne veut alors rien dire */
+  terminee: boolean
+  /** instant du dernier battement joué */
+  now: number
+}
+
+/**
+ * Mène une bataille jusqu'à son terme, au pas fixe, sans rien afficher.
+ *
+ * `b` est mutée : à la sortie, on peut lire ses pertes (`pertesDefense`,
+ * `mortsAttaque`), ses secteurs et ses combattants - c'est ce qui permet de
+ * comparer deux déroulés champ par champ, et non seulement sur le mot
+ * « victoire ».
+ */
+export function deroulerBataille(b: BattleState, opts: OptionsDeroule): Deroule {
+  const pas = TICK_MS
+  const max = Math.max(1, Math.floor(opts.maxBattements ?? MAX_BATTEMENTS))
+  const retraite = opts.retraiteApresMs ?? RETRAITE_APRES_MS
+  let now = opts.debut ?? b.startedAt
+  let fin: TickBatailleOut = {
+    wallHp: b.secteurs.reduce((a, s) => a + Math.max(0, s.hp), 0),
+    brecheOuverte: false,
+    finie: false,
+    victoireDefense: false,
+    fuite: false,
+    pillage: false,
+    rompus: [],
+    championAgit: null,
+    championAbattu: false,
+  }
+  let battements = 0
+  while (battements < max) {
+    now += pas
+    battements++
+    if (retraite > 0 && now - b.startedAt > retraite) sonnerRetraite(b)
+    fin = tickBataille(b, {
+      ...(opts.contexte?.(now) ?? {}),
+      now,
+      dt: pas / 1000,
+      wallLevel: opts.wallLevel,
+      wallHp: fin.wallHp,
+    })
+    if (fin.finie) return { fin, battements, terminee: true, now }
+  }
+  return { fin, battements, terminee: false, now }
 }

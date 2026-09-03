@@ -12,6 +12,9 @@
  * Le navigateur est le Chrome (ou l'Edge) déjà installé sur la machine - aucun
  * téléchargement de 130 Mo, `playwright-core` suffit.
  */
+import path from 'node:path'
+import os from 'node:os'
+import fs from 'node:fs'
 import { chromium } from 'playwright-core'
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -41,6 +44,13 @@ const NIVEAUX = (n) => ({
   caserne: { level: n },
   temple: { level: n },
   port: { level: n },
+  /*
+   * LA REDOUTE, onzième bâtiment. Elle manquait à cette table, si bien que « la
+   * cité de légende » du README montrait une place vide à l'endroit où la
+   * plateforme à scorpions devrait se dresser - et l'écriteau « CONSTRUIRE » au
+   * milieu d'un règne complet.
+   */
+  redoute: { level: n },
 })
 
 /**
@@ -180,7 +190,7 @@ const VIGNETTES = [
   {
     nom: 'village-max',
     format: 'jpeg',
-    quoi: 'La cité de légende - dix domaines au niveau 4, quatre tours',
+    quoi: 'La cité de légende - onze domaines au niveau 4, quatre tours, la Redoute dans les murs',
     save: sauvegarde(AGE.ete, {
       ...CITE,
       resources: { bois: 2100, pierre: 2400, grain: 2600, bronze: 1450 },
@@ -322,7 +332,7 @@ const VIGNETTES = [
   },
   {
     nom: 'hauts-faits',
-    quoi: 'Quarante-cinq hauts faits et le prestige du règne',
+    quoi: 'Cinquante-quatre hauts faits et le prestige du règne',
     save: sauvegarde(AGE.eteAn2, {
       ...CITE,
       resources: { bois: 2400, pierre: 2600, grain: 2500, bronze: 1800 },
@@ -376,13 +386,47 @@ const VIGNETTES = [
 
 // ── Boucle de capture ────────────────────────────────────────────────────────
 
-/** lance le Chrome (ou l'Edge) du poste plutôt que d'en télécharger un */
+/**
+ * Lance un navigateur SANS EN TÉLÉCHARGER UN, et dans cet ordre :
+ *
+ *  1. le Chrome ou l'Edge du poste, s'il y en a un ;
+ *  2. le chromium que le Playwright PYTHON du poste a déjà installé - c'est celui
+ *     dont se servent les parcours e2e (`scripts/e2e.py`), et il est là dans neuf
+ *     cas sur dix parce qu'on lance les parcours plus souvent que les captures.
+ *     Sans cette étape, `npm run captures` échouait sur une machine où tout le
+ *     reste du projet marchait, avec un message qui invitait à télécharger cent
+ *     cinquante mégaoctets d'un second navigateur identique au premier ;
+ *  3. le chromium groupé avec le Playwright de Node, en dernier recours.
+ */
 async function ouvrirNavigateur() {
   for (const channel of ['chrome', 'msedge']) {
     try {
       return await chromium.launch({ channel })
     } catch {
       // canal absent : on essaie le suivant
+    }
+  }
+  const cache = path.join(os.homedir(), '.cache', 'ms-playwright')
+  if (fs.existsSync(cache)) {
+    // le plus RÉCENT d'abord : les révisions se nomment `chromium-1148`
+    const revs = fs
+      .readdirSync(cache)
+      .filter((d) => d.startsWith('chromium'))
+      .sort((a, b) => (Number(b.split('-').pop()) || 0) - (Number(a.split('-').pop()) || 0))
+    for (const rev of revs) {
+      for (const rel of [
+        ['chrome-linux', 'chrome'],
+        ['chrome-linux', 'headless_shell'],
+        ['chrome-headless-shell-linux64', 'chrome-headless-shell'],
+      ]) {
+        const bin = path.join(cache, rev, ...rel)
+        if (!fs.existsSync(bin)) continue
+        try {
+          return await chromium.launch({ executablePath: bin })
+        } catch {
+          // révision incompatible : on essaie la suivante
+        }
+      }
     }
   }
   return chromium.launch()

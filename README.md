@@ -12,13 +12,14 @@
 **100 % front-end** (React + TypeScript + SVG), sauvegarde locale, déployable sur GitHub Pages.
 Zéro image, zéro son téléchargé : **tout est dessiné et synthétisé par le code**.
 
-| Du hameau… | …à la cité de légende |
-| --- | --- |
+| Du hameau…                                             | …à la cité de légende                                          |
+| ------------------------------------------------------- | ------------------------------------------------------------------ |
 | ![Village au premier printemps](docs/village-debut.jpg) | ![Cité complète, dix domaines au niveau 4](docs/village-max.jpg) |
 
 ## ✨ Ce qui rend PALLADION différent
 
 ### 🐴 « La Chute » - une campagne en cinq actes
+
 Au premier lancement, on choisit : **bac à sable** (bâtir sans fin, cinquante-cinq missions,
 abdication au moment voulu) ou **campagne**. La campagne suit l'Iliade - les mille nefs, la
 colère d'Achille, sous les murs, le fleuve, le cheval - mais d'un point de vue qui n'est pas
@@ -36,6 +37,7 @@ pas la campagne. Certains héros s'imposent à vous sans rançon parce que le r�
 ![Le prologue de l'acte I](docs/campagne.jpg)
 
 ### ⚡ Zeus vous prend par la main
+
 La première partie ne commence pas par un pavé d'aide : le maître de l'Olympe
 descend et fait la leçon lui-même, en quinze étapes. À chaque fois, tout
 l'écran s'éteint **sauf ce qu'il faut toucher** - et il ne suffit pas de cliquer
@@ -46,6 +48,7 @@ survoler.
 ![La leçon de Zeus](docs/tutoriel.jpg)
 
 ### 🧱 Une évolution **visuelle** des bâtiments
+
 Chaque bâtiment est dessiné **en SVG par code**, en volumes texturés (tuiles, pierre,
 chaume, sillons) avec une apparence distincte par niveau. Les remparts passent de la
 palissade de pieux → au muret de pierre sèche → à la muraille crénelée → aux hautes
@@ -56,6 +59,7 @@ Et le village **vit** : villageois qui flânent, char à bœufs sur la route, ch
 ferme, moutons au pré, fumées et braseros.
 
 ### 🌱 Quatre saisons et un ciel qui change tout
+
 Le calendrier tourne : quatre journées de jeu par saison. Le **printemps** fait lever les
 blés, l'**été** durcit la terre et ouvre la mer, l'**automne** remplit les greniers,
 l'**hiver ferme la mer** - port au tiers, places d'outre-mer hors d'atteinte. Par-dessus,
@@ -68,6 +72,7 @@ tombent sur la scène.
 ![L'hiver sur la Troade](docs/saisons.jpg)
 
 ### ⚔️ Des vagues d'assaut PvE, jouées sous vos yeux
+
 La prospérité attire les convoitises : des bandes armées (pillards, guerriers achéens,
 mercenaires, béliers de siège) attaquent régulièrement. **« Attaque ennemie dans 5 min »** :
 les éclaireurs annoncent la composition de la vague **et la récompense promise** si vous
@@ -79,6 +84,7 @@ suit, jusqu'à ce que vous repreniez la main à la molette.
 ![Un assaut sur trois fronts](docs/bataille.jpg)
 
 ### 👷 Chaque habitant a un métier, et vous le placez vous-même
+
 Un villageois naît paysan, bûcheron, tailleur de pierre, forgeron, prêtre ou docker.
 **À son métier il rend pleinement ; ailleurs, 55 %.** Et surtout : personne ne prend
 son poste tout seul - pas d'affectation automatique, c'est votre décision à chaque
@@ -95,6 +101,7 @@ Le même arbitrage vaut pour l'armée : **un soldat est un villageois en moins**
 quitte l'atelier, ne produit plus et mange le double.
 
 ### 🛡️ Huit héros - qu'on nourrit, qu'on perd
+
 Ils ne s'achètent pas : ils viennent quand la cité en est digne. Hector veut des remparts
 de niveau 3 et Zeus en grâce ; Ulysse un port et la confiance d'Athéna ; Achille du sang
 déjà versé. Chacun apporte un **passif permanent** et une **capacité** à invoquer en
@@ -111,11 +118,12 @@ rejouent pas : Achille peut mourir sous la flèche de Pâris, ou survivre inutil
 peut sortir affronter son destin, ou obéir et ne plus jamais grandir. **Les héros doivent
 pouvoir mourir** - c'est ce qui rend leur présence tendue plutôt que confortable.
 
-| La maisonnée héroïque | Un choix sans retour |
-| --- | --- |
+| La maisonnée héroïque              | Un choix sans retour                  |
+| ------------------------------------- | ------------------------------------- |
 | ![Panneau des héros](docs/heros.png) | ![L'arc d'Hector](docs/heros-arc.png) |
 
 ### 🗺️ Piller… ou secourir
+
 8 places fortes de la Troade, chacune avec son **décor peint** et son cadre - camp de
 tentes dans la plaine, comptoir à amphores sur la grève, cité à colonnade sur son île,
 forteresse à donjon sur son éperon rocheux. Deux façons d'y marcher :
@@ -133,6 +141,7 @@ Le choix est cornélien à dessein : la richesse contre le réseau.
 ![L'assaut de la cité de Lesbos](docs/expedition.jpg)
 
 ### ⚡ Les Olympiens, alliés et juges - et ça se voit
+
 - **Zeus** - la foudre s'abat sur les assaillants ; sa loi de l'hospitalité (*xenia*)
   punit qui ferme sa porte aux suppliants.
 - **Poséidon** - ressoude les pierres de vos remparts, y compris les pans déjà à terre.
@@ -149,6 +158,7 @@ sol. La punition se voit avant de se compter.
 ![Le panthéon](docs/pantheon.png)
 
 ### 🏺 Des dilemmes moraux à conséquences
+
 41 dilemmes à **issues multiples**, tirées à l'ouverture : des réfugiés qui implorent
 l'asile (sincères… ou pillards infiltrés), Zeus déguisé en mendiant, un cheval de bois
 abandonné devant vos portes (*« Je crains les Grecs, même porteurs de présents ! »*),
@@ -159,6 +169,7 @@ ne peut structurellement pas mentir.
 ![Un dilemme](docs/evenement.png)
 
 ### 🏅 Hauts faits, prestige et fin de règne
+
 45 hauts faits en cinq catégories jalonnent la partie - « tenir un assaut sur trois fronts
 sans perdre un homme », « élu des quatre Olympiens », « trois étoiles sur les huit places
 fortes », « traverser un hiver sans vider le grenier ». Ils alimentent un **score de
@@ -169,6 +180,7 @@ score se fige et les aèdes vous donnent un titre, de « Roi de pacotille » à
 ![Hauts faits et prestige](docs/hauts-faits.png)
 
 ### 🎖️ Cinquante-cinq missions comme fil rouge
+
 Toujours un objectif à l'écran, toujours une récompense à la clé : des provisions du
 premier jour jusqu'au Palladion lui-même, les missions guident la partie en cinq actes -
 bâtir, pourvoir les postes, repousser un assaut, réussir un raid trois étoiles, gagner la
@@ -180,17 +192,19 @@ le bandeau du haut porte le fil complet acte par acte, et une récompense récla
 une ligne au journal du village comme une bataille. Trois missions sont ouvertes à la fois,
 **jamais au-delà de l'acte en cours** : il faut achever un acte pour que le suivant se descelle.
 
-| Le suivi, toujours à l'écran | Le fil complet, cinq actes |
-| --- | --- |
+| Le suivi, toujours à l'écran              | Le fil complet, cinq actes                     |
+| ------------------------------------------- | ---------------------------------------------- |
 | ![Le suivi des missions](docs/missions.jpg) | ![Le fil rouge complet](docs/missions-fil.png) |
 
 ### 🎭 L'ambiance du village
+
 Fêtes, victoires et greniers pleins **exaltent** le village (production accrue). Famine,
 défaites et choix cruels le rendent **morose**. Sous 25 : **mutinerie** - ouvrez les
 greniers, promettez (et tenez parole !), ou réprimez dans le sang. À 0, vos soldats
 désertent. L'ambiance tient en un mot, toujours lisible dans le bandeau du haut.
 
 ### 🎵 Une bande-son entièrement synthétisée
+
 Pas un octet d'audio téléchargé : tout est fabriqué à la volée en **Web Audio**. Au village,
 une flûte de berger égrène une **pentatonique majeure** (aucun demi-ton : il est musicalement
 impossible d'y sonner inquiétant) au-dessus d'un bourdon qui ne s'interrompt jamais, avec une
@@ -202,6 +216,7 @@ colonne touche les murs, et le chant de l'aède salue la victoire. Coupe-son et 
 persistés - et rien ne joue avant votre premier geste.
 
 ### 🌙 Le temps continue sans vous - et vous menez la caméra
+
 Jeu en temps réel avec cycle jour/nuit. Onglet fermé, le village vit : production,
 constructions, croissance… et assauts nocturnes, résolus automatiquement. Au retour, un
 rapport raconte tout. Façon **Sims**, les boutons **×1 ×2 ×4 ×8** (touches 1-4) accélèrent
@@ -280,14 +295,6 @@ npm run captures                          # dans un autre
 Le script utilise le Chrome (ou l'Edge) déjà installé sur la machine - pas de navigateur
 à télécharger. Il échoue si la moindre erreur JavaScript survient pendant les captures :
 c'est aussi le test de fumée du projet.
-
-## 🌐 Déploiement sur GitHub Pages
-
-1. Créer un repo GitHub et pousser ce projet sur `main`.
-2. Dans **Settings → Pages**, choisir **Source : GitHub Actions**.
-3. C'est tout - le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
-   build et déploie à chaque push. (`base: './'` dans Vite rend le build compatible avec
-   n'importe quel nom de repo.)
 
 ## 🗺️ Pistes d'évolution
 

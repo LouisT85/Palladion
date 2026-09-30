@@ -3,7 +3,7 @@ import { GRACES } from '../../game/faveurs'
 import { coutBenediction, murMax, relationEffective, useGame } from '../../game/store'
 import type { GodId } from '../../game/types'
 import { ApercuDivin } from '../map/EffetsDivins'
-import { Montant } from './Icones'
+import { Icone, Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
@@ -222,12 +222,13 @@ export function Pantheon() {
           return (
             <div key={g} className={`dieu${verrouille ? ' verrouille' : ''}`}>
               <div className="embleme">
-                {dieu.emoji}
+                <Icone id={g} taille={30} />
                 {/* aperçu de la manifestation à la ferveur courante : le joueur
                     voit à quoi ressemble le bras du dieu avant de le payer */}
                 {!verrouille && (
                   <Astuce
-                    titre={`${dieu.emoji} Le bras de ${dieu.nom}`}
+                    titre={`Le bras de ${dieu.nom}`}
+                    emoji={<Icone id={g} taille={18} />}
                     resume={`Voici à quoi ressemble sa manifestation à votre ferveur actuelle (${nomFerveur(rel)}). Elle enfle ou pâlit avec la relation - on voit ce qu’on paie avant de le payer.`}
                     note="La vignette joue la vraie manifestation en boucle, à l’échelle de la scène : un dieu offensé y avorte visiblement."
                   >
@@ -289,7 +290,13 @@ export function Pantheon() {
                         disabled={s.faveur < cout || cd > 0 || (dieu.benediction.batailleUniquement && !s.battle)}
                         onClick={() => s.benir(g)}
                       >
-                        {cd > 0 ? `⏳ ${Math.ceil(cd / 1000)}s` : `Invoquer (${cout} ✨)`}
+                        {cd > 0 ? (
+                          `⏳ ${Math.ceil(cd / 1000)}s`
+                        ) : (
+                          <>
+                            Invoquer (<Montant n={cout} id="faveur" taille={13} />)
+                          </>
+                        )}
                       </button>
                       <Astuce
                         titre={`🔥 Sacrifice à ${dieu.nom}`}

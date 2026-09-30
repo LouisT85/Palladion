@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import {
   JOURS_DE_VIVRES_EXIGES,
   MIN_HOMMES,
@@ -25,7 +25,7 @@ import {
   vueBlocus,
   type TravailId,
 } from '../../game/blocus'
-import { MODE_TEST, RES, UNITS, UNIT_IDS } from '../../game/data'
+import { MODE_TEST, UNITS, UNIT_IDS } from '../../game/data'
 import {
   MAX_TROUPES,
   RAID_COOLDOWN_MS,
@@ -36,7 +36,7 @@ import {
 import { STATUTS } from '../../game/diplomatie'
 import { fmtDuree, jourDe, merFermee, peutPayer, statutDe, useGame } from '../../game/store'
 import type { ResourceId, UnitId } from '../../game/types'
-import { Montant } from './Icones'
+import { Icone, Montant } from './Icones'
 import { Modale } from './Modale'
 import { Astuce } from './Infobulle'
 
@@ -153,7 +153,9 @@ function BlocusEnCours() {
           </div>
           <div className="bl-compte">
             <span className="bl-chiffre">{vue.rationDuJour}</span>
-            <span className="bl-label">🌾 par journée de jeu</span>
+            <span className="bl-label">
+              <Icone id="grain" taille={12} /> par journée de jeu
+            </span>
           </div>
         </div>
         {vue.cedeAvantEux && (
@@ -272,7 +274,7 @@ function BlocusEnCours() {
               ))}
             </div>
             <div className="bl-note">
-              Attendre encore grossit la rançon (jusqu’à 100 % à volonté nulle) et coûte {vue.rationDuJour} 🌾 par
+              Attendre encore grossit la rançon (jusqu’à 100 % à volonté nulle) et coûte <Montant n={vue.rationDuJour} id="grain" taille={13} /> par
               journée. Leur offre, elle, n’expire pas.
             </div>
             <button className="principal" style={{ width: '100%' }} onClick={() => s.accepterReddition()}>
@@ -393,7 +395,7 @@ function PoserLigne({ villageId, onRetour }: { villageId: string; onRetour: () =
         </h3>
         {UNIT_IDS.map((u) => (
           <div key={u} className="unite">
-            <span style={{ fontSize: 22 }}>{UNITS[u].emoji}</span>
+            <Icone id={u} taille={22} />
             <div className="infos">
               <div className="nom">{UNITS[u].nom}</div>
               <div className="stats">
@@ -418,9 +420,9 @@ function PoserLigne({ villageId, onRetour }: { villageId: string; onRetour: () =
           de {Math.round(PART_MAX_DEHORS * 100)} % : il faut du monde à la porte.
         </div>
         <div className="bl-note">
-          🌾 {hommes * RATION_PAR_JOUR} mesures par journée de jeu, versées chaque journée tant que la ligne tient. On
+          <Icone id="grain" taille={13} /> {hommes * RATION_PAR_JOUR} mesures par journée de jeu, versées chaque journée tant que la ligne tient. On
           n’ouvre pas une ligne sans {JOURS_DE_VIVRES_EXIGES} journées de vivres en magasin, soit{' '}
-          {hommes * RATION_PAR_JOUR * JOURS_DE_VIVRES_EXIGES} 🌾. Vous en avez {Math.floor(s.resources.grain)}.
+          <Montant n={hommes * RATION_PAR_JOUR * JOURS_DE_VIVRES_EXIGES} id="grain" taille={13} />. Vous en avez {Math.floor(s.resources.grain)}.
         </div>
         {hommes > MAX_TROUPES && (
           <div className="bl-motif">
@@ -525,9 +527,15 @@ export function PanneauBlocus({ onFermer }: { onFermer: () => void }) {
                 */}
                 <div className="bl-sous">
                   Rançon d’une reddition :{' '}
-                  {(Object.entries(v.butin) as [ResourceId, number][])
-                    .map(([r, n]) => `${Math.round(n * RANCON_MIN)}–${n} ${RES[r].emoji}`)
-                    .join(' · ')}
+                  {(Object.entries(v.butin) as [ResourceId, number][]).map(([r, n], i) => (
+                    <Fragment key={r}>
+                      {i > 0 && ' · '}
+                      <span className="montant">
+                        {Math.round(n * RANCON_MIN)}-{n}
+                        <Icone id={r} taille={12} />
+                      </span>
+                    </Fragment>
+                  ))}
                 </div>
               </div>
               <button disabled={bloque} onClick={() => setCible(v.id)}>

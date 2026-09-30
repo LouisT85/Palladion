@@ -14,6 +14,7 @@ import {
   type SnapEspion,
 } from '../../game/espionnage'
 import { herosActifs, oisifs, useGame, type GameState } from '../../game/store'
+import { Icone } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
@@ -149,7 +150,9 @@ export function PanneauEspions({ onFermer }: { onFermer: () => void }) {
       <>
         <div style={{ display: 'flex', gap: 14, color: '#93a7b4', fontSize: 12.5, marginBottom: 10, flexWrap: 'wrap' }}>
           <span>🧍 {libres.length} bras libre{libres.length === 1 ? '' : 's'}</span>
-          <span>🪙 {Math.floor(s.resources.bronze)} bronze</span>
+          <span>
+            <Icone id="bronze" taille={14} /> {Math.floor(s.resources.bronze)} bronze
+          </span>
           <span>
             {snap.saison === 'hiver' ? '❄️' : '🌤️'} {snap.meteo === 'brume' ? 'brume' : snap.meteo} · menace {Math.round(snap.threat)}
           </span>

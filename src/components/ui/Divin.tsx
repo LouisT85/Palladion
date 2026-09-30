@@ -26,6 +26,7 @@ import {
   type ReliqueDef,
 } from '../../game/reliques'
 import { jourDe, totalEtoiles, useGame, type GameState } from '../../game/store'
+import { Icone, Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
@@ -134,8 +135,12 @@ export function PanneauOracles({ onFermer }: { onFermer: () => void }) {
       <>
         <div style={{ display: 'flex', gap: 14, color: '#93a7b4', fontSize: 12.5, marginBottom: 10 }}>
           <span>🏛️ Temple niveau {temple}</span>
-          <span>✨ {Math.floor(s.faveur)} faveur</span>
-          <span>🌾 {Math.floor(s.resources.grain)} grain</span>
+          <span>
+            <Icone id="faveur" taille={14} /> {Math.floor(s.faveur)} faveur
+          </span>
+          <span>
+            <Icone id="grain" taille={14} /> {Math.floor(s.resources.grain)} grain
+          </span>
         </div>
 
         {ORACLE_IDS.map((q) => {
@@ -154,7 +159,7 @@ export function PanneauOracles({ onFermer }: { onFermer: () => void }) {
                 </b>
                 <span style={{ color: '#7f97a8', fontSize: 12.5, fontStyle: 'italic' }}>« {def.question} »</span>
                 <span style={{ marginLeft: 'auto', color: '#93a7b4', fontSize: 12 }}>
-                  ✨ {def.coutFaveur} · 🌾 {def.coutGrain}
+                  <Montant n={def.coutFaveur} id="faveur" taille={13} /> · <Montant n={def.coutGrain} id="grain" taille={13} />
                 </span>
               </div>
               <div style={{ color: '#93a7b4', fontSize: 12.5, lineHeight: 1.45, margin: '5px 0 7px' }}>{def.desc}</div>
@@ -277,13 +282,14 @@ export function AlerteColere() {
         return (
           <Astuce
             key={g}
-            titre={`${dieu.emoji} ${dieu.nom} - ${nomPalier(palier)}`}
+            titre={`${dieu.nom} - ${nomPalier(palier)}`}
+            emoji={<Icone id={g} taille={18} />}
             resume={descPalier(palier)}
             lignes={menaces.map((m) => ({ label: 'Il peut', valeur: m }))}
             note="Un sacrifice à son autel remonte la relation : le palier retombe aussitôt, et les calamités s’arrêtent."
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0', cursor: 'help' }}>
-              <span style={{ fontSize: 15 }}>{dieu.emoji}</span>
+              <Icone id={g} taille={15} />
               <b style={{ color: '#f0bda4', fontSize: 13 }}>
                 {dieu.nom} · {nomPalier(palier)}
               </b>

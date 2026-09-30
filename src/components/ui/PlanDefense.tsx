@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { SECTEURS, UNITS, nbFronts } from '../../game/data'
 import { HEROS } from '../../game/heros'
 import {
@@ -13,6 +14,7 @@ import {
   resumePlan,
 } from '../../game/plandefense'
 import { bonusFaveurs, bonusHeros, useGame } from '../../game/store'
+import { Icone } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 import { JetonsLigne, JetonsTir, SchemaEnceinte, court, usePlanDefense, useReglerPlan, type PanCarte } from './Ordres'
@@ -283,8 +285,14 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
         </div>
         {sansHommes.length > 0 && (
           <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
-            ⚠ Vous postez {sansHommes.map((u) => `${UNITS[u].emoji} ${UNITS[u].nom.toLowerCase()}s`).join(', ')} sans en
-            avoir un seul. L’ordre est gardé - il commandera le jour où vous en lèverez - mais ce pan est nu.
+            ⚠ Vous postez{' '}
+            {sansHommes.map((u, i) => (
+              <Fragment key={u}>
+                {i > 0 && ', '}
+                <Icone id={u} taille={14} /> {UNITS[u].nom.toLowerCase()}s
+              </Fragment>
+            ))}{' '}
+            sans en avoir un seul. L’ordre est gardé - il commandera le jour où vous en lèverez - mais ce pan est nu.
           </div>
         )}
         {/* le pendant, pour les hommes qu'on désigne par leur nom */}
@@ -317,7 +325,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
             const pan = PANS.find((p) => p.id === plan.pans[u])
             return (
               <div key={u}>
-                {UNITS[u].emoji} {UNITS[u].nom} → {pan ? court(pan.nom) : '—'}
+                <Icone id={u} taille={14} /> {UNITS[u].nom} → {pan ? court(pan.nom) : '—'}
                 {(army[u] ?? 0) <= 0 ? ' (personne pour l’instant)' : ` (${army[u]})`}
               </div>
             )
@@ -333,7 +341,15 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
             )
           })}
           <div style={{ marginTop: 4 }}>
-            Reste au plus pressé : {reserve.map((u) => UNITS[u].emoji).join(' ') || '—'}
+            Reste au plus pressé :{' '}
+            {reserve.length > 0
+              ? reserve.map((u, i) => (
+                  <Fragment key={u}>
+                    {i > 0 && ' '}
+                    <Icone id={u} taille={14} />
+                  </Fragment>
+                ))
+              : '—'}
             {cartesHeros.filter((h) => h.pan === null).length > 0 &&
               ` ${cartesHeros
                 .filter((h) => h.pan === null)

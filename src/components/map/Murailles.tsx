@@ -1,79 +1,37 @@
-import { memo } from 'react'
+import { memo, type ReactNode } from 'react'
 import { MAP, TOUR_ANGLES } from '../../game/data'
-import { AOBase, PAL, alea } from './art'
+import { PAL, alea } from './art'
+import { Feu } from './batiments/primitives'
+import { Brasero, Fanion } from './batiments/vie'
 
 /*
- * ═══════════════════════════ L'ENCEINTE ═══════════════════════════
+ * ═══════════════════════════ L'ENCEINTE (v2, refonte) ═══════════════════════════
  *
- * Tout le dessin découle de QUATRE règles de géométrie. Les trois quarts des
- * défauts qu'on reprochait aux remparts venaient de leur absence.
+ * Redessinée de zéro. L'enceinte est une ellipse vue en oblique depuis le sud :
+ * 1 px de PLAN en profondeur vaut k = ry/rx px d'écran. On en dessine deux
+ * couches : `back` (arc nord, avant les bâtiments) où l'on voit la FACE INTERNE,
+ * et `front` (arc sud, après eux) où l'on voit la FACE EXTERNE.
  *
- * R1 — ON ÉCHANTILLONNE EN LONGUEUR D'ARC, JAMAIS EN ANGLE. Un pas angulaire
- *   constant s'écrase aux deux extrémités est/ouest de l'ellipse : les créneaux
- *   s'y empilaient à la verticale, 3,7 px de large espacés de 8,9 px, et
- *   flottaient sur l'herbe. `abscisse()` + `anglesArc()` donnent des points
- *   régulièrement espacés À L'ÉCRAN, quelle que soit l'ellipse.
+ * Tout le modelé vient de l'orientation : chaque pierre prend sa valeur selon
+ * la direction de la face qui la porte (lumière au NORD-OUEST). La face ouest
+ * est claire, la face sud en demi-teinte, la face est dans l'ombre - pour
+ * l'extérieur comme pour l'intérieur. Zéro contour noir.
  *
- * R2 — PAS DE CRÉNEAUX LÀ OÙ LA CRÊTE EST DEBOUT. Un merlon n'a de sens que si
- *   la crête court plus à plat que 33°, soit |tx| > 0,55 sur la tangente écran.
- *   En deçà - les ~0,37 rad de part et d'autre de la porte et du point ouest -
- *   le parapet devient CONTINU, avec une encoche d'ombre au rythme des créneaux.
+ * La progression se lit à la MATIÈRE, puis au COURONNEMENT, puis aux TOURS :
+ *  1. PALISSADE - pieux épointés liés de harts, levée de terre au pied, chemin
+ *     de planches sur poteaux côté village, échafauds de guet ;
+ *  2. MUR DE MOELLONS - appareil irrégulier, chaînage de bois, parapet de
+ *     planches, tours de pierre à étage de bois et toit de bardeaux ;
+ *  3. REMPART APPAREILLÉ - assises réglées, créneaux, archères, tours carrées
+ *     crénelées, porte voûtée entre deux massifs ;
+ *  4. GRAND REMPART - calcaire blanc isodome à bossages, plinthe et corniche,
+ *     tours à étage fenêtré et toit de tuiles (type Messène), tourelles de
+ *     guet, porte monumentale à fronton, vantaux de bronze cloutés.
  *
- * R3 — LE CHEMIN DE RONDE A UNE ÉPAISSEUR APPARENTE VARIABLE. Le mur est un
- *   anneau entre DEUX ellipses (`dedans(geo, W)`), pas un ruban d'épaisseur
- *   constante : vu de bout à l'est et à l'ouest, son dessus n'est plus qu'un
- *   décalé horizontal ; vu de face au sud et au nord, il s'ouvre en dallage.
- *
- * R4 — DEUX FACES, PAS UNE. La couche `front` (arc sud) montre la face
- *   EXTERNE : appareil, archères, contreforts, mâchicoulis. La couche `back`
- *   (arc nord) montre la face INTERNE - c'est celle qui regarde le joueur :
- *   éperons, abouts de chaînage, volées, appentis, aucune archère.
- *
- * R5 — TOUT OUVRAGE DU DEDANS A UNE ÉPAISSEUR. Un ouvrage qui avance de d px de
- *   PLAN dans la place a son pied `saillie(gi, a, −d)` px PLUS BAS À L'ÉCRAN que
- *   la base du parement. Chaque pièce a DEUX appuis - son pied sur la ligne de
- *   sol de SA profondeur, son sommet contre le parement.
- *
- * R6 — LA PROFONDEUR NE SE DIT PAS PAR UN DÉCALÉ EN X. Au nord de l'ellipse
- *   cos a → 0 : `saillie` n'y rend presque QUE du y. Un volume qui comptait sur
- *   son décalé horizontal pour se lire y devenait plat - l'appentis y était un
- *   rectangle de 23,7 px cisaillé de 5,4, une planche peinte sur le mur, et
- *   c'est ce « truc en bois » que le joueur a signalé. Ce qui fuit doit donc
- *   RÉTRÉCIR (faîte plus étroit que l'égout, éperon à fruit) et porter des
- *   lignes qui joignent l'avant à l'arrière (chevrons, glacis, lits de pierre).
- *   Corollaire : ce qui court le long de l'arc ne peut pas se dresser, ce qui
- *   descend la pente le peut - au nord, une coulée devient un piquet.
- *   Corollaire II, plus dur : SUR HUIT CENTS PIXELS D'ARC, RIEN NE SE RATTRAPE
- *   PAR LA GARNITURE. Un remblai de terre a occupé la moitié basse de cette face
- *   pendant deux versions ; on lui a ajouté ventre, sentier, rigoles, replats,
- *   cailloux et herbe, et il est resté une nappe de terre - « l'espèce de terre
- *   qui rend mal ». Ce qui a fini par tenir n'était pas un objet de plus mais de
- *   la VALEUR : le parement descend au sol et s'assombrit vers son pied. Une
- *   surface de cette taille se traite par le ton, jamais par le détail.
- *
- * R7 — TOUT OUVRAGE POSÉ SUR LA CRÊTE SE MESURE EN PLAN, ET SE TERMINE. Deux
- *   pièges se sont refermés au même endroit - les deux extrémités est et ouest,
- *   là où la tangente se dresse - et sur deux ouvrages différents :
- *     · une LONGUEUR d'écran constante met l'ouvrage EN TRAVERS de la crête au
- *       lieu de l'y coucher : la longueur se cote en plan, `etire(geo, a)` la
- *       projette (c'est à `saillie` ce que la longueur est à la profondeur) ;
- *     · une section constante fait finir l'ouvrage sur une COUPE FRANCHE. Un
- *       ouvrage de bois s'arrête sur un pignon, un poteau cornier, un about de
- *       poutre ; un ouvrage de TERRE ne s'arrête pas du tout, il s'amortit -
- *       `biseau` / `rubanMourant` l'éteignent sur une longueur d'arc.
- *   Corollaire de R2 : quand une pièce perd sa lisibilité aux extrémités, une
- *   AUTRE doit la reprendre - le bardage du hourd cède au plancher en
- *   encorbellement et aux abouts de poutre, qui eux s'y ouvrent.
- *
- * Et une règle de raccord : LA TOUR EST DESSINÉE POUR SON NIVEAU DE MUR. Son
- * plancher EST le chemin de ronde, son axe suit l'ellipse de MI-ÉPAISSEUR (elle
- * chevauche la courtine au lieu d'être posée dessus), et cinq pièces la
- * soudent - encoche de la crête, retours de parapet, larmier de jonction,
- * ombre portée sur la face, accès.
+ * Contrats tenus : `hauteurRonde` (le chemin de ronde est la cote de la
+ * garnison et du plancher des tours), aucune cote indéfinie quelle que soit
+ * l'ellipse, chantier partiel (`span`), porte percée, pans effondrés.
  */
-
-/** demi-ouverture de la porte, en radians (angle 0 = est) */
-const PORTE = 0.1
 
 export interface GeoMur {
   cx: number
@@ -82,184 +40,110 @@ export interface GeoMur {
   ry: number
 }
 
-function pt(geo: GeoMur, a: number): { x: number; y: number } {
-  return { x: geo.cx + geo.rx * Math.cos(a), y: geo.cy + geo.ry * Math.sin(a) }
+/** demi-ouverture de la porte, en radians (angle 0 = est) */
+const PORTE = 0.1
+/** demi-largeur angulaire d'un pan effondré */
+const DA = 0.11
+
+const f = (n: number) => (Math.round((Number.isFinite(n) ? n : 0) * 10) / 10).toString()
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
+
+function pt(g: GeoMur, a: number): { x: number; y: number } {
+  return { x: g.cx + g.rx * Math.cos(a), y: g.cy + g.ry * Math.sin(a) }
+}
+/** l'ellipse décalée de `d` px de PLAN vers le dehors (d < 0 : vers le dedans) */
+function grow(g: GeoMur, d: number): GeoMur {
+  const k = g.rx > 0 ? g.ry / g.rx : 1
+  return { cx: g.cx, cy: g.cy, rx: Math.max(1, g.rx + d), ry: Math.max(1, g.ry + d * k) }
 }
 
-/** compression de la vue oblique : 1 px de PLAN vaut k px d'écran en profondeur */
-function komp(geo: GeoMur): number {
-  return geo.ry / geo.rx
-}
-
-/** l'ellipse du NU INTÉRIEUR, à `d` px de plan en deçà du nu extérieur */
-function dedans(geo: GeoMur, d: number): GeoMur {
-  return { cx: geo.cx, cy: geo.cy, rx: geo.rx - d, ry: geo.ry - d * komp(geo) }
-}
-
-/** tangente écran unitaire - |tx| dit si la crête court à plat ou debout (R2) */
-function tangente(geo: GeoMur, a: number): { tx: number; ty: number } {
-  const dx = -geo.rx * Math.sin(a)
-  const dy = geo.ry * Math.cos(a)
-  const L = Math.hypot(dx, dy) || 1
-  return { tx: dx / L, ty: dy / L }
-}
-
-/**
- * Déplacement ÉCRAN d'un déplacement de d px de PLAN vers le dehors. Ce n'est
- * PAS la normale écran unitaire : la profondeur est comprimée de k = ry/rx par
- * la vue oblique, et l'oublier gonfle les débords de 1/k au sud (les merlons
- * devenaient des plaques blanches de 6 px au lieu de 3,7).
- */
-function saillie(geo: GeoMur, a: number, d: number): { dx: number; dy: number } {
-  return { dx: d * Math.cos(a), dy: d * (geo.ry / geo.rx) * Math.sin(a) }
-}
-
-/**
- * ÉTIREMENT DE L'ARC : 1 px de PLAN mesuré LE LONG du mur vaut `etire` px
- * d'écran le long de la tangente. C'est le pendant, POUR LES LONGUEURS, de ce
- * que `saillie` est pour les profondeurs - il vaut 1 au nord et au sud, k à
- * l'est et à l'ouest.
- *
- * Sans lui, un ouvrage POSÉ sur la crête garde sa longueur d'écran partout :
- * l'échafaud de guet du niveau 1 restait un plancher horizontal de 15 px là où
- * la crête se dresse, donc EN TRAVERS d'elle. Avec lui il se couche dessus.
- */
-function etire(geo: GeoMur, a: number): number {
-  return Math.hypot(Math.sin(a), komp(geo) * Math.cos(a))
-}
-
-/** polyligne le long de l'arc : `dy` en hauteur, `dOut` vers le dehors */
-function ligne(geo: GeoMur, a0: number, a1: number, n: number, dy = 0, dOut = 0): string {
-  let d = ''
-  for (let i = 0; i <= n; i++) {
-    const a = a0 + ((a1 - a0) * i) / n
-    const p = pt(geo, a)
-    let x = p.x
-    let y = p.y + dy
-    if (dOut) {
-      const u = saillie(geo, a, dOut)
-      x += u.dx
-      y += u.dy
-    }
-    d += `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-  }
-  return d
-}
-
-/** ruban fermé entre deux courbes, éventuellement portées par deux ellipses */
-function ruban(
-  gA: GeoMur,
-  dyA: number,
-  gB: GeoMur,
-  dyB: number,
-  a0: number,
-  a1: number,
-  n: number,
-  outA = 0,
-  outB = 0,
-): string {
-  let d = ''
-  for (let i = 0; i <= n; i++) {
-    const a = a0 + ((a1 - a0) * i) / n
-    const p = pt(gA, a)
-    let x = p.x
-    let y = p.y + dyA
-    if (outA) {
-      const u = saillie(gA, a, outA)
-      x += u.dx
-      y += u.dy
-    }
-    d += `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-  }
-  for (let i = n; i >= 0; i--) {
-    const a = a0 + ((a1 - a0) * i) / n
-    const p = pt(gB, a)
-    let x = p.x
-    let y = p.y + dyB
-    if (outB) {
-      const u = saillie(gB, a, outB)
-      x += u.dx
-      y += u.dy
-    }
-    d += `L${x.toFixed(1)},${y.toFixed(1)}`
-  }
-  return d + 'Z'
-}
-
-/** table d'abscisse curviligne de l'arc - le socle de R1 */
 interface Abs {
   as: number[]
   ss: number[]
   L: number
 }
-
-function abscisse(geo: GeoMur, a0: number, a1: number, n = 220): Abs {
+function abscisse(g: GeoMur, a0: number, a1: number, n = 260): Abs {
   const as = [a0]
   const ss = [0]
-  let s = 0
-  let prec = pt(geo, a0)
+  let prev = pt(g, a0)
+  let L = 0
   for (let i = 1; i <= n; i++) {
     const a = a0 + ((a1 - a0) * i) / n
-    const p = pt(geo, a)
-    s += Math.hypot(p.x - prec.x, p.y - prec.y)
+    const p = pt(g, a)
+    L += Math.hypot(p.x - prev.x, p.y - prev.y)
     as.push(a)
-    ss.push(s)
-    prec = p
+    ss.push(L)
+    prev = p
   }
-  return { as, ss, L: s }
+  return { as, ss, L }
 }
-
-/** angles espacés de `pasPx` px d'ARC ÉCRAN (R1), décalés de `phase` px */
-function anglesArc(t: Abs, pasPx: number, phase = 0, marge = 0): number[] {
-  const out: number[] = []
-  if (pasPx <= 0) return out
-  let j = 0
-  for (let s = marge + pasPx * 0.5 + phase; s <= t.L - marge; s += pasPx) {
-    while (j < t.ss.length - 2 && t.ss[j + 1] < s) j++
-    const seg = t.ss[j + 1] - t.ss[j]
-    const f = seg > 1e-6 ? (s - t.ss[j]) / seg : 0
-    out.push(t.as[j] + (t.as[j + 1] - t.as[j]) * f)
+/** angle atteint après `s` px d'arc écran */
+function aDe(t: Abs, s: number): number {
+  if (t.L <= 0) return t.as[0]
+  const sc = clamp(s, 0, t.L)
+  let lo = 0
+  let hi = t.ss.length - 1
+  while (hi - lo > 1) {
+    const m = (lo + hi) >> 1
+    if (t.ss[m] <= sc) lo = m
+    else hi = m
   }
+  const d = t.ss[hi] - t.ss[lo]
+  return t.as[lo] + (t.as[hi] - t.as[lo]) * (d > 0 ? (sc - t.ss[lo]) / d : 0)
+}
+function anglesPas(t: Abs, pas: number, phase = 0): number[] {
+  const out: number[] = []
+  if (pas <= 0 || t.L <= 0) return out
+  for (let s = phase; s <= t.L; s += pas) out.push(aDe(t, s))
   return out
 }
-
-/** nombre de segments pour approcher un arc de `L` px sans facettes visibles */
-function pasCourbe(L: number): number {
-  return Math.max(6, Math.min(96, Math.round(L / 9)))
+/** polyligne le long de l'arc, à la hauteur `h` */
+function ligne(g: GeoMur, a0: number, a1: number, n: number, h: number): string {
+  let d = ''
+  for (let i = 0; i <= n; i++) {
+    const p = pt(g, a0 + ((a1 - a0) * i) / n)
+    d += `${i ? 'L' : 'M'}${f(p.x)},${f(p.y - h)}`
+  }
+  return d
+}
+/** ruban fermé : aller sur gA à hA, retour sur gB à hB */
+function ruban(gA: GeoMur, hA: number, gB: GeoMur, hB: number, a0: number, a1: number, n: number): string {
+  let d = ''
+  for (let i = 0; i <= n; i++) {
+    const p = pt(gA, a0 + ((a1 - a0) * i) / n)
+    d += `${i ? 'L' : 'M'}${f(p.x)},${f(p.y - hA)}`
+  }
+  for (let i = n; i >= 0; i--) {
+    const p = pt(gB, a0 + ((a1 - a0) * i) / n)
+    d += `L${f(p.x)},${f(p.y - hB)}`
+  }
+  return d + 'Z'
 }
 
-
-
-
+// ─────────────────────────────── cotes ─────────────────────────────────────
 
 /*
- * ─────────────── LES COTES, NIVEAU PAR NIVEAU ───────────────
- * H     hauteur de la FACE, du pied au chemin de ronde (= plancher des tours)
- * W     épaisseur en PLAN (l'épaisseur apparente du dessus vaut W·k·|sin a|)
- * par   hauteur du parapet extérieur au-dessus du chemin de ronde
- * pas   pas d'arc du couronnement (pieux, poteaux de hourd, créneaux)
- * wM    largeur du merlon en plan
- * La CRÊTE vaut donc H + par : 25 / 24 / 32,5 / 42,5.
+ * H     hauteur de la face, du pied au chemin de ronde (= plancher des tours)
+ * W     épaisseur du mur en plan
+ * par   hauteur du parapet au-dessus du chemin de ronde
+ * pas   pas du couronnement (pieux, poteaux, créneaux)
+ * bloc  longueur moyenne d'une pierre, hA hauteur d'assise
  */
 interface Cote {
   H: number
   W: number
   par: number
   pas: number
-  wM: number
-  pasBloc: number
-  rangs: number
-  hAssise: number
+  bloc: number
+  hA: number
 }
-
 const COTES: Cote[] = [
-  { H: 0, W: 0, par: 0, pas: 0, wM: 0, pasBloc: 0, rangs: 0, hAssise: 0 },
-  { H: 16, W: 3, par: 9, pas: 6.5, wM: 0, pasBloc: 0, rangs: 0, hAssise: 0 },
-  { H: 20, W: 5, par: 6, pas: 10, wM: 0, pasBloc: 9, rangs: 5, hAssise: 4 },
-  { H: 27, W: 7.5, par: 5.5, pas: 13, wM: 8, pasBloc: 12, rangs: 5, hAssise: 4.8 },
-  { H: 36, W: 10, par: 6.5, pas: 15, wM: 9, pasBloc: 13, rangs: 6, hAssise: 5.4 },
+  { H: 0, W: 0, par: 0, pas: 0, bloc: 0, hA: 0 },
+  { H: 16, W: 3, par: 9, pas: 4.4, bloc: 0, hA: 0 },
+  { H: 20, W: 5, par: 6, pas: 9, bloc: 6.5, hA: 3.2 },
+  { H: 27, W: 7.5, par: 5.5, pas: 12.5, bloc: 11, hA: 4.4 },
+  { H: 36, W: 10, par: 6.5, pas: 14.5, bloc: 14, hA: 5.2 },
 ]
-
 function cote(niveau: number): Cote {
   return COTES[Math.max(0, Math.min(4, Math.round(niveau)))]
 }
@@ -269,1839 +153,499 @@ export function hauteurRonde(niveau: number): number {
   return cote(niveau).H
 }
 
-/*
- * ─────────────── LES TOURS, INDEXÉES SUR LE MUR ───────────────
- * D    diamètre du fût
- * par  hauteur du parapet de la tour (celui du mur + 1,5 : la tour dépasse d'un
- *      cheveu, et c'est le COURONNEMENT qui fait l'accent, pas la hauteur)
- * toit surhaussement du couronnement au-dessus de la crête de la tour
+/** palettes par matière, du plus éclairé au plus ombré */
+const PALS: string[][] = [
+  [],
+  ['#bf9b6c', '#a07d52', '#7f613d', '#624a2e', '#48371f'],
+  ['#d3c7a8', '#b8ab8b', '#9b8f71', '#7d7258', '#615743'],
+  ['#dcd2b8', '#c5b99f', '#a99d83', '#8c8067', '#6f654f'],
+  ['#efe8d6', '#dad1b9', '#bfb59b', '#a0967d', '#837a62'],
+]
+/** joints : plus sombres que la pierre, jamais noirs */
+const JOINTS = ['', '#4a3a26', '#5e5540', '#6a604b', '#8a8068']
+/** nappes qui font tomber la valeur au pied de la face interne (sourdes et neutres) */
+const PIED = ['#4b463b', '#3c382f', '#2f2b25']
+
+/** valeur d'une face selon sa normale en plan (angle), lumière au NW */
+const lumiere = (n: number) => clamp(0.52 - 0.42 * Math.cos(n) - 0.08 * Math.sin(n), 0.04, 0.96)
+const ton = (l: number, j: number) => clamp(Math.round((1 - l) * 4 + j), 0, 4)
+
+// ─────────────────────────────── appareil ──────────────────────────────────
+
+/**
+ * L'appareil d'une face courbe : assises, pierres décalées d'une assise à
+ * l'autre, chaque pierre prend la valeur de sa face (± un ton de hasard).
+ * `coupe(a)` plafonne la hauteur (brèche, chantier) : le bord devient
+ * ÉBRÉCHÉ, assise par assise, au lieu d'un trait droit.
  */
+function Appareil({
+  g, a0, a1, y0, y1, hA, bloc, normale, pal, joint, seed, coupe, irregulier = false, bossage = false,
+}: {
+  g: GeoMur; a0: number; a1: number; y0: number; y1: number; hA: number; bloc: number
+  normale: (a: number) => number; pal: string[]; joint: string; seed: number
+  coupe?: (a: number) => number; irregulier?: boolean; bossage?: boolean
+}) {
+  const t = abscisse(g, a0, a1)
+  const rnd = alea(seed)
+  const d = ['', '', '', '', '']
+  let joints = ''
+  let clair = ''
+  let sombre = ''
+  if (t.L <= 0 || hA <= 0 || bloc <= 0 || y1 <= y0) return null
+  let y = y0
+  let row = 0
+  while (y < y1 - 0.25) {
+    const hh = Math.min(y1 - y, hA * (irregulier ? 0.72 + rnd() * 0.56 : 1))
+    const ya = y
+    const yb = y + hh
+    let s0 = 0
+    let s1 = row % 2 ? bloc * (irregulier ? 0.3 + rnd() * 0.5 : 0.5) : bloc * (irregulier ? 0.6 + rnd() * 0.6 : 1)
+    while (s0 < t.L - 0.1) {
+      const sb = Math.min(t.L, s1)
+      const aa = aDe(t, s0)
+      const ab = aDe(t, sb)
+      const am = (aa + ab) / 2
+      const cap = coupe ? coupe(am) : Infinity
+      if (ya < cap) {
+        const top = Math.min(yb, cap)
+        const pa = pt(g, aa)
+        const pb = pt(g, ab)
+        const q = `M${f(pa.x)},${f(pa.y - ya)}L${f(pb.x)},${f(pb.y - ya)}L${f(pb.x)},${f(pb.y - top)}L${f(pa.x)},${f(pa.y - top)}Z`
+        d[ton(lumiere(normale(am)), (rnd() - 0.5) * (irregulier ? 2.2 : 1.3))] += q
+        joints += `M${f(pa.x)},${f(pa.y - ya)}L${f(pa.x)},${f(pa.y - top)}M${f(pa.x)},${f(pa.y - top)}L${f(pb.x)},${f(pb.y - top)}`
+        if (bossage && top - ya > 2.4 && sb - s0 > 3) {
+          const i0 = aDe(t, s0 + 1)
+          const i1 = aDe(t, sb - 1)
+          const qa = pt(g, i0)
+          const qb = pt(g, i1)
+          clair += `M${f(qa.x)},${f(qa.y - top + 1)}L${f(qb.x)},${f(qb.y - top + 1)}`
+          sombre += `M${f(qa.x)},${f(qa.y - ya - 0.8)}L${f(qb.x)},${f(qb.y - ya - 0.8)}`
+        }
+      }
+      s0 = sb
+      s1 = sb + bloc * (irregulier ? 0.55 + rnd() * 0.9 : 0.85 + rnd() * 0.3)
+    }
+    y = yb
+    row++
+  }
+  return (
+    <g>
+      {d.map((p, i) => (p ? <path key={i} d={p} fill={pal[i]} /> : null))}
+      <path d={joints} stroke={joint} strokeWidth={irregulier ? 0.55 : 0.45} opacity={0.6} fill="none" />
+      {clair && <path d={clair} stroke="#fffaf0" strokeWidth={0.6} opacity={0.55} fill="none" />}
+      {sombre && <path d={sombre} stroke="#5a5242" strokeWidth={0.55} opacity={0.4} fill="none" />}
+    </g>
+  )
+}
+
+// ─────────────────────────────── tours ─────────────────────────────────────
+
 interface CoteTour {
   D: number
-  par: number
-  toit: number
+  h: number
 }
+const COTES_TOUR: (CoteTour | null)[] = [null, null, { D: 20, h: 30 }, { D: 26, h: 52 }, { D: 32, h: 70 }]
 
-const COTES_TOUR: (CoteTour | null)[] = [
-  null,
-  null,
-  { D: 15, par: 5.5, toit: 4 },
-  { D: 19, par: 7, toit: 5 },
-  { D: 24, par: 8, toit: 7 },
-]
-
-/** dégradés du domaine (préfixe mur-) : lumière à l'OUEST, ombre à l'EST */
-function DefsMur() {
-  return (
-    <defs>
-      <linearGradient id="mur-face" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stopColor="#c5baa0" />
-        <stop offset="42%" stopColor="#8e8367" />
-        <stop offset="100%" stopColor="#544a35" />
-      </linearGradient>
-      <linearGradient id="mur-face4" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stopColor="#d2c9b1" />
-        <stop offset="42%" stopColor="#978c70" />
-        <stop offset="100%" stopColor="#5c5238" />
-      </linearGradient>
-      <linearGradient id="mur-dalle" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stopColor="#e2dac6" />
-        <stop offset="55%" stopColor="#c2b89f" />
-        <stop offset="100%" stopColor="#8f8367" />
-      </linearGradient>
-      <linearGradient id="mur-sec" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stopColor="#b8ab8c" />
-        <stop offset="45%" stopColor="#8a7e63" />
-        <stop offset="100%" stopColor="#544b38" />
-      </linearGradient>
-      {/* face INTERNE (couche arrière) : enduit de terre mat, pas de bel appareil */}
-      <linearGradient id="mur-interne" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stopColor="#bdb08e" />
-        <stop offset="45%" stopColor="#a1936f" />
-        <stop offset="100%" stopColor="#7d7052" />
-      </linearGradient>
-      {/* bande claire du couronnement : forte à l'ouest, s'éteint vers l'est */}
-      <linearGradient id="mur-lum" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stopColor="#f7f1dd" stopOpacity="0.95" />
-        <stop offset="55%" stopColor="#efe8d3" stopOpacity="0.55" />
-        <stop offset="100%" stopColor="#e6dfc9" stopOpacity="0.18" />
-      </linearGradient>
-      {/* pied du mur : l'ombre s'épaissit vers l'est */}
-      <linearGradient id="mur-pied" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stopColor="#241a08" stopOpacity="0.14" />
-        <stop offset="55%" stopColor="#241a08" stopOpacity="0.26" />
-        <stop offset="100%" stopColor="#241a08" stopOpacity="0.42" />
-      </linearGradient>
-      {/* pénombre d'embrasure : plus noire en haut, sol qui reçoit un peu de jour */}
-      <linearGradient id="mur-antre" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#150e07" />
-        <stop offset="72%" stopColor="#2a1f10" />
-        <stop offset="100%" stopColor="#45351d" />
-      </linearGradient>
-    </defs>
-  )
-}
-
-/** tons de pierre, du plus éclairé (ouest) au plus ombré (est) */
-const TONS_SEC = ['#d5cbb0', '#bfb397', '#a3977b', '#877b60', '#6d6248']
-const TONS_TAILLE = ['#d8cfb9', '#c5b9a0', '#ab9f85', '#8f8368', '#75694f']
-
-/**
- * Assises de pierre épousant l'arc, à pas d'ARC (R1) : les blocs gardent un
- * rapport de 2,5:1 partout au lieu de s'étirer en traînées de 6,4:1 au sud.
- * Un chemin par ton (perf), plus le bossage du niveau 4.
- */
-function assisesArc(
-  geo: GeoMur,
-  t: Abs,
-  pasPx: number,
-  dyHaut: number,
-  rangs: number,
-  hA: number,
-  nTons: number,
-  seed: number,
-  bossage: boolean,
-): { tons: string[]; boss: string; liseret: string } {
+/** blocs d'une face plane (rectangle écran), trois tons, joints décalés */
+function blocsPlan(x: number, y: number, w: number, h: number, hA: number, bl: number, tons: string[], seed: number, bossage = false): ReactNode {
   const rnd = alea(seed)
-  const tons = Array.from({ length: nTons }, () => '')
-  let boss = ''
-  let liseret = ''
-  for (let r = 0; r < rangs; r++) {
-    const as = anglesArc(t, pasPx, r % 2 ? pasPx * 0.5 : 0, 1)
-    for (let i = 0; i + 1 < as.length; i++) {
-      if (rnd() < 0.08) continue
-      const a = as[i]
-      const b = a + (as[i + 1] - a) * (0.8 + rnd() * 0.16)
-      const p0 = pt(geo, a)
-      const p1 = pt(geo, b)
-      const jit = (rnd() - 0.5) * 0.6
-      const y0 = p0.y + dyHaut + r * hA + jit
-      const y1 = p1.y + dyHaut + r * hA + jit
-      const h = hA * (0.84 + rnd() * 0.13)
-      // lumière NW : l'ouest (a ≈ π) est clair, l'est (a ≈ 0) est sombre
-      const lit = (1 - Math.cos((a + b) / 2)) / 2
-      const k = Math.min(nTons - 1, Math.max(0, Math.round((1 - lit) * (nTons - 1) + (rnd() - 0.5) * 1.5)))
-      const x0 = p0.x.toFixed(1)
-      const x1 = p1.x.toFixed(1)
-      tons[k] +=
-        `M${x0},${y0.toFixed(1)}L${x1},${y1.toFixed(1)}` +
-        `L${x1},${(y1 + h).toFixed(1)}L${x0},${(y0 + h).toFixed(1)}Z`
-      if (bossage) {
-        boss += `M${x0},${y0.toFixed(1)}L${x1},${y1.toFixed(1)}L${x1},${(y1 + 1).toFixed(1)}L${x0},${(y0 + 1).toFixed(1)}Z`
-        liseret += `M${x0},${(y0 + h - 0.8).toFixed(1)}L${x1},${(y1 + h - 0.8).toFixed(1)}L${x1},${(y1 + h).toFixed(1)}L${x0},${(y0 + h).toFixed(1)}Z`
+  const d = ['', '', '']
+  let j = ''
+  let cl = ''
+  let row = 0
+  for (let yy = 0; yy < h - 0.2; yy += hA, row++) {
+    const hh = Math.min(hA, h - yy)
+    let xx = row % 2 ? -bl * 0.5 : 0
+    while (xx < w) {
+      const xa = Math.max(0, xx)
+      const xb = Math.min(w, xx + bl * (0.8 + rnd() * 0.4))
+      if (xb - xa > 0.4) {
+        d[Math.floor(rnd() * 3)] += `M${f(x + xa)},${f(y - yy)}h${f(xb - xa)}v${f(-hh)}h${f(xa - xb)}Z`
+        j += `M${f(x + xa)},${f(y - yy)}v${f(-hh)}`
+        if (bossage && xb - xa > 3 && hh > 2.4) cl += `M${f(x + xa + 0.9)},${f(y - yy - hh + 0.9)}h${f(xb - xa - 1.8)}`
       }
+      xx = xb
     }
+    j += `M${f(x)},${f(y - yy)}h${f(w)}`
   }
-  return { tons, boss, liseret }
-}
-
-/**
- * Pieux taillés en pointe (palissade), 3 valeurs de bois + arête ouest + pointe.
- * Les points arrivent déjà espacés en longueur d'arc.
- */
-function pieuxPaths(
-  pts: { x: number; y: number }[],
-  dyBase: number,
-  hBase: number,
-  hVar: number,
-  w: number,
-  seed: number,
-) {
-  const rnd = alea(seed)
-  const corps = ['', '', '']
-  let arete = ''
-  let pointe = ''
-  for (const p of pts) {
-    const h = hBase + rnd() * hVar
-    const x0 = (p.x - w / 2).toFixed(1)
-    const x1 = (p.x + w / 2).toFixed(1)
-    const yB = (p.y + dyBase).toFixed(1)
-    const yT = p.y + dyBase - h
-    const yEp = (yT + 2.4).toFixed(1)
-    const k = Math.floor(rnd() * 3)
-    corps[k] += `M${x0},${yB}L${x0},${yEp}L${p.x.toFixed(1)},${yT.toFixed(1)}L${x1},${yEp}L${x1},${yB}Z`
-    arete += `M${x0},${yB}L${x0},${yEp}L${(p.x - w / 2 + w * 0.34).toFixed(1)},${(yT + 1.3).toFixed(1)}L${(p.x - w / 2 + w * 0.34).toFixed(1)},${yB}Z`
-    pointe += `M${(p.x - w / 2 + 0.4).toFixed(1)},${(yT + 2.2).toFixed(1)}L${p.x.toFixed(1)},${yT.toFixed(1)}L${(p.x + w / 2 - 0.4).toFixed(1)},${(yT + 2.2).toFixed(1)}L${p.x.toFixed(1)},${(yT + 1.3).toFixed(1)}Z`
-  }
-  return { corps, arete, pointe }
-}
-
-/**
- * ═══════════════ LES ÉCHAFAUDS DE GUET (niveau 1) ═══════════════
- *
- * Une palissade n'a pas de chemin de ronde : pour voir par-dessus, on monte des
- * échafauds. Dessinés en ÉLÉVATION FRONTALE - un plancher de 15 px, deux
- * montants qui montent, une traverse par-dessus -, ils se lisaient comme des
- * TABLES posées sur les pointes : rien dessous, rien derrière, personne dessus.
- * Le joueur a demandé ce que ça représentait, et il avait raison de ne pas
- * comprendre. Quatre pièces le disent, et c'étaient les quatre qui manquaient :
- *
- *  · LE PLANCHER A UNE ÉPAISSEUR. Sa tranche ET son dessus, pris entre le nu de
- *    la palissade et une ellipse `dP` px de plan en deçà : un anneau, qui se
- *    pince au nord et au sud et S'OUVRE à l'est et à l'ouest (R3). La table
- *    devient une caisse - et aux deux extrémités, là où la crête se dresse,
- *    c'est le DESSUS du plancher qui porte à lui seul tout le volume. Sa
- *    longueur, elle, est une longueur de PLAN (`etire`) : à longueur d'écran
- *    constante il se mettait en travers de la crête au lieu de s'y coucher.
- *
- *  · LES POTEAUX DESCENDENT AU SOL, derrière le rideau de pieux, donc
- *    `dP·k` px PLUS BAS à l'écran (R5) - contrefiche et échelle comprises. Ils
- *    ne se voient QUE de la couche arrière : de dehors la palissade les cache,
- *    et c'est justement ce qui est juste.
- *
- *  · L'ÉCHAFAUD EST DERRIÈRE LA PALISSADE, pas dessus. Sur la couche avant il
- *    se peint donc AVANT les pieux : les pointes lui passent devant, et cette
- *    seule occlusion dit d'où on regarde. Peint après, il redevenait un objet
- *    posé sur le couronnement - la table.
- *
- *  · UN HOMME Y VEILLE, lance dressée. À vingt pixels de large c'est la
- *    SILHOUETTE qui dit « on veille ici », pas la charpente : le fer de la
- *    lance dépasse la ligne des pointes de 12 px, et c'est le seul accent
- *    vertical d'un rideau de pieux long de 830.
- *
- * C'est la grammaire de `TourMur` - plancher, garde-corps, accès, homme de
- * faction, ombre au pied - transposée au bois et à deux poteaux.
- */
-function EchafaudsGuet({
-  geo,
-  angles,
-  crete,
-  arriere,
-  span,
-}: {
-  geo: GeoMur
-  angles: number[]
-  crete: number
-  arriere: boolean
-  span: number
-}) {
-  /** longueur du plancher et avancée dans la place, en px de PLAN */
-  const Lg = 17
-  const dP = 9
-  /**
-   * Dessus du plancher. Il se cale DANS la ligne des pointes (qui montent de
-   * −25 à −29) et non au-dessus : posé plus haut, la caisse flottait de deux px
-   * au-dessus des pieux vue du sud. Ici les plus hautes pointes la traversent,
-   * et c'est cette interpénétration qui l'assied.
-   */
-  const yPl = -crete - 2
-  const ePl = 3
-  const hG = 7.4
-  let ombre = ''
-  let poteau = ''
-  let poteauLum = ''
-  let jambes = ''
-  let echelle = ''
-  let barreaux = ''
-  let dessus = ''
-  let planches = ''
-  let tranche = ''
-  let trancheLit = ''
-  let montants = ''
-  let lisse = ''
-  let lisseLit = ''
-  let corps = ''
-  let tete = ''
-  let casque = ''
-  let hampe = ''
-  let fer = ''
-  angles.forEach((a, idx) => {
-    const p = pt(geo, a)
-    const { tx, ty } = tangente(geo, a)
-    const e = etire(geo, a)
-    const hx = (tx * Lg * e) / 2
-    const hy = (ty * Lg * e) / 2
-    // vers le DEDANS : plus bas à l'écran au nord, plus haut au sud (R5)
-    const o = saillie(geo, a, -dP)
-    // les quatre coins du plancher - deux sur la crête, deux en arrière
-    const ax = p.x - hx
-    const ay = p.y - hy + yPl
-    const bx = p.x + hx
-    const by = p.y + hy + yPl
-    const ySol = p.y + 2.5 + o.dy
-    // DESSUS du plancher : l'anneau entre les deux nus
-    dessus +=
-      `M${ax.toFixed(1)},${ay.toFixed(1)}L${bx.toFixed(1)},${by.toFixed(1)}` +
-      `L${(bx + o.dx).toFixed(1)},${(by + o.dy).toFixed(1)}L${(ax + o.dx).toFixed(1)},${(ay + o.dy).toFixed(1)}Z`
-    // les madriers : des lignes qui joignent l'avant à l'arrière (R6)
-    for (const f of [-0.34, 0.34]) {
-      const jx = p.x + hx * f
-      const jy = p.y + hy * f + yPl
-      planches +=
-        `M${jx.toFixed(1)},${jy.toFixed(1)}L${(jx + o.dx).toFixed(1)},${(jy + o.dy).toFixed(1)}` +
-        `L${(jx + o.dx + 0.7).toFixed(1)},${(jy + o.dy).toFixed(1)}L${(jx + 0.7).toFixed(1)},${jy.toFixed(1)}Z`
-    }
-    // TRANCHE du plancher : celle qu'on voit - l'arrière au nord, l'avant au
-    // sud (R4). C'est elle qui pose la caisse sur les pointes.
-    const sx = arriere ? o.dx : 0
-    const sy = arriere ? o.dy : 0
-    tranche +=
-      `M${(ax + sx).toFixed(1)},${(ay + sy).toFixed(1)}L${(bx + sx).toFixed(1)},${(by + sy).toFixed(1)}` +
-      `L${(bx + sx).toFixed(1)},${(by + sy + ePl).toFixed(1)}L${(ax + sx).toFixed(1)},${(ay + sy + ePl).toFixed(1)}Z`
-    trancheLit +=
-      `M${(ax + sx).toFixed(1)},${(ay + sy).toFixed(1)}L${(bx + sx).toFixed(1)},${(by + sy).toFixed(1)}` +
-      `L${(bx + sx).toFixed(1)},${(by + sy + 0.9).toFixed(1)}L${(ax + sx).toFixed(1)},${(ay + sy + 0.9).toFixed(1)}Z`
-    // GARDE-CORPS, au nu de la palissade : des montants FINS et une lisse
-    // continue - rien à voir avec un pieu de 5,4 px taillé en pointe
-    for (const f of [-0.86, 0, 0.86]) {
-      const mx = p.x + hx * f
-      const my = p.y + hy * f + yPl
-      montants += `M${(mx - 0.85).toFixed(1)},${(my - hG).toFixed(1)}h1.7v${(hG + 0.6).toFixed(1)}h-1.7Z`
-    }
-    lisse +=
-      `M${(ax - tx * 1.2).toFixed(1)},${(ay - ty * 1.2 - hG).toFixed(1)}L${(bx + tx * 1.2).toFixed(1)},${(by + ty * 1.2 - hG).toFixed(1)}` +
-      `L${(bx + tx * 1.2).toFixed(1)},${(by + ty * 1.2 - hG + 1.8).toFixed(1)}L${(ax - tx * 1.2).toFixed(1)},${(ay - ty * 1.2 - hG + 1.8).toFixed(1)}Z`
-    lisseLit +=
-      `M${(ax - tx * 1.2).toFixed(1)},${(ay - ty * 1.2 - hG).toFixed(1)}L${(bx + tx * 1.2).toFixed(1)},${(by + ty * 1.2 - hG).toFixed(1)}` +
-      `L${(bx + tx * 1.2).toFixed(1)},${(by + ty * 1.2 - hG + 0.7).toFixed(1)}L${(ax - tx * 1.2).toFixed(1)},${(ay - ty * 1.2 - hG + 0.7).toFixed(1)}Z`
-    /*
-     * LA CHARPENTE. Elle se peint sur LES DEUX couches, et non sur la seule
-     * couche arrière comme on l'avait d'abord posé : au sud franc la palissade
-     * la couvre entièrement (elle est peinte après, cf. plus bas), mais au
-     * sud-est et au sud-ouest le décalé de profondeur a une grosse composante
-     * en x - le plancher déborde la silhouette du rideau, et il y débordait
-     * SANS pieds. L'occlusion s'obtient par l'ordre de peinture, jamais par un
-     * drapeau : ce qui doit être caché, la palissade le cache.
-     */
-    {
-      // POTEAUX : du dessous du plancher jusqu'au sol de LEUR profondeur - le
-      // seul trait qui change la table en ouvrage
-      for (const f of [-0.72, 0.72]) {
-        const qx = p.x + hx * f + o.dx
-        const qy = p.y + hy * f + o.dy + yPl + ePl - 0.4
-        poteau += `M${(qx - 1.15).toFixed(1)},${qy.toFixed(1)}h2.3V${ySol.toFixed(1)}h-2.3Z`
-        poteauLum += `M${(qx - 1.15).toFixed(1)},${qy.toFixed(1)}h0.8V${ySol.toFixed(1)}h-0.8Z`
-        ombre +=
-          `M${(qx - 1.3).toFixed(1)},${ySol.toFixed(1)}L${(qx + 1.3).toFixed(1)},${ySol.toFixed(1)}` +
-          `L${(qx + 6.4).toFixed(1)},${(ySol + 2.2).toFixed(1)}L${(qx + 3.4).toFixed(1)},${(ySol + 2.2).toFixed(1)}Z`
-      }
-      // CONTREFICHE : la jambe de force qui l'empêche de se coucher
-      const jx0 = p.x - hx * 0.72 + o.dx
-      const jx1 = p.x + hx * 0.55 + o.dx
-      const jy1 = p.y + hy * 0.55 + o.dy + yPl + ePl
-      jambes +=
-        `M${jx0.toFixed(1)},${ySol.toFixed(1)}L${(jx0 + 1.6).toFixed(1)},${ySol.toFixed(1)}` +
-        `L${(jx1 + 1.6).toFixed(1)},${jy1.toFixed(1)}L${jx1.toFixed(1)},${jy1.toFixed(1)}Z`
-      // ÉCHELLE, appuyée contre l'about ouest du plancher : on monte par là,
-      // et ses montants le dépassent de 2 px comme toute échelle posée
-      const ex0 = ax + o.dx * 0.5
-      const ey0 = ay + o.dy * 0.5 - 2.2
-      const fx0 = ex0 - 3.6 + o.dx * 0.3
-      for (const s of [-1.7, 0.8]) {
-        echelle +=
-          `M${(ex0 + s).toFixed(1)},${ey0.toFixed(1)}L${(ex0 + s + 0.9).toFixed(1)},${ey0.toFixed(1)}` +
-          `L${(fx0 + s + 0.9).toFixed(1)},${ySol.toFixed(1)}L${(fx0 + s).toFixed(1)},${ySol.toFixed(1)}Z`
-      }
-      for (let i = 1; i <= 5; i++) {
-        const g = i / 6
-        const rx0 = ex0 + (fx0 - ex0) * g
-        const ry0 = ey0 + (ySol - ey0) * g
-        barreaux += `M${(rx0 - 1.7).toFixed(1)},${ry0.toFixed(1)}h3.4v0.85h-3.4Z`
-      }
-    }
-    /*
-     * L'HOMME DE FACTION. Campé au MILIEU du plancher, il tombait pile derrière
-     * le montant central du garde-corps - qui se peint après lui, puisque de
-     * dehors c'est son parapet : il n'en restait qu'une tête au-dessus de la
-     * lisse et une fente de tunique. Il se tient donc dans une TRAVÉE, entre
-     * deux montants, et alternativement d'un côté puis de l'autre.
-     */
-    if (span >= 1) {
-      const sg = idx % 2 ? -1 : 1
-      const wx = p.x + o.dx * 0.5 + hx * sg * 0.43
-      const wy = p.y + o.dy * 0.5 + hy * sg * 0.43 + yPl + 0.6
-      corps +=
-        `M${(wx - 2.1).toFixed(1)},${wy.toFixed(1)}L${(wx - 1.5).toFixed(1)},${(wy - 5.6).toFixed(1)}` +
-        `L${(wx + 1.5).toFixed(1)},${(wy - 5.6).toFixed(1)}L${(wx + 2.1).toFixed(1)},${wy.toFixed(1)}Z`
-      tete += `M${(wx - 1.8).toFixed(1)},${(wy - 7.4).toFixed(1)}a1.8,1.8 0 1,0 3.6,0a1.8,1.8 0 1,0 -3.6,0Z`
-      casque +=
-        `M${(wx - 1.9).toFixed(1)},${(wy - 7.7).toFixed(1)}A1.9,1.9 0 0 1 ${(wx + 1.9).toFixed(1)},${(wy - 7.7).toFixed(1)}` +
-        `L${(wx + 1.9).toFixed(1)},${(wy - 7.1).toFixed(1)}L${(wx - 1.9).toFixed(1)},${(wy - 7.1).toFixed(1)}Z`
-      const lx = wx + sg * 2.9
-      hampe += `M${(lx - 0.5).toFixed(1)},${(wy - 13.2).toFixed(1)}h1v13.8h-1Z`
-      fer += `M${(lx - 1.3).toFixed(1)},${(wy - 13).toFixed(1)}L${lx.toFixed(1)},${(wy - 16.6).toFixed(1)}L${(lx + 1.3).toFixed(1)},${(wy - 13).toFixed(1)}Z`
-    }
-  })
-  const gardeCorps = (
-    <>
-      <path d={montants} fill="#7d5e39" />
-      <path d={lisse} fill="#8b6a40" />
-      <path d={lisseLit} fill="#c1996a" opacity={0.9} />
-    </>
-  )
   return (
     <g>
-      {/* le pied des poteaux, dans la place */}
-      <path d={ombre} fill={PAL.ombrePortee} opacity={0.17} />
-      <path d={jambes} fill="#5c4227" />
-      <path d={poteau} fill="#6a4e2d" />
-      <path d={poteauLum} fill="#96713f" opacity={0.85} />
-      {/* le garde-corps du FOND passe derrière le plancher */}
-      {arriere && gardeCorps}
-      {/* du dedans le plancher prend le jour ; du dehors on ne l'aperçoit
-          qu'entre les montants, dans l'ombre du garde-corps */}
-      <path d={dessus} fill={arriere ? '#a8845d' : '#5f4830'} />
-      <path d={planches} fill={arriere ? '#6a4e2d' : '#4a3620'} opacity={0.7} />
-      <path d={tranche} fill="#5c4227" />
-      <path d={trancheLit} fill="#8b6a40" />
-      {/* l'échelle est appuyée SUR la tranche, elle la croise */}
-      <path d={echelle} fill="#8b6a40" />
-      <path d={barreaux} fill="#5c4227" />
-      <path d={corps} fill="#4a6a5a" />
-      <path d={hampe} fill="#5f462d" />
-      <path d={fer} fill="#cfc7b2" />
-      <path d={tete} fill={PAL.peau} />
-      <path d={casque} fill="#8f8a7c" />
-      {/* … et devant lui au sud : c'est son parapet */}
-      {!arriere && gardeCorps}
+      {d.map((p, i) => (p ? <path key={i} d={p} fill={tons[i]} /> : null))}
+      <path d={j} stroke="#5e5540" strokeWidth={0.4} opacity={0.5} fill="none" />
+      {cl && <path d={cl} stroke="#fffaf0" strokeWidth={0.55} opacity={0.6} fill="none" />}
     </g>
   )
 }
 
-/**
- * LE COURONNEMENT. Un merlon par pas d'arc là où la crête court à plat, une
- * encoche d'ombre sur un parapet continu là où elle se dresse (R2), rien du
- * tout au droit d'une tour (encoche de raccord). Six chemins pour tout l'arc.
- */
-function couronnement(
-  geo: GeoMur,
-  angles: number[],
-  H: number,
-  par: number,
-  wM: number,
-  W: number,
-  arriere: boolean,
-  encoches: { a: number; da: number }[],
-  seed: number,
-) {
-  const rnd = alea(seed)
-  // épaisseur du parapet en PLAN. À 0,62·W il ne restait que 3,8 px de chemin de
-  // ronde : vu du nord les merlons devenaient des plaques et le dallage
-  // disparaissait. Un parapet vaut le tiers de l'épaisseur du mur.
-  const tp = Math.max(2.2, W * 0.34)
-  let face = ''
-  let dessus = ''
-  let flanc = ''
-  let interne = ''
-  let ombre = ''
-  let jour = ''
-  let crans = ''
-  let prec: { xd: number; y: number } | null = null
-  for (const a of angles) {
-    if (encoches.some((e) => Math.abs(a - e.a) < e.da)) {
-      prec = null
-      continue
-    }
-    const p = pt(geo, a)
-    const { tx } = tangente(geo, a)
-    const u = saillie(geo, a, -tp)
-    const plat = Math.abs(tx) > 0.55
-    const yB = p.y - H
-    if (!plat) {
-      // crête debout (R2) : le parapet est CONTINU, on ne marque que le rythme
-      crans += `M${p.x.toFixed(1)},${(yB - 0.6).toFixed(1)}L${(p.x + u.dx).toFixed(1)},${(yB - 0.6 + u.dy).toFixed(1)}L${(p.x + u.dx).toFixed(1)},${(yB - par + 0.8 + u.dy).toFixed(1)}L${p.x.toFixed(1)},${(yB - par + 0.8).toFixed(1)}Z`
-      prec = null
-      continue
-    }
-    const w = wM * Math.abs(tx)
-    const h = par + (rnd() - 0.5) * 0.9
-    const x0 = p.x - w / 2
-    const x1 = p.x + w / 2
-    const yT = yB - h
-    const dx = u.dx
-    const dy = u.dy
-    if (arriere) {
-      // le merlon est au LOIN : on voit son dessus, puis sa face INTERNE
-      dessus += `M${x0.toFixed(1)},${yT.toFixed(1)}L${(x0 + dx).toFixed(1)},${(yT + dy).toFixed(1)}L${(x1 + dx).toFixed(1)},${(yT + dy).toFixed(1)}L${x1.toFixed(1)},${yT.toFixed(1)}Z`
-      interne += `M${(x0 + dx).toFixed(1)},${(yT + dy).toFixed(1)}L${(x1 + dx).toFixed(1)},${(yT + dy).toFixed(1)}L${(x1 + dx).toFixed(1)},${(yB + dy).toFixed(1)}L${(x0 + dx).toFixed(1)},${(yB + dy).toFixed(1)}Z`
-      // son ombre tombe SUR le dallage, vers le sud-est
-      ombre += `M${(x0 + dx).toFixed(1)},${(yB + dy).toFixed(1)}L${(x1 + dx).toFixed(1)},${(yB + dy).toFixed(1)}L${(x1 + dx + h * 0.6).toFixed(1)},${(yB + dy + h * 0.3).toFixed(1)}L${(x0 + dx + h * 0.6).toFixed(1)},${(yB + dy + h * 0.3).toFixed(1)}Z`
-    } else {
-      // le merlon est au PREMIER PLAN : sa face externe, son dessus, son flanc est
-      face += `M${x0.toFixed(1)},${yB.toFixed(1)}L${x0.toFixed(1)},${yT.toFixed(1)}L${x1.toFixed(1)},${yT.toFixed(1)}L${x1.toFixed(1)},${yB.toFixed(1)}Z`
-      dessus += `M${x0.toFixed(1)},${yT.toFixed(1)}L${(x0 + dx).toFixed(1)},${(yT + dy).toFixed(1)}L${(x1 + dx).toFixed(1)},${(yT + dy).toFixed(1)}L${x1.toFixed(1)},${yT.toFixed(1)}Z`
-      if (Math.abs(tx) > 0.78)
-        flanc += `M${x1.toFixed(1)},${yB.toFixed(1)}L${x1.toFixed(1)},${yT.toFixed(1)}L${(x1 + dx).toFixed(1)},${(yT + dy).toFixed(1)}L${(x1 + dx).toFixed(1)},${(yB + dy).toFixed(1)}Z`
-      // le JOUR entre deux merlons : la gorge d'ombre sur le dallage
-      if (prec && x0 - prec.xd > 1.2 && Math.abs(prec.y - yB) < par)
-        jour +=
-          `M${prec.xd.toFixed(1)},${prec.y.toFixed(1)}L${x0.toFixed(1)},${yB.toFixed(1)}` +
-          `L${(x0 + dx).toFixed(1)},${(yB + dy).toFixed(1)}L${(prec.xd + dx).toFixed(1)},${(prec.y + dy).toFixed(1)}Z`
-    }
-    prec = { xd: x1, y: yB }
+/** parallélogramme du retour est (face de flanc), en écran */
+function flanc(x: number, y: number, h: number, ox: number, oy: number): string {
+  return `M${f(x)},${f(y)}L${f(x + ox)},${f(y + oy)}L${f(x + ox)},${f(y + oy - h)}L${f(x)},${f(y - h)}Z`
+}
+function dessus(x: number, y: number, w: number, ox: number, oy: number): string {
+  return `M${f(x)},${f(y)}L${f(x + w)},${f(y)}L${f(x + w + ox)},${f(y + oy)}L${f(x + ox)},${f(y + oy)}Z`
+}
+
+/** toit en pavillon : pan sud éclairé, pan est à l'ombre, faîte, épi */
+function Pavillon({ x, y, w, ox, oy, hT, tuiles, epi }: { x: number; y: number; w: number; ox: number; oy: number; hT: number; tuiles: boolean; epi?: boolean }) {
+  const A = { x: x - 1.6, y: y + 0.6 }
+  const B = { x: x + w + 1.6, y: y + 0.6 }
+  const C = { x: B.x + ox, y: B.y + oy }
+  const Dd = { x: A.x + ox, y: A.y + oy }
+  const S = { x: (A.x + C.x) / 2, y: (A.y + C.y) / 2 - hT }
+  let rangs = ''
+  for (let i = 1; i < 5; i++) {
+    const u = i / 5
+    rangs += `M${f(A.x + (S.x - A.x) * u)},${f(A.y + (S.y - A.y) * u)}L${f(B.x + (S.x - B.x) * u)},${f(B.y + (S.y - B.y) * u)}`
   }
-  return { face, dessus, flanc, interne, ombre, jour, crans }
-}
-
-/**
- * Angle où la crête cesse de courir à plat : |tx| = 0,55, soit 33° de
- * l'horizontale. Déduit de l'ellipse, donc juste pour la carte comme pour la
- * scène d'expédition, qui n'ont pas le même aplatissement. En deçà de ce seuil,
- * les créneaux cèdent la place à un parapet CONTINU (R2).
- */
-function seuilPlat(geo: GeoMur): number {
-  return Math.atan(0.6586 * (geo.ry / geo.rx))
-}
-
-/**
- * Contreforts : massifs saillants du nu extérieur - les SEULS accents verticaux
- * d'un arc de 830 px, sans quoi la courtine est un ruban. Trois chemins pour
- * tous les massifs de la couche.
- */
-function contreforts(geo: GeoMur, angles: number[], H: number, larg: number, saillieP: number, k: number) {
-  let face = ''
-  let flanc = ''
-  let lum = ''
-  for (const a of angles) {
-    const { tx, ty } = tangente(geo, a)
-    const p = pt(geo, a)
-    const o = saillie(geo, a, saillieP)
-    const demi = (larg * Math.abs(tx)) / 2 + 1
-    const hx = tx * demi
-    const hy = ty * demi
-    const yH = -H * k
-    const gx = p.x - hx
-    const gy = p.y - hy
-    const dx2 = p.x + hx
-    const dy2 = p.y + hy
-    // le massif s'amincit en montant (fruit) et se termine par un chanfrein
-    face +=
-      `M${(gx + o.dx).toFixed(1)},${(gy + o.dy + 2).toFixed(1)}L${(dx2 + o.dx).toFixed(1)},${(dy2 + o.dy + 2).toFixed(1)}` +
-      `L${(dx2 + o.dx * 0.55).toFixed(1)},${(dy2 + o.dy * 0.55 + yH + 3).toFixed(1)}L${(dx2 - hx * 0.3).toFixed(1)},${(dy2 - hy * 0.3 + yH).toFixed(1)}` +
-      `L${(gx + hx * 0.3).toFixed(1)},${(gy + hy * 0.3 + yH).toFixed(1)}L${(gx + o.dx * 0.55).toFixed(1)},${(gy + o.dy * 0.55 + yH + 3).toFixed(1)}Z`
-    // le flanc EST prend l'ombre, le liseré OUEST la lumière
-    flanc +=
-      `M${(dx2 + o.dx).toFixed(1)},${(dy2 + o.dy + 2).toFixed(1)}L${dx2.toFixed(1)},${(dy2 + 2).toFixed(1)}` +
-      `L${(dx2 - hx * 0.3).toFixed(1)},${(dy2 - hy * 0.3 + yH).toFixed(1)}L${(dx2 + o.dx * 0.55).toFixed(1)},${(dy2 + o.dy * 0.55 + yH + 3).toFixed(1)}Z`
-    lum +=
-      `M${(gx + o.dx).toFixed(1)},${(gy + o.dy + 2).toFixed(1)}L${(gx + o.dx + 1.2).toFixed(1)},${(gy + o.dy + 2).toFixed(1)}` +
-      `L${(gx + o.dx * 0.55 + 1.2).toFixed(1)},${(gy + o.dy * 0.55 + yH + 3).toFixed(1)}L${(gx + o.dx * 0.55).toFixed(1)},${(gy + o.dy * 0.55 + yH + 3).toFixed(1)}Z`
-  }
-  return { face, flanc, lum }
-}
-
-/*
- * ═════════ R5 — LES OUVRAGES DU DEDANS ONT UNE ÉPAISSEUR ═════════
- *
- * Un mur ne tient pas parce qu'il est épais : il tient parce qu'on l'épaule du
- * DEDANS. Trois pièces le font ici - les éperons qui le prennent à revers, le
- * chaînage dont on voit les abouts, les volées qui montent au chemin de ronde -
- * et toutes obéissent à la règle qui manquait :
- *
- *   UN OUVRAGE QUI AVANCE DE d PX DE PLAN DANS LA PLACE A SON PIED
- *   `saillie(gi, a, −d)` PLUS BAS À L'ÉCRAN QUE LA BASE DU PAREMENT.
- *
- * L'appentis était dessiné SANS ce terme : posé sur la base du parement comme
- * s'il avait zéro épaisseur, il flottait de d·k px au-dessus de l'endroit où
- * tombait son ombre - 6,7 px au niveau 3, 8,9 px au niveau 4 -, et son pan de
- * toit, un simple rectangle incliné, ne s'appuyait sur rien. Toute pièce du
- * dedans a donc désormais DEUX appuis : son pied sur la ligne de sol de SA
- * profondeur, son sommet contre le parement.
- */
-interface Dedans {
-  /**
-   * Avancée en plan, dans la place, du PIED des ouvrages adossés - volées et
-   * appentis. C'était la cote du remblai, retiré depuis ; elle reste la mesure
-   * du recul dont on dispose au pied de ce parement, et les deux seules pièces
-   * qui s'y appuient encore la lisent telle quelle.
-   */
-  profTal: number
-  /** éperons : avancée du nu avant, largeur en plan, hauteur, pas d'arc */
-  profEp: number
-  largEp: number
-  hEp: number
-  pasEp: number
-  /** appentis : avancée du nu avant, demi-largeur, faîte, poteaux */
-  profApp: number
-  demApp: number
-  hApp: number
-  hPot: number
-}
-
-/**
- * Les cotes du dedans se DÉDUISENT de celles du mur - aucune n'est écrite deux
- * fois, et un niveau 4 est donc épaulé plus fort qu'un niveau 3 sans réglage.
- *
- * Une de ces cotes était fausse, et c'est tout ce qui manquait à la face interne
- * pour tenir debout :
- *
- *  · `hEp = 0,62·H` arrêtait l'éperon à 10,3 px SOUS le chemin de ronde (n3) -
- *    17,1 px SOUS l'arase au niveau 4 : le massif ne touchait rien en haut, se
- *    coiffait d'un chapeau clair et se lisait comme une stèle plantée devant le
- *    mur. Un contrefort meurt CONTRE le parement, juste sous le bahut, par un
- *    glacis qui rend l'eau au mur. Le défaut était partagé par les niveaux 3
- *    ET 4 : il fallait le corriger dans la cote, pas dans un dessin.
- */
-function cotesDedans(c: Cote): Dedans {
-  const profTal = c.W * 1.6 + c.H * 0.34 * 1.25
-  return {
-    profTal,
-    // éperons et appentis ont leur pied AU SOL, en avant du parement
-    /*
-     * L'ÉPERON EST LARGE ET PEU SAILLANT, PAS ÉTROIT ET PROFOND. Mené jusqu'au
-     * bout de profTal + 4 = 27,5 px de plan au niveau 3, son flanc
-     * s'étalait de profEp·|cos a| = 21,7 px à l'écran vers l'ouest de l'arc :
-     * une plaque pâle plus large que haute, qui mangeait le mur. Réduit sans
-     * être élargi, il devenait un pilier de 10 px pour 27 de haut - une stèle.
-     * Une épaisseur de mur en saillie pour 1,6 en largeur donne un CONTREFORT :
-     * le même rapport que ceux du dehors, qui eux se lisent déjà bien.
-     */
-    profEp: c.W,
-    largEp: c.W * 1.6,
-    hEp: c.H - 3.4,
-    pasEp: 42 + c.H * 0.8,
-    profApp: profTal + 6,
-    demApp: 10,
-    // le faîte passe SOUS le lit de chaînage haut (0,78·H) : l'appentis se range
-    // dans la structure du mur au lieu de la trancher
-    hApp: c.H * 0.66,
-    hPot: c.H * 0.52,
-  }
-}
-
-/**
- * ÉPERONS INTÉRIEURS : le pendant du contrefort extérieur, côté place. Massif
- * qui naît large et EN AVANT au sol, et meurt CONTRE le parement juste sous le
- * bahut - ce double appui est tout ce qui le distingue d'une stèle posée là.
- * Huit chemins pour tous les massifs de la couche.
- *
- * Trois pièces le font APPARTENIR au mur, et elles manquaient toutes les trois :
- *  · le GLACIS - le versant qui coiffe le massif et rend l'eau au parement ; un
- *    chapeau horizontal, lui, disait « ce bloc s'arrête ici » ;
- *  · le FRUIT - le nu avant se rapproche du mur en montant (0,62 de la saillie
- *    au sommet) : un prisme droit se lit comme une armoire, un massif à fruit
- *    comme une poussée ;
- *  · la CHUTE DE VALEUR vers le pied : le remblai qui bordait sa base a été
- *    retiré, et le parement s'assombrit désormais vers le sol. Un massif resté
- *    d'un ton égal y redevenait la stèle pâle qu'on lui reprochait.
- */
-function eperons(gi: GeoMur, angles: number[], d: Dedans, H: number, hA: number) {
-  let ombre = ''
-  let face = ''
-  let faceOmbre = ''
-  let flancJour = ''
-  let flancOmbre = ''
-  let glacis = ''
-  let arete = ''
-  let pied = ''
-  let joints = ''
-  let bas = ''
-  let basPlus = ''
-  const { largEp: larg, profEp: prof, hEp } = d
-  /** fraction de la saillie encore tenue au sommet : le fruit du massif */
-  const fT = 0.74
-  for (const a of angles) {
-    const p = pt(gi, a)
-    const { tx, ty } = tangente(gi, a)
-    const o = saillie(gi, a, -prof)
-    const demi = (larg * Math.abs(tx)) / 2 + 1.1
-    const demiT = demi * 0.9
-    /*
-     * UN PRISME, PAS UN QUADRILATÈRE PENCHÉ. Dessiné d'un seul tenant entre son
-     * pied (avancé de `prof`) et son sommet (contre le parement), le massif se
-     * couchait : le décalé écran de la profondeur devenait une INCLINAISON, et
-     * on lisait une planche appuyée au mur. Ici les faces sont séparées - nu
-     * AVANT à fruit, FLANC (celui que la profondeur découvre), GLACIS entre le
-     * sommet du nu avant et le parement -, et le décalé redevient de l'épaisseur.
-     */
-    const sw = tx >= 0 ? -1 : 1
-    // quatre points du PAREMENT : les deux joues, en bas et en haut
-    const wx = p.x + sw * tx * demi
-    const wy = p.y + sw * ty * demi
-    const ex = p.x - sw * tx * demi
-    const ey = p.y - sw * ty * demi
-    const wxT = p.x + sw * tx * demiT
-    const wyT = p.y + sw * ty * demiT
-    const exT = p.x - sw * tx * demiT
-    const eyT = p.y - sw * ty * demiT
-    // les mêmes, portés au NU AVANT : plein décalé en bas, `fT` en haut
-    const wxA = wx + o.dx
-    const wyA = wy + o.dy
-    const exA = ex + o.dx
-    const eyA = ey + o.dy
-    const wxB = wxT + o.dx * fT
-    const wyB = wyT + o.dy * fT - hEp
-    const exB = exT + o.dx * fT
-    const eyB = eyT + o.dy * fT - hEp
-    // NU AVANT : planté au SOL à `prof` px de plan du mur, et qui se resserre
-    face +=
-      `M${wxA.toFixed(1)},${(wyA + 2).toFixed(1)}L${exA.toFixed(1)},${(eyA + 2).toFixed(1)}` +
-      `L${exB.toFixed(1)},${eyB.toFixed(1)}L${wxB.toFixed(1)},${wyB.toFixed(1)}Z`
-    // le tiers EST du nu avant tourne à l'ombre : c'est ce qui lui donne son
-    // volume sans le moindre contour
-    const gm = 0.66
-    faceOmbre +=
-      `M${(wxA + (exA - wxA) * gm).toFixed(1)},${(wyA + (eyA - wyA) * gm + 2).toFixed(1)}L${exA.toFixed(1)},${(eyA + 2).toFixed(1)}` +
-      `L${exB.toFixed(1)},${eyB.toFixed(1)}L${(wxB + (exB - wxB) * gm).toFixed(1)},${(wyB + (eyB - wyB) * gm).toFixed(1)}Z`
-    // GLACIS : le versant qui monte du nu avant jusqu'au parement, 2,6 px plus
-    // haut - c'est LUI qui soude le massif au mur
-    glacis +=
-      `M${wxB.toFixed(1)},${wyB.toFixed(1)}L${exB.toFixed(1)},${eyB.toFixed(1)}` +
-      `L${exT.toFixed(1)},${(eyT - hEp - 2.6).toFixed(1)}L${wxT.toFixed(1)},${(wyT - hEp - 2.6).toFixed(1)}Z`
-    // l'arête du glacis prend le jour : le liseré clair de la bible, jamais noir
-    arete += `M${wxB.toFixed(1)},${wyB.toFixed(1)}L${exB.toFixed(1)},${eyB.toFixed(1)}L${exB.toFixed(1)},${(eyB + 1.1).toFixed(1)}L${wxB.toFixed(1)},${(wyB + 1.1).toFixed(1)}Z`
-    // FLANC : celui que le décalé découvre. Le nu avant part-il vers l'est
-    // (o.dx > 0) ? alors c'est le flanc OUEST qu'on voit, et il prend le jour.
-    const ouest = o.dx >= 0
-    const cx = ouest ? wx : ex
-    const cy = ouest ? wy : ey
-    const cxT = ouest ? wxT : exT
-    const cyT = ouest ? wyT : eyT
-    const cxB = ouest ? wxB : exB
-    const cyB = ouest ? wyB : eyB
-    const cf =
-      `M${cx.toFixed(1)},${(cy + 2).toFixed(1)}L${(cx + o.dx).toFixed(1)},${(cy + o.dy + 2).toFixed(1)}` +
-      `L${cxB.toFixed(1)},${cyB.toFixed(1)}L${cxT.toFixed(1)},${(cyT - hEp - 2.6).toFixed(1)}Z`
-    if (ouest) flancJour += cf
-    else flancOmbre += cf
-    // occlusion au pied du nu avant : sans elle le massif reste posé, pas planté
-    pied += `M${wxA.toFixed(1)},${(wyA - 1).toFixed(1)}L${exA.toFixed(1)},${(eyA - 1).toFixed(1)}L${exA.toFixed(1)},${(eyA + 2).toFixed(1)}L${wxA.toFixed(1)},${(wyA + 2).toFixed(1)}Z`
-    /*
-     * LES LITS DU MASSIF SONT CEUX DU MUR. Trois joints posés à des fractions
-     * arbitraires de sa hauteur faisaient un objet à part, appuyé contre la
-     * courtine ; alignés sur les assises du parement (`hA`, comptées depuis le
-     * chemin de ronde comme celles de `assisesArc`), ils font un massif LIÉ à
-     * la maçonnerie - c'est le chaînage qui se voit, pas un placage.
-     */
-    for (let r = 1; (r + 1) * hA < H - 2; r++) {
-      const f = (H - 2 - (r + 1) * hA) / hEp
-      if (f < 0.06 || f > 0.96) continue
-      const gx0 = wxA + (wxB - wxA) * f
-      const gy0 = wyA + 2 + (wyB - wyA - 2) * f
-      const gx1 = exA + (exB - exA) * f
-      const gy1 = eyA + 2 + (eyB - eyA - 2) * f
-      joints +=
-        `M${gx0.toFixed(1)},${gy0.toFixed(1)}L${gx1.toFixed(1)},${gy1.toFixed(1)}` +
-        `L${gx1.toFixed(1)},${(gy1 + 0.9).toFixed(1)}L${gx0.toFixed(1)},${(gy0 + 0.9).toFixed(1)}Z`
-      // le même lit court sur le FLANC : c'est lui qui dit que la masse recule
-      const px0 = cx + (cxT - cx) * f
-      const py0 = cy + 2 + (cyT - hEp - 4.6 - cy) * f
-      const qx0 = cx + o.dx + (cxB - cx - o.dx) * f
-      const qy0 = cy + o.dy + 2 + (cyB - cy - o.dy - 2) * f
-      joints +=
-        `M${px0.toFixed(1)},${py0.toFixed(1)}L${qx0.toFixed(1)},${qy0.toFixed(1)}` +
-        `L${qx0.toFixed(1)},${(qy0 + 0.9).toFixed(1)}L${px0.toFixed(1)},${(py0 + 0.9).toFixed(1)}Z`
-    }
-    /*
-     * LE MASSIF SUIT LA VALEUR DU PAREMENT. Une fois la face interne assombrie
-     * vers son pied, les éperons - restés d'un ton égal du haut en bas - se sont
-     * détachés en pâle sur du sourd : dix stèles claires plantées devant un mur
-     * dans l'ombre, le défaut déjà relevé, revenu par l'autre bout. Un ouvrage
-     * adossé s'assombrit comme ce à quoi il s'adosse.
-     */
-    for (const f of [0.46, 0.2]) {
-      const ax0 = wxA + (wxB - wxA) * f
-      const ay0 = wyA + 2 + (wyB - wyA - 2) * f
-      const ax1 = exA + (exB - exA) * f
-      const ay1 = eyA + 2 + (eyB - eyA - 2) * f
-      const d =
-        `M${wxA.toFixed(1)},${(wyA + 2).toFixed(1)}L${exA.toFixed(1)},${(eyA + 2).toFixed(1)}` +
-        `L${ax1.toFixed(1)},${ay1.toFixed(1)}L${ax0.toFixed(1)},${ay0.toFixed(1)}Z` +
-        // le flanc reçoit la même chute, sinon l'arête verticale se dédouble
-        `M${cx.toFixed(1)},${(cy + 2).toFixed(1)}L${(cx + o.dx).toFixed(1)},${(cy + o.dy + 2).toFixed(1)}` +
-        `L${(cx + o.dx + (cxB - cx - o.dx) * f).toFixed(1)},${(cy + o.dy + 2 + (cyB - cy - o.dy - 2) * f).toFixed(1)}` +
-        `L${(cx + (cxT - cx) * f).toFixed(1)},${(cy + 2 + (cyT - hEp - 4.6 - cy) * f).toFixed(1)}Z`
-      if (f > 0.3) bas += d
-      else basPlus += d
-    }
-    /*
-     * L'OMBRE PORTÉE DESCEND MAINTENANT AU SOL. Elle s'arrêtait à la crête du
-     * remblai, parce que c'était là que finissait la surface qui la recevait ;
-     * le remblai parti, le parement va jusqu'en bas et l'ombre avec lui. La
-     * laisser flotter à mi-hauteur aurait décollé les massifs du mur.
-     */
-    const s = Math.max(4.6, prof * 0.8)
-    const yC = p.y + 1.4
-    ombre +=
-      `M${ex.toFixed(1)},${(ey - hEp - 2.6).toFixed(1)}L${(ex + s).toFixed(1)},${(ey - hEp - 2.6 + s * 0.42).toFixed(1)}` +
-      `L${(ex + s).toFixed(1)},${(yC + s * 0.42).toFixed(1)}L${ex.toFixed(1)},${yC.toFixed(1)}Z`
-  }
-  return { ombre, face, faceOmbre, flancJour, flancOmbre, glacis, arete, pied, joints, bas, basPlus }
-}
-
-
-/**
- * CHAÎNAGE APPARENT. Le lit de poutres noyé dans la maçonnerie, dont on voit du
- * dedans la course et les TÊTES. Sans lui la face interne restait une bande
- * lisse de 19 px de haut sur 820 px de long : rien n'y disait qu'une structure
- * retenait le mur.
- */
-function chainage(
-  gi: GeoMur,
-  t: Abs,
-  dy: number,
-  hB: number,
-  pasTete: number,
-  phaseTete: number,
-) {
-  /*
-   * PLUS DE BANDEAU. Le lit de poutres courait d'un bout à l'autre du mur en une
-   * bande de bois continue, doublée d'un creux d'ombre et d'un sous-lit : trois
-   * rubans de huit cents pixels. Le joueur y a vu « des trucs en bois qui ont du
-   * volume et reviennent vers l'intérieur, pas cohérent », et il a raison - un
-   * chaînage est NOYÉ dans la maçonnerie, on n'en voit jamais la longueur, on
-   * n'en voit que les ABOUTS, là où la poutre est coupée au nu du mur. Deux
-   * bandeaux saillants faisaient au contraire deux étagères ceinturant la place.
-   *
-   * Il ne reste donc que les têtes, affleurantes, avec leur trou d'ombre : c'est
-   * exactement ce qu'on lit sur un mur antique, et cela suffit à dire qu'une
-   * charpente tient la maçonnerie.
-   */
-  const creux = ''
-  const bande = ''
-  const lit = ''
-  const sous = ''
-  let tetes = ''
-  let tetesLit = ''
-  let tetesOmbre = ''
-  for (const a of anglesArc(t, pasTete, phaseTete)) {
-    const p = pt(gi, a)
-    const { tx } = tangente(gi, a)
-    const w = 3.2 * Math.max(0.4, Math.abs(tx))
-    const y = p.y + dy - 0.4
-    const h = hB * 0.8 + 1
-    // l'ABOUT : un carré de bois de bout, au nu du parement. Pas de saillie -
-    // c'est la saillie qui faisait l'étagère.
-    tetes += `M${(p.x - w / 2).toFixed(1)},${y.toFixed(1)}h${w.toFixed(1)}v${h.toFixed(1)}h-${w.toFixed(1)}Z`
-    tetesLit += `M${(p.x - w / 2).toFixed(1)},${y.toFixed(1)}h${w.toFixed(1)}v0.8h-${w.toFixed(1)}Z`
-    // le trou où la poutre est logée : un liseré d'ombre sur trois côtés, jamais
-    // une ombre PORTÉE, puisque plus rien ne dépasse
-    tetesOmbre +=
-      `M${(p.x - w / 2 - 0.7).toFixed(1)},${(y - 0.7).toFixed(1)}h${(w + 1.4).toFixed(1)}v0.7h-${(w + 1.4).toFixed(1)}Z` +
-      `M${(p.x + w / 2).toFixed(1)},${(y - 0.7).toFixed(1)}h0.7v${(h + 1.4).toFixed(1)}h-0.7Z`
-  }
-  return { creux, bande, lit, sous, tetes, tetesLit, tetesOmbre }
-}
-
-/**
- * ═════════════ APPENTIS DE SERVICE - « LE TRUC EN BOIS » ═════════════
- *
- * C'est la pièce que le joueur a montrée du doigt, et elle flottait pour une
- * raison très précise, qu'aucune retouche de couleur n'aurait réparée :
- *
- *   SON PAN DE TOIT ÉTAIT UN RECTANGLE. Faîte et égout avaient la MÊME
- *   demi-largeur `lg`, et l'écart horizontal entre les deux valait `o.dx`, qui
- *   s'annule au nord de l'ellipse (cos a → 0). Au pan nord de la carte -
- *   exactement la capture - le quadrilatère mesurait 23,7 px de large pour
- *   5,4 px de cisaillement : une PLANCHE peinte à plat sur le parement. Le
- *   caisson sous l'auvent, lui, était rempli de #54432a, plus sombre que tout
- *   ce qui l'entoure : on lisait une ombre, pas un volume. D'où l'impression
- *   d'un rectangle de bois clair accroché à rien.
- *
- * La profondeur, dans cette vue oblique, ne se dit PAS par un décalé en x -
- * il n'en existe pas au nord - mais par un décalé EN Y (`o.dy = prof·k·sin a`)
- * et par le RÉTRÉCISSEMENT de ce qui s'éloigne. L'appentis est donc rebâti sur
- * quatre appuis mesurés :
- *
- *  1. le faîte est CONTRE le parement, à `hApp` du sol du mur, et il est plus
- *     ÉTROIT que l'égout (0,86) : le pan devient un plan qui fuit ;
- *  2. l'égout est porté par deux poteaux dont le pied est AU SOL, `profApp·k`
- *     px plus bas à l'écran que la base du parement (R5) ;
- *  3. les CHEVRONS courent du faîte à l'égout - obliques, ils disent la pente
- *     là où les rangées de chaume, horizontales, disaient un panneau plat ;
- *  4. le PIGNON visible (celui que le décalé découvre) ferme le volume, et
- *     trois CORBEAUX scellés dans le parement portent la panne faîtière.
- *
- * Tout est déduit de `gi`, de `a` et des cotes : juste pour n'importe quelle
- * ellipse, donc pour la scène d'expédition comme pour la carte.
- */
-function AppentisMur({ gi, a, d }: { gi: GeoMur; a: number; d: Dedans }) {
-  const p = pt(gi, a)
-  const o = saillie(gi, a, -d.profApp)
-  const { tx } = tangente(gi, a)
-  // vu de bout (est/ouest de l'ellipse) l'appentis ne doit pas s'étaler
-  const demE = d.demApp * Math.max(0.55, Math.abs(tx))
-  const demF = demE * 0.86
-  const xA = p.x + o.dx
-  const ySol = p.y + o.dy + 2
-  const yEg = ySol - d.hPot
-  const yFa = p.y - d.hApp
-  const sh = 5.2
-  const q = (
-    x0: number,
-    y0: number,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    x3: number,
-    y3: number,
-  ) =>
-    `M${x0.toFixed(1)},${y0.toFixed(1)}L${x1.toFixed(1)},${y1.toFixed(1)}` +
-    `L${x2.toFixed(1)},${y2.toFixed(1)}L${x3.toFixed(1)},${y3.toFixed(1)}Z`
-  // le débord du chaume, égout et rives
-  const dbE = demE + 1.4
-  const dbF = demF + 1
-  const yCh = yEg - 1.8
-  // le pignon qu'on voit est celui vers lequel le nu avant s'écarte
-  const ouest = o.dx >= 0
-  const sg = ouest ? -1 : 1
-  const pgB = p.x + sg * demF
-  const pgA = xA + sg * demE
+  const cS = tuiles ? '#d27a50' : '#8f7148'
+  const cE = tuiles ? '#8a4529' : '#5d4a2f'
+  const cN = tuiles ? '#6e3620' : '#4a3a24'
   return (
     <g>
-      {/* ombre au sol, PEINTE (deux valeurs, jamais floutée) et jetée au SE */}
-      <ellipse cx={xA + demE * 0.5} cy={ySol + 1.8} rx={demE * 1.35} ry={3.8} fill={PAL.ombrePortee} opacity={0.12} />
-      <ellipse cx={xA + demE * 0.3} cy={ySol + 0.7} rx={demE * 1.02} ry={2.5} fill={PAL.ombrePortee} opacity={0.17} />
-      {/* l'ombre portée SUR le parement : c'est elle qui l'attache au mur */}
-      <path
-        d={q(p.x + dbF, yFa, p.x + dbF + sh, yFa + sh * 0.42, xA + dbE + sh, yCh + sh * 0.42, xA + dbE, yCh)}
-        fill={PAL.ombrePortee}
-        opacity={0.17}
-      />
-      {/* LA PANNE FAÎTIÈRE, SCELLÉE DANS LE MUR, et les deux corbeaux qui la
-          portent. Elle DÉPASSE le pan de toit de part et d'autre : c'est la
-          seule pièce qui puisse montrer, hors de l'ombre de l'auvent, que
-          l'appentis tient au parement et non à côté. (Des corbeaux placés sous
-          le faîte étaient invisibles - le pan les recouvrait entièrement.) */}
-      <path d={q(p.x - dbF - 4.4, yFa + 0.2, p.x + dbF + 4.4, yFa + 0.2, p.x + dbF + 4.4, yFa + 2.6, p.x - dbF - 4.4, yFa + 2.6)} fill={PAL.boisMi} />
-      <path d={q(p.x - dbF - 4.4, yFa + 0.2, p.x + dbF + 4.4, yFa + 0.2, p.x + dbF + 4.4, yFa + 1.1, p.x - dbF - 4.4, yFa + 1.1)} fill={PAL.boisLit} />
-      {[-1, 1].map((s) => (
-        <g key={s}>
-          <path d={q(p.x + s * (dbF + 3.4) - 1.4, yFa + 2.6, p.x + s * (dbF + 3.4) + 1.4, yFa + 2.6, p.x + s * (dbF + 3.4) + 1.4, yFa + 5.6, p.x + s * (dbF + 3.4) - 1.4, yFa + 5.6)} fill="#9d9179" />
-          <path d={q(p.x + s * (dbF + 3.4) - 1.4, yFa + 2.6, p.x + s * (dbF + 3.4) + 1.4, yFa + 2.6, p.x + s * (dbF + 3.4) + 1.4, yFa + 3.4, p.x + s * (dbF + 3.4) - 1.4, yFa + 3.4)} fill={PAL.pierreLit} />
-        </g>
-      ))}
-      {/* LA PÉNOMBRE SOUS L'AUVENT, cadrée par les deux poteaux. Deux valeurs :
-          le fond de l'abri et le sol qui reçoit encore un peu de jour */}
-      <path d={q(xA - demE, yEg, xA + demE, yEg, xA + demE, ySol, xA - demE, ySol)} fill="#5b4a2e" />
-      <path d={q(xA - demE, ySol - d.hPot * 0.3, xA + demE, ySol - d.hPot * 0.3, xA + demE, ySol, xA - demE, ySol)} fill="#75603c" />
-      {/* ce qu'on y range : bois fendu et deux jarres - la vie du dedans */}
-      <path
-        d={
-          q(xA - demE + 1.6, ySol - 4.2, xA - demE + 7.4, ySol - 4.2, xA - demE + 7.4, ySol - 0.6, xA - demE + 1.6, ySol - 0.6) +
-          q(xA - demE + 1.6, ySol - 4.2, xA - demE + 7.4, ySol - 4.2, xA - demE + 7.4, ySol - 3.2, xA - demE + 1.6, ySol - 3.2)
-        }
-        fill="#7d5e39"
-      />
-      <path d={q(xA - demE + 1.6, ySol - 4.2, xA - demE + 7.4, ySol - 4.2, xA - demE + 7.4, ySol - 3.5, xA - demE + 1.6, ySol - 3.5)} fill="#a8845d" />
-      <ellipse cx={xA + demE - 4} cy={ySol - 2.4} rx={2.4} ry={3} fill="#8a6b45" />
-      <ellipse cx={xA + demE - 4.7} cy={ySol - 3.2} rx={1} ry={1.5} fill="#b08f5e" opacity={0.7} />
-      {/* LE PIGNON : le côté que le décalé découvre ferme le volume. Sans lui
-          l'auvent n'avait ni épaisseur ni intérieur, juste une face noire. */}
-      <path d={q(pgB, yFa, pgA, yEg, pgA, ySol, pgB, p.y + 2)} fill={ouest ? '#a3855a' : '#6b5334'} />
-      <path
-        d={
-          q(pgB, yFa + (p.y + 2 - yFa) * 0.42, pgA, yEg + (ySol - yEg) * 0.42, pgA, yEg + (ySol - yEg) * 0.42 + 1, pgB, yFa + (p.y + 2 - yFa) * 0.42 + 1) +
-          q(pgB, yFa + (p.y + 2 - yFa) * 0.72, pgA, yEg + (ySol - yEg) * 0.72, pgA, yEg + (ySol - yEg) * 0.72 + 1, pgB, yFa + (p.y + 2 - yFa) * 0.72 + 1)
-        }
-        fill={ouest ? '#88693f' : '#57422a'}
-        opacity={0.8}
-      />
-      {/* les deux POTEAUX, plantés au sol, et leur sablière */}
-      {[-1, 1].map((s) => (
-        <g key={s}>
-          <path d={q(xA + s * demE - 1.5, yEg, xA + s * demE + 1.5, yEg, xA + s * demE + 1.5, ySol + 0.6, xA + s * demE - 1.5, ySol + 0.6)} fill={s < 0 ? PAL.boisMi : '#5f462d'} />
-          <path d={q(xA + s * demE - 1.5, yEg, xA + s * demE - 0.5, yEg, xA + s * demE - 0.5, ySol + 0.6, xA + s * demE - 1.5, ySol + 0.6)} fill={PAL.boisLit} opacity={0.85} />
-          {/* l'empattement : la pierre de calage sous le poteau */}
-          <ellipse cx={xA + s * demE} cy={ySol + 0.8} rx={2.6} ry={1.1} fill="#a89d83" />
-        </g>
-      ))}
-      <path d={q(xA - demE - 1, yEg - 0.4, xA + demE + 1, yEg - 0.4, xA + demE + 1, yEg + 1.9, xA - demE - 1, yEg + 1.9)} fill={PAL.boisMi} />
-      <path d={q(xA - demE - 1, yEg - 0.4, xA + demE + 1, yEg - 0.4, xA + demE + 1, yEg + 0.5, xA - demE - 1, yEg + 0.5)} fill={PAL.boisLit} />
-      {/* LE PAN DE TOIT : faîte ÉTROIT contre le parement, égout LARGE en avant
-          et plus bas - le rétrécissement est ce qui fait fuir le plan */}
-      <path d={q(p.x - dbF, yFa, p.x + dbF, yFa, xA + dbE, yCh, xA - dbE, yCh)} fill={PAL.chaumeOmbre} />
-      <path d={q(p.x - dbF, yFa, p.x - dbF * 0.1, yFa, xA - dbE * 0.1, yCh, xA - dbE, yCh)} fill={PAL.chaumeLit} opacity={0.4} />
-      {/* LES CHEVRONS, du faîte à l'égout : obliques, ils disent la pente. Les
-          rangées horizontales de l'ancien dessin disaient un panneau plat. */}
-      {(() => {
-        let ch = ''
-        for (const f of [-0.66, -0.22, 0.22, 0.66]) {
-          const x0 = p.x + f * dbF
-          const x1 = xA + f * dbE
-          ch += q(x0 - 0.6, yFa, x0 + 0.6, yFa, x1 + 0.7, yCh, x1 - 0.7, yCh)
-        }
-        return <path d={ch} fill="#8a6d3c" opacity={0.42} />
-      })()}
-      {/* deux liens de chaume en travers, et l'arête claire du faîte */}
-      {(() => {
-        let rangs = ''
-        for (const f of [0.42, 0.76]) {
-          const y = yFa + (yCh - yFa) * f
-          const xg = p.x - dbF + (xA - dbE - (p.x - dbF)) * f
-          const xd = p.x + dbF + (xA + dbE - (p.x + dbF)) * f
-          rangs += q(xg, y, xd, y, xd, y + 0.9, xg, y + 0.9)
-        }
-        return <path d={rangs} fill="#7d6234" opacity={0.5} />
-      })()}
-      <path d={q(p.x - dbF, yFa, p.x + dbF, yFa, p.x + dbF, yFa + 1.2, p.x - dbF, yFa + 1.2)} fill="#ecd9a0" opacity={0.7} />
-      {/* l'égout : la tranche du chaume, qui donne son épaisseur au pan, et
-          l'ombre qu'il jette sous lui */}
-      <path d={q(xA - dbE, yCh, xA + dbE, yCh, xA + dbE, yCh + 2, xA - dbE, yCh + 2)} fill="#8a6d3c" />
-      <path d={q(xA - dbE, yCh, xA + dbE, yCh, xA + dbE, yCh + 0.7, xA - dbE, yCh + 0.7)} fill="#c2a066" opacity={0.8} />
-      <path d={q(xA - demE, yCh + 2, xA + demE, yCh + 2, xA + demE, yCh + 3.4, xA - demE, yCh + 3.4)} fill={PAL.ombrePortee} opacity={0.2} />
+      <path d={`M${f(Dd.x)},${f(Dd.y)}L${f(C.x)},${f(C.y)}L${f(S.x)},${f(S.y)}Z`} fill={cN} />
+      <path d={`M${f(B.x)},${f(B.y)}L${f(C.x)},${f(C.y)}L${f(S.x)},${f(S.y)}Z`} fill={cE} />
+      <path d={`M${f(A.x)},${f(A.y)}L${f(B.x)},${f(B.y)}L${f(S.x)},${f(S.y)}Z`} fill={cS} />
+      <path d={rangs} stroke={tuiles ? '#9a4f30' : '#5f4a2e'} strokeWidth={0.5} opacity={0.6} fill="none" />
+      {tuiles && <path d={`M${f(A.x + (S.x - A.x) * 0.1)},${f(A.y + (S.y - A.y) * 0.1)}L${f(S.x)},${f(S.y)}`} stroke="#f2a67c" strokeWidth={0.8} opacity={0.7} />}
+      <path d={`M${f(B.x)},${f(B.y)}L${f(S.x)},${f(S.y)}`} stroke={tuiles ? '#f0a57a' : '#b8945e'} strokeWidth={0.9} />
+      <path d={`M${f(A.x)},${f(A.y)}L${f(B.x)},${f(B.y)}`} stroke={tuiles ? '#5e2e1a' : '#3d2e1c'} strokeWidth={0.8} opacity={0.7} />
+      {epi && <circle cx={S.x} cy={S.y - 1.2} r={1.4} fill={PAL.or} />}
     </g>
   )
 }
 
 /**
- * Archères : de VRAIES embrasures, pas des tirets noirs. Ébrasement trapézoïdal
- * au nu extérieur, fente, linteau clair, seuil sombre, coulure de pluie.
+ * Une tour carrée, vue de face avec son retour est (la convention des
+ * bâtiments d'origine). (x, y) = milieu du pied de la face visible.
  */
-function archeres(geo: GeoMur, angles: number[], H: number) {
-  let ebras = ''
-  let fente = ''
-  let linteau = ''
-  let coulure = ''
-  for (const a of angles) {
-    const p = pt(geo, a)
-    const yh = p.y - H * 0.62
-    const h = H * 0.3
-    ebras += `M${(p.x - 2.4).toFixed(1)},${(yh - 1).toFixed(1)}L${(p.x + 2.4).toFixed(1)},${(yh - 1).toFixed(1)}L${(p.x + 1.5).toFixed(1)},${(yh + h + 1.6).toFixed(1)}L${(p.x - 1.5).toFixed(1)},${(yh + h + 1.6).toFixed(1)}Z`
-    fente += `M${(p.x - 0.8).toFixed(1)},${yh.toFixed(1)}h1.6v${h.toFixed(1)}h-1.6Z`
-    // pas de noir : la fente est un trou, on la peint dans l'ombre du matériau
-    linteau += `M${(p.x - 2.4).toFixed(1)},${(yh - 1).toFixed(1)}h4.8v0.9h-4.8Z`
-    coulure += `M${(p.x - 1.2).toFixed(1)},${(yh + h + 1.6).toFixed(1)}L${(p.x + 1.2).toFixed(1)},${(yh + h + 1.6).toFixed(1)}L${(p.x + 0.7).toFixed(1)},${(yh + h + 1.6 + H * 0.2).toFixed(1)}L${(p.x - 0.7).toFixed(1)},${(yh + h + 1.6 + H * 0.2).toFixed(1)}Z`
-  }
-  return { ebras, fente, linteau, coulure }
-}
-
-/** étendard planté sur le parapet interne du chemin de ronde (niveau 4) */
-function Etendard({ x, y, c }: { x: number; y: number; c: string }) {
-  return (
-    <g transform={`translate(${x.toFixed(1)},${y.toFixed(1)})`}>
-      <line x1={0} y1={0.5} x2={0} y2={-16} stroke="#5d4a33" strokeWidth={1.4} />
-      <line x1={-0.5} y1={0} x2={-0.5} y2={-15.6} stroke="#8a6b45" strokeWidth={0.5} opacity={0.8} />
-      <circle cx={0} cy={-16.6} r={1.1} fill={PAL.or} />
-      <path d="M0.7,-15.6 Q5.5,-17.4 10.5,-14.8 L8.8,-11.2 Q5,-13.4 0.7,-11.6 Z" fill={c} />
-      <path d="M0.7,-15.6 Q5.5,-17.4 10.5,-14.8 L10,-13.7 Q5.4,-16.1 0.7,-14.3 Z" fill="#fbf3dd" opacity={0.28} />
-    </g>
-  )
-}
-
-/**
- * ═══════════════ LA TOUR, ENCASTRÉE DANS SA COURTINE ═══════════════
- *
- * Elle n'est plus un objet autonome de cote fixe posé sur l'ellipse : son
- * plancher EST le chemin de ronde de SON niveau de mur, son axe suit l'ellipse
- * de MI-ÉPAISSEUR (elle chevauche donc la courtine - saillie au-dehors,
- * empattement au-dedans, comme toute tour dont le diamètre dépasse l'épaisseur
- * du mur), et cinq pièces la soudent au parapet.
- *
- * `guet` : la tourelle de veille du niveau 4, même famille, deux tiers du
- * gabarit, flamme au sommet - on ne la confond pas avec une tour d'archers.
- */
-function TourMur({
-  geo,
-  a,
-  niveau,
-  arriere,
-  guet,
-  span = 1,
-}: {
-  geo: GeoMur
-  a: number
-  niveau: number
-  arriere: boolean
-  guet?: boolean
-  span?: number
-}) {
-  const c = cote(niveau)
-  const ct = COTES_TOUR[Math.max(0, Math.min(4, niveau))]
+function Tour({ x, y, niveau, guet = false, fete, seed }: { x: number; y: number; niveau: number; guet?: boolean; fete: boolean; seed: number }) {
+  const ct = COTES_TOUR[Math.min(4, niveau)]
   if (!ct) return null
-  const k = komp(geo)
-  const D = guet ? ct.D * 0.74 : ct.D
-  const R = D / 2
-  const rb = R * k
-  const parT = ct.par
-  // l'axe de la tour suit la MI-ÉPAISSEUR du mur : c'est ce qui l'encastre
-  const C = pt(dedans(geo, c.W / 2), a)
-  const plancher = -c.H
-  const crete = plancher - parT
-  const { tx, ty } = tangente(geo, a)
-  // point de crête de la courtine au droit de la tour (repère monde)
-  const Pm = pt(geo, a)
-  const yRonde = Pm.y - c.H
-  const n4 = niveau >= 4
-  const tonPierre = n4 ? '#7d7053' : '#6f6349'
-  const bras = R + 7
-  const mw = (D + 2.8) / 4 - 1.6
-  // le pas d'arc de l'ombre portée sur la face, exprimé en angle
-  const dsda = Math.hypot(geo.rx * Math.sin(a), geo.ry * Math.cos(a)) || 1
-  const aOmb = a - (0.85 * D) / dsda
-  const Po = pt(geo, aOmb)
-  return (
-    <g>
-      {/* ── les pièces de RACCORD, en repère monde, alignées sur la tangente ── */}
-      {/* 4. OMBRE DE LA TOUR SUR LA FACE DU MUR : elle suit la face, sinon la
-          tour reste un autocollant (peinte, jamais floutée) */}
-      {!arriere && (
-        <path
-          d={
-            `M${(Pm.x + tx * R * 0.9).toFixed(1)},${(Pm.y + ty * R * 0.9 + 1).toFixed(1)}` +
-            `L${(Pm.x + tx * R * 0.9).toFixed(1)},${(yRonde + ty * R * 0.9).toFixed(1)}` +
-            `L${Po.x.toFixed(1)},${(Po.y - c.H * 0.72).toFixed(1)}L${Po.x.toFixed(1)},${(Po.y + 1).toFixed(1)}Z`
-          }
-          fill={PAL.ombrePortee}
-          opacity={0.15}
-        />
-      )}
-      {/* 2. RETOURS : la tranche du parapet coupé, de part et d'autre du fût */}
-      {[-1, 1].map((sg) => {
-        const x = Pm.x + tx * sg * (R + 0.5)
-        const y = yRonde + ty * sg * (R + 0.5)
-        return (
-          <path
-            key={sg}
-            d={`M${x.toFixed(1)},${y.toFixed(1)}L${(x + tx * sg * 2.8).toFixed(1)},${(y + ty * sg * 2.8).toFixed(1)}L${(x + tx * sg * 2.8).toFixed(1)},${(y + ty * sg * 2.8 - c.par).toFixed(1)}L${x.toFixed(1)},${(y - c.par).toFixed(1)}Z`}
-            fill={tonPierre}
-          />
-        )
-      })}
-      {/* 3. LARMIER DE JONCTION : la bande claire du plancher court sur le mur
-          et passe DEVANT le fût - c'est elle qui soude les deux volumes */}
-      <path
-        d={`M${(Pm.x - tx * bras).toFixed(1)},${(yRonde - ty * bras).toFixed(1)}L${(Pm.x + tx * bras).toFixed(1)},${(yRonde + ty * bras).toFixed(1)}L${(Pm.x + tx * bras).toFixed(1)},${(yRonde + ty * bras + 1.6).toFixed(1)}L${(Pm.x - tx * bras).toFixed(1)},${(yRonde - ty * bras + 1.6).toFixed(1)}Z`}
-        fill="#e6dfc9"
-        opacity={0.5}
-      />
+  const c = cote(niveau)
+  const D = guet ? ct.D * 0.72 : ct.D
+  const R = D * 0.5
+  const ox = R * 0.9
+  const oy = -R * 0.45
+  const x0 = x - (D + ox) / 2
+  const pal = PALS[niveau]
+  const face3 = [pal[1], pal[2], pal[1]]
+  const out: ReactNode[] = []
+  out.push(<ellipse key="om" cx={x + D * 0.35} cy={y + 2} rx={D * 0.9} ry={D * 0.22} fill={PAL.ombrePortee} opacity={0.22} filter="url(#a-flou2)" />)
 
-      <g transform={`translate(${C.x.toFixed(1)},${C.y.toFixed(1)})`}>
-        {/* ombre au sol : seulement au-dehors (couche avant) - au nord elle
-            tomberait dans le village */}
-        {!arriere && (
-          <ellipse cx={R * 0.6} cy={rb * 0.8} rx={R * 1.15} ry={rb * 1.1} fill={PAL.ombrePortee} opacity={0.17} filter="url(#a-flou1)" />
-        )}
-        <AOBase rx={R * 0.95} ry={rb * 0.8} cy={rb * 0.4} />
-        {/* fût à fruit léger. Le voile de TON accorde la tour à SA portion de
-            courtine : sans lui, le cylindre reste un silo de plâtre planté à
-            côté d'un mur de pierre, quelle que soit la géométrie. */}
-        <path
-          d={`M${(-R).toFixed(1)},${plancher}L${(-R * 1.07).toFixed(1)},0Q0,${(rb * 2.1).toFixed(1)} ${(R * 1.07).toFixed(1)},0L${R.toFixed(1)},${plancher}Z`}
-          fill="url(#a-cyl-pierre)"
-        />
-        <path
-          d={`M${(-R).toFixed(1)},${plancher}L${(-R * 1.07).toFixed(1)},0Q0,${(rb * 2.1).toFixed(1)} ${(R * 1.07).toFixed(1)},0L${R.toFixed(1)},${plancher}Z`}
-          fill={(n4 ? TONS_TAILLE : TONS_SEC)[Math.min(4, Math.max(0, Math.round((1 + Math.cos(a)) * 2)))]}
-          opacity={0.34}
-        />
-        {/* APPAREIL du fût : assises courbes et joints décalés, sinon le fût est
-            un silo de plâtre à côté d'un mur de pierre */}
-        {(() => {
-          const rangs = Math.max(3, Math.round(c.H / (c.hAssise + 0.6)))
-          const hA = c.H / rangs
-          let joints = ''
-          let lits = ''
-          const rnd = alea(niveau * 7 + Math.round(a * 40))
-          for (let r = 1; r < rangs; r++) {
-            const y = plancher + r * hA
-            const rr = R * (1 + 0.07 * (r / rangs))
-            lits += `M${(-rr).toFixed(1)},${y.toFixed(1)}Q0,${(y + rb * 0.62).toFixed(1)} ${rr.toFixed(1)},${y.toFixed(1)}`
-            const n = 3
-            for (let i = 0; i < n; i++) {
-              const f = (i + (r % 2 ? 0.5 : 0)) / n - 0.5
-              const jx = f * 2 * rr * 0.92
-              const jy = y + rb * 0.62 * (1 - (jx / rr) * (jx / rr)) * (rnd() * 0.1 + 0.95)
-              joints += `M${jx.toFixed(1)},${jy.toFixed(1)}L${jx.toFixed(1)},${(jy - hA + 0.6).toFixed(1)}`
-            }
-          }
-          return (
-            <>
-              <path d={lits} stroke={PAL.pierreJoint} strokeWidth={0.7} fill="none" opacity={0.4} />
-              <path d={joints} stroke={PAL.pierreJoint} strokeWidth={0.6} fill="none" opacity={0.3} />
-            </>
-          )
-        })()}
-        {/* plinthe évasée au pied */}
-        <path
-          d={`M${(-R * 1.07).toFixed(1)},-3.4L${(-R * 1.14).toFixed(1)},0Q0,${(rb * 2.24).toFixed(1)} ${(R * 1.14).toFixed(1)},0L${(R * 1.07).toFixed(1)},-3.4Q0,${(rb * 1.6 - 3.4).toFixed(1)} ${(-R * 1.07).toFixed(1)},-3.4Z`}
-          fill={tonPierre}
-          opacity={0.4}
-        />
-        {/* 5. ACCÈS - au-dehors une archère alignée sur celles du mur ;
-            au-dedans la porte du chemin de ronde et sa volée de marches */}
-        {!arriere ? (
-          <>
-            <path d={`M-2.4,${(plancher * 0.62 - 1.2).toFixed(1)}h4.8l-1,${(c.H * 0.3 + 3).toFixed(1)}h-2.8Z`} fill="#8d8269" opacity={0.85} />
-            <rect x={-0.8} y={plancher * 0.62} width={1.6} height={c.H * 0.3} fill="#3a2e1c" />
-            <rect x={-2.4} y={plancher * 0.62 - 1.2} width={4.8} height={0.9} fill="#efe8d6" opacity={0.75} />
-          </>
-        ) : (
-          <>
-            {/* la volée de marches qui descend sur le chemin de ronde */}
-            <path d={`M${(-R - 1).toFixed(1)},${(plancher + 1).toFixed(1)}L${(-R - 1 - 5 * 5).toFixed(1)},${(plancher + 1 + 5 * 3.1).toFixed(1)}L${(-R - 1 - 5 * 5).toFixed(1)},${(plancher + 4.4 + 5 * 3.1).toFixed(1)}L${(-R - 1).toFixed(1)},${(plancher + 4.4).toFixed(1)}Z`} fill={PAL.ombrePortee} opacity={0.2} />
-            {(() => {
-              let m = ''
-              let l = ''
-              for (let i = 0; i < 5; i++) {
-                const x = -R - 1 - i * 5
-                const y = plancher + 1 + i * 3.1
-                m += `M${(x - 6.4).toFixed(1)},${y.toFixed(1)}h6.4v2.4h-6.4Z`
-                l += `M${(x - 6.4).toFixed(1)},${y.toFixed(1)}h6.4v0.8h-6.4Z`
-              }
-              return (
-                <>
-                  <path d={m} fill="#bcb29b" />
-                  <path d={l} fill="#ddd5c2" />
-                </>
-              )
-            })()}
-            {/* la porte du chemin de ronde, sur le flanc ouest */}
-            <path d={`M${(-R * 0.78).toFixed(1)},${(plancher + 0.5).toFixed(1)}h4.4v-6.4h-4.4Z`} fill="url(#mur-antre)" />
-            <rect x={-R * 0.78} y={plancher - 6.6} width={4.4} height={0.9} fill="#d8cfb8" opacity={0.75} />
-          </>
-        )}
-        {/* encorbellement du parapet + ombre portée sous le débord */}
-        <path
-          d={
-            `M${(-R - 1.5).toFixed(1)},${(plancher - 3.4).toFixed(1)}Q0,${(plancher - 3.4 + rb * 1.7).toFixed(1)} ${(R + 1.5).toFixed(1)},${(plancher - 3.4).toFixed(1)}` +
-            `L${(R + 1.5).toFixed(1)},${(plancher - 0.6).toFixed(1)}Q0,${(plancher - 0.6 + rb * 1.7).toFixed(1)} ${(-R - 1.5).toFixed(1)},${(plancher - 0.6).toFixed(1)}Z`
-          }
-          fill="url(#a-cyl-pierre)"
-        />
-        <path
-          d={`M${(-R - 1.2).toFixed(1)},${(plancher - 0.6).toFixed(1)}Q0,${(plancher - 0.6 + rb * 1.7).toFixed(1)} ${(R + 1.2).toFixed(1)},${(plancher - 0.6).toFixed(1)}`}
-          stroke={PAL.ombrePortee}
-          strokeWidth={1.4}
-          fill="none"
-          opacity={0.26}
-        />
-        {/*
-          LA COURONNE. Un cylindre vu d'en haut : les merlons du FOND sont plus
-          hauts à l'écran de rb, ceux du DEVANT plus bas de rb, et le plancher
-          se lit entre les deux. Les dessiner tous à la même ordonnée écrasait la
-          plate-forme en un filet et faisait flotter l'archer.
-        */}
-        {[-0.5, 0, 0.5].map((f) => (
-          <rect
-            key={f}
-            x={R * f - D * 0.11}
-            y={crete - rb * Math.sqrt(Math.max(0, 1 - f * f)) * 0.86}
-            width={D * 0.22}
-            height={parT * 0.9}
-            fill="#a1977d"
-          />
-        ))}
-        {/* LE COURONNEMENT, posé AVANT la plate-forme : il se lit dans l'enceinte
-            du parapet, et c'est lui - non la hauteur - qui fait l'accent */}
-        {niveau === 2 && (
-          <>
-            <path d={`M0,${(crete - ct.toit - 2).toFixed(1)}L${(R * 0.92).toFixed(1)},${(crete + 1).toFixed(1)}L${(-R * 0.92).toFixed(1)},${(crete + 1).toFixed(1)}Z`} fill={PAL.chaumeOmbre} />
-            <path d={`M0,${(crete - ct.toit - 2).toFixed(1)}L${(-R * 0.92).toFixed(1)},${(crete + 1).toFixed(1)}L${(-R * 0.16).toFixed(1)},${(crete + 1).toFixed(1)}Z`} fill={PAL.chaumeLit} />
-          </>
-        )}
-        {niveau === 3 && (
-          <>
-            <path d={`M0,${(crete - ct.toit - 1).toFixed(1)}L${(R * 0.9).toFixed(1)},${(crete + 1).toFixed(1)}L${(-R * 0.9).toFixed(1)},${(crete + 1).toFixed(1)}Z`} fill={PAL.boisMi} />
-            <path d={`M0,${(crete - ct.toit - 1).toFixed(1)}L${(-R * 0.9).toFixed(1)},${(crete + 1).toFixed(1)}L${(-R * 0.2).toFixed(1)},${(crete + 1).toFixed(1)}Z`} fill={PAL.boisLit} />
-            <path d={`M0,${(crete - ct.toit - 1).toFixed(1)}L${(-R * 0.5).toFixed(1)},${(crete - ct.toit * 0.4).toFixed(1)}`} stroke="#c8a878" strokeWidth={0.9} fill="none" />
-          </>
-        )}
-        {niveau >= 4 && !guet && (
-          <>
-            <path d={`M0,${(crete - ct.toit - 2).toFixed(1)}L${(R * 0.88).toFixed(1)},${(crete + 1).toFixed(1)}L${(-R * 0.88).toFixed(1)},${(crete + 1).toFixed(1)}Z`} fill={PAL.toitOmbre} />
-            <path d={`M0,${(crete - ct.toit - 2).toFixed(1)}L${(-R * 0.88).toFixed(1)},${(crete + 1).toFixed(1)}L${(-R * 0.12).toFixed(1)},${(crete + 1).toFixed(1)}Z`} fill={PAL.toitMi} />
-            <path d={`M0,${(crete - ct.toit - 2).toFixed(1)}L${(-R * 0.5).toFixed(1)},${(crete - ct.toit * 0.42).toFixed(1)}`} stroke={PAL.toitArete} strokeWidth={0.9} fill="none" />
-            <circle cx={0} cy={crete - ct.toit - 2.4} r={0.9} fill={PAL.or} />
-          </>
-        )}
-        {/* plate-forme : margelle claire, sol en demi-teinte */}
-        <ellipse cx={0} cy={plancher - 1} rx={R + 1.4} ry={rb} fill="#e2dbc7" />
-        <ellipse cx={R * 0.08} cy={plancher - 0.6} rx={R * 0.8} ry={rb * 0.74} fill="#c9bfa7" />
-        {/* l'archer de faction, campé derrière son merlon */}
-        {!guet && span >= 1 && (
-          <g transform={`translate(${(R * 0.12).toFixed(1)},${(plancher - rb * 0.3).toFixed(1)})`}>
-            <path d="M-2.2,0 L-1.5,-6 L1.5,-6 L2.2,0 Z" fill="#4a6a5a" />
-            <circle cx={0} cy={-7.6} r={2.1} fill={PAL.peau} />
-            <path d="M-2.1,-8 A2.1,2.1 0 0 1 2.1,-8" fill="#8f8a7c" />
-            <path d="M3.2,-8.5 Q6.5,-4.5 3.2,-0.5" stroke="#7a5a35" strokeWidth={1.1} fill="none" />
-            <line x1={3.2} y1={-8.5} x2={3.2} y2={-0.5} stroke="#e0d9c8" strokeWidth={0.5} />
-          </g>
-        )}
-        {/* merlons AVANT : plus bas de rb, de l'ouest éclairé à l'est ombré */}
-        {[-0.72, -0.24, 0.24, 0.72].map((f, i) => (
-          <g key={f}>
-            <rect
-              x={R * f - mw / 2}
-              y={crete + rb * Math.sqrt(Math.max(0, 1 - f * f)) * 0.86}
-              width={mw}
-              height={parT}
-              fill={['#ddd5c1', '#d3cab5', '#c2b8a0', '#a89d83'][i]}
-            />
-            <rect x={R * f - mw / 2} y={crete + rb * Math.sqrt(Math.max(0, 1 - f * f)) * 0.86} width={mw} height={1} fill="#efe8d5" />
+  if (niveau === 2) {
+    const hs = c.H + 1
+    const hb = 10
+    out.push(
+      <g key="t2">
+        <path d={flanc(x0 + D, y, hs, ox, oy)} fill={pal[3]} />
+        <rect x={f(x0)} y={f(y - hs)} width={f(D)} height={f(hs)} fill={pal[2]} />
+        {blocsPlan(x0, y, D, hs, 3.2, 5.5, face3, seed)}
+        <path d={`M${f(x0 + D)},${f(y - 6)}l${f(ox)},${f(oy)}M${f(x0 + D)},${f(y - 13)}l${f(ox)},${f(oy)}`} stroke={JOINTS[2]} strokeWidth={0.45} opacity={0.5} />
+        {/* étage de bois en encorbellement */}
+        <path d={flanc(x0 + D + 1, y - hs, hb, ox, oy)} fill="#5f462d" />
+        <rect x={f(x0 - 1)} y={f(y - hs - hb)} width={f(D + 2)} height={f(hb)} fill="#8a6941" />
+        <path d={Array.from({ length: Math.round(D / 2.2) }, (_, i) => `M${f(x0 + 0.4 + i * 2.2)},${f(y - hs)}v${-hb}`).join('')} stroke="#5f462d" strokeWidth={0.4} opacity={0.7} />
+        <rect x={f(x0 - 1)} y={f(y - hs - hb)} width={f(D + 2)} height={1} fill="#b89468" />
+        <rect x={f(x - 4)} y={f(y - hs - 7)} width={1.4} height={4.4} fill="#241a0c" />
+        <rect x={f(x + 1)} y={f(y - hs - 7)} width={1.4} height={4.4} fill="#241a0c" />
+        {[0, 1, 2].map((i) => <path key={i} d={`M${f(x0 + 1 + i * (D - 2) / 2)},${f(y - hs)}l-1.2,3`} stroke="#4a3520" strokeWidth={0.8} />)}
+        <Pavillon x={x0 - 1} y={y - hs - hb} w={D + 2} ox={ox} oy={oy} hT={8} tuiles={false} />
+      </g>,
+    )
+  } else if (niveau === 3) {
+    const h = guet ? ct.h * 0.8 : ct.h
+    const hm = 3.6
+    out.push(
+      <g key="t3">
+        <path d={flanc(x0 + D, y, h, ox, oy)} fill={pal[3]} />
+        <rect x={f(x0)} y={f(y - h)} width={f(D)} height={f(h)} fill={pal[2]} />
+        {blocsPlan(x0, y, D, h, c.hA, 7, face3, seed)}
+        <path d={Array.from({ length: Math.floor(h / c.hA) }, (_, i) => `M${f(x0 + D)},${f(y - (i + 1) * c.hA)}l${f(ox)},${f(oy)}`).join('')} stroke={JOINTS[3]} strokeWidth={0.45} opacity={0.5} />
+        <path d={dessus(x0, y - h, D, ox, oy)} fill={pal[0]} />
+        {/* ombre du rebord sur la face */}
+        <rect x={f(x0)} y={f(y - h)} width={f(D)} height={2.2} fill="#3c382f" opacity={0.3} />
+        {/* archères */}
+        {[c.H * 0.45, c.H + 5].map((hh, i) => (
+          <g key={i}>
+            <rect x={f(x - 0.7)} y={f(y - hh - 5.6)} width={1.4} height={5.6} fill="#1f1a14" />
+            <rect x={f(x - 1.4)} y={f(y - hh)} width={2.8} height={0.7} fill={pal[0]} />
           </g>
         ))}
-        {/* fanion (tour d'archers) ou flamme de veille (tourelle de guet) */}
-        {guet ? (
-          <>
-            {/* le brasier de veille : trépied, braise, et la flamme qui bat */}
-            <path d={`M-3,${(crete + 0.4).toFixed(1)}h6l-1,2.8h-4Z`} fill="#6a5228" />
-            <path d={`M-3,${(crete + 0.4).toFixed(1)}h6v1h-6Z`} fill="#8a6b2e" />
-            <path d={`M0,${(crete - 6.4).toFixed(1)}Q2.8,${(crete - 2.6).toFixed(1)} 2,${(crete + 0.2).toFixed(1)}Q0,${(crete - 1.4).toFixed(1)} -2,${(crete + 0.2).toFixed(1)}Q-2.6,${(crete - 3).toFixed(1)} 0,${(crete - 6.4).toFixed(1)}Z`} fill="#e0872f">
-              <animate attributeName="opacity" values="0.85;1;0.85" dur="1.2s" repeatCount="indefinite" />
-            </path>
-            <path d={`M0,${(crete - 4.4).toFixed(1)}Q1.5,${(crete - 2).toFixed(1)} 0.9,${(crete - 0.2).toFixed(1)}Q0,${(crete - 1).toFixed(1)} -0.9,${(crete - 0.2).toFixed(1)}Q-1.4,${(crete - 2.2).toFixed(1)} 0,${(crete - 4.4).toFixed(1)}Z`} fill="#fbe08d" />
-          </>
-        ) : (
-          <>
-            <line x1={-R * 0.78} y1={crete + 1} x2={-R * 0.78} y2={crete - ct.toit - 5} stroke="#5d4a33" strokeWidth={1.3} />
-            <path
-              d={`M${(-R * 0.78).toFixed(1)},${(crete - ct.toit - 5).toFixed(1)}L${(-R * 0.78 + 7.5).toFixed(1)},${(crete - ct.toit - 2.8).toFixed(1)}L${(-R * 0.78).toFixed(1)},${(crete - ct.toit - 0.6).toFixed(1)}Z`}
-              fill="#c9a441"
-            />
-          </>
-        )}
-      </g>
-    </g>
-  )
-}
-
-/**
- * Pan de mur effondré ailleurs qu'à la porte. Trois plans se lisent : la trouée
- * d'ombre au travers du mur - avec l'ÉPAISSEUR du blocage et le dallage tranché
- * en porte-à-faux -, le talus de pierres qui la comble à demi, puis les blocs et
- * les poutres du chemin de ronde répandus au-dehors.
- */
-function Decombres({
-  geo,
-  angle,
-  crete,
-  ep,
-  arriere,
-  bois,
-}: {
-  geo: GeoMur
-  angle: number
-  crete: number
-  ep: number
-  arriere?: boolean
-  bois?: boolean
-}) {
-  const T = bois
-    ? { assise: '#59431f', assiseLit: '#6f5636', face: '#7d5e39', dessus: '#a8845d', flanc: '#5c4227', pied: '#4a3519', lumps: '#6a4e2d', lumpsLit: '#8b6a40', poudre: '#a89066' }
-    : { assise: '#7e7768', assiseLit: '#928a78', face: '#a09884', dessus: '#c6bda6', flanc: '#7c7565', pied: '#6d6657', lumps: '#8f8878', lumpsLit: '#aea695', poudre: '#cfc7b0' }
-  const demi = 0.1
-  const g = pt(geo, angle - demi)
-  const m = pt(geo, angle)
-  const d = pt(geo, angle + demi)
-  // le tas roule au-dehors sur l'arc avant ; au nord, c'est le versant du
-  // DEDANS qu'on voit, et les pierres tombées dans le village
-  const sens = arriere ? -1 : 1
-  const ox = Math.cos(angle) * sens
-  const oy = Math.sin(angle) * sens
-  const h = crete
-  const k = Math.max(0.62, Math.min(1.1, h / 33))
-  const larg = Math.hypot(d.x - g.x, d.y - g.y) / 2
-  // le décalé écran de l'épaisseur du mur : c'est ce qui donne à voir la TRANCHE
-  const u = saillie(geo, angle, -ep)
-
-  /** point sur la lèvre supérieure de la cassure, t ∈ [0,1] le long de l'arc */
-  const lip = (t: number, frac: number) => ({
-    x: g.x + (d.x - g.x) * t,
-    y: g.y + (d.y - g.y) * t - h * frac,
-  })
-  const dents = [lip(0, 0.99), lip(0.13, 0.7), lip(0.26, 0.8), lip(0.41, 0.52), lip(0.58, 0.63), lip(0.74, 0.46), lip(0.88, 0.74), lip(1, 0.97)]
-  const troue =
-    `M${g.x.toFixed(1)},${(g.y + 2).toFixed(1)}` +
-    dents.map((p) => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('') +
-    `L${d.x.toFixed(1)},${(d.y + 2).toFixed(1)}Z`
-  // la face du fond : le nu opposé du mur, en retrait de son épaisseur
-  const fond =
-    `M${(g.x + u.dx).toFixed(1)},${(g.y + u.dy + 2).toFixed(1)}` +
-    dents.map((p) => `L${(p.x + u.dx).toFixed(1)},${(p.y + u.dy + 1.5).toFixed(1)}`).join('') +
-    `L${(d.x + u.dx).toFixed(1)},${(d.y + u.dy + 2).toFixed(1)}Z`
-
-  const BLOCS: [number, number, number, number, number][] = [
-    [-0.62, 0.02, 0.34, 0.2, -13],
-    [0.02, -0.1, 0.42, 0.24, 7],
-    [0.6, 0.05, 0.31, 0.18, -6],
-    [-0.2, 0.17, 0.37, 0.17, 3],
-    [0.98, 0.16, 0.24, 0.14, 12],
-  ]
-  const PIERRES: [number, number, number][] = [
-    [-0.95, 0.12, 0.1], [-0.36, 0.13, 0.12], [0.3, 0.12, 0.1], [0.74, 0.13, 0.09],
-    [-0.72, -0.07, 0.09], [-0.06, -0.26, 0.1], [0.4, -0.13, 0.08], [1.16, 0.17, 0.07],
-  ]
-  return (
-    <g>
-      {/* l'ombre du tas est posée AVANT la trouée : elle ne doit pas la barbouiller */}
-      <ellipse
-        cx={m.x + ox * 4 + larg * 0.14}
-        cy={m.y + oy * 4 + h * 0.18}
-        rx={larg * 1.12}
-        ry={h * 0.19}
-        fill={PAL.ombrePortee}
-        opacity={0.2}
-        filter="url(#a-flou2)"
-      />
-      {/* LA TROUÉE EN TROIS PLANS - c'est ce qui manquait : un rectangle noir
-          plat ne disait ni l'épaisseur du mur, ni ce qu'on voit au travers.
-          1. l'ombre de l'ébrasement, 2. le NU OPPOSÉ du mur au fond,
-          3. les deux joues de blocage rompu sur les côtés. */}
-      <path d={troue} fill="#2a2013" />
-      <path d={fond} fill={bois ? '#5c4227' : '#8d8269'} />
-      <path d={fond} fill={PAL.ombrePortee} opacity={0.28} />
-      {!bois && (
-        <>
-          {/* joue OUEST : elle prend le jour ; joue EST : elle est dans l'ombre */}
-          <path
-            d={
-              `M${g.x.toFixed(1)},${(g.y + 2).toFixed(1)}L${dents[0].x.toFixed(1)},${dents[0].y.toFixed(1)}` +
-              `L${(dents[0].x + u.dx).toFixed(1)},${(dents[0].y + u.dy + 1.5).toFixed(1)}L${(g.x + u.dx).toFixed(1)},${(g.y + u.dy + 2).toFixed(1)}Z`
-            }
-            fill="#c0b69c"
-          />
-          <path
-            d={
-              `M${d.x.toFixed(1)},${(d.y + 2).toFixed(1)}L${dents[7].x.toFixed(1)},${dents[7].y.toFixed(1)}` +
-              `L${(dents[7].x + u.dx).toFixed(1)},${(dents[7].y + u.dy + 1.5).toFixed(1)}L${(d.x + u.dx).toFixed(1)},${(d.y + u.dy + 2).toFixed(1)}Z`
-            }
-            fill="#6f6349"
-          />
-          {/* le DALLAGE TRANCHÉ : la tranche du mur court tout le long de la
-              lèvre - c'est elle qui dit l'épaisseur, et elle ne peut pas
-              flotter comme le faisaient des dalles isolées */}
-          <path
-            d={
-              dents.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('') +
-              dents
-                .slice()
-                .reverse()
-                .map((p) => `L${(p.x + u.dx).toFixed(1)},${(p.y + u.dy + 1).toFixed(1)}`)
-                .join('') +
-              'Z'
-            }
-            fill="#cbc1a9"
-          />
-        </>
-      )}
-      {/* lèvre de cassure : matière fraîche au soleil, joint sombre côté ombre */}
-      <path
-        d={`M${g.x.toFixed(1)},${(g.y + 1).toFixed(1)}` + dents.slice(0, 5).map((p) => `L${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('')}
-        stroke={bois ? '#d6b788' : '#e6dfcb'}
-        strokeWidth={1.6}
-        fill="none"
-        opacity={0.75}
-      />
-      <path
-        d={dents.slice(4).map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('') + `L${d.x.toFixed(1)},${(d.y + 1).toFixed(1)}`}
-        stroke="#463b2c"
-        strokeWidth={1.6}
-        fill="none"
-        opacity={0.6}
-      />
-      {/* couronnement descellé, resté en travers au-dessus du trou */}
-      <g transform={`translate(${m.x.toFixed(1)},${(m.y - h - 1).toFixed(1)}) scale(${k.toFixed(2)})`}>
-        <g transform="rotate(-17)">
-          <rect x={-14} y={-4.4} width={9} height={4.6} fill={T.face} />
-          <rect x={-14} y={-4.4} width={9} height={1.1} fill={T.dessus} />
-        </g>
-        <g transform="rotate(24)">
-          <rect x={6} y={-3.6} width={8} height={4.2} fill={T.flanc} />
-          <rect x={6} y={-3.6} width={8} height={1} fill={T.dessus} />
-        </g>
-      </g>
-      {/* le tas : assise tassée, gros débris, menu fretin entre eux */}
-      <g transform={`translate(${(m.x + ox * 4).toFixed(1)},${(m.y + oy * 4).toFixed(1)})`}>
-        <ellipse cx={0} cy={h * 0.12} rx={larg * 0.98} ry={h * 0.15} fill={T.assise} />
-        <ellipse cx={-larg * 0.12} cy={h * 0.09} rx={larg * 0.72} ry={h * 0.11} fill={T.assiseLit} />
-        {BLOCS.map(([fx, fy, fw, fh, rot]) => {
-          const w = fw * h * (bois ? 1.5 : 1)
-          const hb = fh * h * (bois ? 0.55 : 1)
+        {/* merlons : trois en façade, deux au retour */}
+        {[0, 1, 2].map((i) => {
+          const mw = D / 5
+          const mx = x0 + i * 2 * mw
           return (
-            <g key={`b${fx}-${fy}`} transform={`translate(${(fx * larg).toFixed(1)},${(fy * h).toFixed(1)}) rotate(${rot})`}>
-              <rect x={-w / 2} y={-hb / 2} width={w} height={hb} fill={T.face} />
-              <rect x={-w / 2} y={-hb / 2} width={w} height={hb * 0.26} fill={T.dessus} />
-              <rect x={w / 2 - w * 0.16} y={-hb / 2} width={w * 0.16} height={hb} fill={T.flanc} />
+            <g key={'m' + i}>
+              <rect x={f(mx)} y={f(y - h - hm)} width={f(mw)} height={hm} fill={pal[1]} />
+              <rect x={f(mx)} y={f(y - h - hm)} width={f(mw)} height={0.7} fill={pal[0]} />
             </g>
           )
         })}
-        {PIERRES.map(([fx, fy, fr]) => {
-          const bx = fx * larg
-          const by = fy * h
-          const r = fr * h
+        {[0.25, 0.75].map((u, i) => (
+          <path key={'r' + i} d={flanc(x0 + D + ox * (u - 0.14), y - h + oy * (u - 0.14), hm, ox * 0.28, oy * 0.28)} fill={pal[3]} />
+        ))}
+      </g>,
+    )
+  } else {
+    const h = guet ? ct.h * 0.72 : ct.h
+    const hBas = c.H + c.par
+    out.push(
+      <g key="t4">
+        <path d={flanc(x0 + D, y, h, ox, oy)} fill={pal[3]} />
+        <rect x={f(x0)} y={f(y - h)} width={f(D)} height={f(h)} fill={pal[1]} />
+        {blocsPlan(x0, y, D, h, c.hA, 9, [pal[0], pal[1], pal[2]], seed, true)}
+        <path d={Array.from({ length: Math.floor(h / c.hA) }, (_, i) => `M${f(x0 + D)},${f(y - (i + 1) * c.hA)}l${f(ox)},${f(oy)}`).join('')} stroke={JOINTS[4]} strokeWidth={0.45} opacity={0.5} />
+        {/* plinthe et cordon au niveau du chemin de ronde */}
+        <rect x={f(x0 - 0.8)} y={f(y - 3)} width={f(D + 0.8)} height={3} fill={pal[2]} />
+        <path d={flanc(x0 + D, y, 3, ox, oy)} fill={pal[4]} />
+        <rect x={f(x0 - 0.6)} y={f(y - hBas - 1.4)} width={f(D + 1.2)} height={1.6} fill={pal[0]} />
+        <path d={flanc(x0 + D + 0.6, y - hBas + 0.2, 1.6, ox, oy)} fill={pal[3]} />
+        {/* archère basse, fenêtres cintrées de l'étage */}
+        <rect x={f(x - 0.7)} y={f(y - c.H * 0.5 - 6)} width={1.4} height={6} fill="#1f1a14" />
+        {(guet ? [0] : [-D * 0.2, D * 0.2]).map((dx, i) => {
+          const wx = x - ox / 2 + dx
+          const wy = y - hBas - 5
           return (
-            <g key={`p${fx}-${fy}`}>
-              <ellipse cx={bx} cy={by} rx={r} ry={r * 0.82} fill={T.lumps} />
-              <ellipse cx={bx - r * 0.26} cy={by - r * 0.3} rx={r * 0.56} ry={r * 0.4} fill={T.lumpsLit} />
+            <g key={i}>
+              <path d={`M${f(wx - 2)},${f(wy)}v-5.4a2,2 0 0 1 4,0v5.4Z`} fill="#2a1f14" />
+              <path d={`M${f(wx - 2.8)},${f(wy + 0.2)}h5.6v0.8h-5.6Z`} fill={pal[0]} />
+              <path d={`M${f(wx - 2)},${f(wy - 5.4)}a2,2 0 0 1 4,0`} stroke={pal[0]} strokeWidth={0.8} fill="none" />
             </g>
           )
         })}
-        {/* poutres du chemin de ronde tombées en travers, éclat de bois clair */}
-        <g transform={`scale(${k.toFixed(2)})`}>
-          <path d="M-22,-2 L2,-8 L2.8,-5.4 L-21.4,0.6 Z" fill="#6f5233" />
-          <path d="M-22,-2 L2,-8 L2.4,-6.7 L-21.7,-0.7 Z" fill="#8f6d44" />
-          <path d="M9,4 L27,-1 L27.6,1.2 L9.6,6.2 Z" fill="#5f462d" />
-          <path d="M27,-1 L29.6,-0.2 L27.6,1.2 Z" fill="#b08f5e" />
-        </g>
-        <ellipse cx={larg * 0.06} cy={h * 0.26} rx={larg * 1.05} ry={h * 0.12} fill={T.poudre} opacity={0.28} />
-      </g>
-    </g>
-  )
-}
-
-/** un pan de mur rectangulaire appareillé : 4 tons, 2 chemins de modelé */
-function blocsRect(x: number, y: number, w: number, h: number, hA: number, seed: number, tons: string[]) {
-  const rnd = alea(seed)
-  const paths = Array.from({ length: tons.length }, () => '')
-  const rangs = Math.max(1, Math.round(h / hA))
-  for (let r = 0; r < rangs; r++) {
-    const yr = y + h - (r + 1) * hA
-    let cx = x + (r % 2 ? -hA * 0.4 : 0)
-    while (cx < x + w) {
-      const bw = Math.min(hA * (1.7 + rnd() * 0.9), x + w - cx)
-      if (bw > 1.4) {
-        const k = Math.min(tons.length - 1, Math.max(0, Math.round((rnd() * (tons.length - 1) + ((cx - x) / w) * (tons.length - 1)) / 2)))
-        paths[k] += `M${cx.toFixed(1)},${yr.toFixed(1)}h${(bw - 0.8).toFixed(1)}v${(hA - 0.8).toFixed(1)}h-${(bw - 0.8).toFixed(1)}Z`
-      }
-      cx += bw
-    }
+        <rect x={f(x0 - 0.6)} y={f(y - h - 1.6)} width={f(D + 1.2)} height={1.8} fill={pal[0]} />
+        <Pavillon x={x0} y={y - h - 1.6} w={D} ox={ox} oy={oy} hT={guet ? 8 : 12} tuiles epi={!guet} />
+      </g>,
+    )
   }
-  return paths
+  const sommet = niveau === 2 ? c.H + 1 + 10 + 8 : niveau === 3 ? (guet ? ct.h * 0.8 : ct.h) + 3.6 : (guet ? ct.h * 0.72 : ct.h) + 1.6 + (guet ? 8 : 12)
+  if (niveau >= 3 && fete && !guet) {
+    out.push(<Fanion key="fa" x={x0 + (D + ox) / 2} y={y - sommet + (niveau >= 4 ? 0 : 1)} h={niveau >= 4 ? 16 : 13} c={niveau >= 4 ? '#7c2f4e' : '#b0412e'} c2={niveau >= 4 ? '#b45f80' : '#e2735a'} debut={seed % 3} />)
+  }
+  return <g>{out}</g>
+}
+
+// ─────────────────────────────── porte ─────────────────────────────────────
+
+function Vantaux({ x, y, w, h, bronze, ouverte }: { x: number; y: number; w: number; h: number; bronze: boolean; ouverte: boolean }) {
+  const bois = bronze ? '#8a5a20' : '#7a5a36'
+  const boisC = bronze ? '#c98f3a' : '#a8845d'
+  if (ouverte) {
+    return (
+      <g>
+        <rect x={f(x)} y={f(y - h)} width={f(w)} height={f(h)} fill="#1f160c" />
+        <path d={`M${f(x)},${f(y)}L${f(x + w * 0.22)},${f(y + 2)}L${f(x + w * 0.22)},${f(y - h + 3)}L${f(x)},${f(y - h)}Z`} fill={bois} />
+        <path d={`M${f(x + w * 0.62)},${f(y + 1.4)}L${f(x + w * 1.05)},${f(y + 4)}L${f(x + w * 0.98)},${f(y + 1)}L${f(x + w * 0.6)},${f(y - 2)}Z`} fill={bois} opacity={0.9} />
+      </g>
+    )
+  }
+  let planches = ''
+  for (let i = 1; i < 8; i++) planches += `M${f(x + (w * i) / 8)},${f(y)}v${f(-h)}`
+  return (
+    <g>
+      <rect x={f(x)} y={f(y - h)} width={f(w)} height={f(h)} fill={bois} />
+      <rect x={f(x)} y={f(y - h)} width={f(w * 0.12)} height={f(h)} fill={boisC} opacity={0.6} />
+      <path d={planches} stroke="#3d2c17" strokeWidth={0.4} opacity={0.6} />
+      <path d={`M${f(x + w / 2)},${f(y)}v${f(-h)}`} stroke="#2a1d10" strokeWidth={0.8} />
+      <path d={`M${f(x)},${f(y - h * 0.25)}h${f(w)}M${f(x)},${f(y - h * 0.7)}h${f(w)}`} stroke={bronze ? '#f0cd84' : '#4a4540'} strokeWidth={bronze ? 1 : 0.9} />
+      {bronze && Array.from({ length: 12 }, (_, i) => <circle key={i} cx={f(x + 1.4 + (i % 6) * ((w - 2.8) / 5))} cy={f(y - h * (i < 6 ? 0.45 : 0.9))} r={0.5} fill="#f6dc9a" />)}
+    </g>
+  )
 }
 
 /**
- * ═══════════════════ LA PORTE, BÂTIE SUR SES DEUX BOUTS ═══════════════════
- *
- * L'enceinte n'arrive pas à la porte en un point : elle y arrive par DEUX bouts,
- * pt(geo,−0,1) et pt(geo,+0,1), séparés de 2·ry·sin(0,1) px en hauteur (38,9 px
- * sur la carte). Une porte symétrique posée à pt(geo,0) ne pouvait donc PAS se
- * raccorder - d'où le ruban du mur qui traversait le porche en diagonale.
- *
- * Ici chaque JOUE est bâtie sur SON bout d'arc, avec sa propre cote de pied et
- * d'arase, et l'escalier de liaison rachète la différence sur le flanc interne.
- * Ce n'est plus un défaut : c'est la pente du terrain, qui est la vérité de la
- * vue oblique.
+ * La porte, à l'extrémité est de l'ellipse, entre les deux bouts du mur. Vue
+ * de face avec son retour, comme les bâtiments d'origine.
  */
 function Porte({ geo, niveau, breche }: { geo: GeoMur; niveau: number; breche: boolean }) {
   if (niveau <= 0) return null
   const c = cote(niveau)
-  const n4 = niveau >= 4
-  const N = pt(geo, -PORTE)
-  const S = pt(geo, PORTE)
-  const M = pt(geo, 0)
-  const crete = c.H + c.par
-  const ep = c.W * komp(geo)
+  const pal = PALS[niveau]
+  const bout = pt(geo, PORTE)
+  const x = bout.x - 2
+  const y = bout.y + 3.4
+  const W = niveau === 1 ? 30 : niveau === 2 ? 36 : niveau === 3 ? 46 : 56
+  const R = niveau === 1 ? 0 : 14
+  const ox = R * 0.9
+  const oy = -R * 0.45
+  const x0 = x - W / 2
+  const wO = niveau === 1 ? 14 : niveau === 2 ? 13 : niveau === 3 ? 12 : 14
+  const hO = niveau === 1 ? 20 : niveau === 2 ? 17 : niveau === 3 ? 19 : 23
+  const out: ReactNode[] = []
+  out.push(<ellipse key="om" cx={x + W * 0.3} cy={y + 3} rx={W * 0.8} ry={6} fill={PAL.ombrePortee} opacity={0.24} filter="url(#a-flou2)" />)
 
-  if (breche) {
-    // les deux joues tiennent encore, le passage est comblé d'éboulis
-    return (
-      <g>
-        {[N, S].map((P, i) => (
+  if (niveau === 1) {
+    const hP = c.H + c.par + 8
+    out.push(
+      <g key="p1">
+        {/* deux fûts de chêne, linteau, plate-forme de guet */}
+        {[x0, x0 + W - 5].map((px, i) => (
           <g key={i}>
-            <path
-              d={`M${(P.x - 11).toFixed(1)},${(P.y + 2).toFixed(1)}h22v-${(crete * 0.55).toFixed(1)}l-6,-4l-10,3l-6,-5Z`}
-              fill={n4 ? 'url(#mur-face4)' : 'url(#mur-face)'}
-            />
-            <path d={`M${(P.x - 11).toFixed(1)},${(P.y + 2 - crete * 0.55).toFixed(1)}l6,5l10,-3l6,4l0,1.6l-6,-3.4l-10,3l-6,-4.6Z`} fill="#e6dfcb" opacity={0.6} />
+            <rect x={f(px)} y={f(y - hP)} width={5} height={f(hP)} fill="#7f613d" />
+            <rect x={f(px)} y={f(y - hP)} width={1.8} height={f(hP)} fill="#bf9b6c" />
+            <rect x={f(px + 3.6)} y={f(y - hP)} width={1.4} height={f(hP)} fill="#48371f" />
+            <path d={`M${f(px)},${f(y - hP)}l2.5,-3.4l2.5,3.4Z`} fill="#a07d52" />
           </g>
         ))}
-        <g transform={`translate(${M.x.toFixed(1)},${M.y.toFixed(1)})`}>
-          <ellipse cx={3} cy={7} rx={23} ry={7.5} fill={PAL.ombrePortee} opacity={0.18} filter="url(#a-flou2)" />
-          <ellipse cx={0} cy={6} rx={20} ry={7} fill="#8f887a" />
-          <ellipse cx={-2} cy={5} rx={14} ry={5} fill="#9c9484" />
-          {[
-            { bx: -9, by: 2, r: 5 },
-            { bx: 6, by: 4, r: 6 },
-            { bx: 0, by: -2, r: 4 },
-            { bx: 12, by: 0, r: 3.2 },
-            { bx: -16, by: 4, r: 3 },
-          ].map((b) => (
-            <g key={`${b.bx}${b.by}`}>
-              <circle cx={b.bx} cy={b.by} r={b.r} fill="#9d9585" />
-              <ellipse cx={b.bx - b.r * 0.3} cy={b.by - b.r * 0.38} rx={b.r * 0.62} ry={b.r * 0.5} fill="#bfb7a5" />
-            </g>
-          ))}
-          <g transform="rotate(-35 -13 -4)">
-            <rect x={-16} y={-14} width={6} height={20} fill="#6f5233" />
-            <rect x={-16} y={-14} width={1.5} height={20} fill="#8f6d44" />
-            <path d="M-16,-14 L-13,-19 L-11.5,-14 Z" fill="#b08f5e" />
-          </g>
-          <g transform="rotate(28 13 -3)">
-            <rect x={10} y={-12} width={6} height={18} fill="#6f5233" />
-            <rect x={10} y={-12} width={1.4} height={18} fill="#8f6d44" />
-            <path d="M10,-12 L13.5,-16.5 L16,-12 Z" fill="#b08f5e" />
-          </g>
-        </g>
-      </g>
+        <Vantaux x={x0 + 5} y={y} w={W - 10} h={hO} bronze={false} ouverte={breche} />
+        <rect x={f(x0 - 2)} y={f(y - hO - 4)} width={f(W + 4)} height={3.4} fill="#6a4e30" />
+        <rect x={f(x0 - 2)} y={f(y - hO - 4)} width={f(W + 4)} height={1} fill="#b89468" />
+        <path d={`M${f(x0)},${f(y - hO - 4)}V${f(y - hO - 14)}M${f(x0 + W)},${f(y - hO - 4)}V${f(y - hO - 14)}M${f(x0)},${f(y - hO - 10)}H${f(x0 + W)}`} stroke="#5f462d" strokeWidth={1} />
+        <Pavillon x={x0 - 1} y={y - hO - 14} w={W + 2} ox={6} oy={-2.8} hT={6} tuiles={false} />
+      </g>,
     )
-  }
-
-  // ── niveaux 1 et 2 : les deux bouts d'arc portent leurs jambages, et le
-  //    CADRE du passage est porté en saillie vers le dehors. Les deux bouts sont
-  //    à la MÊME abscisse (cos(−0,1) = cos(+0,1)) : un « linteau en biais » qui
-  //    les joindrait serait un poteau vertical, pas un linteau. C'est donc une
-  //    ÉCHARPE qui fait la liaison, et le cadre qui porte le vantail. ──────────
-  if (niveau <= 2) {
-    const bois = niveau === 1
-    const larg = bois ? 7 : 11
-    const jx = M.x - 7
-    const hN = N.y - crete + (bois ? 3 : 1)
-    const hS = S.y - crete + (bois ? 3 : 1)
-    const px = M.x + 9
-    const solP = M.y + 2
-    const hautP = M.y - (c.H + 5)
-    const dem = bois ? 9 : 10
-    return (
-      <g>
-        <ellipse cx={px + 3} cy={solP + 4} rx={dem + 9} ry={6} fill={PAL.ombrePortee} opacity={0.16} filter="url(#a-flou1)" />
-        {/* les deux jambages, chacun planté sur SON bout d'arc, à SA hauteur */}
-        {[
-          { P: N, hh: hN, ton: bois ? '#6a4c2c' : '#a89d83', avant: false },
-          { P: S, hh: hS, ton: bois ? '#7a5b37' : '#b7ac93', avant: true },
-        ].map(({ P, hh, ton, avant }, i) =>
-          bois ? (
-            <g key={i}>
-              <path d={`M${(jx - larg / 2).toFixed(1)},${(P.y + 2).toFixed(1)}L${(jx - larg / 2).toFixed(1)},${(hh - 3).toFixed(1)}L${jx.toFixed(1)},${(hh - 6).toFixed(1)}L${(jx + larg / 2).toFixed(1)},${(hh - 3).toFixed(1)}L${(jx + larg / 2).toFixed(1)},${(P.y + 2).toFixed(1)}Z`} fill={ton} />
-              <path d={`M${(jx - larg / 2).toFixed(1)},${(P.y + 2).toFixed(1)}L${(jx - larg / 2).toFixed(1)},${(hh - 3).toFixed(1)}L${(jx - larg / 2 + 2.2).toFixed(1)},${(hh - 4).toFixed(1)}L${(jx - larg / 2 + 2.2).toFixed(1)},${(P.y + 2).toFixed(1)}Z`} fill="#9a744a" opacity={0.9} />
-              <path d={`M${(jx - 2.2).toFixed(1)},${(hh - 3.4).toFixed(1)}L${jx.toFixed(1)},${(hh - 6).toFixed(1)}L${(jx + 2.2).toFixed(1)},${(hh - 3.4).toFixed(1)}Z`} fill="#d6b788" />
-              {!avant && <path d={`M${(jx - larg / 2).toFixed(1)},${(P.y + 2).toFixed(1)}L${(jx - larg / 2).toFixed(1)},${(hh - 3).toFixed(1)}L${jx.toFixed(1)},${(hh - 6).toFixed(1)}L${(jx + larg / 2).toFixed(1)},${(hh - 3).toFixed(1)}L${(jx + larg / 2).toFixed(1)},${(P.y + 2).toFixed(1)}Z`} fill="#2f2110" opacity={0.18} />}
-            </g>
-          ) : (
-            <g key={i}>
-              <rect x={jx - larg / 2} y={hh} width={larg} height={P.y + 2 - hh} fill={ton} />
-              {blocsRect(jx - larg / 2, hh, larg, P.y + 2 - hh, 4.6, 30 + i, TONS_SEC).map((d, j) => (
-                <path key={j} d={d} fill={TONS_SEC[j]} />
-              ))}
-              <rect x={jx + larg / 2 - 2} y={hh} width={2} height={P.y + 2 - hh} fill={PAL.ombrePortee} opacity={0.18} />
-              <rect x={jx - larg / 2 - 1.4} y={hh - 2.4} width={larg + 2.8} height={2.8} fill="#ddd5c1" />
-              {!avant && <rect x={jx - larg / 2 - 1.4} y={hh - 2.4} width={larg + 2.8} height={P.y + 4.4 - hh} fill="#5c5238" opacity={0.16} />}
-            </g>
-          ),
+  } else {
+    const hB = niveau === 2 ? c.H + 4 : niveau === 3 ? c.H + c.par + 6 : c.H + c.par + 10
+    const face3 = niveau === 4 ? [pal[0], pal[1], pal[2]] : [pal[1], pal[2], pal[1]]
+    out.push(
+      <g key="pb">
+        <path d={flanc(x0 + W, y, hB, ox, oy)} fill={pal[3]} />
+        <path d={Array.from({ length: Math.floor(hB / c.hA) }, (_, i) => `M${f(x0 + W)},${f(y - (i + 1) * c.hA)}l${f(ox)},${f(oy)}`).join('')} stroke={JOINTS[niveau]} strokeWidth={0.45} opacity={0.5} />
+        <rect x={f(x0)} y={f(y - hB)} width={f(W)} height={f(hB)} fill={pal[2]} />
+        {blocsPlan(x0, y, W, hB, c.hA, niveau === 2 ? 6 : niveau === 3 ? 8 : 10, face3, 71 + niveau, niveau === 4)}
+        {/* le passage : cintré en pierre, droit sous linteau de bois au niveau 2 */}
+        {niveau === 2 ? (
+          <g>
+            <rect x={f(x - wO / 2)} y={f(y - hO)} width={f(wO)} height={f(hO)} fill="#1f160c" />
+            <Vantaux x={x - wO / 2} y={y} w={wO} h={hO} bronze={false} ouverte={breche} />
+            <rect x={f(x - wO / 2 - 3)} y={f(y - hO - 3.2)} width={f(wO + 6)} height={3.2} fill="#6a4e30" />
+            <rect x={f(x - wO / 2 - 3)} y={f(y - hO - 3.2)} width={f(wO + 6)} height={0.9} fill="#b89468" />
+          </g>
+        ) : (
+          <g>
+            <path d={`M${f(x - wO / 2 - 2.2)},${f(y)}V${f(y - hO + wO / 2)}A${f(wO / 2 + 2.2)},${f(wO / 2 + 2.2)} 0 0 1 ${f(x + wO / 2 + 2.2)},${f(y - hO + wO / 2)}V${f(y)}Z`} fill={pal[0]} />
+            <path d={`M${f(x - wO / 2)},${f(y)}V${f(y - hO + wO / 2)}A${f(wO / 2)},${f(wO / 2)} 0 0 1 ${f(x + wO / 2)},${f(y - hO + wO / 2)}V${f(y)}Z`} fill="#1f160c" />
+            {/* claveaux */}
+            <path d={Array.from({ length: 9 }, (_, i) => {
+              const a = Math.PI - (i * Math.PI) / 8
+              const cx = x
+              const cy = y - hO + wO / 2
+              return `M${f(cx + Math.cos(a) * wO / 2)},${f(cy - Math.sin(a) * wO / 2)}L${f(cx + Math.cos(a) * (wO / 2 + 2.2))},${f(cy - Math.sin(a) * (wO / 2 + 2.2))}`
+            }).join('')} stroke={JOINTS[niveau]} strokeWidth={0.5} opacity={0.7} />
+            {niveau === 4 && <path d={`M${f(x - 1.4)},${f(y - hO - 2.2)}h2.8l-0.4,2.4h-2Z`} fill={PAL.or} />}
+            <Vantaux x={x - wO / 2 + 0.6} y={y} w={wO - 1.2} h={hO - wO / 2 - 0.4} bronze={niveau === 4} ouverte={breche} />
+            <path d={`M${f(x - wO / 2 + 0.6)},${f(y - hO + wO / 2)}A${f(wO / 2 - 0.6)},${f(wO / 2 - 0.6)} 0 0 1 ${f(x + wO / 2 - 0.6)},${f(y - hO + wO / 2)}Z`} fill={breche ? '#1f160c' : niveau === 4 ? '#5a3a10' : '#3d2c17'} />
+          </g>
         )}
-        {/* l'ÉCHARPE : la pièce oblique qui rattrape les 39 px entre les deux
-            bouts d'arc et vient s'appuyer sur le cadre du passage */}
-        <path
-          d={`M${(jx + larg / 2 - 1).toFixed(1)},${(hN - 1).toFixed(1)}L${(px + dem).toFixed(1)},${(hautP - 1).toFixed(1)}L${(px + dem).toFixed(1)},${(hautP + 2.4).toFixed(1)}L${(jx + larg / 2 - 1).toFixed(1)},${(hN + 2.4).toFixed(1)}Z`}
-          fill="#5c4227"
-        />
-        <path
-          d={`M${(jx + larg / 2 - 1).toFixed(1)},${(hN - 1).toFixed(1)}L${(px + dem).toFixed(1)},${(hautP - 1).toFixed(1)}L${(px + dem).toFixed(1)},${(hautP - 0.1).toFixed(1)}L${(jx + larg / 2 - 1).toFixed(1)},${(hN + 0.9).toFixed(1)}Z`}
-          fill="#96713f"
-        />
-        {/* LE CADRE DU PASSAGE, en saillie vers le dehors : deux poteaux, un
-            linteau, et le vantail accroché dessous */}
-        <g>
-          {[-dem, dem].map((dx) => (
-            <g key={dx}>
-              <path d={`M${(px + dx - 2.6).toFixed(1)},${solP.toFixed(1)}L${(px + dx - 2.6).toFixed(1)},${hautP.toFixed(1)}L${(px + dx + 2.6).toFixed(1)},${hautP.toFixed(1)}L${(px + dx + 2.6).toFixed(1)},${solP.toFixed(1)}Z`} fill={dx < 0 ? '#7a5b37' : '#6a4c2c'} />
-              <path d={`M${(px + dx - 2.6).toFixed(1)},${solP.toFixed(1)}L${(px + dx - 2.6).toFixed(1)},${hautP.toFixed(1)}L${(px + dx - 1).toFixed(1)},${hautP.toFixed(1)}L${(px + dx - 1).toFixed(1)},${solP.toFixed(1)}Z`} fill="#9a744a" opacity={0.85} />
-            </g>
-          ))}
-          {/* le vantail, sous le linteau */}
-          <rect x={px - dem + 2} y={hautP + 3} width={dem - 2} height={solP - hautP - 3} fill="#8a6535" />
-          <rect x={px} y={hautP + 3} width={dem - 2} height={solP - hautP - 3} fill="#7a582c" />
-          <path
-            d={`M${(px - dem + 5).toFixed(1)},${(hautP + 3).toFixed(1)}V${solP.toFixed(1)}M${(px - 2.5).toFixed(1)},${(hautP + 3).toFixed(1)}V${solP.toFixed(1)}M${(px + 3).toFixed(1)},${(hautP + 3).toFixed(1)}V${solP.toFixed(1)}M${(px + dem - 3).toFixed(1)},${(hautP + 3).toFixed(1)}V${solP.toFixed(1)}`}
-            stroke="#684a25"
-            strokeWidth={1}
-            opacity={0.8}
-          />
-          <path d={`M${(px - dem + 2.4).toFixed(1)},${(hautP + 5).toFixed(1)}L${(px - 0.6).toFixed(1)},${(solP - 1).toFixed(1)}M${(px + dem - 0.4).toFixed(1)},${(hautP + 5).toFixed(1)}L${(px + 0.6).toFixed(1)},${(solP - 1).toFixed(1)}`} stroke="#5f462d" strokeWidth={1.3} opacity={0.7} />
-          {/* linteau : dessus éclairé, sous-face en ombre */}
-          <rect x={px - dem - 4} y={hautP - 4.4} width={2 * dem + 8} height={4.4} fill="#7a5a35" />
-          <rect x={px - dem - 4} y={hautP - 4.4} width={2 * dem + 8} height={1.2} fill="#a8845d" />
-          <rect x={px - dem - 4} y={hautP} width={2 * dem + 8} height={1.2} fill={PAL.ombrePortee} opacity={0.3} />
-        </g>
-        {/* l'échelle (n1) ou la volée de marches (n2) qui rachète les 39 px */}
-        {(() => {
-          const xe = jx - larg / 2 - 11
-          const n = bois ? 8 : 6
-          let m = ''
-          let l = ''
-          for (let i = 0; i < n; i++) {
-            const y = S.y - c.H - 1 - (i * (S.y - N.y)) / n
-            m += `M${xe.toFixed(1)},${y.toFixed(1)}h9.5v${((S.y - N.y) / n - 0.8).toFixed(1)}h-9.5Z`
-            l += `M${xe.toFixed(1)},${y.toFixed(1)}h9.5v0.9h-9.5Z`
-          }
-          return bois ? (
-            <g>
-              <rect x={xe + 0.4} y={N.y - c.H - 2} width={1.4} height={S.y - N.y} fill="#5c4227" />
-              <rect x={xe + 7.6} y={N.y - c.H - 2} width={1.4} height={S.y - N.y} fill="#5c4227" />
-              <path d={l} fill="#7d5e39" />
-            </g>
-          ) : (
-            <g>
-              <path d={`M${xe.toFixed(1)},${(N.y - c.H + 2).toFixed(1)}h9.5V${(S.y - c.H + 8).toFixed(1)}h-9.5Z`} fill="#9d9078" />
-              <path d={m} fill="#b5aa90" />
-              <path d={l} fill="#e2dac6" />
-            </g>
-          )
-        })()}
-        {/* RETOURS : la courtine finit sur une joue d'ombre */}
-        {[N, S].map((P, i) => (
-          <path
-            key={i}
-            d={`M${P.x.toFixed(1)},${(P.y + 2).toFixed(1)}L${(P.x - 3.5).toFixed(1)},${(P.y + 2).toFixed(1)}L${(P.x - 3.5).toFixed(1)},${(P.y - crete).toFixed(1)}L${P.x.toFixed(1)},${(P.y - crete).toFixed(1)}Z`}
-            fill={bois ? '#3f2d18' : '#6f6349'}
-            opacity={0.45}
-          />
-        ))}
-      </g>
+        {/* couronnement du massif */}
+        {niveau === 2 && (
+          <g>
+            <path d={flanc(x0 + W, y - hB, 7, ox, oy)} fill="#5f462d" />
+            <rect x={f(x0 - 1)} y={f(y - hB - 7)} width={f(W + 2)} height={7} fill="#8a6941" />
+            <path d={Array.from({ length: Math.round(W / 2.4) }, (_, i) => `M${f(x0 + i * 2.4)},${f(y - hB)}v-7`).join('')} stroke="#5f462d" strokeWidth={0.4} opacity={0.7} />
+            <Pavillon x={x0 - 1} y={y - hB - 7} w={W + 2} ox={ox} oy={oy} hT={7} tuiles={false} />
+          </g>
+        )}
+        {niveau === 3 && (
+          <g>
+            <path d={dessus(x0, y - hB, W, ox, oy)} fill={pal[0]} />
+            {Array.from({ length: 6 }, (_, i) => {
+              const mw = W / 11
+              return <rect key={i} x={f(x0 + i * 2 * mw)} y={f(y - hB - 3.8)} width={f(mw)} height={3.8} fill={pal[1]} />
+            })}
+            {[0.2, 0.6].map((u, i) => <path key={i} d={flanc(x0 + W + ox * u, y - hB + oy * u, 3.8, ox * 0.24, oy * 0.24)} fill={pal[3]} />)}
+            {[-W * 0.32, W * 0.32].map((dx, i) => (
+              <g key={i}>
+                <rect x={f(x + dx - 0.7)} y={f(y - hB + 6)} width={1.4} height={5.6} fill="#1f1a14" />
+                <rect x={f(x + dx - 1.4)} y={f(y - hB + 11.6)} width={2.8} height={0.7} fill={pal[0]} />
+              </g>
+            ))}
+          </g>
+        )}
+        {niveau === 4 && (
+          <g>
+            {/* entablement : architrave, frise à triglyphes, corniche, fronton */}
+            <rect x={f(x0 - 1)} y={f(y - hB - 2.6)} width={f(W + 2)} height={2.6} fill={pal[0]} />
+            <rect x={f(x0 - 1)} y={f(y - hB - 6.4)} width={f(W + 2)} height={3.8} fill={pal[1]} />
+            <path d={Array.from({ length: 9 }, (_, i) => `M${f(x0 + 2 + i * (W - 4) / 8)},${f(y - hB - 6)}v3`).join('')} stroke="#2c4660" strokeWidth={1.4} />
+            <rect x={f(x0 - 2)} y={f(y - hB - 8)} width={f(W + 4)} height={1.6} fill="#fbf7ec" />
+            <path d={flanc(x0 + W + 1, y - hB, 8, ox, oy)} fill={pal[3]} />
+            <path d={`M${f(x0 - 2)},${f(y - hB - 8)}L${f(x)},${f(y - hB - 17)}L${f(x0 + W + 2)},${f(y - hB - 8)}Z`} fill={pal[1]} />
+            <path d={`M${f(x0 + 3)},${f(y - hB - 9)}L${f(x)},${f(y - hB - 15.2)}L${f(x0 + W - 3)},${f(y - hB - 9)}Z`} fill="#35536b" />
+            <circle cx={f(x)} cy={f(y - hB - 11)} r={1.8} fill={PAL.or} />
+            <path d={`M${f(x0 - 2)},${f(y - hB - 8)}L${f(x)},${f(y - hB - 17)}L${f(x0 + W + 2)},${f(y - hB - 8)}`} stroke="#fffaf0" strokeWidth={1.1} fill="none" />
+            <path d={`M${f(x0 + W + 2)},${f(y - hB - 8)}L${f(x0 + W + 2 + ox)},${f(y - hB - 8 + oy)}L${f(x + ox)},${f(y - hB - 17 + oy)}L${f(x)},${f(y - hB - 17)}Z`} fill="#8a4529" />
+            <circle cx={f(x)} cy={f(y - hB - 18.4)} r={1.4} fill={PAL.or} />
+            {/* boucliers dorés de part et d'autre du passage */}
+            {[-W * 0.3, W * 0.3].map((dx, i) => (
+              <g key={i}>
+                <circle cx={f(x + dx)} cy={f(y - hO * 0.7)} r={3.2} fill={PAL.or} />
+                <circle cx={f(x + dx)} cy={f(y - hO * 0.7)} r={2.2} fill="#7c2f4e" />
+                <path d={`M${f(x + dx - 2.2)},${f(y - hO * 0.7)}a2.2,2.2 0 0 1 2.2,-2.2`} stroke="#f6dc9a" strokeWidth={0.6} fill="none" />
+              </g>
+            ))}
+          </g>
+        )}
+      </g>,
     )
   }
+  // les tours qui flanquent la porte (niveaux 3 et 4)
+  if (niveau >= 3) {
+    out.unshift(<Tour key="tn" x={x0 + 2} y={y - 6} niveau={niveau} guet fete={false} seed={91} />)
+    out.push(<Tour key="ts" x={x0 + W + 4} y={y + 6} niveau={niveau} guet fete={false} seed={93} />)
+  }
+  if (niveau >= 4 && !breche) {
+    out.push(<Brasero key="b1" x={x0 - 4} y={y + 4} s={1.1} />)
+    out.push(<Brasero key="b2" x={x0 + W + 16} y={y + 10} s={1.1} />)
+  }
+  if (breche) {
+    const rnd = alea(57)
+    out.push(
+      <g key="gr">
+        {Array.from({ length: 8 }, (_, i) => {
+          const bx = x - W * 0.4 + rnd() * W * 0.9
+          const by = y + 1 + rnd() * 6
+          const bw = 3 + rnd() * 4
+          return <path key={i} d={`M${f(bx)},${f(by)}l${f(bw)},-0.6l0.4,${f(-bw * 0.5)}l${f(-bw)},0.4Z`} fill={i % 2 ? pal[1] ?? '#a07d52' : pal[3] ?? '#624a2e'} />
+        })}
+      </g>,
+    )
+  }
+  return <g>{out}</g>
+}
 
-  // ── niveaux 3 et 4 : deux BASTIONS rectangulaires (pas des cylindres : c'est
-  //    ce qui les distingue des tours de courtine) + le porche en saillie ──
-  const larg = n4 ? 24 : 20
-  const grad = n4 ? 'url(#mur-face4)' : 'url(#mur-face)'
-  const tons = n4 ? TONS_TAILLE : TONS_SEC
-  const jx = M.x - 5
-  const joue = (P: { x: number; y: number }, seed: number, avant: boolean) => {
-    const pied = P.y + 2
-    const arase = P.y - crete - 3.5
-    const x0 = jx - larg / 2
+// ─────────────────────────────── décombres ─────────────────────────────────
+
+/** tas de décombres au droit d'un pan effondré */
+function Decombres({ g, a, crete, niveau, seed }: { g: GeoMur; a: number; crete: number; niveau: number; seed: number }) {
+  const rnd = alea(seed)
+  const pal = PALS[niveau]
+  const pl = pt(g, a - DA - 0.02)
+  const pr = pt(g, a + DA + 0.02)
+  const pm = pt(g, a)
+  const hT = crete * 0.32
+  const tas = `M${f(pl.x)},${f(pl.y + 4)}Q${f((pl.x + pm.x) / 2)},${f(pm.y - hT)} ${f(pm.x)},${f(pm.y - hT * 0.9)}Q${f((pr.x + pm.x) / 2)},${f(pm.y - hT * 1.1)} ${f(pr.x)},${f(pr.y + 4)}Z`
+  const blocs = Array.from({ length: 11 }, (_, i) => {
+    const u = rnd()
+    const bx = pl.x + (pr.x - pl.x) * u
+    const by = pl.y + (pr.y - pl.y) * u + 3 - rnd() * hT * 0.8
+    const bw = 2.4 + rnd() * (niveau >= 3 ? 5 : 3.4)
+    return { bx, by, bw, bh: bw * 0.55, t: i % 3 }
+  })
+  if (niveau === 1) {
     return (
       <g>
-        {avant && <ellipse cx={jx + 7} cy={pied + 3} rx={larg * 0.8} ry={7} fill={PAL.ombrePortee} opacity={0.17} filter="url(#a-flou2)" />}
-        <rect x={x0} y={arase} width={larg} height={pied - arase} fill={grad} />
-        {blocsRect(x0, arase + 3, larg, pied - arase - 3, n4 ? 5.4 : 4.8, seed, tons).map((d, j) => (
-          <path key={j} d={d} fill={tons[j]} opacity={0.85} />
-        ))}
-        {/* le fruit du pied, l'ombre à l'est, le liseré clair à l'ouest */}
-        <rect x={x0 - 1} y={pied - 4} width={larg + 2} height={4} fill={grad} />
-        <rect x={x0 - 1} y={pied - 4} width={larg + 2} height={1} fill="#e6dfc9" opacity={0.45} />
-        <rect x={x0 + larg - 3.5} y={arase} width={3.5} height={pied - arase} fill={PAL.ombrePortee} opacity={0.18} />
-        <rect x={x0} y={arase} width={1.2} height={pied - arase} fill="#f2ecd9" opacity={0.4} />
-        {/* archère du bastion */}
-        <rect x={jx - 1} y={arase + 11} width={2} height={c.H * 0.28} fill="#3a2e1c" />
-        <rect x={jx - 2.4} y={arase + 9.8} width={4.8} height={0.9} fill="#efe8d6" opacity={0.7} />
-        {/* couronnement : dallage, merlons, retour du parapet de la courtine */}
-        <rect x={x0 - 1.5} y={arase - 3.4} width={larg + 3} height={3.6} fill="url(#mur-dalle)" />
-        <rect x={x0 - 1.5} y={arase} width={larg + 3} height={1.2} fill={PAL.ombrePortee} opacity={0.24} />
-        {Array.from({ length: 4 }, (_, i) => {
-          const mw = (larg + 3) / 4 - 1.8
-          const mx = x0 - 1.5 + (i * (larg + 3)) / 4
-          return (
-            <g key={i}>
-              <rect x={mx} y={arase - 3.4 - c.par} width={mw} height={c.par} fill={['#ddd5c1', '#d3cab5', '#c2b8a0', '#a89d83'][i]} />
-              <rect x={mx} y={arase - 3.4 - c.par} width={mw} height={1} fill="#efe8d5" />
-            </g>
-          )
-        })}
-        {/* la joue du FOND recule d'un ton : sans cela les deux bastions et le
-            porche se confondent en une seule masse pâle */}
-        {!avant && <rect x={x0 - 1.5} y={arase - 3.4 - c.par} width={larg + 3} height={pied - arase + 3.4 + c.par} fill="#6b5f45" opacity={0.16} />}
+        <path d={tas} fill="#7f613d" opacity={0.85} />
+        {blocs.map((b, i) => <path key={i} d={`M${f(b.bx - 5)},${f(b.by)}L${f(b.bx + 5)},${f(b.by - 2 + (i % 3))}`} stroke={i % 2 ? '#a07d52' : '#624a2e'} strokeWidth={1.8} strokeLinecap="round" />)}
       </g>
     )
   }
-
-  const baie = n4 ? 22 : 18
-  const px = M.x + 11
-  const seuil = M.y + 2
-  const naissance = M.y - c.H * 0.55
-  const rArc = baie / 2
-  const haut = naissance - rArc - 6
-
   return (
     <g>
-      {/* JOUE NORD : bâtie sur pt(geo,−0,1), son arase 3,5 px au-dessus de SA crête */}
-      {joue(N, 61, false)}
-      {/* l'escalier de liaison : il monte les 39 px du chemin de ronde sud à
-          celui du nord, sur le flanc INTERNE - c'est lui qui fait lire la porte
-          comme un morceau du rempart et non comme un décor posé devant */}
-      {(() => {
-        const xe = jx - larg / 2 - 12
-        const yBas = S.y - c.H - 1
-        const yHaut = N.y - c.H - 1
-        let m = ''
-        let l = ''
-        for (let i = 0; i < 8; i++) {
-          const y = yBas - (i * (S.y - N.y)) / 8
-          m += `M${xe.toFixed(1)},${y.toFixed(1)}h11v${((S.y - N.y) / 8 - 0.7).toFixed(1)}h-11Z`
-          l += `M${xe.toFixed(1)},${y.toFixed(1)}h11v0.9h-11Z`
-        }
-        return (
-          <g>
-            {/* la maçonnerie qui porte la volée */}
-            <path d={`M${xe.toFixed(1)},${(yHaut + 3).toFixed(1)}L${(xe + 11).toFixed(1)},${(yHaut + 3).toFixed(1)}L${(xe + 11).toFixed(1)},${(yBas + 9).toFixed(1)}L${xe.toFixed(1)},${(yBas + 9).toFixed(1)}Z`} fill="#9d9078" />
-            <path d={`M${xe.toFixed(1)},${(yHaut + 3).toFixed(1)}L${(xe + 2).toFixed(1)},${(yHaut + 3).toFixed(1)}L${(xe + 2).toFixed(1)},${(yBas + 9).toFixed(1)}L${xe.toFixed(1)},${(yBas + 9).toFixed(1)}Z`} fill="#c2b89f" opacity={0.55} />
-            <path d={m} fill="#b5aa90" />
-            <path d={l} fill="#e2dac6" />
-          </g>
-        )
-      })()}
-      {/* JOUE SUD : bâtie sur pt(geo,+0,1), 39 px plus bas - la pente du terrain */}
-      {joue(S, 62, true)}
-      {/* LE PORCHE, porté en saillie vers le dehors, entre les deux joues */}
-      <g>
-        {/* l'ombre portée de tout l'ouvrage, vers le SE */}
-        <ellipse cx={px + 6} cy={seuil + 4} rx={baie + 12} ry={8} fill={PAL.ombrePortee} opacity={0.17} filter="url(#a-flou2)" />
-        <rect x={px - baie / 2 - 7} y={haut} width={baie + 14} height={seuil - haut} fill={grad} />
-        {/* angle rentrant entre le porche et les joues : toujours dans l'ombre */}
-        <rect x={px - baie / 2 - 7} y={haut} width={2.6} height={seuil - haut} fill={PAL.ombrePortee} opacity={0.2} />
-        {blocsRect(px - baie / 2 - 7, haut + 5, baie + 14, seuil - haut - 5, n4 ? 5.4 : 4.8, 63, tons).map((d, j) => (
-          <path key={j} d={d} fill={tons[j]} opacity={0.7} />
-        ))}
-        {/* frise du niveau 4 : écho de la porte des Lionnes */}
-        {n4 && (
-          <>
-            <rect x={px - baie / 2 - 9} y={haut - 5.5} width={baie + 18} height={5.5} fill="#e6dfcb" />
-            <rect x={px - baie / 2 - 9} y={haut - 5.5} width={baie + 18} height={1.2} fill="#f4efe1" />
-            <path d={`M${(px - 10).toFixed(1)},${(haut - 0.6).toFixed(1)}L${(px - 9).toFixed(1)},${(haut - 4.4).toFixed(1)}L${(px - 3.2).toFixed(1)},${(haut - 0.6).toFixed(1)}Z`} fill="#8c8474" />
-            <path d={`M${(px + 10).toFixed(1)},${(haut - 0.6).toFixed(1)}L${(px + 9).toFixed(1)},${(haut - 4.4).toFixed(1)}L${(px + 3.2).toFixed(1)},${(haut - 0.6).toFixed(1)}Z`} fill="#8c8474" />
-            <rect x={px - 1.4} y={haut - 4.6} width={2.8} height={4} fill="#9a9078" />
-          </>
-        )}
-        {/* chemin de ronde du porche + créneaux */}
-        <rect x={px - baie / 2 - 9} y={haut - (n4 ? 10.2 : 4.6)} width={baie + 18} height={4.6} fill="url(#mur-dalle)" />
-        {Array.from({ length: 4 }, (_, i) => {
-          const mw = (baie + 18) / 4 - 2
-          const mx = px - baie / 2 - 9 + (i * (baie + 18)) / 4
-          return (
-            <g key={i}>
-              <rect x={mx} y={haut - (n4 ? 10.2 : 4.6) - c.par} width={mw} height={c.par} fill={['#ddd5c1', '#d3cab5', '#c2b8a0', '#a89d83'][i]} />
-              <rect x={mx} y={haut - (n4 ? 10.2 : 4.6) - c.par} width={mw} height={1} fill="#efe8d5" />
-            </g>
-          )
-        })}
-        {/* arc appareillé, claveaux marqués, clef éclairée */}
-        <path
-          d={`M${(px - rArc - 3.4).toFixed(1)},${seuil.toFixed(1)}L${(px - rArc - 3.4).toFixed(1)},${naissance.toFixed(1)}A${(rArc + 3.4).toFixed(1)},${(rArc + 3.4).toFixed(1)} 0 0 1 ${(px + rArc + 3.4).toFixed(1)},${naissance.toFixed(1)}L${(px + rArc + 3.4).toFixed(1)},${seuil.toFixed(1)}L${(px + rArc).toFixed(1)},${seuil.toFixed(1)}L${(px + rArc).toFixed(1)},${naissance.toFixed(1)}A${rArc.toFixed(1)},${rArc.toFixed(1)} 0 0 0 ${(px - rArc).toFixed(1)},${naissance.toFixed(1)}L${(px - rArc).toFixed(1)},${seuil.toFixed(1)}Z`}
-          fill={n4 ? '#e2dac6' : '#d5cdb9'}
-        />
-        <path
-          d={`M${(px - rArc * 0.75).toFixed(1)},${(naissance - rArc * 0.68).toFixed(1)}L${(px - rArc * 0.95).toFixed(1)},${(naissance - rArc * 0.86).toFixed(1)}M${px.toFixed(1)},${(naissance - rArc).toFixed(1)}L${px.toFixed(1)},${(naissance - rArc - 3.4).toFixed(1)}M${(px + rArc * 0.75).toFixed(1)},${(naissance - rArc * 0.68).toFixed(1)}L${(px + rArc * 0.95).toFixed(1)},${(naissance - rArc * 0.86).toFixed(1)}`}
-          stroke={PAL.pierreJoint}
-          strokeWidth={0.9}
-          fill="none"
-          opacity={0.55}
-        />
-        <path d={`M${(px - 2.8).toFixed(1)},${(naissance - rArc - 3.4).toFixed(1)}L${(px - 1.8).toFixed(1)},${(naissance - rArc).toFixed(1)}L${(px + 1.8).toFixed(1)},${(naissance - rArc).toFixed(1)}L${(px + 2.8).toFixed(1)},${(naissance - rArc - 3.4).toFixed(1)}Z`} fill="#f4efe1" />
-        {/* embrasure profonde */}
-        <path d={`M${(px - rArc).toFixed(1)},${seuil.toFixed(1)}L${(px - rArc).toFixed(1)},${naissance.toFixed(1)}A${rArc.toFixed(1)},${rArc.toFixed(1)} 0 0 1 ${(px + rArc).toFixed(1)},${naissance.toFixed(1)}L${(px + rArc).toFixed(1)},${seuil.toFixed(1)}Z`} fill="url(#mur-antre)" />
-        {/* vantaux de bois bardés de bronze, en retrait */}
-        {(() => {
-          const r = rArc - 2
-          const h = naissance - seuil
-          return (
-            <g transform={`translate(${px.toFixed(1)},${seuil.toFixed(1)})`}>
-              <path d={`M${(-r).toFixed(1)},0L${(-r).toFixed(1)},${h.toFixed(1)}A${r.toFixed(1)},${r.toFixed(1)} 0 0 1 ${r.toFixed(1)},${h.toFixed(1)}L${r.toFixed(1)},0Z`} fill="#6d4e2c" />
-              <path d={`M${(-r).toFixed(1)},0L${(-r).toFixed(1)},${h.toFixed(1)}A${r.toFixed(1)},${r.toFixed(1)} 0 0 1 ${(-r * 0.34).toFixed(1)},${(h - r * 0.94).toFixed(1)}L${(-r * 0.34).toFixed(1)},0Z`} fill="#7d5b34" />
-              <line x1={0} y1={h - r} x2={0} y2={0} stroke="#4a3018" strokeWidth={1.3} />
-              {/* bandages de bronze */}
-              {[0.18, 0.5, 0.82].map((f) => (
-                <g key={f}>
-                  <rect x={-r} y={h * f} width={r * 2} height={1.9} fill="#8a6b2e" />
-                  <rect x={-r} y={h * f} width={r * 2} height={0.6} fill="#c9a441" opacity={0.8} />
-                </g>
-              ))}
-              {/* clous de bronze */}
-              {[-r * 0.55, r * 0.55].map((sx) =>
-                [0.3, 0.62, 0.92].map((f) => <circle key={`${sx}${f}`} cx={sx} cy={h * f - 2.6} r={1.1} fill={PAL.or} />),
-              )}
-            </g>
-          )
-        })()}
-        {/* seuil à deux degrés */}
-        <rect x={px - rArc} y={seuil - 2} width={baie} height={2.4} fill="#c8bda2" />
-        <rect x={px - rArc - 2} y={seuil + 0.2} width={baie + 4} height={1.8} fill="#b6ab90" />
-      </g>
-      {/* RETOURS : la courtine finit sur une joue d'ombre, elle ne s'évanouit plus */}
-      {[N, S].map((P, i) => (
-        <path
-          key={i}
-          d={`M${P.x.toFixed(1)},${(P.y + 2).toFixed(1)}L${(P.x - 3.5).toFixed(1)},${(P.y + 2).toFixed(1)}L${(P.x - 3.5).toFixed(1)},${(P.y - crete).toFixed(1)}L${P.x.toFixed(1)},${(P.y - crete).toFixed(1)}Z`}
-          fill={n4 ? '#7d7053' : '#6f6349'}
-          opacity={0.5}
-        />
+      <path d={tas} fill={pal[3]} />
+      <path d={tas} fill={pal[1]} opacity={0.55} transform="translate(-1.2,-1.2) scale(1)" />
+      {blocs.map((b, i) => (
+        <g key={i}>
+          <path d={`M${f(b.bx)},${f(b.by)}h${f(b.bw)}v${f(-b.bh)}h${f(-b.bw)}Z`} fill={pal[b.t + 1]} />
+          <path d={`M${f(b.bx)},${f(b.by - b.bh)}h${f(b.bw)}`} stroke={pal[0]} strokeWidth={0.6} />
+        </g>
       ))}
-      {/* et l'épaisseur du mur au droit du passage : on voit la tranche */}
-      <rect x={M.x - 2} y={M.y - c.H - ep} width={4} height={ep} fill={PAL.pierreLit} opacity={0.5} />
     </g>
   )
 }
+
+// ─────────────────────────────── l'enceinte ────────────────────────────────
 
 interface Props {
   niveau: number
@@ -2119,799 +663,490 @@ interface Props {
   brechesAngles?: number[]
 }
 
-/** angles des tourelles de veille du niveau 4, par couche */
+/** angles des tourelles de guet du niveau 4, par couche */
 const GUET = { front: [0.85, 2.29], back: [3.99, 5.43] }
+/** angles des escaliers qui montent au chemin de ronde, côté village */
+const ESCALIERS = [3.55, 5.12]
+/** échafauds de guet de la palissade */
+const ECHAFAUDS = { front: [0.95, 2.2], back: [3.8, 5.25] }
 
-/**
- * L'enceinte. Mémoïsée : hors assaut, ni le niveau ni les points de structure ne
- * bougent, et l'arc échantillonné coûte plusieurs centaines de nœuds par couche.
- */
-export const Murailles = memo(function Murailles({
-  niveau,
-  hp,
-  max,
-  breche,
-  layer,
-  geo = MAP.mur,
-  tours = 0,
-  span = 1,
-  brechesAngles,
-}: Props) {
+/** échafaud de guet derrière la palissade : quatre poteaux, plancher, abri de chaume */
+function Echafaud({ x, y, H }: { x: number; y: number; H: number }) {
+  const hP = H + 10
+  return (
+    <g>
+      <path d={`M${f(x - 6)},${f(y)}V${f(y - hP)}M${f(x + 6)},${f(y)}V${f(y - hP)}M${f(x - 3)},${f(y - 3)}V${f(y - hP - 2)}M${f(x + 9)},${f(y - 3)}V${f(y - hP - 2)}`} stroke="#6a4e30" strokeWidth={1.3} />
+      <path d={`M${f(x - 6)},${f(y - 4)}L${f(x + 6)},${f(y - hP + 2)}M${f(x + 6)},${f(y - 4)}L${f(x - 6)},${f(y - hP + 2)}`} stroke="#7f613d" strokeWidth={0.7} />
+      <path d={`M${f(x - 7)},${f(y - hP)}h14l3,-3h-14Z`} fill="#8a6941" />
+      <path d={`M${f(x - 7)},${f(y - hP)}h14`} stroke="#b89468" strokeWidth={0.7} />
+      <path d={`M${f(x - 7)},${f(y - hP - 4)}h14l3,-3`} stroke="#6a4e30" strokeWidth={0.8} fill="none" />
+      <path d={`M${f(x - 7)},${f(y - hP - 7)}V${f(y - hP - 12)}M${f(x + 7)},${f(y - hP - 7)}V${f(y - hP - 12)}`} stroke="#6a4e30" strokeWidth={0.9} />
+      <path d={`M${f(x - 9)},${f(y - hP - 11)}L${f(x + 1.5)},${f(y - hP - 19)}L${f(x + 12)},${f(y - hP - 11)}Z`} fill="#c9a864" />
+      <path d={`M${f(x + 1.5)},${f(y - hP - 19)}L${f(x + 12)},${f(y - hP - 11)}L${f(x + 14)},${f(y - hP - 13)}L${f(x + 4)},${f(y - hP - 20.5)}Z`} fill="#8a6d38" />
+      <path d={`M${f(x - 9)},${f(y - hP - 11)}L${f(x + 1.5)},${f(y - hP - 19)}`} stroke="#ecd594" strokeWidth={0.8} />
+    </g>
+  )
+}
+
+function MuraillesBase({ niveau, hp, max, breche, layer, geo = MAP.mur, tours = 0, span = 1, brechesAngles }: Props) {
   const arriere = layer === 'back'
   const a0 = arriere ? Math.PI : PORTE
   const a1Complet = arriere ? 2 * Math.PI - PORTE : Math.PI
-  const a1 = a0 + (a1Complet - a0) * span
+  const sp = clamp(Number.isFinite(span) ? span : 1, 0.02, 1)
+  const a1 = a0 + (a1Complet - a0) * sp
+  const nC = 96
 
-  const t = abscisse(geo, a0, a1)
-  const nC = pasCourbe(t.L)
-
-  // niveau 0 : bornes de fondation, pour situer la future enceinte
+  // niveau 0 : bornes de fondation
   if (niveau <= 0) {
+    const t = abscisse(geo, a0, a1)
     return (
-      <g opacity={0.5}>
-        {anglesArc(t, 46).map((a, i) => {
+      <g opacity={0.55}>
+        {anglesPas(t, 46, 10).map((a, i) => {
           const p = pt(geo, a)
-          return <circle key={i} cx={p.x} cy={p.y} r={2} fill="#8f887a" />
+          return (
+            <g key={i}>
+              <ellipse cx={f(p.x + 1)} cy={f(p.y + 0.6)} rx={2.6} ry={0.9} fill={PAL.ombrePortee} opacity={0.3} />
+              <path d={`M${f(p.x - 1.4)},${f(p.y)}l0.4,-4h2l0.4,4Z`} fill="#a79d85" />
+            </g>
+          )
         })}
       </g>
     )
   }
 
-  const c = cote(niveau)
+  const n = Math.min(4, Math.round(niveau))
+  const c = cote(n)
   const H = c.H
   const crete = H + c.par
-  const gi = dedans(geo, c.W)
-  const n4 = niveau >= 4
-  const n3 = niveau >= 3
-  const grad = n4 ? 'url(#mur-face4)' : 'url(#mur-face)'
-  const tonOmbre = n4 ? '#7d7053' : '#6f6349'
+  const pal = PALS[n]
+  const joint = JOINTS[n]
+  const gi = grow(geo, -c.W)
   const ratio = max > 0 ? hp / max : 1
-  const fissures =
-    ratio < 0.65
-      ? [0.55, 2.6, 1.25, 3.7, 5.1, 1.9].slice(0, Math.min(6, Math.floor((1 - ratio) * 8))).filter((a) => {
-          const enAvant = a > PORTE && a < Math.PI
-          return arriere ? !enAvant : enAvant
-        })
-      : []
+  const fete = ratio >= 0.4
+  const rndCren = alea(n * 31 + (arriere ? 7 : 3))
 
-  // ── les tours : angles retenus pour CETTE couche, et leurs encoches ──
+  // pans effondrés de cette couche
+  const pans = (sp >= 1 ? brechesAngles ?? [] : [])
+    .map((a) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI))
+    .filter((a) => a > 0.3 && a < 2 * Math.PI - 0.3)
+    .filter((a) => (arriere ? a >= Math.PI : a < Math.PI))
+  /** plafond de hauteur : brèche (ébréchée), bout de chantier (assises montantes) */
+  const coupe = (a: number): number => {
+    let cap = Infinity
+    for (const b of pans) {
+      const d = Math.abs(a - b)
+      if (d < DA) return -1
+      if (d < DA + 0.07) cap = Math.min(cap, crete * (0.2 + (0.8 * (d - DA)) / 0.07))
+    }
+    if (sp < 1) {
+      const d = a1 - a
+      if (d < 0.07) cap = Math.min(cap, crete * (0.15 + (0.85 * Math.max(0, d)) / 0.07))
+    }
+    return cap
+  }
+
+  // tours de cette couche
   const dansArc = (a: number) => {
     const an = arriere && a < 0 ? a + 2 * Math.PI : a
     return an >= a0 - 1e-6 && an <= a1 + 1e-6 ? an : null
   }
-  const toursPosees: { a: number; guet?: boolean }[] = []
-  if (COTES_TOUR[Math.min(4, niveau)])
-    for (const a of TOUR_ANGLES.slice(0, tours)) {
-      const an = dansArc(a)
-      if (an !== null) toursPosees.push({ a: an })
-    }
-  if (n4)
-    for (const a of (arriere ? GUET.back : GUET.front)) {
-      const an = dansArc(a)
-      if (an !== null) toursPosees.push({ a: an, guet: true })
-    }
-  // les pans effondrés interrompent le parapet comme une tour : sans cela des
-  // merlons pendaient au-dessus de la trouée
-  const pans = (span >= 1 ? (brechesAngles ?? []) : [])
-    .map((a) => ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI))
-    .filter((a) => a > 0.3 && a < 2 * Math.PI - 0.3)
-    .filter((a) => (arriere ? a >= Math.PI : a < Math.PI))
-  const encoches = toursPosees.map(({ a, guet }) => {
-    const ct = COTES_TOUR[Math.min(4, niveau)]
-    const D = (guet ? (ct?.D ?? 0) * 0.74 : ct?.D ?? 0) || 0
-    const dsda = Math.hypot(geo.rx * Math.sin(a), geo.ry * Math.cos(a)) || 1
-    return { a, da: (0.62 * D) / dsda }
-  })
-  for (const a of pans) encoches.push({ a, da: 0.115 })
+  const toursIci: { a: number; guet: boolean }[] = []
+  if (COTES_TOUR[n]) for (const a of TOUR_ANGLES.slice(0, tours)) { const an = dansArc(a); if (an !== null && coupe(an) > 0) toursIci.push({ a: an, guet: false }) }
+  if (n >= 4) for (const a of arriere ? GUET.back : GUET.front) { const an = dansArc(a); if (an !== null && coupe(an) > 0) toursIci.push({ a: an, guet: true }) }
 
+  // fissures quand l'enceinte souffre
+  const fissures = ratio < 0.65
+    ? [0.55, 2.6, 1.25, 3.7, 5.1, 1.9].slice(0, Math.min(6, Math.floor((1 - ratio) * 8))).filter((a) => (arriere ? a >= Math.PI : a < Math.PI) && a >= a0 && a <= a1 && coupe(a) > crete)
+    : []
+
+  const nExt = (a: number) => a
+  const nInt = (a: number) => a + Math.PI
+  const out: ReactNode[] = []
+
+  // ═══════════════════════ PALISSADE (niveau 1) ═══════════════════════
+  if (n === 1) {
+    const t = abscisse(geo, a0, a1)
+    const pieux = anglesPas(t, c.pas, 1.5)
+    const rnd = alea(arriere ? 19 : 11)
+    let lit = ''
+    let omb = ''
+    let pointeL = ''
+    let pointeO = ''
+    const hauts: { x: number; y: number; h: number }[] = []
+    for (const a of pieux) {
+      const cap = coupe(a)
+      if (cap < 3) continue
+      const p = pt(geo, a)
+      const h = Math.min(crete + (rnd() - 0.5) * 3, cap)
+      const w = 3.6
+      const x = p.x - w / 2
+      const yb = p.y + 1
+      lit += `M${f(x)},${f(yb)}h${f(w * 0.45)}v${f(-h)}h${f(-w * 0.45)}Z`
+      omb += `M${f(x + w * 0.45)},${f(yb)}h${f(w * 0.55)}v${f(-h)}h${f(-w * 0.55)}Z`
+      if (h >= crete - 3) {
+        pointeL += `M${f(x)},${f(yb - h)}L${f(x + w / 2)},${f(yb - h - 3.4)}L${f(x + w * 0.45)},${f(yb - h)}Z`
+        pointeO += `M${f(x + w * 0.45)},${f(yb - h)}L${f(x + w / 2)},${f(yb - h - 3.4)}L${f(x + w)},${f(yb - h)}Z`
+      }
+      hauts.push({ x: p.x, y: yb, h })
+    }
+    // harts : liens segmentés tous les cinq pieux
+    let harts = ''
+    for (const hh of [6.5, crete - 7]) {
+      for (let i = 0; i + 5 < hauts.length; i += 5) {
+        const A = hauts[i]
+        const B = hauts[i + 5]
+        if (A.h < hh + 1 || B.h < hh + 1) continue
+        const j = (i % 3) * 0.4
+        harts += `M${f(A.x)},${f(A.y - hh - j)}L${f(B.x)},${f(B.y - hh - j)}`
+      }
+    }
+    const echafauds = (arriere ? ECHAFAUDS.back : ECHAFAUDS.front).filter((a) => a >= a0 && a <= a1 && coupe(a) > crete)
+    const eIn = grow(geo, -9)
+    if (!arriere) {
+      // levée de terre au pied, dehors
+      out.push(<path key="lev" d={ruban(geo, 0, grow(geo, 7), 0, a0, a1, nC)} fill="#8f7a52" />)
+      out.push(<path key="levl" d={ligne(grow(geo, 2), a0, a1, nC, 1.4)} stroke="#b19a67" strokeWidth={2.2} fill="none" opacity={0.7} />)
+      out.push(<path key="omb" d={ruban(grow(geo, 3), 0, grow(geo, 14), 0, a0, a1, nC)} fill={PAL.ombrePortee} opacity={0.12} />)
+      echafauds.forEach((a, i) => { const p = pt(eIn, a); out.push(<Echafaud key={'e' + i} x={p.x} y={p.y} H={H} />) })
+    }
+    out.push(
+      <g key="pal">
+        <path d={omb} fill={arriere ? pal[3] : pal[2]} />
+        <path d={lit} fill={arriere ? pal[2] : pal[0]} />
+        <path d={pointeO} fill={pal[3]} />
+        <path d={pointeL} fill={pal[1]} />
+        <path d={harts} stroke="#3d2c17" strokeWidth={1.5} fill="none" />
+        <path d={harts} stroke="#b89468" strokeWidth={0.45} fill="none" transform="translate(0,-0.6)" />
+      </g>,
+    )
+    if (arriere) {
+      // chemin de planches sur poteaux, côté village
+      const w1 = grow(geo, -1.5)
+      const w2 = grow(geo, -7)
+      out.push(<path key="ch" d={ruban(w1, H, w2, H, a0, a1, nC)} fill="#8a6941" />)
+      out.push(<path key="chb" d={ligne(w2, a0, a1, nC, H)} stroke="#5f462d" strokeWidth={1.4} fill="none" />)
+      const tt = abscisse(w2, a0, a1)
+      out.push(<path key="po" d={anglesPas(tt, 22, 8).filter((a) => coupe(a) > H).map((a) => { const p = pt(w2, a); return `M${f(p.x)},${f(p.y)}V${f(p.y - H)}` }).join('')} stroke="#5f462d" strokeWidth={1.3} />)
+      out.push(<path key="pied" d={ruban(w2, 0, grow(geo, -12), 0, a0, a1, nC)} fill={PIED[0]} opacity={0.22} />)
+      echafauds.forEach((a, i) => { const p = pt(eIn, a); out.push(<Echafaud key={'e' + i} x={p.x} y={p.y} H={H} />) })
+    }
+  }
+
+  // ═══════════════════════ MURS DE PIERRE (niveaux 2 à 4) ═══════════════════════
+  if (n >= 2) {
+    const irr = n === 2
+    const boss = n === 4
+    const hCren = c.par * 0.45
+    const gp = grow(geo, -1.6)
+    const ta = abscisse(geo, a0, a1)
+    const couronne = anglesPas(ta, c.pas, c.pas * 0.5)
+    const raide = (a: number) => Math.abs(Math.sin(a)) < 0.34
+
+    /** couronnement vu depuis l'extérieur (front) ou l'intérieur (back) */
+    const Couronnement = ({ g, normale, avant }: { g: GeoMur; normale: (a: number) => number; avant: boolean }) => {
+      if (n === 2) {
+        // parapet de planches entre poteaux
+        const tp = abscisse(g, a0, a1)
+        const planches = anglesPas(tp, 2.4, 0.6)
+        const dP = ['', '', '']
+        let poteaux = ''
+        for (const a of planches) {
+          if (coupe(a) < crete) continue
+          const p = pt(g, a)
+          const l = lumiere(normale(a))
+          dP[clamp(Math.round((1 - l) * 2), 0, 2)] += `M${f(p.x - 1.2)},${f(p.y - H)}h2.4v${f(-c.par)}h-2.4Z`
+        }
+        for (const a of couronne) {
+          if (coupe(a) < crete) continue
+          const p = pt(g, a)
+          poteaux += `M${f(p.x)},${f(p.y - H + 1)}V${f(p.y - crete - 2.4)}`
+        }
+        const bois = ['#a8845d', '#8a6941', '#6a4e30']
+        return (
+          <g>
+            {dP.map((d, i) => (d ? <path key={i} d={d} fill={bois[i]} /> : null))}
+            <path d={ligne(g, a0, a1, nC, crete - 0.8)} stroke="#c09a68" strokeWidth={0.9} fill="none" opacity={avant ? 0.9 : 0.6} />
+            <path d={poteaux} stroke="#4f3a24" strokeWidth={1.3} />
+          </g>
+        )
+      }
+      // créneaux de pierre : partie continue, puis merlons (ou parapet plein là où la crête se dresse)
+      const merl = ['', '', '', '', '']
+      let cap = ''
+      const tp = abscisse(g, a0, a1)
+      const wM = c.pas * 0.6
+      for (let sM = c.pas * 0.5; sM <= tp.L; sM += c.pas) {
+        const am = aDe(tp, sM)
+        if (coupe(am) < crete) continue
+        if (ratio < 0.5 && rndCren() < (0.5 - ratio) * 0.9) continue
+        const plein = raide(am)
+        const aa = aDe(tp, sM - (plein ? c.pas / 2 : wM / 2))
+        const ab = aDe(tp, sM + (plein ? c.pas / 2 : wM / 2))
+        const pa = pt(g, aa)
+        const pb = pt(g, ab)
+        const yb = H + hCren
+        merl[ton(lumiere(normale(am)), 0)] += `M${f(pa.x)},${f(pa.y - yb)}L${f(pb.x)},${f(pb.y - yb)}L${f(pb.x)},${f(pb.y - crete)}L${f(pa.x)},${f(pa.y - crete)}Z`
+        cap += `M${f(pa.x)},${f(pa.y - crete)}L${f(pb.x)},${f(pb.y - crete)}`
+      }
+      return (
+        <g>
+          <Appareil g={g} a0={a0} a1={a1} y0={H} y1={H + hCren} hA={hCren} bloc={c.bloc} normale={normale} pal={pal} joint={joint} seed={n * 13 + (avant ? 1 : 2)} coupe={coupe} bossage={false} />
+          {merl.map((d, i) => (d ? <path key={i} d={d} fill={pal[i]} /> : null))}
+          <path d={cap} stroke={pal[0]} strokeWidth={n === 4 ? 1.4 : 1} fill="none" />
+          {n === 4 && <path d={cap} stroke="#fffaf0" strokeWidth={0.5} fill="none" transform="translate(0,-0.5)" />}
+        </g>
+      )
+    }
+
+    /** dessus du chemin de ronde, dallé */
+    const Ronde = ({ gA, gB }: { gA: GeoMur; gB: GeoMur }) => {
+      const tt = abscisse(gA, a0, a1)
+      const dalles = anglesPas(tt, c.bloc * 0.9, 2).filter((a) => coupe(a) > H).map((a) => {
+        const p = pt(gA, a)
+        const q = pt(gB, a)
+        return `M${f(p.x)},${f(p.y - H)}L${f(q.x)},${f(q.y - H)}`
+      }).join('')
+      return (
+        <g>
+          <path d={ruban(gA, H, gB, H, a0, a1, nC)} fill={n === 2 ? '#b5a888' : pal[1]} />
+          <path d={dalles} stroke={joint} strokeWidth={0.4} opacity={0.5} />
+        </g>
+      )
+    }
+
+    if (!arriere) {
+      // ── FACE EXTERNE ──
+      out.push(<path key="omb" d={ruban(grow(geo, 2), 0, grow(geo, 6 + crete * 0.3), 0, a0, a1, nC)} fill={PAL.ombrePortee} opacity={0.1} />)
+      out.push(<path key="omb2" d={ruban(grow(geo, 1), 0, grow(geo, 4 + crete * 0.12), 0, a0, a1, nC)} fill={PAL.ombrePortee} opacity={0.12} />)
+      out.push(<Ronde key="ronde" gA={geo} gB={gi} />)
+      out.push(<Appareil key="face" g={geo} a0={a0} a1={a1} y0={0} y1={H} hA={c.hA} bloc={c.bloc} normale={nExt} pal={pal} joint={joint} seed={n * 7 + 1} coupe={coupe} irregulier={irr} bossage={boss} />)
+      if (n === 4) {
+        // plinthe saillante et corniche au droit du chemin de ronde
+        out.push(<path key="pl" d={ruban(grow(geo, 1.2), 0, grow(geo, 1.2), 3.2, a0, a1, nC)} fill={pal[2]} />)
+        out.push(<path key="pll" d={ligne(grow(geo, 1.2), a0, a1, nC, 3.2)} stroke={pal[0]} strokeWidth={0.9} fill="none" />)
+        out.push(<path key="co" d={ruban(grow(geo, 0.8), H - 1.6, grow(geo, 0.8), H, a0, a1, nC)} fill={pal[0]} />)
+        out.push(<path key="coo" d={ligne(geo, a0, a1, nC, H - 2.2)} stroke="#6f654f" strokeWidth={0.8} fill="none" opacity={0.5} />)
+      }
+      if (n === 2) {
+        // abouts du chaînage de bois noyé dans le mur
+        const tt = abscisse(geo, a0, a1)
+        out.push(<path key="ch" d={anglesPas(tt, 18, 6).filter((a) => coupe(a) > H).map((a) => { const p = pt(geo, a); return `M${f(p.x - 1.2)},${f(p.y - H * 0.55)}h2.4v-2h-2.4Z` }).join('')} fill="#6a4e30" />)
+      }
+      if (n >= 3) {
+        // archères, une par travée de créneaux sur deux
+        const tt = abscisse(geo, a0, a1)
+        const ar = anglesPas(tt, c.pas * 3, c.pas).filter((a) => !raide(a) && coupe(a) > H && !toursIci.some((tp) => Math.abs(tp.a - a) < 0.08))
+        out.push(<path key="ar" d={ar.map((a) => { const p = pt(geo, a); return `M${f(p.x - 0.6)},${f(p.y - H * 0.62)}h1.2v-5.4h-1.2Z` }).join('')} fill="#1f1a14" />)
+        out.push(<path key="arl" d={ar.map((a) => { const p = pt(geo, a); return `M${f(p.x - 1.3)},${f(p.y - H * 0.62 + 0.4)}h2.6` }).join('')} stroke={pal[0]} strokeWidth={0.7} />)
+      }
+      // occlusion au pied
+      out.push(<path key="ao" d={ruban(geo, 0, geo, 2.2, a0, a1, nC)} fill="#2a2218" opacity={0.28} />)
+      out.push(<Couronnement key="cour" g={geo} normale={nExt} avant />)
+    } else {
+      // ── FACE INTERNE ── (le parapet extérieur au fond, le chemin, puis la face)
+      out.push(<Couronnement key="cour" g={gp} normale={nInt} avant={false} />)
+    }
+    // tours de la couche arrière : entre le parapet et le chemin de ronde
+    if (arriere) {
+      toursIci.forEach((tp, i) => {
+        const p = pt(gi, tp.a)
+        const R = (COTES_TOUR[n]?.D ?? 0) * (tp.guet ? 0.72 : 1) * 0.45
+        out.push(<Tour key={'tb' + i} x={p.x + R * 0.1} y={p.y + 1} niveau={n} guet={tp.guet} fete={fete} seed={i * 17 + 5} />)
+      })
+      out.push(<Ronde key="ronde" gA={gp} gB={gi} />)
+      out.push(<Appareil key="face" g={gi} a0={a0} a1={a1} y0={0} y1={H} hA={c.hA} bloc={c.bloc} normale={nInt} pal={pal} joint={joint} seed={n * 7 + 2} coupe={coupe} irregulier={irr} bossage={false} />)
+      // la valeur tombe vers le pied : trois nappes sourdes et neutres
+      out.push(<path key="p0" d={ruban(gi, 0, gi, H * 0.42, a0, a1, nC)} fill={PIED[0]} opacity={0.2} />)
+      out.push(<path key="p1" d={ruban(gi, 0, gi, H * 0.24, a0, a1, nC)} fill={PIED[1]} opacity={0.28} />)
+      out.push(<path key="p2" d={ruban(gi, 0, gi, H * 0.1, a0, a1, nC)} fill={PIED[2]} opacity={0.4} />)
+      // bande d'arête claire sous le chemin de ronde
+      out.push(<path key="ar" d={ligne(gi, a0, a1, nC, H)} stroke={pal[0]} strokeWidth={0.9} fill="none" opacity={0.8} />)
+      // escaliers qui montent au chemin de ronde
+      ESCALIERS.filter((s) => s >= a0 && s + 0.12 <= a1 && coupe(s) > H && coupe(s + 0.12) > H && !toursIci.some((tp) => tp.a > s - 0.1 && tp.a < s + 0.2)).forEach((s, i) => {
+        const ge = grow(gi, -4.5)
+        const m = Math.max(4, Math.round(H / 2.6))
+        let marches = ''
+        let flancE = ''
+        for (let j = 0; j < m; j++) {
+          const aa = s + (0.12 * j) / m
+          const ab = s + (0.12 * (j + 1)) / m
+          const hh = (H * (j + 1)) / m
+          const pa = pt(ge, aa)
+          const pb = pt(ge, ab)
+          const qa = pt(gi, aa)
+          const qb = pt(gi, ab)
+          marches += `M${f(pa.x)},${f(pa.y - hh)}L${f(pb.x)},${f(pb.y - hh)}L${f(qb.x)},${f(qb.y - hh)}L${f(qa.x)},${f(qa.y - hh)}Z`
+          flancE += `M${f(pa.x)},${f(pa.y)}L${f(pb.x)},${f(pb.y)}L${f(pb.x)},${f(pb.y - hh)}L${f(pa.x)},${f(pa.y - hh)}Z`
+        }
+        out.push(
+          <g key={'es' + i}>
+            <path d={flancE} fill={pal[3]} />
+            <path d={flancE} fill={PIED[1]} opacity={0.5} />
+            <path d={marches} fill={pal[0]} />
+          </g>,
+        )
+      })
+    }
+  }
+
+  // fissures
+  fissures.forEach((a, i) => {
+    const g = arriere ? gi : geo
+    const p = pt(g, a)
+    const h0 = c.H * 0.15
+    out.push(<path key={'fi' + i} d={`M${f(p.x)},${f(p.y - h0)}l1.4,-4l-1,-3.4l1.6,-4l-0.8,-3l1.2,-3.6`} stroke="#2a2218" strokeWidth={0.8} fill="none" opacity={0.7} />)
+  })
+  // décombres des pans effondrés
+  pans.forEach((a, i) => out.push(<Decombres key={'de' + i} g={arriere ? gi : grow(geo, 3)} a={a} crete={crete} niveau={n} seed={i * 23 + 9} />))
+  // chantier : échafaudage au bout de l'arc
+  if (sp < 1) {
+    const p = pt(arriere ? gi : geo, a1)
+    const hS = crete * 0.8
+    out.push(
+      <g key="chantier">
+        <path d={`M${f(p.x - 6)},${f(p.y + 2)}V${f(p.y - hS)}M${f(p.x + 6)},${f(p.y + 4)}V${f(p.y - hS + 2)}M${f(p.x - 7)},${f(p.y - hS * 0.5)}H${f(p.x + 7)}M${f(p.x - 7)},${f(p.y - hS * 0.9)}H${f(p.x + 7)}M${f(p.x - 6)},${f(p.y)}L${f(p.x + 6)},${f(p.y - hS * 0.5)}`} stroke="#6a4e30" strokeWidth={1.1} />
+        <path d={`M${f(p.x - 8)},${f(p.y - hS * 0.5 - 1)}h16v1.2h-16Z`} fill="#a8845d" />
+        {n >= 2 && <path d={`M${f(p.x + 8)},${f(p.y + 4)}h7v-3h-7ZM${f(p.x + 9)},${f(p.y + 1)}h5v-2.6h-5Z`} fill={pal[1]} />}
+      </g>,
+    )
+  }
+
+  // tours de la couche avant, devant le mur
+  if (!arriere) {
+    toursIci.forEach((tp, i) => {
+      const p = pt(geo, tp.a)
+      out.push(<Tour key={'tf' + i} x={p.x} y={p.y + 3.5} niveau={n} guet={tp.guet} fete={fete} seed={i * 17 + 3} />)
+    })
+  }
+
+  if (!arriere && sp >= 1) out.push(<Porte key="porte" geo={geo} niveau={n} breche={breche} />)
+
+  return <g>{out}</g>
+}
+
+/* ═══════════════ LE FOSSÉ ET LA VIE DU REMPART ═══════════════
+ * Le fossé est dessiné SOUS le mur, dehors : sec et hérissé de pieux (1),
+ * élargi (2), douve en eau à contrescarpe de pierre (3), douve large et
+ * parementée (4). Il s'interrompt devant la porte (chaussée de terre).
+ * Torches de veille dès le niveau 2, boucliers pendus au parapet dès le 3,
+ * tentures pourpre et or au 4 - jamais à moins d'un pan d'une brèche, et
+ * retirées quand l'enceinte souffre (< 40 % de structure).
+ */
+function Fosse({ niveau, layer, geo = MAP.mur, span = 1 }: Props) {
+  if (niveau <= 0 || span < 1) return null
+  const arriere = layer === 'back'
+  const n = Math.min(4, Math.round(niveau))
+  const eau = n >= 3
+  const d0 = n >= 4 ? 5 : 6
+  const d1 = n === 1 ? 12 : n === 2 ? 14 : n === 3 ? 16 : 19
+  const g = (d: number) => grow(geo, d)
+  const [a0, a1] = arriere ? [Math.PI, 2 * Math.PI - 0.3] : [0.3, Math.PI]
+  const nn = 90
+  let pieux = ''
+  if (n === 1) {
+    for (let a = a0 + 0.04; a < a1; a += 9 / Math.max(geo.rx, geo.ry)) {
+      const p = pt(g((d0 + d1) / 2), a)
+      pieux += `M${f(p.x - 0.6)},${f(p.y + 0.6)}L${f(p.x + 0.9)},${f(p.y - 4.2)}`
+    }
+  }
   return (
     <g>
-      <DefsMur />
+      {eau ? (
+        <>
+          <path d={ruban(g(d0 - 1), 0, g(d1 + 1.6), 0, a0, a1, nn)} fill="#6f6553" />
+          <path d={ruban(g(d0), 0, g(d1), 0, a0, a1, nn)} fill="#2f6f82" />
+          <path d={ruban(g(d0), 0, g(d0 + (d1 - d0) * 0.45), 0, a0, a1, nn)} fill="#1f5467" opacity={0.7} />
+          <path d={ligne(g(d0 + (d1 - d0) * 0.62), a0, a1, nn, 0)} stroke="#9fd6d8" strokeWidth={0.8} fill="none" strokeDasharray="10 7 4 9" opacity={0.55} />
+          <path d={ligne(g(d1 + 0.8), a0, a1, nn, 0)} stroke={n >= 4 ? '#ddd4bd' : '#b3a88d'} strokeWidth={n >= 4 ? 2.2 : 1.6} fill="none" />
+          {n >= 4 && <path d={ligne(g(d1 + 2), a0, a1, nn, 0)} stroke="#877c63" strokeWidth={0.8} fill="none" />}
+        </>
+      ) : (
+        <>
+          <path d={ruban(g(d0), 0, g(d1), 0, a0, a1, nn)} fill="#7a6644" />
+          <path d={ruban(g(d0 + (d1 - d0) * 0.35), 0, g(d0 + (d1 - d0) * 0.7), 0, a0, a1, nn)} fill="#5c4b30" />
+          <path d={ligne(g(d1), a0, a1, nn, 0)} stroke="#b19a67" strokeWidth={1.2} fill="none" />
+          {pieux && <path d={pieux} stroke="#6a4e30" strokeWidth={1.1} strokeLinecap="round" />}
+        </>
+      )}
+    </g>
+  )
+}
 
-      {niveau === 1 &&
-        (() => {
-          const tous = anglesArc(t, c.pas, 0, 1)
-          const debout = (a: number) => !encoches.some((e) => Math.abs(a - e.a) < e.da)
-          const angles = tous.filter(debout)
-          const px = pieuxPaths(angles.map((a) => pt(geo, a)), -4, c.par + H - 4, 4, 5.4, arriere ? 5 : 3)
-          const gardes = anglesArc(t, 150, 40).filter((a) => !encoches.some((e) => Math.abs(a - e.a) < e.da * 1.6))
-          const cf = anglesArc(t, 62, 14)
-          // traverses SEGMENTÉES tous les 5 pieux : un seul stroke d'un bout à
-          // l'autre faisait « voie ferrée » sur 830 px
-          let trav = ''
-          let travLum = ''
-          let liga = ''
-          for (const dy of [-crete + 9, -crete + 16]) {
-            for (let i = 0; i + 5 < tous.length; i += 5) {
-              if (!debout(tous[i]) || !debout(tous[i + 5])) continue
-              const p = pt(geo, tous[i])
-              const q = pt(geo, tous[i + 5])
-              const jit = ((i * 7) % 3) * 0.5 - 0.5
-              trav += `M${p.x.toFixed(1)},${(p.y + dy + jit - 1).toFixed(1)}L${q.x.toFixed(1)},${(q.y + dy + jit - 1).toFixed(1)}L${q.x.toFixed(1)},${(q.y + dy + jit + 1.1).toFixed(1)}L${p.x.toFixed(1)},${(p.y + dy + jit + 1.1).toFixed(1)}Z`
-              travLum += `M${p.x.toFixed(1)},${(p.y + dy + jit - 1).toFixed(1)}L${q.x.toFixed(1)},${(q.y + dy + jit - 1).toFixed(1)}L${q.x.toFixed(1)},${(q.y + dy + jit - 0.3).toFixed(1)}L${p.x.toFixed(1)},${(p.y + dy + jit - 0.3).toFixed(1)}Z`
-              liga += `M${(p.x - 1.4).toFixed(1)},${(p.y + dy + jit - 1.6).toFixed(1)}h2.8v3.4h-2.8Z`
-            }
-          }
-          return (
-            <g>
-              {/* ombre portée au sol côté SE */}
-              <path d={ligne(geo, a0, a1, nC, 5)} stroke={PAL.ombrePortee} strokeWidth={9} fill="none" opacity={0.16} filter="url(#a-flou2)" />
-              {/* la LEVÉE DE TERRE : un talus BAS au pied, pas un remblai de la
-                  hauteur de la palissade */}
-              <path d={ruban(geo, 2.5, geo, -5, a0, a1, nC, 3)} fill="#5f4d2c" />
-              <path d={ruban(geo, 1.2, geo, -5, a0, a1, nC, 1.4)} fill="#7a6640" />
-              <path d={ligne(geo, a0, a1, nC, -5, 0.3)} stroke="#97814f" strokeWidth={1.1} fill="none" opacity={0.8} />
-              <path d={ligne(geo, a0, a1, nC, 1.4, 2.9)} stroke="#4a3a20" strokeWidth={1.4} fill="none" opacity={0.5} />
-              {/* fond de palissade : la pénombre entre les pieux, jamais le sol nu */}
-              <path d={ruban(geo, -3.5, geo, -crete + 4, a0, a1, nC)} fill="#46331d" />
-              {/* contreforts : deux pieux inclinés en V, appuyés au-dehors */}
-              {(() => {
-                let est = ''
-                let ouest = ''
-                for (const a of cf) {
-                  const p = pt(geo, a)
-                  const o = saillie(geo, a, 5)
-                  const { tx, ty } = tangente(geo, a)
-                  const bx = p.x + o.dx
-                  const by = p.y + o.dy + 1
-                  est += `M${(bx + tx * 5).toFixed(1)},${(by + ty * 5).toFixed(1)}L${(p.x + 1.1).toFixed(1)},${(p.y - H * 0.86).toFixed(1)}L${(p.x - 0.7).toFixed(1)},${(p.y - H * 0.86).toFixed(1)}L${(bx + tx * 5 - 1.7).toFixed(1)},${(by + ty * 5).toFixed(1)}Z`
-                  ouest += `M${(bx - tx * 5).toFixed(1)},${(by - ty * 5).toFixed(1)}L${(p.x - 1.1).toFixed(1)},${(p.y - H * 0.86).toFixed(1)}L${(p.x + 0.7).toFixed(1)},${(p.y - H * 0.86).toFixed(1)}L${(bx - tx * 5 + 1.7).toFixed(1)},${(by - ty * 5).toFixed(1)}Z`
-                }
-                return (
-                  <>
-                    <path d={est} fill="#6a4e2d" />
-                    <path d={ouest} fill="#8b6a40" />
-                  </>
-                )
-              })()}
-              {/* l’échafaud de guet est DERRIÈRE le rideau : de dehors, les
-                  pointes doivent lui passer devant */}
-              {!arriere && <EchafaudsGuet geo={geo} angles={gardes} crete={crete} arriere={arriere} span={span} />}
-              {/* pieux : 3 valeurs de bois, arête ouest éclairée, pointes claires */}
-              <path d={px.corps[0]} fill="#7d5e39" />
-              <path d={px.corps[1]} fill="#6a4e2d" />
-              <path d={px.corps[2]} fill="#8b6a40" />
-              <path d={px.arete} fill="#aa865e" opacity={0.85} />
-              <path d={px.pointe} fill="#d6b788" />
-              {/* traverses lâchées devant les pieux + ligature de corde */}
-              <path d={trav} fill="#5c4227" />
-              <path d={travLum} fill="#96713f" opacity={0.9} />
-              <path d={liga} fill="#4a3519" opacity={0.85} />
-              {arriere && <EchafaudsGuet geo={geo} angles={gardes} crete={crete} arriere={arriere} span={span} />}
-            </g>
-          )
-        })()}
-
-      {niveau === 2 &&
-        (() => {
-          const gFace = arriere ? gi : geo
-          const as = assisesArc(gFace, t, c.pasBloc, -H + 1.4, c.rangs, c.hAssise, 5, arriere ? 22 : 21, false)
-          const poteaux = anglesArc(t, c.pas, 0, 1).filter((a) => !encoches.some((e) => Math.abs(a - e.a) < e.da))
-          const cf = anglesArc(t, 52, 20)
-          /*
-           * ═════════════════════ LE HOURD ═════════════════════
-           *
-           * La galerie de bois posée sur le mur de pierre sèche. Elle était
-           * dessinée en ÉLÉVATION FRONTALE : un ruban de 5,5 px de haut suivant
-           * la crête, des poteaux de 2,4 px de large et un chapeau horizontal.
-           * Au nord, où la crête court à plat, cela se lit très bien. Aux deux
-           * extrémités est et ouest, où la tangente se dresse, un ruban à
-           * hauteur constante n'a plus AUCUNE largeur apparente : il ne restait
-           * que la file des poteaux et de leurs chapeaux, une fermeture éclair
-           * de petits « T » posée sur la tranche du mur. Le volume s'effondrait
-           * exactement là où le joueur l'a vu s'effondrer.
-           *
-           * Le remède est celui de R3 : un hourd a une PROFONDEUR - c'est même
-           * sa raison d'être militaire, on jette par le trou du plancher ce
-           * qu'on n'atteint pas du sommet. Cette profondeur se dessine comme
-           * l'épaisseur du chemin de ronde, par un ANNEAU entre deux ellipses,
-           * qui se pince au nord et au sud et s'ouvre à l'est et à l'ouest :
-           *
-           *   `gH` nu EXTÉRIEUR de la galerie, `dH` px de plan hors du parement
-           *   `gB` nu intérieur du bardage
-           *   `gR` / `gRi` les deux nus de la main courante, qui déborde des deux
-           *
-           * Trois pièces se relaient donc selon l'angle, sans réglage : au nord
-           * le BARDAGE (large, la crête est à plat), à l'est et à l'ouest le
-           * PLANCHER en encorbellement et les ABOUTS DE POUTRE (larges, la
-           * profondeur y est horizontale), la MAIN COURANTE partout.
-           *
-           * Et la galerie se TERMINE : à chaque bout de l'arc - la porte à
-           * l'est, le point ouest où les deux couches se rejoignent - un
-           * PIGNON ferme sa coupe, un poteau cornier le tient et l'about de la
-           * poutre de sole sort dessous. Une coupe franche n'est pas une fin.
-           */
-          const dH = 3.4
-          const eB = 1.5
-          const gH = dedans(geo, -dH)
-          const gB = dedans(geo, -dH + eB)
-          const gR = dedans(geo, -dH - 0.7)
-          const gRi = dedans(geo, -dH + eB + 1.2)
-          /** la face qu'on VOIT : l'extérieure au sud, l'intérieure au nord (R4) */
-          const gF = arriere ? gB : gH
-          const yC = -H - c.par
-          let pot = ''
-          let potLum = ''
-          let corb = ''
-          let corbLit = ''
-          for (const a of poteaux) {
-            const p = pt(gF, a)
-            const { tx } = tangente(geo, a)
-            // le poteau s'AMINCIT là où on le prend de bout, et c'est le
-            // plancher qui prend le relais - le même passage de main que R2
-            const w = 2.7 * Math.max(0.44, Math.abs(tx))
-            pot += `M${(p.x - w / 2).toFixed(1)},${(p.y + yC).toFixed(1)}h${w.toFixed(1)}v${(c.par + 0.3).toFixed(1)}h-${w.toFixed(1)}Z`
-            potLum += `M${(p.x - w / 2).toFixed(1)},${(p.y + yC).toFixed(1)}h${(w * 0.34).toFixed(1)}v${(c.par + 0.3).toFixed(1)}h-${(w * 0.34).toFixed(1)}Z`
-            if (!arriere) {
-              /*
-               * ABOUT DE POUTRE : la sole qui sort du parement et porte la
-               * galerie. C'est par elle qu'on comprend que le bois SORT du mur.
-               * Elle doit être plus LARGE que le poteau qu'elle porte, sinon
-               * les deux s'enfilent en un seul bâtonnet sombre et le hourd
-               * gagne une rangée de clous.
-               */
-              const q = pt(geo, a)
-              const u = saillie(geo, a, dH)
-              const wc = 3.8 * Math.max(0.56, Math.abs(tx))
-              corb +=
-                `M${(q.x - wc / 2).toFixed(1)},${(q.y - H + 0.4).toFixed(1)}L${(q.x + wc / 2).toFixed(1)},${(q.y - H + 0.4).toFixed(1)}` +
-                `L${(q.x + wc / 2 + u.dx).toFixed(1)},${(q.y - H + 2.7 + u.dy).toFixed(1)}L${(q.x - wc / 2 + u.dx).toFixed(1)},${(q.y - H + 2.7 + u.dy).toFixed(1)}Z`
-              corbLit +=
-                `M${(q.x - wc / 2).toFixed(1)},${(q.y - H + 0.4).toFixed(1)}L${(q.x - wc / 2 + 1.1).toFixed(1)},${(q.y - H + 0.4).toFixed(1)}` +
-                `L${(q.x - wc / 2 + 1.1 + u.dx).toFixed(1)},${(q.y - H + 2.7 + u.dy).toFixed(1)}L${(q.x - wc / 2 + u.dx).toFixed(1)},${(q.y - H + 2.7 + u.dy).toFixed(1)}Z`
-            }
-          }
-          /*
-           * LES DEUX ABOUTS DE LA GALERIE. Ils ne sont pas de même nature, et
-           * les traiter pareil se voyait :
-           *  · à la PORTE (et à l'about d'un chantier) la galerie s'arrête pour
-           *    de bon : elle se ferme sur un PIGNON, la coupe pleine de sa
-           *    section, plus son poteau cornier ;
-           *  · au POINT OUEST les deux couches se rejoignent bout à bout - il
-           *    n'y a rien à fermer. Un pignon posé là faisait un pavé sombre
-           *    collé sur le flanc du hourd, à l'endroit même que le joueur
-           *    regarde. Il n'y reste que le poteau, qui tient le joint et
-           *    masque le pas de 1,5 px entre les deux faces vues (R4).
-           */
-          const bouts: { a: number; plein: boolean }[] = arriere
-            ? [{ a: a0, plein: false }, { a: a1, plein: true }]
-            : [{ a: a0, plein: true }, { a: a1, plein: span < 1 }]
-          let pignon = ''
-          let pignonLit = ''
-          let cornier = ''
-          let corniere = ''
-          let chapeau = ''
-          for (const { a: aE, plein } of bouts) {
-            const pm = pt(geo, aE)
-            const ph = pt(gH, aE)
-            if (plein) {
-              // le pignon : la COUPE de la galerie, du plancher à la courante
-              pignon +=
-                `M${pm.x.toFixed(1)},${(pm.y - H + 0.6).toFixed(1)}L${ph.x.toFixed(1)},${(ph.y - H + 0.6).toFixed(1)}` +
-                `L${ph.x.toFixed(1)},${(ph.y + yC).toFixed(1)}L${pm.x.toFixed(1)},${(pm.y + yC).toFixed(1)}Z`
-              pignonLit +=
-                `M${pm.x.toFixed(1)},${(pm.y + yC).toFixed(1)}L${ph.x.toFixed(1)},${(ph.y + yC).toFixed(1)}` +
-                `L${ph.x.toFixed(1)},${(ph.y + yC + 1).toFixed(1)}L${pm.x.toFixed(1)},${(pm.y + yC + 1).toFixed(1)}Z`
-            }
-            /*
-             * LE POTEAU CORNIER se dresse DANS le pignon, il n'en sort pas.
-             * Dessiné comme un rectangle d'axes écran de 3,4 px, il devenait au
-             * point ouest - où les deux couches aboutissent l'une contre
-             * l'autre - un pavé de 8 px collé sur le flanc de la galerie : une
-             * verrue, pas une fin. Il se cote comme les autres poteaux, au
-             * tiers près en plus fort, et c'est le PIGNON qui dit la coupe.
-             */
-            const pf = pt(gF, aE)
-            const { tx } = tangente(geo, aE)
-            const w = 3.4 * Math.max(0.46, Math.abs(tx))
-            cornier += `M${(pf.x - w / 2).toFixed(1)},${(pf.y + yC - 0.8).toFixed(1)}h${w.toFixed(1)}v${(c.par + 2.4).toFixed(1)}h-${w.toFixed(1)}Z`
-            corniere += `M${(pf.x - w / 2).toFixed(1)},${(pf.y + yC - 0.8).toFixed(1)}h${(w * 0.34).toFixed(1)}v${(c.par + 2.4).toFixed(1)}h-${(w * 0.34).toFixed(1)}Z`
-            // le chapeau du poteau : ce qui distingue un about d'une coupure
-            chapeau += `M${(pf.x - w / 2 - 0.8).toFixed(1)},${(pf.y + yC - 2).toFixed(1)}h${(w + 1.6).toFixed(1)}v1.4h-${(w + 1.6).toFixed(1)}Z`
-          }
-          return (
-            <g>
-              <path d={ligne(geo, a0, a1, nC, 5)} stroke={PAL.ombrePortee} strokeWidth={10} fill="none" opacity={0.15} filter="url(#a-flou2)" />
-              {/* corps en pierre sèche, face de 20 px : au point ouest elle ne se
-                  réduit plus à un filet de 2 px */}
-              <path d={ruban(gFace, 2, gFace, -H, a0, a1, nC)} fill={arriere ? 'url(#mur-interne)' : 'url(#mur-sec)'} />
-              {/* contreforts : massifs de pierre, seuls accents verticaux */}
-              {!arriere &&
-                (() => {
-                  const b = contreforts(geo, cf, H, 8, 2.6, 0.82)
-                  return (
-                    <g>
-                      <path d={b.face} fill="url(#mur-sec)" />
-                      <path d={b.face} fill="#e2dac6" opacity={0.18} />
-                      <path d={b.flanc} fill={PAL.ombrePortee} opacity={0.24} />
-                      <path d={b.lum} fill="#e6dfc9" opacity={0.5} />
-                    </g>
-                  )
-                })()}
-              {/* blocs par assises, tons répondant à la lumière NW - OPACITÉ 1 :
-                  la pierre sèche doit être des blocs, pas un voile */}
-              {as.tons.map((d, i) => (
-                <path key={i} d={d} fill={TONS_SEC[i]} opacity={arriere ? 0.7 : 1} />
-              ))}
-              {/* lit de réglage : un rang de plaquettes au tiers de la hauteur */}
-              <path d={ruban(gFace, -H * 0.44, gFace, -H * 0.44 + 1.6, a0, a1, nC)} fill="#cfc5ab" opacity={0.75} />
-              {/* fruit : la plinthe est poussée vers le dehors */}
-              {/* le fruit est un débord du DEHORS : repeindre la même bande au
-                  dedans n'y ajoutait pas de volume, cela effaçait les assises et
-                  posait le mur sur une plinthe pâle - le trottoir qu'on voyait */}
-              {!arriere && (
-                <>
-                  <path d={ruban(gFace, 2, gFace, -4.4, a0, a1, nC, 1.6)} fill="url(#mur-sec)" />
-                  <path d={ligne(gFace, a0, a1, nC, -4.4, 0.5)} stroke="#c8bda2" strokeWidth={1} fill="none" opacity={0.5} />
-                </>
-              )}
-              {/*
-                AU DEDANS, LE MUR SEC DESCEND AU SOL. Le remblai qui s'y adossait
-                a été retiré ; ce qu'il laissait derrière lui était une bande pâle
-                et vide de huit cents pixels - le défaut même dont ce parement
-                était accusé, et que la terre ne faisait que cacher. On lui rend
-                donc ce qui fait un mur : la valeur qui tombe vers le pied, un
-                rang d'abouts de chaînage - la charpente que la pierre sèche
-                enserre - et un empattement qui le pose par terre.
-              */}
-              {arriere ? (
-                <>
-                  <path d={ruban(gFace, 2, gFace, -H * 0.5, a0, a1, nC)} fill="#4a4131" opacity={0.28} />
-                  <path d={ruban(gFace, 2, gFace, -H * 0.24, a0, a1, nC)} fill="#3c3427" opacity={0.28} />
-                  <path d={ruban(gFace, 2, gFace, -H * 0.08, a0, a1, nC)} fill="#2f2a20" opacity={0.26} />
-                  {(() => {
-                    const ch = chainage(gi, t, -H * 0.62, 2.6, 46, 9)
-                    return (
-                      <g>
-                        <path d={ch.tetesOmbre} fill={PAL.ombrePortee} opacity={0.42} />
-                        <path d={ch.tetes} fill="#5b452b" />
-                        <path d={ch.tetesLit} fill="#8a6c48" opacity={0.85} />
-                      </g>
-                    )
-                  })()}
-                  <path d={ruban(gi, 1.6, gi, 7.6, a0, a1, nC, 0, 4.4)} fill={PAL.ombrePortee} opacity={0.17} />
-                  <path d={ruban(gi, 1.6, gi, 4.4, a0, a1, nC, 0, 2.4)} fill={PAL.ombrePortee} opacity={0.27} />
-                  <path d={ruban(gi, -2, gi, 1.8, a0, a1, nC, 0, 1.9)} fill="#5c5343" />
-                  <path d={ligne(gi, a0, a1, nC, -2, 1.9)} stroke="#8d846d" strokeWidth={1} fill="none" opacity={0.5} />
-                </>
-              ) : (
-                <path d={ligne(gFace, a0, a1, nC, 0.9)} stroke="url(#mur-pied)" strokeWidth={5} fill="none" />
-              )}
-              {/* le sommet n'est plus une palissade de pointes mais un HOURD :
-                  chemin de bois EN ENCORBELLEMENT, bardé de planches */}
-              <path d={ruban(geo, -H, gi, -H, a0, a1, nC)} fill="url(#mur-dalle)" />
-              <path d={ligne(geo, a0, a1, nC, -H + 0.6)} stroke={PAL.ombrePortee} strokeWidth={2} fill="none" opacity={0.16} />
-              {/* AU DEHORS SEULEMENT : l'ombre que le débord jette sur la pierre,
-                  et les abouts des poutres de sole qui le portent - c'est par
-                  eux qu'on lit que le bois SORT du mur, et à l'est comme à
-                  l'ouest ce sont eux qui restent quand le bardage se voit de
-                  bout */}
-              {!arriere && (
-                <>
-                  <path d={ligne(geo, a0, a1, nC, -H + 2.4)} stroke={PAL.ombrePortee} strokeWidth={3.2} fill="none" opacity={0.24} />
-                  <path d={corb} fill="#7d5e39" />
-                  <path d={corbLit} fill="#a8845d" opacity={0.9} />
-                </>
-              )}
-              {/* LE PLANCHER EN ENCORBELLEMENT : l'anneau entre le nu du mur et
-                  celui de la galerie. Il se pince au nord et au sud, il S'OUVRE
-                  à l'est et à l'ouest (R3) - c'est lui, et lui seul, qui porte
-                  le volume du hourd là où le bardage n'en a plus */}
-              <path d={ruban(gH, -H, geo, -H, a0, a1, nC)} fill="#9a744a" />
-              <path d={ruban(gH, -H, gH, -H + 1.1, a0, a1, nC)} fill="#4f3820" opacity={0.8} />
-              {/* le BARDAGE, sur la face vue (R4) */}
-              <path d={ruban(gF, -H + 0.6, gF, yC, a0, a1, nC)} fill="#6a4e2d" />
-              <path d={ligne(gF, a0, a1, nC, yC + 1.3)} stroke="#96713f" strokeWidth={1.5} fill="none" opacity={0.95} />
-              <path d={ligne(gF, a0, a1, nC, -H - 2.6)} stroke="#8b6a40" strokeWidth={1.1} fill="none" opacity={0.7} />
-              <path d={ligne(gF, a0, a1, nC, -H + 0.3)} stroke="#3f2d18" strokeWidth={1.2} fill="none" opacity={0.6} />
-              <path d={pot} fill="#5c4227" />
-              <path d={potLum} fill="#9a744a" opacity={0.9} />
-              {/* MAIN COURANTE : un anneau, pas un trait. Elle déborde du
-                  bardage des deux côtés, si bien qu'à l'est et à l'ouest - où
-                  le bardage n'a plus d'épaisseur apparente - c'est son DESSUS,
-                  large de 3,4 px, qui tient la crête */}
-              <path d={ruban(gR, yC, gRi, yC, a0, a1, nC)} fill="#8b6a40" />
-              <path d={ligne(gRi, a0, a1, nC, yC)} stroke="#c1996a" strokeWidth={1} fill="none" opacity={0.75} />
-              {/* … et la galerie SE TERMINE : pignon, poteau cornier, sole */}
-              <path d={pignon} fill="#5c4227" />
-              <path d={pignonLit} fill="#a8845d" opacity={0.85} />
-              <path d={cornier} fill="#6a4e2d" />
-              <path d={corniere} fill="#a8845d" opacity={0.8} />
-              <path d={chapeau} fill="#96713f" />
-            </g>
-          )
-        })()}
-
-      {niveau >= 3 &&
-        (() => {
-          const angles = anglesArc(t, c.pas, 0, 1)
-          const cr = couronnement(geo, angles, H, c.par, c.wM, c.W, arriere, encoches, niveau * 3 + (arriere ? 2 : 1))
-          // les assises se portent sur la face VUE : le nu extérieur au sud, le
-          // nu intérieur au nord (R4)
-          const gFace = arriere ? gi : geo
-          const as = assisesArc(gFace, t, c.pasBloc, -H + 2, c.rangs, c.hAssise, 5, (arriere ? 42 : 41) + niveau, n4 && !arriere)
-          const cf = anglesArc(t, n4 ? 86 : 78, 26)
-          const arch = anglesArc(t, 55, 22)
-          let dalles = ''
-          for (const a of anglesArc(t, n4 ? 13 : 16, 4)) {
-            const p = pt(geo, a)
-            const q = pt(gi, a)
-            dalles += `M${p.x.toFixed(1)},${(p.y - H).toFixed(1)}L${q.x.toFixed(1)},${(q.y - H).toFixed(1)}`
-          }
-          let mach = ''
-          let joints = ''
-          if (!arriere) {
-            if (n4)
-              for (const a of anglesArc(t, 13, 6)) {
-                const p = pt(geo, a)
-                const { tx } = tangente(geo, a)
-                const w = 3.4 * Math.max(0.45, Math.abs(tx))
-                mach += `M${(p.x - w / 2).toFixed(1)},${(p.y - H).toFixed(1)}L${(p.x - w / 2 + 0.9).toFixed(1)},${(p.y - H + 3.6).toFixed(1)}L${(p.x + w / 2 - 0.9).toFixed(1)},${(p.y - H + 3.6).toFixed(1)}L${(p.x + w / 2).toFixed(1)},${(p.y - H).toFixed(1)}Z`
-              }
-            // soubassement cyclopéen : un seul chemin pour tous les joints
-            for (const a of anglesArc(t, 19, 3)) {
-              const p = pt(geo, a)
-              joints += `M${p.x.toFixed(1)},${(p.y + 1).toFixed(1)}L${p.x.toFixed(1)},${(p.y - c.hAssise - 2.6).toFixed(1)}`
-            }
-          }
-          const ar = archeres(geo, arch, H)
-          /*
-           * LE PARAPET CONTINU (R2). Aux deux extrémités est/ouest de l'ellipse la
-           * crête se dresse : un merlon n'y a plus de sens graphique, mais le
-           * parapet doit tout de même exister - sans cette bande, le mur perdait
-           * son garde-corps sur 0,37 rad de part et d'autre de la porte et du
-           * point ouest, et n'était plus qu'un dessus de dallage.
-           */
-          const aS = seuilPlat(geo)
-          const A0 = arriere ? Math.PI : 0
-          const A1 = arriere ? 2 * Math.PI : Math.PI
-          const gp = dedans(geo, c.W * 0.34)
-          const zones = ([
-            [a0, Math.min(a1, A0 + aS)],
-            [Math.max(a0, Math.min(a1, A1 - aS)), a1],
-          ] as [number, number][]).filter(([u, v]) => v - u > 0.006)
-          const parapetPlein = (
-            <g>
-              {zones.map(([u, v], i) => {
-                const n = pasCourbe(Math.hypot(geo.rx * (Math.cos(v) - Math.cos(u)), geo.ry * (Math.sin(v) - Math.sin(u))))
-                return arriere ? (
-                  <g key={i}>
-                    <path d={ruban(geo, -H - c.par, gp, -H - c.par, u, v, n)} fill={PAL.pierreLit} />
-                    <path d={ruban(gp, -H - c.par, gp, -H, u, v, n)} fill={n4 ? '#9d9179' : '#94886e'} />
-                  </g>
-                ) : (
-                  <g key={i}>
-                    <path d={ruban(geo, -H, geo, -H - c.par, u, v, n)} fill={grad} />
-                    <path d={ruban(geo, -H - c.par, gp, -H - c.par, u, v, n)} fill={PAL.pierreLit} />
-                  </g>
-                )
-              })}
-            </g>
-          )
-          // ── LES OUVRAGES DU DEDANS (R5) : éperons, abouts de chaînage, volées
-          //    et appentis. Aucun au droit d'une tour (le fût les avalerait), et
-          //    les éperons cèdent le pas aux volées et aux appentis. ──
-          const dd = cotesDedans(c)
-          /** px d'ARC → radians à cet angle : sert à espacer les ouvrages (R1) */
-          const angPx = (a: number, px: number) => px / (Math.hypot(geo.rx * Math.sin(a), geo.ry * Math.cos(a)) || 1)
-          const libre = (a: number, f: number) => !encoches.some((e) => Math.abs(a - e.a) < e.da * f)
-          const aEsc = arriere ? anglesArc(t, 240, 70).filter((a) => libre(a, 2.2)) : []
-          const aApp = arriere ? anglesArc(t, 300, 150).filter((a) => libre(a, 2.4)) : []
-          const aEp = arriere
-            ? anglesArc(t, dd.pasEp, 18).filter(
-                (a) =>
-                  libre(a, 1.5) &&
-                  !aEsc.some((b) => Math.abs(a - b) < angPx(a, 36)) &&
-                  !aApp.some((b) => Math.abs(a - b) < angPx(a, 30)),
-              )
-            : []
-          const ep = eperons(gi, aEp, dd, H, c.hAssise)
-          // deux lits de chaînage au niveau 3, TROIS au niveau 4 : la progression
-          // se lit aussi du dedans, et un seul lit se prenait pour une rambarde
-          // Les têtes de poutres sont DÉCALÉES d'un lit à l'autre. Alignées, les
-          // deux lits et leurs têtes composaient un quadrillage : le mur de
-          // pierre se lisait comme un pan de bois, et c'était un « truc en
-          // bois » de plus sur la face interne.
-          const chz = (n4 ? [0.44, 0.64, 0.84] : [0.5, 0.78]).map((f, i) =>
-            chainage(gi, t, -H * f, n4 ? 3.4 : 3, n4 ? 52 : 46, (i * 2 + 1) * 11),
-          )
-          let esc = ''
-          let escLum = ''
-          let escFlanc = ''
-          let escJoints = ''
-          let escRampe = ''
-          let escRampeLit = ''
-          for (const a of aEsc) {
-            const p = pt(gi, a)
-            const { tx, ty } = tangente(gi, a)
-            const o = saillie(gi, a, -dd.profTal)
-            /*
-             * LA VOLÉE GARDE SA PENTE, QUELLE QUE SOIT L'ELLIPSE. Elle part du
-             * SOL, en avant du parement, et monte dans le sens où la base du mur
-             * DESCEND à l'écran : dans l'autre sens la chute du terrain s'ajoute
-             * à la hauteur du mur et la volée se dresse à 75°, une échelle. Sa
-             * longueur d'arc `s` est ensuite RÉSOLUE pour que la pente écran
-             * vaille 1,35 - soit 53° au nord comme à l'ouest, sur la carte comme
-             * sur l'ellipse bien plus plate de l'expédition.
-             */
-            const sg = ty >= 0 ? 1 : -1
-            const ax = tx * sg
-            const ay = ty * sg
-            const s = (H + 2 + o.dy) / (1.35 * Math.abs(ax) + ay)
-            const fx = p.x + o.dx
-            const fy = p.y + o.dy + 2
-            // le haut de la volée : sur la base du mur `s` px d'arc plus loin,
-            // donc sur le chemin de ronde de CE point-là
-            const gx = p.x + ax * s
-            const yG = p.y + ay * s + 2
-            const ty2 = yG - 2 - H
-            const nM = Math.max(5, Math.min(12, Math.round((fy - ty2) / 3.6)))
-            const hM = (fy - ty2) / nM
-            const g = (gx - fx) / nM
-            /*
-             * LE PROFIL EN ESCALIER, D'UN SEUL TENANT. Chaque marche était
-             * dessinée du nez jusqu'à l'arrivée : les marches du bas faisaient
-             * 30 px de fond et la volée se lisait comme un empilement de dalles.
-             * Ici la maçonnerie est UN polygone - sol, contremarche, marche,
-             * contremarche… - et les marches n'ont plus que leur giron.
-             */
-            let prof = `M${fx.toFixed(1)},${fy.toFixed(1)}`
-            for (let i = 0; i < nM; i++) {
-              const x0 = fx + g * i
-              const yy = fy - hM * (i + 1)
-              prof += `L${x0.toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${yy.toFixed(1)}`
-              esc += `M${x0.toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${(yy + 1.9).toFixed(1)}L${x0.toFixed(1)},${(yy + 1.9).toFixed(1)}Z`
-              escLum += `M${x0.toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${yy.toFixed(1)}L${(x0 + g).toFixed(1)},${(yy + 0.8).toFixed(1)}L${x0.toFixed(1)},${(yy + 0.8).toFixed(1)}Z`
-            }
-            escFlanc += `${prof}L${gx.toFixed(1)},${yG.toFixed(1)}Z`
-            /*
-             * DEUX APPUIS POUR LA VOLÉE AUSSI. Elle naissait dans l'herbe et
-             * mourait dans le vide : ni dé de pied, ni palier d'arrivée. On
-             * ajoute donc la DALLE DE PIED, posée au sol devant la première
-             * marche, et le PALIER qui la raccorde au dallage - et des joints
-             * verticaux sur le mur d'échiffre, qui n'était qu'un aplat pâle.
-             */
-            const sn = Math.sign(g) || 1
-            escRampe +=
-              `M${(fx - sn * 6.5).toFixed(1)},${(fy - 2.6).toFixed(1)}L${(fx + sn * 2).toFixed(1)},${(fy - 2.6).toFixed(1)}L${(fx + sn * 2).toFixed(1)},${(fy + 0.8).toFixed(1)}L${(fx - sn * 6.5).toFixed(1)},${(fy + 0.8).toFixed(1)}Z` +
-              `M${(gx - sn * 2).toFixed(1)},${(ty2 - 0.4).toFixed(1)}L${(gx + sn * 7).toFixed(1)},${(ty2 - 0.4).toFixed(1)}L${(gx + sn * 7).toFixed(1)},${(ty2 + 2.6).toFixed(1)}L${(gx - sn * 2).toFixed(1)},${(ty2 + 2.6).toFixed(1)}Z`
-            escRampeLit +=
-              `M${(fx - sn * 6.5).toFixed(1)},${(fy - 2.6).toFixed(1)}L${(fx + sn * 2).toFixed(1)},${(fy - 2.6).toFixed(1)}L${(fx + sn * 2).toFixed(1)},${(fy - 1.6).toFixed(1)}L${(fx - sn * 6.5).toFixed(1)},${(fy - 1.6).toFixed(1)}Z` +
-              `M${(gx - sn * 2).toFixed(1)},${(ty2 - 0.4).toFixed(1)}L${(gx + sn * 7).toFixed(1)},${(ty2 - 0.4).toFixed(1)}L${(gx + sn * 7).toFixed(1)},${(ty2 + 0.7).toFixed(1)}L${(gx - sn * 2).toFixed(1)},${(ty2 + 0.7).toFixed(1)}Z`
-            for (let i = 1; i < nM; i++) {
-              const x = fx + g * i
-              const yb = fy + ((yG - fy) * i) / nM
-              const yh = fy - hM * i + 1.9
-              if (yb - yh < 1.5) continue
-              escJoints += `M${x.toFixed(1)},${yh.toFixed(1)}L${(x + 0.9).toFixed(1)},${yh.toFixed(1)}L${(x + 0.9).toFixed(1)},${yb.toFixed(1)}L${x.toFixed(1)},${yb.toFixed(1)}Z`
-            }
-          }
-          return (
-            <g>
-              {/* ombre portée du mur, bande floue décalée vers le SE */}
-              <path d={ligne(geo, a0, a1, nC, H * 0.24)} stroke={PAL.ombrePortee} strokeWidth={H * 0.38} fill="none" opacity={0.14} filter="url(#a-flou2)" />
-
-              {arriere ? (
-                <>
-                  {/* ═══ COUCHE ARRIÈRE : LA FACE INTERNE (R4) ═══
-                      le parapet extérieur est au LOIN - on voit son DESSUS puis
-                      sa face interne -, le dallage descend vers le joueur, et la
-                      face du dedans est un enduit sans une seule archère */}
-                  {parapetPlein}
-                  <path d={cr.dessus} fill={PAL.pierreLit} />
-                  <path d={cr.interne} fill={n4 ? '#9d9179' : '#94886e'} />
-                  <path d={cr.crans} fill={tonOmbre} opacity={0.45} />
-                  {/* dallage : il part du NU INTERNE DU PARAPET (sinon il
-                      recouvrirait la face interne des merlons), s'ouvre au nord
-                      et se pince à l'ouest (R3) */}
-                  <path d={ruban(dedans(geo, c.W * 0.34), -H, gi, -H, a0, a1, nC)} fill="url(#mur-dalle)" />
-                  <path d={cr.ombre} fill={PAL.ombrePortee} opacity={0.22} />
-                  <path d={dalles} stroke="#a59b82" strokeWidth={0.7} fill="none" opacity={0.5} />
-                  {/* bahut interne bas : le garde-corps du dedans */}
-                  <path d={ruban(gi, -H, gi, -H - 2.6, a0, a1, nC)} fill="#cbc1a9" />
-                  <path d={ligne(gi, a0, a1, nC, -H - 2.6)} stroke="#e6dfc9" strokeWidth={1} fill="none" opacity={0.7} />
-                  {/* face interne : enduit de terre, assises noyées dedans */}
-                  <path d={ruban(gi, 2, gi, -H, a0, a1, nC)} fill="url(#mur-interne)" />
-                  {as.tons.map((d, i) => (
-                    <path key={i} d={d} fill={TONS_SEC[i]} opacity={0.64} />
-                  ))}
-                  {/*
-                    LE PIED DU PAREMENT EST DANS SON PROPRE JOUR PERDU. Le remblai
-                    parti, la face descendait jusqu'à l'herbe d'un seul ton : un
-                    mur peint sur un décor, sans épaisseur ni assise. Or un
-                    parement s'assombrit en bas - rien ne l'y éclaire, la lumière
-                    du nord-ouest rase la crête et n'atteint jamais l'empattement.
-                    Ces deux nappes dégressives sont ce qui remplace la terre : pas
-                    un objet de plus, de la VALEUR (le principe du dossier art).
-                  */}
-                  <path d={ruban(gi, 2, gi, -H * 0.5, a0, a1, nC)} fill="#4a4131" opacity={0.3} />
-                  <path d={ruban(gi, 2, gi, -H * 0.24, a0, a1, nC)} fill="#3c3427" opacity={0.3} />
-                  <path d={ruban(gi, 2, gi, -H * 0.08, a0, a1, nC)} fill="#2f2a20" opacity={0.28} />
-                  {/* lumière rasante juste sous le bahut, puis l'ombre du parapet */}
-                  <path d={ligne(gi, a0, a1, nC, -H + 1.2)} stroke="#d5cbb2" strokeWidth={1.4} fill="none" opacity={0.4} />
-                  <path d={ligne(gi, a0, a1, nC, -H + 3.4)} stroke={PAL.ombrePortee} strokeWidth={2.6} fill="none" opacity={0.14} />
-                  {/* CHAÎNAGE APPARENT : les lits de poutres et leurs têtes.
-                      Posés AVANT les éperons, qui doivent les masquer là où ils
-                      passent. Le creux d'ombre au-dessus est ce qui les NOIE
-                      dans la maçonnerie au lieu de les poser devant. */}
-                  {chz.map((ch, i) => (
-                    <g key={i}>
-                      <path d={ch.tetesOmbre} fill={PAL.ombrePortee} opacity={0.42} />
-                      <path d={ch.tetes} fill="#5b452b" />
-                      <path d={ch.tetesLit} fill="#8a6c48" opacity={0.85} />
-                    </g>
-                  ))}
-                  {/*
-                    ═══ PLUS DE REMBLAI ═══
-                    « C'est bien l'espèce de terre qui rend mal, enlève-la. » Elle
-                    couvrait la moitié basse du mur sur ses huit cents pixels
-                    d'arc, et deux passes de garniture - ventre, sentier, rigoles,
-                    herbe - ne l'ont pas sauvée : une nappe de terre de cette
-                    taille reste une nappe de terre. Elle cachait surtout ce qui
-                    valait la peine d'être vu, la MAÇONNERIE, qu'elle interrompait
-                    à mi-hauteur.
-                    Le parement du dedans descend donc jusqu'au sol, assises
-                    comprises, avec son ombre de pied - comme au-dehors.
-                  */}
-                  {/* l'ombre de contact, puis l'empattement : la dernière assise
-                      déborde de 2 px et c'est elle qui pose le mur par terre */}
-                  <path d={ruban(gi, 1.8, gi, 9, a0, a1, nC, 0, 5)} fill={PAL.ombrePortee} opacity={0.18} />
-                  <path d={ruban(gi, 1.8, gi, 5, a0, a1, nC, 0, 2.8)} fill={PAL.ombrePortee} opacity={0.28} />
-                  <path d={ruban(gi, -2.2, gi, 2, a0, a1, nC, 0, 2.2)} fill="#5c5343" />
-                  <path d={ligne(gi, a0, a1, nC, -2.2, 2.2)} stroke="#8d846d" strokeWidth={1.1} fill="none" opacity={0.55} />
-                  {/* ÉPERONS : les massifs qui prennent le mur à revers. Pied au
-                      SOL, glacis mourant CONTRE le parement sous le bahut -
-                      c'est ce double appui qui les fait tenir. */}
-                  <path d={ep.ombre} fill={PAL.ombrePortee} opacity={0.26} />
-                  {/*
-                    LA VALEUR, ENCORE. Au zoom ces massifs sont bien construits -
-                    nu avant, tiers à l'ombre, flanc, glacis, joints alignés sur
-                    les assises. À l'échelle de la carte ils sautaient pourtant aux
-                    yeux comme dix stèles blanches : ils étaient plus CLAIRS que
-                    tout ce qui les entoure, alors qu'ils se dressent sur une face
-                    qui tourne le dos au soleil du nord-ouest. Un ouvrage adossé à
-                    un mur d'ombre ne peut pas être plus lumineux que lui. Seule
-                    l'arête du glacis reste franche : une ligne, pas une surface.
-                  */}
-                  <path d={ep.face} fill="url(#mur-interne)" />
-                  <path d={ep.face} fill="#5c5340" opacity={0.42} />
-                  <path d={ep.faceOmbre} fill="#4f4534" opacity={0.28} />
-                  <path d={ep.flancOmbre} fill="#5f5540" />
-                  <path d={ep.flancJour} fill="#8d8268" />
-                  <path d={ep.joints} fill={PAL.pierreJoint} opacity={0.45} />
-                  <path d={ep.bas} fill="#4a4131" opacity={0.28} />
-                  <path d={ep.basPlus} fill="#3c3427" opacity={0.26} />
-                  <path d={ep.pied} fill={PAL.ombrePortee} opacity={0.32} />
-                  <path d={ep.glacis} fill="#8d8268" />
-                  <path d={ep.arete} fill="#ddd5c2" opacity={0.42} />
-                  {/* RAMPES D'ACCÈS : elles partent du SOL, en avant du parement,
-                      et leur mur d'échiffre porte les marches jusqu'au dallage */}
-                  {/* l'ombre de la volée : son propre profil, décalé au SE */}
-                  <path d={escFlanc} fill={PAL.ombrePortee} opacity={0.15} transform="translate(4.4,1.9)" />
-                  {/* même correction pour le mur d'échiffre : c'était le plus
-                      grand aplat clair du dedans, un triangle pâle de la hauteur
-                      du mur. Il rentre dans l'ombre de la face, et ses joints
-                      ressortent - une maçonnerie, pas une rampe de carton. */}
-                  <path d={escFlanc} fill="url(#mur-interne)" />
-                  <path d={escFlanc} fill="#5c5340" opacity={0.4} />
-                  <path d={escJoints} fill={PAL.pierreJoint} opacity={0.42} />
-                  <path d={esc} fill="#b5aa90" />
-                  <path d={escLum} fill="#ddd5c2" />
-                  {/* le garde-corps de la volée, rampant avec elle */}
-                  <path d={escRampe} fill="#9e937a" />
-                  <path d={escRampeLit} fill="#ddd5c2" opacity={0.85} />
-                  {/* appentis de service, posés sur leurs pieds : la vie du dedans */}
-                  {aApp.map((a) => (
-                    <AppentisMur key={a} gi={gi} a={a} d={dd} />
-                  ))}
-                </>
-              ) : (
-                <>
-                  {/* ═══ COUCHE AVANT : LA FACE EXTERNE (R4) ═══ */}
-                  <path d={ruban(geo, 2, geo, -H, a0, a1, nC)} fill={grad} />
-                  {/* contreforts : les accents verticaux qui manquaient sur 830 px */}
-                  {(() => {
-                    const b = contreforts(geo, cf, H, n4 ? 10 : 9, n4 ? 3.4 : 3, 0.88)
-                    return (
-                      <g>
-                        <path d={b.face} fill={grad} />
-                        <path d={b.face} fill="#efe8d3" opacity={0.22} />
-                        <path d={b.flanc} fill={PAL.ombrePortee} opacity={0.26} />
-                        <path d={b.lum} fill="#f4efe1" opacity={0.5} />
-                      </g>
-                    )
-                  })()}
-                  {/* grand appareil : blocs à pas d'ARC (2,5:1 et non 6,4:1) */}
-                  <g opacity={n4 ? 0.92 : 0.86}>
-                    {as.tons.map((d, i) => (
-                      <path key={i} d={d} fill={n4 ? TONS_TAILLE[i] : TONS_SEC[i]} />
-                    ))}
-                  </g>
-                  {n4 && (
-                    <>
-                      <path d={as.boss} fill="#efe8d3" opacity={0.34} />
-                      <path d={as.liseret} fill={PAL.ombrePortee} opacity={0.13} />
-                    </>
-                  )}
-                  {/* soubassement cyclopéen : gros blocs, l'écho mycénien */}
-                  <path d={ruban(geo, 2, geo, -c.hAssise - 2.6, a0, a1, nC)} fill="#8e8571" opacity={0.5} />
-                  <path d={joints} stroke="#6f6349" strokeWidth={0.8} fill="none" opacity={0.45} />
-                  {/* fruit : la plinthe est poussée vers le dehors */}
-                  <path d={ruban(geo, 2, geo, -4.4, a0, a1, nC, 1.8, 0.4)} fill={grad} />
-                  <path d={ligne(geo, a0, a1, nC, -4.4, 0.4)} stroke="#cfc5ab" strokeWidth={1} fill="none" opacity={0.4} />
-                  {/* archères : de vraies embrasures, plus des tirets noirs */}
-                  <path d={ar.coulure} fill={PAL.ombrePortee} opacity={0.12} />
-                  <path d={ar.ebras} fill="#8d8269" opacity={0.85} />
-                  <path d={ar.fente} fill="#42341f" />
-                  <path d={ar.linteau} fill="#efe8d6" opacity={0.75} />
-                  {/* CORDON D'ASSISE SAILLANT : LE détail qui dit « niveau 4 » */}
-                  {n4 && (
-                    <>
-                      <path d={ruban(geo, -H * 0.6, geo, -H * 0.6 - 1.8, a0, a1, nC, 1.2, 1.2)} fill="#bdb29a" />
-                      <path d={ligne(geo, a0, a1, nC, -H * 0.6 - 1.8, 1.2)} stroke="#e6dfc9" strokeWidth={0.8} fill="none" opacity={0.45} />
-                      <path d={ligne(geo, a0, a1, nC, -H * 0.6 + 0.5, 0.5)} stroke={PAL.ombrePortee} strokeWidth={1.2} fill="none" opacity={0.18} />
-                    </>
-                  )}
-                  {/* mâchicoulis : corbeaux sous le parapet */}
-                  {n4 && <path d={mach} fill="#9f937a" />}
-                  <path d={ligne(geo, a0, a1, nC, 0.9)} stroke="url(#mur-pied)" strokeWidth={H * 0.22} fill="none" />
-                  {/* ombre du parapet portée sur le haut de la face */}
-                  <path d={ligne(geo, a0, a1, nC, -H + 1.8)} stroke={PAL.ombrePortee} strokeWidth={3.4} fill="none" opacity={0.15} />
-                  {/* chemin de ronde : dallage, travées, bahut interne */}
-                  <path d={ruban(geo, -H, gi, -H, a0, a1, nC)} fill="url(#mur-dalle)" />
-                  <path d={dalles} stroke="#a59b82" strokeWidth={0.7} fill="none" opacity={0.45} />
-                  <path d={ruban(gi, -H, gi, -H - 2.6, a0, a1, nC)} fill="#c2b89f" />
-                  <path d={ligne(gi, a0, a1, nC, -H - 2.6)} stroke="#e6dfc9" strokeWidth={1} fill="none" opacity={0.6} />
-                  {/* créneaux volumiques (R1+R2) : plus d'échelle de cubes flottants */}
-                  {parapetPlein}
-                  <path d={cr.jour} fill="#7b7057" opacity={0.72} />
-                  <path d={cr.face} fill={grad} />
-                  <path d={cr.flanc} fill="#7b7057" />
-                  <path d={cr.dessus} fill={PAL.pierreLit} />
-                  <path d={cr.crans} fill={tonOmbre} opacity={0.45} />
-                </>
-              )}
-
-              {/* étendards du niveau 4, plantés SUR le parapet interne */}
-              {n4 &&
-                anglesArc(t, 300, 90)
-                  .filter((a) => !encoches.some((e) => Math.abs(a - e.a) < e.da * 2))
-                  .map((a, i) => {
-                    const p = pt(gi, a)
-                    return <Etendard key={a} x={p.x} y={p.y - H - 2.6} c={i % 2 ? '#c9a441' : '#b3543f'} />
-                  })}
-            </g>
-          )
-        })()}
-
-      {/* fissures : une entaille qui suit les joints, lèvre claire à l'ouest */}
-      {fissures.map((a, i) => {
-        const p = pt(geo, a)
-        const y = p.y - crete + c.par + 2
-        const d = `M${p.x.toFixed(1)},${y.toFixed(1)}l2.6,${(c.hAssise * 0.9).toFixed(1)}l-3.6,0.6l2.4,${(c.hAssise * 0.9).toFixed(1)}l-3.4,0.7l2.2,${(c.hAssise * 0.8).toFixed(1)}`
+function VieMurailles({ niveau, hp, max, layer, geo = MAP.mur, span = 1, brechesAngles }: Props) {
+  if (niveau <= 0 || span < 1) return null
+  const n = Math.min(4, Math.round(niveau))
+  const arriere = layer === 'back'
+  const c = cote(n)
+  const crete = c.H + c.par
+  const ratio = max > 0 ? hp / max : 1
+  const fete = ratio >= 0.4
+  const loin = (a: number) => !(brechesAngles ?? []).some((b) => Math.abs(((a - b + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) < 0.22)
+  const surCouche = (a: number) => {
+    const an = ((a % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)
+    return arriere ? an >= Math.PI : an > PORTE && an < Math.PI
+  }
+  const loinTours = (a: number) => !TOUR_ANGLES.some((t) => Math.abs(((a - t + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) < 0.12)
+  const sur = (angles: number[]) => angles.filter((a) => surCouche(a) && loin(a) && loinTours(a)).map((a) => ({ a, ...pt(geo, a) }))
+  const gp = grow(geo, -c.W)
+  return (
+    <g>
+      {n >= 2 && fete && sur(arriere ? [3.4, 4.25, 5.0, 5.65] : [0.62, 1.2, 1.9, 2.6]).map((p, i) => {
+        const q = arriere ? pt(gp, p.a) : p
         return (
-          <g key={i}>
-            <path d={d} stroke="#4f4335" strokeWidth={1.7} fill="none" />
-            <path d={d} stroke="#e6dfcb" strokeWidth={0.7} fill="none" transform="translate(-1,-0.4)" opacity={0.65} />
-            <ellipse cx={p.x + 1} cy={p.y + 1} rx={4.4} ry={2} fill="#9d9585" opacity={0.8} />
-            <ellipse cx={p.x} cy={p.y + 0.4} rx={2.6} ry={1.2} fill="#bfb7a5" opacity={0.8} />
+          <g key={'to' + i} transform={`translate(${f(q.x)},${f(q.y - c.H)})`}>
+            <line x1={0} y1={0} x2={0} y2={-9} stroke="#5f462d" strokeWidth={1.1} />
+            <path d="M-1.4,-9 L1.4,-9 L1,-10.6 L-1,-10.6 Z" fill="#8a5a20" />
+            <circle cx={0} cy={-12} r={5} fill="#f8c86c" opacity={0.2} filter="url(#a-flou2)" />
+            <Feu x={0} y={-11.4} r={1.2} />
           </g>
         )
       })}
+      {n >= 3 && !arriere && sur([1.05, 1.34, 1.78, 2.05, 2.4]).map((p, i) => {
+        const y = p.y - crete + 4.4
+        const fond = ['#a8702a', '#8e3b2a', '#2f4a63'][i % 3]
+        return (
+          <g key={'bo' + i} transform={`translate(${f(p.x)},${f(y)})`}>
+            <ellipse cx={1} cy={1.2} rx={3.4} ry={3.2} fill={PAL.ombrePortee} opacity={0.25} />
+            <circle cx={0} cy={0} r={3.3} fill="#c9922f" />
+            <circle cx={0} cy={0} r={2.6} fill={fond} />
+            <path d="M-2.6,0 A2.6,2.6 0 0 1 0,-2.6" stroke="#f0cd84" strokeWidth={0.6} fill="none" />
+            {i % 3 === 0 ? <path d="M-1.2,1 L0,-1.4 L1.2,1 Z" fill="#efe3c4" /> : <circle cx={0} cy={0} r={0.9} fill="#efe3c4" />}
+          </g>
+        )
+      })}
+      {n >= 4 && fete && !arriere && sur([1.12, 1.57, 2.0]).map((p, i) => {
+        const w = 9
+        const h = c.H * 0.55
+        const y0 = p.y - c.H + 1
+        const c1 = i === 1 ? '#c9922f' : '#7c2f4e'
+        const c2 = i === 1 ? '#f0cd84' : '#b45f80'
+        const d1 = `M${f(p.x - w / 2)},${f(y0)} L${f(p.x + w / 2)},${f(y0)} L${f(p.x + w / 2)},${f(y0 + h)} L${f(p.x)},${f(y0 + h - 3.4)} L${f(p.x - w / 2)},${f(y0 + h)} Z`
+        const d2 = `M${f(p.x - w / 2)},${f(y0)} L${f(p.x + w / 2)},${f(y0)} L${f(p.x + w / 2 + 0.8)},${f(y0 + h)} L${f(p.x + 0.6)},${f(y0 + h - 3.4)} L${f(p.x - w / 2 + 0.6)},${f(y0 + h)} Z`
+        return (
+          <g key={'te' + i}>
+            <path d={d1} fill={c1}>
+              <animate attributeName="d" values={`${d1};${d2};${d1}`} dur={`${3 + i * 0.5}s`} repeatCount="indefinite" />
+            </path>
+            <path d={`M${f(p.x - w / 2)},${f(y0 + 3)} L${f(p.x + w / 2)},${f(y0 + 3)} M${f(p.x - w / 2)},${f(y0 + h - 6)} L${f(p.x + w / 2)},${f(y0 + h - 6)}`} stroke={c2} strokeWidth={1.1} />
+            <circle cx={f(p.x)} cy={f(y0 + h * 0.45)} r={1.8} fill="none" stroke={c2} strokeWidth={0.8} />
+            <rect x={f(p.x - w / 2 - 1)} y={f(y0 - 1.2)} width={f(w + 2)} height={1.4} fill="#5f462d" />
+          </g>
+        )
+      })}
+    </g>
+  )
+}
 
-      {/* pans effondrés hors de la porte - chaque secteur cède à son endroit */}
-      {pans.map((a) => (
-        <Decombres key={a} geo={geo} angle={a} crete={crete} ep={c.W} arriere={arriere} bois={niveau === 1} />
-      ))}
-
-      {/* LES TOURS, dessinées POUR leur niveau de mur et encastrées dedans */}
-      {n3 || niveau === 2
-        ? toursPosees.map((tp) => (
-            <TourMur key={`${tp.a}${tp.guet ? 'g' : ''}`} geo={geo} a={tp.a} niveau={niveau} arriere={arriere} guet={tp.guet} span={span} />
-          ))
-        : null}
-
-      {!arriere && span >= 1 && <Porte geo={geo} niveau={niveau} breche={breche} />}
+/**
+ * L'enceinte. Mémoïsée : hors assaut, ni le niveau ni les points de structure
+ * ne bougent, et l'arc échantillonné coûte plusieurs centaines de nœuds.
+ */
+export const Murailles = memo(function Murailles(props: Props) {
+  return (
+    <g>
+      <Fosse {...props} />
+      <MuraillesBase {...props} />
+      <VieMurailles {...props} />
     </g>
   )
 })

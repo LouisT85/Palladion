@@ -648,7 +648,7 @@ function Penates() {
  * peut se permettre et que la mêlée ne verrait pas (vent dans les étoffes,
  * regard, reflets) ; en bataille on garde la silhouette nue.
  */
-export function SilhouetteHeros({
+function SilhouetteHerosBase({
   h,
   anim = 'idle',
   seed = 0,
@@ -943,4 +943,82 @@ export function AttributPose({ h }: { h: HeroId }) {
         </g>
       )
   }
+}
+
+/* ═══════════════ v2 : LE HÉROS GRANDIT, ET CELA SE VOIT ═══════════════
+ * `niveau` (1 → 5, facultatif) ajoute AUTOUR de la silhouette d'origine, sans
+ * y toucher, les marques d'une gloire qui monte :
+ *  · 2 : une couronne de laurier au-dessus de la tête ;
+ *  · 3 : un halo doré qui respire au sol ;
+ *  · 4 : des paillettes d'or qui montent, lentes ;
+ *  · 5 : l'aura de ceux que chantent les aèdes, à ses couleurs.
+ * Sans `niveau`, rien ne change : la mêlée garde la silhouette nue.
+ */
+function Gloire({ h, niveau, ech, derriere }: { h: HeroId; niveau: number; ech: number; derriere: boolean }) {
+  const c = HEROS[h].couleur
+  const top = sommetHeros(h, ech)
+  if (derriere) {
+    return (
+      <g>
+        {niveau >= 5 && (
+          <ellipse cx={0} cy={top * 0.5} rx={11 * ech} ry={-top * 0.62} fill={c} opacity={0.26} filter="url(#a-flou4)">
+            <animate attributeName="opacity" values="0.16;0.38;0.16" dur="3.4s" repeatCount="indefinite" />
+          </ellipse>
+        )}
+        {niveau >= 3 && (
+          <ellipse cx={0} cy={0.6} rx={9 * ech} ry={2.8 * ech} fill="#f6e39b" opacity={0.3} filter="url(#a-flou1)">
+            <animate attributeName="rx" values={`${8 * ech};${10.5 * ech};${8 * ech}`} dur="2.8s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.22;0.42;0.22" dur="2.8s" repeatCount="indefinite" />
+          </ellipse>
+        )}
+      </g>
+    )
+  }
+  return (
+    <g>
+      {niveau >= 2 && (
+        <g transform={`translate(0,${top + 1.2})`}>
+          {[-1, 1].map((sd) =>
+            [0, 1, 2].map((i) => (
+              <ellipse key={`${sd}${i}`} cx={sd * (1.4 + i * 1.3)} cy={-0.2 + i * 0.55} rx={1.1} ry={0.5} transform={`rotate(${sd * (18 + i * 16)} ${sd * (1.4 + i * 1.3)} ${-0.2 + i * 0.55})`} fill={sd < 0 ? '#93bb6c' : '#6f9a52'} />
+            )),
+          )}
+          <circle cx={0} cy={-0.6} r={0.6} fill="#e8c04a" />
+        </g>
+      )}
+      {niveau >= 4 &&
+        [0, 1, 2, 3, 4].map((i) => {
+          const x = (i - 2) * 3.2 * ech
+          const d = 2.6 + (i % 3) * 0.7
+          return (
+            <circle key={i} cx={x} cy={0} r={0.55} fill="#fff1c2" opacity={0}>
+              <animate attributeName="cy" values={`${-2};${top * 0.9}`} dur={`${d}s`} begin={`${i * 0.55}s`} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0;0.9;0" dur={`${d}s`} begin={`${i * 0.55}s`} repeatCount="indefinite" />
+            </circle>
+          )
+        })}
+    </g>
+  )
+}
+
+export function SilhouetteHeros(props: {
+  h: HeroId
+  anim?: AnimHeros
+  seed?: number
+  dur?: number
+  detail?: boolean
+  ech?: number
+  /** v2 - niveau du héros (1 → 5) : ajoute laurier, halo, paillettes, aura */
+  niveau?: number
+}) {
+  const { niveau, ...base } = props
+  const ech = props.ech ?? 1
+  if (!niveau || niveau < 2) return <SilhouetteHerosBase {...base} />
+  return (
+    <g>
+      <Gloire h={props.h} niveau={niveau} ech={ech} derriere />
+      <SilhouetteHerosBase {...base} />
+      <Gloire h={props.h} niveau={niveau} ech={ech} derriere={false} />
+    </g>
+  )
 }

@@ -25,7 +25,8 @@ function LigneCout({ cout, resources }: { cout: Partial<Record<ResourceId, numbe
         return (
           <Astuce
             key={r}
-            titre={`${RES[r].emoji} ${RES[r].nom}`}
+            titre={RES[r].nom}
+            emoji={<Icone id={r} taille={18} />}
             lignes={[
               { label: 'Demandé', valeur: n, fort: true },
               { label: 'En réserve', valeur: Math.floor(resources[r]), couleur: manque > 0 ? '#e0715a' : '#8fbf5a' },
@@ -226,7 +227,7 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
           const debloque = s.buildings.caserne.level >= def.caserne
           return (
             <div key={u} className="unite">
-              <span style={{ fontSize: 22 }}>{def.emoji}</span>
+              <Icone id={u} taille={22} />
               <div className="infos">
                 <div className="nom">
                   {def.nom} <span style={{ color: '#93a7b4', fontWeight: 400 }}>×{s.army[u]}</span>
@@ -241,7 +242,8 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
               {debloque ? (
                 <div className="actions">
                   <Astuce
-                    titre={`${def.emoji} Lever un ${def.nom.toLowerCase()}`}
+                    titre={`Lever un ${def.nom.toLowerCase()}`}
+                    emoji={<Icone id={u} taille={18} />}
                     resume="Un habitant sans emploi prend les armes : le village perd un bras, la garnison gagne un homme."
                     note={dispo < 1 ? 'Aucun villageois sans emploi à enrôler.' : `${dispo} habitant(s) disponible(s).`}
                   >
@@ -250,7 +252,8 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
                     </button>
                   </Astuce>
                   <Astuce
-                    titre={`${def.emoji} En lever cinq d’un coup`}
+                    titre="En lever cinq d’un coup"
+                    emoji={<Icone id={u} taille={18} />}
                     resume="Cinq recrues à la file : elles se forment l’une après l’autre, dans l’ordre de la file."
                     note={
                       dispo < 5
@@ -287,7 +290,7 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
           {s.recruitQueue.map((j, i) => (
             <div key={i} className="ligne">
               <span>
-                {UNITS[j.unit].emoji} {UNITS[j.unit].nom} ×{j.restant}
+                <Icone id={j.unit} taille={15} /> {UNITS[j.unit].nom} ×{j.restant}
               </span>
               {i === 0 && <span style={{ color: '#e8c04a' }}>{fmtDuree(j.finishAt - now)}</span>}
             </div>
@@ -344,7 +347,8 @@ function BlocPort() {
       {(Object.keys(RES) as ResourceId[]).map((r) => (
         <Astuce
           key={r}
-          titre={`${RES[r].emoji} ${RES[r].nom}`}
+          titre={RES[r].nom}
+          emoji={<Icone id={r} taille={18} />}
           resume={r === interdit ? 'Déjà de l’autre côté du troc : on n’échange pas une denrée contre elle-même.' : undefined}
           lignes={[{ label: 'En réserve', valeur: Math.floor(s.resources[r]) }]}
         >

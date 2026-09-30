@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { EFFETS_LIGNE, EFFETS_TIR } from '../../game/combat'
 import { ecrireCarte, ecrireRapport, lireCarte, lireRapport } from '../../game/cartes'
 import { BUILDINGS, DEFENSES_DEFS, DEFENSE_IDS, RES, UNITS, UNIT_IDS, troupes as troupes0 } from '../../game/data'
@@ -7,6 +7,7 @@ import {
   COUT_RAID,
   DELAI_RAID_JOURS,
   DUEL_VIDE,
+  butinOffert,
   consequences,
   deroulerRaid,
   duelJouable,
@@ -16,12 +17,10 @@ import {
   motifRefusRapport as direRefusRapport,
   plafondButin,
   prochainRang,
-  promessePublication,
   puissanceCarte,
   rangDe,
   refusRaid,
   refusRapport,
-  resumeButin,
   type CarteDefense,
   type EtatDuel,
   type IssueRaid,
@@ -34,7 +33,7 @@ import { HEROS } from '../../game/heros'
 import { HEROS_PLAN, PANS, UNITES_PLAN, planValide, type PanId, type PlanDefense } from '../../game/plandefense'
 import { jourDe, useGame, type GameState } from '../../game/store'
 import type { BuildingId, Cost, DefensesInterieures, ResourceId, UnitId } from '../../game/types'
-import { Montant } from './Icones'
+import { Icone, Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 import { court } from './Ordres'
@@ -153,6 +152,28 @@ export type Lecture<T> = { ok: true; valeur: T } | { ok: false; motif: string }
 
 
 /** le courrier des duels, jamais nul : une sauvegarde d'avant le système n'en a pas */
+const ORDRE_BUTIN: ResourceId[] = ['bois', 'pierre', 'grain', 'bronze']
+
+/**
+ * Le butin dit en pictogrammes. `resumeButin` (duel.ts) en reste la version texte,
+ * pour les bulles et le journal ; les phrases de ce panneau qui la citaient sont
+ * recopiées ici, mot pour mot, pour pouvoir y poser les icônes.
+ */
+function Butin({ b }: { b: Cost }) {
+  const parts = ORDRE_BUTIN.filter((r) => (b[r] ?? 0) > 0)
+  if (parts.length === 0) return <>rien à prendre</>
+  return (
+    <>
+      {parts.map((r, i) => (
+        <Fragment key={r}>
+          {i > 0 && ', '}
+          <Montant n={b[r] ?? 0} id={r} />
+        </Fragment>
+      ))}
+    </>
+  )
+}
+
 function duelDe(s: GameState): EtatDuel {
   return (s as unknown as { duel?: EtatDuel | null }).duel ?? DUEL_VIDE
 }
@@ -403,16 +424,21 @@ function CodeADonner({ code, quoi }: { code: string; quoi: string }) {
 // LE RÉSUMÉ D'UNE CARTE — le même composant des deux côtés du courrier
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/** une troupe écrite comme le jeu l'écrit partout : emoji, nombre, nom */
+/** une troupe écrite comme le jeu l'écrit partout : pictogramme, nombre, nom */
 function Troupes({ garnison }: { garnison: Partial<Record<UnitId, number>> }) {
   const lignes = UNIT_IDS.filter((u) => (garnison[u] ?? 0) > 0)
   if (lignes.length === 0) return <span className="duel-vide">aucun homme sous les armes</span>
   return (
     <div className="duel-troupes">
       {lignes.map((u) => (
-        <Astuce key={u} titre={`${UNITS[u].emoji} ${UNITS[u].nom}`} resume={`⚔ ${UNITS[u].atk} · ❤ ${UNITS[u].hp}`}>
+        <Astuce
+          key={u}
+          titre={UNITS[u].nom}
+          emoji={<Icone id={u} taille={18} />}
+          resume={`⚔ ${UNITS[u].atk} · ❤ ${UNITS[u].hp}`}
+        >
           <span className="duel-troupe">
-            {UNITS[u].emoji} {garnison[u]}
+            <Icone id={u} taille={16} /> {garnison[u]}
           </span>
         </Astuce>
       ))}
@@ -458,7 +484,13 @@ function PlanCarte({ plan }: { plan: PlanDefense }) {
         <ul className="duel-pans">
           {postes.map((x) => (
             <li key={x.pan.id}>
-              <b>{court(x.pan.nom)}</b> — {x.unites.map((u) => UNITS[u].emoji).join(' ')}
+              <b>{court(x.pan.nom)}</b> —{' '}
+              {x.unites.map((u, i) => (
+                <Fragment key={u}>
+                  {i > 0 && ' '}
+                  <Icone id={u} taille={15} />
+                </Fragment>
+              ))}
               {x.heros.length > 0 && ` ${x.heros.map((h) => `${HEROS[h].emoji} ${HEROS[h].nom}`).join(', ')}`}
             </li>
           ))}
@@ -683,7 +715,14 @@ function OngletMaCite({ bump }: { bump: () => void }) {
           <h3>Les cartes encore honorées</h3>
           {d.cartes.map((f) => (
             <div key={f.ref} className="duel-ligne">
-              {f.pille ? '🕳️' : '⚖️'} {ficheCarteEmise(f, s.resources)}
+              {f.pille ? '🕳️' : '⚖️'}{' '}
+              {!f.pille && ORDRE_BUTIN.some((r) => (f.butin[r] ?? 0) > 0 && (s.resources[r] ?? 0) > 0) ? (
+                <>
+                  Carte du jour {f.jour} - en jeu : <Butin b={f.butin} />.
+                </>
+              ) : (
+                ficheCarteEmise(f, s.resources)
+              )}
             </div>
           ))}
         </div>
@@ -727,7 +766,10 @@ function OngletMaCite({ bump }: { bump: () => void }) {
       </Astuce>
       {/* la phrase que `duel.ts` écrit lui-même, chiffres compris : c'est la SEULE
           réponse à « qu'est-ce que je risque », et elle doit être là AVANT le clic */}
-      <div className="duel-sous">{promessePublication(s.resources)}</div>
+      <div className="duel-sous">
+        Vous mettez en jeu <Butin b={butinOffert(s.resources)} />, et pas un grain de plus : une carte est un chèque, et il ne
+        s’encaisse qu’une fois.
+      </div>
       {refus !== null && <div className="duel-motif">{refus}</div>}
     </div>
   )
@@ -812,7 +854,7 @@ function Colonne({
       </h3>
       {UNIT_IDS.map((u) => (
         <div key={u} className="unite">
-          <span style={{ fontSize: 22 }}>{UNITS[u].emoji}</span>
+          <Icone id={u} taille={22} />
           <div className="infos">
             <div className="nom">{UNITS[u].nom}</div>
             <div className="stats">
@@ -918,7 +960,7 @@ function OngletAttaquer({ revanche, bump }: { revanche: Revanche | null; bump: (
         <div className="duel-bloc">
           <h3>⚔️ La revanche de {revanche.cite}</h3>
           <div className="duel-sous">
-            Elle vous a pris {resumeButin(revanche.pris)} au jour {revanche.jour} du règne. Sa carte est arrivée dans
+            Elle vous a pris <Butin b={revanche.pris} /> au jour {revanche.jour} du règne. Sa carte est arrivée dans
             son propre rapport : c’est elle que vous allez frapper, et vous n’avez pas eu besoin de la demander.
           </div>
         </div>
@@ -949,9 +991,16 @@ function OngletAttaquer({ revanche, bump }: { revanche: Revanche | null; bump: (
             resume="Le combat se joue chez vous, sur une graine que l’assaut lui-même détermine. Le rapport qui en sort est vérifiable : son roi le rejouera et obtiendra le même résultat."
             lignes={[
               { label: 'En face', valeur: `puissance ≈ ${puissanceCarte(cible.carte)}`, fort: true },
-              { label: 'À prendre', valeur: resumeButin(cible.carte.butin) },
+              { label: 'À prendre', valeur: <Butin b={cible.carte.butin} /> },
               { label: 'Hommes engagés', valeur: `${hommesDe(troupes)} sur ${MAX_TROUPES} au plus` },
-              { label: 'La colonne mange', valeur: `${COUT_RAID.grain} 🌾 en chemin` },
+              {
+                label: 'La colonne mange',
+                valeur: (
+                  <>
+                    <Montant n={COUT_RAID.grain ?? 0} id="grain" taille={13} /> en chemin
+                  </>
+                ),
+              },
             ]}
             note={`Vos morts sont vos morts, victoire ou défaite. Un raid d’honneur par journée (${DELAI_RAID_JOURS}), et le pli que vous renverrez ouvre sa revanche : il aura votre carte.`}
           >
@@ -1009,7 +1058,12 @@ function Pretention({ r }: { r: RapportRaid }) {
         {hommes.length === 0 ? (
           <span className="duel-vide">aucun homme — cela seul suffira à le confondre</span>
         ) : (
-          hommes.map((u) => `${r.colonne[u]} ${UNITS[u].emoji}`).join(' · ')
+          hommes.map((u, i) => (
+            <Fragment key={u}>
+              {i > 0 && ' · '}
+              <Montant n={r.colonne[u] ?? 0} id={u} taille={15} />
+            </Fragment>
+          ))
         )}
         {r.issue.morts > 0 &&
           ` · ${r.issue.morts} homme${r.issue.morts > 1 ? 's' : ''} sur ${r.issue.envoyes} laissé${
@@ -1019,7 +1073,7 @@ function Pretention({ r }: { r: RapportRaid }) {
       </div>
       <div className="duel-ligne">
         Ce que votre carte mettait en jeu :{' '}
-        {butinVide(r.cible.butin) ? <span className="duel-vide">rien</span> : resumeButin(r.cible.butin)}
+        {butinVide(r.cible.butin) ? <span className="duel-vide">rien</span> : <Butin b={r.cible.butin} />}
       </div>
       <div className="duel-ligne">
         {r.riposte
@@ -1105,7 +1159,7 @@ function OngletCourrier({ onRiposter }: { onRiposter: (r: Revanche) => void }) {
               <div className="duel-sous" style={{ marginTop: 6 }}>
                 {butinVide(suites.pris)
                   ? (suites.note ?? 'Rien ne sortira de vos coffres.')
-                  : `Ils emporteront ${resumeButin(suites.pris)}.`}
+                  : <>Ils emporteront <Butin b={suites.pris} />.</>}
                 {suites.honneur > 0 && ` Votre plan a tenu : +${suites.honneur} d’honneur.`}
                 {suites.revanche && ' La revanche s’ouvrira.'}
               </div>
@@ -1142,7 +1196,7 @@ function OngletCourrier({ onRiposter }: { onRiposter: (r: Revanche) => void }) {
               <div>
                 <div className="duel-nom">{r.cite}</div>
                 <div className="duel-sous">
-                  Vous a pris {resumeButin(r.pris)} au jour {r.jour} du règne
+                  Vous a pris <Butin b={r.pris} /> au jour {r.jour} du règne
                 </div>
               </div>
               <div>

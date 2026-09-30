@@ -1,5 +1,5 @@
 import { BatimentArt, DefsBatiments } from './components/map/Batiments'
-import { Redoute } from './components/map/batiments/Redoute'
+import { Redoute } from './components/map/batiments/Redoute.v2'
 import { DefsArt } from './components/map/art'
 import { Murailles } from './components/map/Murailles'
 import { Terrain } from './components/map/Terrain'

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { EVENTS_BY_ID } from '../../game/events'
 import { bonusHeros, peutPayer, useGame } from '../../game/store'
+import { Icone } from './Icones'
 import { Modale } from './Modale'
 
 export function ModaleEvenement() {
@@ -242,7 +243,7 @@ export function ModaleAide() {
         <div className="aide-section">
           <h3>⚡ Les dieux</h3>
           <p>
-            Le temple génère la <b>faveur</b> (✨) qui alimente les bénédictions : foudre de Zeus, remparts de Poséidon,
+            Le temple génère la <b>faveur</b> (<Icone id="faveur" taille={15} />) qui alimente les bénédictions : foudre de Zeus, remparts de Poséidon,
             égide d’Athéna, fureur d’Arès. Vos choix dans les dilemmes forgent vos <b>relations</b> : Zeus punit qui
             viole l’hospitalité, Athéna souffle la vérité à qui l’honore, un dieu bafoué se venge. La relation ne fait
             pas que régler la puissance d’un bras divin : elle se <b>dépense</b>. Chaque Olympien offre trois{' '}

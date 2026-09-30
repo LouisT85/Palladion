@@ -1,10 +1,11 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { Fragment, useState, type CSSProperties, type ReactNode } from 'react'
 import { DELAI_ORDRE_MS, EFFETS_LIGNE, EFFETS_TIR, ORDRES_NEUTRES, estTireur } from '../../game/combat'
 import { UNITS } from '../../game/data'
 import { HEROS } from '../../game/heros'
 import { HEROS_PLAN, pansDormants, planValide, type HeroPlacable, type PlanDefense } from '../../game/plandefense'
 import { useGame } from '../../game/store'
 import type { BattleState, HeroId, OrdreLigne, OrdreTir, UnitId } from '../../game/types'
+import { Icone } from './Icones'
 import { Astuce } from './Infobulle'
 
 /*
@@ -267,9 +268,16 @@ function lirePiece(code: string): Piece | null {
   if (q === 'h' && HEROS_PLAN.includes(id as HeroId)) return { quoi: 'hero', id: id as HeroId }
   return null
 }
-const emblemePiece = (p: Piece): string => (p.quoi === 'unite' ? UNITS[p.id].emoji : HEROS[p.id].emoji)
+/**
+ * L'emblème de la pièce en main : le pictogramme peint pour une troupe, l'émoji
+ * pour un héros (les héros n'ont pas de pictogramme). `taille` suit le texte
+ * autour - 12 dans les lignes de 10 px du panneau de bataille, qui doivent
+ * garder leur hauteur au pixel près.
+ */
+const emblemePiece = (p: Piece, taille = 13): ReactNode =>
+  p.quoi === 'unite' ? <Icone id={p.id} taille={taille} /> : HEROS[p.id].emoji
 
-/** un type d'unité, posé quelque part : emoji, effectif, et l'état de son ordre */
+/** un type d'unité, posé quelque part : pictogramme, effectif, et l'état de son ordre */
 function JetonUnite({
   u,
   pan,
@@ -287,7 +295,8 @@ function JetonUnite({
 }) {
   return (
     <Astuce
-      titre={`${UNITS[u].emoji} ${UNITS[u].nom}`}
+      titre={UNITS[u].nom}
+      emoji={<Icone id={u} taille={18} />}
       resume={UNITS[u].desc}
       note={
         effectif <= 0
@@ -310,7 +319,7 @@ function JetonUnite({
         onClick={() => onChoisir(choisi ? null : { quoi: 'unite', id: u })}
         aria-pressed={choisi}
       >
-        {UNITS[u].emoji}
+        <Icone id={u} taille={14} />
         <i>{effectif}</i>
       </button>
     </Astuce>
@@ -463,7 +472,7 @@ function ZonePan({
         {/* la cible accessible : elle n'apparaît qu'une fois la pièce désignée */}
         {choisi !== null && !dejaLa && (
           <button className="plan-poser" onClick={() => onDeposer(choisi, pan)}>
-            {emblemePiece(choisi)} ici
+            {emblemePiece(choisi, 12)} ici
           </button>
         )}
       </div>
@@ -558,7 +567,7 @@ export function SchemaEnceinte({
    */
   const aideRangs = choisi ? (
     <>
-      {emblemePiece(choisi)} <b>{choisi.quoi === 'unite' ? UNITS[choisi.id].nom : HEROS[choisi.id].nom}</b> → quel pan ?
+      {emblemePiece(choisi, 12)} <b>{choisi.quoi === 'unite' ? UNITS[choisi.id].nom : HEROS[choisi.id].nom}</b> → quel pan ?
     </>
   ) : (
     note
@@ -967,7 +976,16 @@ export function BarreOrdres() {
             */
             note={
               dormants.length > 0 ? (
-                <>⚠ {dormants.map((u) => UNITS[u].emoji).join(' ')} : leur pan n’est pas assailli ce soir.</>
+                <>
+                  ⚠{' '}
+                  {dormants.map((u, i) => (
+                    <Fragment key={u}>
+                      {i > 0 && ' '}
+                      <Icone id={u} taille={12} />
+                    </Fragment>
+                  ))}{' '}
+                  : leur pan n’est pas assailli ce soir.
+                </>
               ) : undefined
             }
             /*

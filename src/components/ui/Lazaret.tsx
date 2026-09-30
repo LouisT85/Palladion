@@ -29,7 +29,7 @@ import {
 } from '../../game/epidemies'
 import { peutPayer, snapEpidemie, useGame } from '../../game/store'
 import type { ResourceId } from '../../game/types'
-import { Icone } from './Icones'
+import { Icone, Montant } from './Icones'
 import { Modale } from './Modale'
 
 /*
@@ -132,7 +132,7 @@ function BlocMurs({ snap }: { snap: SnapEpidemie }) {
           </li>
           <li>Contagion −{Math.round(hygiene(snap) * 100)} % dans tout le village : eau conduite, latrines à l’écart</li>
           <li>
-            {GRAIN_PAR_LIT} 🌾 par lit occupé et par journée — bouillons, linges bouillis, feu entretenu
+            <Montant n={GRAIN_PAR_LIT} id="grain" taille={14} /> par lit occupé et par journée — bouillons, linges bouillis, feu entretenu
           </li>
         </ul>
       )}
@@ -272,7 +272,7 @@ function BlocFievreEnCours({ snap }: { snap: SnapEpidemie }) {
         {litsOccupes(snap.villageois) > 0 && (
           <>
             {' '}
-            Les lits occupés coûtent {litsOccupes(snap.villageois) * GRAIN_PAR_LIT} 🌾 par journée.
+            Les lits occupés coûtent <Montant n={litsOccupes(snap.villageois) * GRAIN_PAR_LIT} id="grain" taille={14} /> par journée.
           </>
         )}
       </div>

@@ -451,7 +451,8 @@ export function DieuxRapides() {
           return (
             <Astuce
               key={g}
-              titre={`${dieu.emoji} ${dieu.benediction.nom}`}
+              titre={dieu.benediction.nom}
+              emoji={<Icone id={g} taille={18} />}
               resume={dieu.benediction.desc}
               lignes={[
                 { label: 'Coût', valeur: <Montant n={cout} id="faveur" taille={12} />, fort: faveur >= cout },
@@ -466,7 +467,7 @@ export function DieuxRapides() {
               }
             >
               <button disabled={faveur < cout || cd > 0} onClick={() => benir(g)}>
-                {dieu.emoji}{' '}
+                <Icone id={g} taille={16} />{' '}
                 {cd > 0 ? `${Math.ceil(cd / 1000)}s` : <Montant n={cout} id="faveur" taille={13} />}
               </button>
             </Astuce>

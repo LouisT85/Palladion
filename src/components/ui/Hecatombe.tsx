@@ -135,7 +135,9 @@ function CarteRite({ dieu, onOffrir }: { dieu: GodId; onOffrir: (d: GodId) => vo
       <div className="hec-prix">
         <Montant n={-(COUT_HECATOMBE.grain ?? 0)} id="grain" taille={13} />
         <Montant n={-(COUT_HECATOMBE.bronze ?? 0)} id="bronze" taille={13} />
-        <span className="hec-faveur">−{COUT_FAVEUR_HECATOMBE} ✨</span>
+        <span className="hec-faveur">
+          <Montant n={-COUT_FAVEUR_HECATOMBE} id="faveur" taille={13} />
+        </span>
       </div>
       <button className="principal" style={{ width: '100%' }} disabled={bloque} onClick={() => onOffrir(dieu)}>
         Offrir cent bêtes

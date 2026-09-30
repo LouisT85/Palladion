@@ -36,7 +36,7 @@ import { METIERS } from '../../game/data'
 import { AGE_ADULTE, ageDe } from '../../game/lignees'
 import { jourDe, peutPayer, useGame } from '../../game/store'
 import type { ResourceId } from '../../game/types'
-import { Montant } from './Icones'
+import { Icone, Montant } from './Icones'
 import { Modale } from './Modale'
 
 /*
@@ -227,7 +227,7 @@ function Arbitrages({ c }: { c: Colonie }) {
             const avant = cargaison(c)
             return (
               <button key={v} style={{ width: '100%', marginTop: 5 }} onClick={() => s.reorienterColonie(c.site, v)}>
-                {def.emoji} {def.nom} — {resumeCargaison(apres.res, apres.n)} par convoi
+                <Icone id={def.res} taille={16} /> {def.nom} — {resumeCargaison(apres.res, apres.n)} par convoi
                 {apres.res === avant.res && apres.n < avant.n ? ' (moins qu’aujourd’hui)' : ''}
               </button>
             )
@@ -288,7 +288,7 @@ function CarteColonie({ c }: { c: Colonie }) {
         <div>
           <div className="col-nom">{site.nom}</div>
           <div className="col-sous">
-            {voc.emoji} {voc.nom} · {colonsDe(c)} colons · {ancienneteDite(anciennete(c, jour))}
+            <Icone id={voc.res} taille={15} /> {voc.nom} · {colonsDe(c)} colons · {ancienneteDite(anciennete(c, jour))}
           </div>
         </div>
       </div>
@@ -404,7 +404,7 @@ function Fondation({ sites }: { sites: SiteColonie[] }) {
                 onClick={() => setVocation(v)}
               >
                 <span className="col-nom">
-                  {d.emoji} {d.nom}
+                  <Icone id={d.res} taille={16} /> {d.nom}
                 </span>
                 <span className="col-sous">
                   Terre {aff >= 1.2 ? 'idéale' : aff >= 1 ? 'bonne' : aff >= 0.85 ? 'médiocre' : 'ingrate'} (

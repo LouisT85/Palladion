@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { BUILDING_IDS, MARGE_PORT, RES } from '../../game/data'
 import {
   COURS_MAX,
@@ -30,6 +30,7 @@ import { escorteMax, risqueEscorte } from '../../game/flotte'
 import { merFermee, useGame, type GameState } from '../../game/store'
 import type { ResourceId } from '../../game/types'
 import { ChoixEscorte, flotteDe } from './Flotte'
+import { Icone, Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 
@@ -141,13 +142,14 @@ function LigneCours({ res, snap, marge }: { res: ResourceId; snap: SnapCommerce;
     <div style={CADRE}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <Astuce
-          titre={`${RES[res].emoji} ${RES[res].nom}`}
+          titre={RES[res].nom}
+          emoji={<Icone id={res} taille={18} />}
           resume={`Le cours est ${mot}. Le comptoir en donne ${vente} lingots la charretée de ${LOT_VENTE}, et la revend ${achat}.`}
           lignes={explicationCours(res, snap).map((l) => ({ label: '·', valeur: l }))}
           note="Les cours dérivent lentement vers ce que le monde commande : on peut guetter un bon prix, ce n’est pas du hasard."
         >
           <b style={{ color: '#e8d9b5', cursor: 'help' }}>
-            {RES[res].emoji} {RES[res].nom}
+            <Icone id={res} taille={16} /> {RES[res].nom}
           </b>
         </Astuce>
         <span style={{ color: COULEUR_TENDANCE[tend], fontSize: 12.5 }}>
@@ -184,10 +186,10 @@ function LigneCours({ res, snap, marge }: { res: ResourceId; snap: SnapCommerce;
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <button disabled={!c.vendre || stock < LOT_VENTE || vente <= 0} onClick={() => c.vendre?.(res, 1)}>
-          Vendre {LOT_VENTE} → {vente} 🪙
+          Vendre {LOT_VENTE} → <Montant n={vente} id="bronze" />
         </button>
         <button disabled={!c.acheter || lingots < achat || achat <= 0} onClick={() => c.acheter?.(res, 1)}>
-          Acheter {LOT_VENTE} ← {achat} 🪙
+          Acheter {LOT_VENTE} ← <Montant n={achat} id="bronze" />
         </button>
       </div>
     </div>
@@ -201,9 +203,7 @@ function LigneCaravane({ car, now, snap }: { car: Caravane; now: number; snap: S
   const total = Math.max(1, car.retourA - car.partieA)
   const part = Math.max(0, Math.min(1, (now - car.partieA) / total))
   const espere = gainCaravane(car.villageId, car.charge, snap.cours)
-  const charge = RES_MARCHANDES.filter((r) => (car.charge?.[r] ?? 0) > 0)
-    .map((r) => `${car.charge[r]} ${RES[r].emoji}`)
-    .join(' ')
+  const chargees = RES_MARCHANDES.filter((r) => (car.charge?.[r] ?? 0) > 0)
 
   return (
     <div style={{ ...CADRE, borderColor: '#2f5b7b' }}>
@@ -211,7 +211,14 @@ function LigneCaravane({ car, now, snap }: { car: Caravane; now: number; snap: S
         <b style={{ color: '#e8d9b5' }}>
           🐫 {v?.emoji ?? '·'} {v?.nom ?? car.villageId}
         </b>
-        <span style={{ color: '#93a7b4', fontSize: 12.5 }}>{charge}</span>
+        <span style={{ color: '#93a7b4', fontSize: 12.5 }}>
+          {chargees.map((r, i) => (
+            <Fragment key={r}>
+              {i > 0 && ' '}
+              <Montant n={car.charge[r] ?? 0} id={r} taille={14} />
+            </Fragment>
+          ))}
+        </span>
         <span style={{ marginLeft: 'auto', color: '#c9a86a', fontSize: 12.5 }}>
           rentre dans {mmss(car.retourA - now)}
         </span>
@@ -223,10 +230,12 @@ function LigneCaravane({ car, now, snap }: { car: Caravane; now: number; snap: S
         <span style={{ color: car.risque > 0.25 ? '#c0563f' : '#93a7b4' }}>
           risque de pillage : {pourcent(car.risque)}
         </span>
-        <span>espéré : {espere} 🪙</span>
+        <span>
+          espéré : <Montant n={espere} id="bronze" taille={14} />
+        </span>
         {espere !== car.attendu && (
           <span style={{ color: espere > car.attendu ? '#7fb069' : '#c0563f' }}>
-            (au départ : {car.attendu} 🪙)
+            (au départ : <Montant n={car.attendu} id="bronze" taille={14} />)
           </span>
         )}
       </div>
@@ -278,7 +287,9 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
         <div style={{ display: 'flex', gap: 14, color: '#93a7b4', fontSize: 12.5, marginBottom: 10, flexWrap: 'wrap' }}>
           <span>⚓ Port niveau {port}</span>
           {marge > 0 && <span>Marge du comptoir : {Math.round((marge - 1) * 100)} %</span>}
-          <span>🪙 {Math.floor(s.resources.bronze ?? 0)} lingots</span>
+          <span>
+            <Icone id="bronze" taille={15} /> {Math.floor(s.resources.bronze ?? 0)} lingots
+          </span>
           <span>🐫 {caravanes.length}/{maxCar} caravanes</span>
         </div>
 
@@ -302,7 +313,7 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
             <div style={{ ...CADRE, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               {RES_MARCHANDES.map((r) => (
                 <button key={r} className={r === res ? 'principal' : undefined} onClick={() => setRes(r)}>
-                  {RES[r].emoji} {RES[r].nom}
+                  <Icone id={r} taille={16} /> {RES[r].nom}
                 </button>
               ))}
               <span style={{ color: '#7f97a8', fontSize: 12.5, marginLeft: 4 }}>charretées :</span>
@@ -317,7 +328,7 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
                 </button>
               ))}
               <span style={{ marginLeft: 'auto', color: '#93a7b4', fontSize: 12.5 }}>
-                {aBord} {RES[res].emoji}
+                <Montant n={aBord} id={res} />
               </span>
             </div>
 
@@ -360,7 +371,9 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
                       </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
-                      <span style={{ color: '#c9a86a', fontSize: 13 }}>≈ {gain} 🪙</span>
+                      <span style={{ color: '#c9a86a', fontSize: 13 }}>
+                        ≈ <Montant n={gain} id="bronze" />
+                      </span>
                       <span style={{ color: risque > 0.25 ? '#c0563f' : '#7fb069', fontSize: 12.5 }}>
                         risque {pourcent(risque)}
                         {galeres > 0 && <span style={{ color: '#7f97a8' }}> (nu : {pourcent(d.risque)})</span>}

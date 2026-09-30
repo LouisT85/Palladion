@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { GEO_EXPEDITION } from '../../game/combat'
 import { BUILDINGS, MODE_TEST, UNITS, UNIT_IDS, WALL_HP, troupes as troupes0 } from '../../game/data'
 import {
@@ -40,7 +40,7 @@ import {
 } from '../../game/store'
 import type { Cost, ResourceId, UnitId } from '../../game/types'
 import type { VillageCible } from '../../game/expeditions'
-import { Montant } from './Icones'
+import { Icone, Montant } from './Icones'
 import { Modale } from './Modale'
 import { BatailleLayer } from '../map/BatailleLayer'
 import { SanteOuvrages } from '../map/SanteOuvrages'
@@ -285,9 +285,12 @@ export function PanneauExpeditions() {
             <div className="ligne-exp">
               {secours ? '⚔️ Rase campagne - aucun mur à briser' : `🧱 Remparts niveau ${cible.mur} (${WALL_HP[cible.mur]} pts)`}{' '}
               ·{' '}
-              {UNIT_IDS.filter((u) => face[u] > 0)
-                .map((u) => `${face[u]} ${UNITS[u].emoji}`)
-                .join(' ')}
+              {UNIT_IDS.filter((u) => face[u] > 0).map((u, i) => (
+                <Fragment key={u}>
+                  {i > 0 && ' '}
+                  <Montant n={face[u]} id={u} taille={16} />
+                </Fragment>
+              ))}
               {' '}· puissance ≈ <b>{leurPuissance}</b>
               {!secours && pillages > 0 && (
                 <span style={{ color: '#d98a4e' }}> (garnison renforcée : {pillages} pillage{pillages > 1 ? 's' : ''} encaissé{pillages > 1 ? 's' : ''})</span>
@@ -307,7 +310,7 @@ export function PanneauExpeditions() {
             )}
             {UNIT_IDS.map((u) => (
               <div key={u} className="unite">
-                <span style={{ fontSize: 22 }}>{UNITS[u].emoji}</span>
+                <Icone id={u} taille={22} />
                 <div className="infos">
                   <div className="nom">{UNITS[u].nom}</div>
                   <div className="stats">
@@ -458,9 +461,12 @@ export function PanneauExpeditions() {
                 <DiplomatieVillage v={v} relation={relation} allie={!!allie} marie={!!allie?.mariage} />
                 <div className="ligne-exp">
                   🛡️ Puissance ≈ <b>{puissanceEffective(v, pillages)}</b> · 🧱 niv. {v.mur} ·{' '}
-                  {UNIT_IDS.filter((u) => garnison[u] > 0)
-                    .map((u) => `${garnison[u]}${UNITS[u].emoji}`)
-                    .join(' ')}
+                  {UNIT_IDS.filter((u) => garnison[u] > 0).map((u, i) => (
+                    <Fragment key={u}>
+                      {i > 0 && ' '}
+                      <Montant n={garnison[u]} id={u} taille={16} />
+                    </Fragment>
+                  ))}
                   {'  ·  '}🎁{' '}
                   {(Object.entries(v.butin) as [ResourceId, number][]).map(([r, n]) => (
                     <Montant key={r} n={Math.round(n * (etat?.etoiles ? 0.4 : 1))} id={r} />

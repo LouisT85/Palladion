@@ -11,7 +11,7 @@ import {
 import { RES } from '../../game/data'
 import { conditionsHeros, entretienHeros, fmtDuree, herosDisponible, peutPayer, useGame } from '../../game/store'
 import type { Cost, ResourceId } from '../../game/types'
-import { Montant } from './Icones'
+import { Icone, Montant } from './Icones'
 import { Astuce, Infobulle } from './Infobulle'
 import { Modale } from './Modale'
 
@@ -46,7 +46,8 @@ function CoutExigeant({ c, resources }: { c: Cost; resources: Record<ResourceId,
         return (
           <Astuce
             key={r}
-            titre={`${RES[r].emoji} ${RES[r].nom}`}
+            titre={RES[r].nom}
+            emoji={<Icone id={r} taille={18} />}
             lignes={[
               { label: 'Présents exigés', valeur: n, fort: true },
               { label: 'En réserve', valeur: Math.floor(resources[r]), couleur: manque > 0 ? '#e0715a' : '#8fbf5a' },
@@ -131,7 +132,7 @@ export function HerosRapides() {
             titre={`${def.emoji} ${def.capacite.nom}`}
             resume={def.capacite.desc}
             lignes={[
-              { label: 'Coût', valeur: `${def.capacite.cout} ✨`, fort: faveur >= def.capacite.cout },
+              { label: 'Coût', valeur: <Montant n={def.capacite.cout} id="faveur" taille={12} />, fort: faveur >= def.capacite.cout },
               { label: 'Niveau', valeur: `${e.niveau} · puissance ×${forceNiveau(e.niveau).toFixed(1)}` },
               ...(cd > 0 ? [{ label: 'Prêt dans', valeur: `${Math.ceil(cd / 1000)} s` }] : []),
             ]}
@@ -142,7 +143,8 @@ export function HerosRapides() {
               onClick={() => capacite(h)}
               style={{ borderColor: `${def.couleur}88` }}
             >
-              {def.emoji} {boude ? '😤' : cd > 0 ? `${Math.ceil(cd / 1000)}s` : `${def.capacite.cout}✨`}
+              {def.emoji}{' '}
+              {boude ? '😤' : cd > 0 ? `${Math.ceil(cd / 1000)}s` : <Montant n={def.capacite.cout} id="faveur" taille={13} />}
             </button>
           </Astuce>
         )
@@ -268,7 +270,11 @@ export function PanneauHeros() {
                       ? `😤 boude ${fmtDuree(e.boudeJusqua - now)}`
                       : cd > 0
                         ? `⏳ ${fmtDuree(cd)}`
-                        : `${def.capacite.emoji} Appeler (${def.capacite.cout} ✨)`}
+                        : (
+                            <>
+                              {def.capacite.emoji} Appeler (<Montant n={def.capacite.cout} id="faveur" taille={13} />)
+                            </>
+                          )}
                   </button>
                 </Astuce>
               </div>
@@ -326,9 +332,21 @@ export function PanneauHeros() {
       <>
         {(ent.grain > 0 || ent.faveur > 0) && (
           <div style={{ fontSize: 12.5, color: '#e0bc5c', marginTop: 6 }}>
-            🍖 Entretien de la maisonnée : {ent.grain > 0 ? `${ent.grain.toFixed(1)} 🌾/min` : ''}
+            🍖 Entretien de la maisonnée :{' '}
+            {ent.grain > 0 && (
+              <>
+                {ent.grain.toFixed(1)} <Icone id="grain" taille={13} />
+                /min
+              </>
+            )}
             {ent.grain > 0 && ent.faveur > 0 ? ' + ' : ''}
-            {ent.faveur > 0 ? `${ent.faveur.toFixed(2)} ✨/min` : ''} - trois rappels sans réponse et ils s’en vont.
+            {ent.faveur > 0 && (
+              <>
+                {ent.faveur.toFixed(2)} <Icone id="faveur" taille={13} />
+                /min
+              </>
+            )}{' '}
+            - trois rappels sans réponse et ils s’en vont.
           </div>
         )}
 

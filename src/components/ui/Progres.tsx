@@ -20,8 +20,9 @@ import {
   type SnapTechno,
   type TechnoDef,
 } from '../../game/technologies'
-import { BUILDINGS, RES } from '../../game/data'
+import { BUILDINGS } from '../../game/data'
 import { fmtDuree, useGame, type GameState } from '../../game/store'
+import { Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 import type { Cost, ResourceId } from '../../game/types'
@@ -82,7 +83,7 @@ function Cout({ cout, avoir }: { cout: Cost; avoir: Record<ResourceId, number> }
         const assez = (avoir[r] ?? 0) >= du
         return (
           <span key={r} style={{ color: assez ? '#93a7b4' : '#d68b7a', fontSize: 12 }}>
-            {RES[r].emoji} {du}
+            <Montant n={du} id={r} taille={13} />
           </span>
         )
       })}

@@ -68,7 +68,9 @@ describe('panneau des héros', () => {
     expect(c?.textContent).toContain('puissance ×')
     // et ce qu'il prélève chaque minute sur les réserves
     expect(m.texte()).toContain('Entretien de la maisonnée')
-    expect(m.texte()).toContain('0.6 🌾/min')
+    // le grain est un pictogramme peint : il se lit par son titre, « Grain »
+    expect(m.texte()).toContain('0.6 Grain/min')
+    expect(m.qq('svg[aria-label="Grain"]').length).toBeGreaterThan(0)
   })
 
   it('range le héros tombé au mémorial avec son épitaphe', () => {

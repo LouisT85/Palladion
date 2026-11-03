@@ -39,6 +39,7 @@ import type { ResourceId, UnitId } from '../../game/types'
 import { Icone, Montant } from './Icones'
 import { Modale } from './Modale'
 import { Astuce } from './Infobulle'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════════ LE PANNEAU DU BLOCUS ═══════════════════════
@@ -132,7 +133,7 @@ function BlocusEnCours() {
       {/* ── ce qui court contre quoi ── */}
       <div className={`bl-tete${vue.perdu ? ' perdu' : ''}`}>
         <div className="bl-tete-titre">
-          <span className="bl-emoji">{v.emoji}</span>
+          <span className="bl-emoji"><Picto e={v.emoji} /></span>
           <div>
             <div className="bl-nom">
               Ligne devant {v.nom} — journée {e.jours}
@@ -160,13 +161,13 @@ function BlocusEnCours() {
         </div>
         {vue.cedeAvantEux && (
           <div className="bl-alerte">
-            ⚠️ Votre ligne cédera avant qu’ils ne parlementent. Renforcez-la par l’assaut, ou levez-la avant d’avoir mangé
+            Votre ligne cédera avant qu’ils ne parlementent. Renforcez-la par l’assaut, ou levez-la avant d’avoir mangé
             {' '}{vue.rationDuJour * vue.tenables} mesures pour rien.
           </div>
         )}
         {vue.sortieFatale && (
           <div className="bl-alerte">
-            ⚠️ Leur garnison sortira quand sa volonté tombera sous {SEUIL_SORTIE}, et votre ligne pèse {Math.round(vue.forceLigne)}{' '}
+            Leur garnison sortira quand sa volonté tombera sous {SEUIL_SORTIE}, et votre ligne pèse {Math.round(vue.forceLigne)}{' '}
             contre les {Math.round(vue.puissancePlace)} de la place. Elle n’y survivrait pas.
           </div>
         )}
@@ -176,7 +177,7 @@ function BlocusEnCours() {
       <div className="bl-jauges">
         <div className="bl-jauge-bloc">
           <div className="bl-jauge-tete">
-            <span>🏰 Volonté de la place</span>
+            <span>Volonté de la place</span>
             <b>{Math.round(e.volonte)}</b>
           </div>
           <Jauge valeur={e.volonte} max={VOLONTE_MAX} couleur="#c0563f" seuil={SEUIL_OFFRE} />
@@ -187,7 +188,7 @@ function BlocusEnCours() {
         </div>
         <div className="bl-jauge-bloc">
           <div className="bl-jauge-tete">
-            <span>🏕️ Tenue de la ligne</span>
+            <span>Tenue de la ligne</span>
             <b>{Math.round(e.tenue)}</b>
           </div>
           <Jauge valeur={e.tenue} max={TENUE_MAX} couleur="#7fb069" />
@@ -200,7 +201,7 @@ function BlocusEnCours() {
 
       {/* ── ce qui manque aux remparts ── */}
       <Astuce
-        titre="⚖️ Ce que le blocus coûte à vos murs"
+        titre="Ce que le blocus coûte à vos murs"
         resume="Les hommes postés là-bas ne sont plus dans votre garnison : ils ne défendront pas le village."
         lignes={[
           { label: 'Hommes dehors', valeur: `${part.dehors} sur ${part.dehors + part.dedans}` },
@@ -210,14 +211,14 @@ function BlocusEnCours() {
         note="Un village pillé pendant que la ligne tient, et la ligne se défait : on ne garde pas la porte des autres quand la sienne brûle."
       >
         <div className={`bl-engage${part.partForce > 0.5 ? ' fort' : ''}`}>
-          ⚖️ {part.dehors} homme{part.dehors > 1 ? 's' : ''} dehors sur {part.dehors + part.dedans} —{' '}
+          {part.dehors} homme{part.dehors > 1 ? 's' : ''} dehors sur {part.dehors + part.dedans} —{' '}
           <b>{Math.round(part.partForce * 100)} %</b> de votre force est devant {v.nom}
         </div>
       </Astuce>
 
       {/* ── la nuit dernière ── */}
       <div className="bl-recit">
-        <div className="bl-recit-tete">🌙 La dernière journée</div>
+        <div className="bl-recit-tete">La dernière journée</div>
         {e.dernier.map((l: string, i: number) => (
           <div key={i} className="bl-recit-ligne">
             {l}
@@ -238,7 +239,7 @@ function BlocusEnCours() {
           const payable = peutPayer(s.resources, cout)
           return (
             <div key={id} className={`bl-travail${fait ? ' fait' : ''}`}>
-              <span className="bl-emoji">{def.emoji}</span>
+              <span className="bl-emoji"><Picto e={def.emoji} /></span>
               <div className="bl-travail-corps">
                 <div className="bl-travail-nom">{def.nom}</div>
                 <div className="bl-travail-desc">{def.desc}</div>
@@ -262,7 +263,7 @@ function BlocusEnCours() {
       <div className="bl-decisions">
         {e.offre ? (
           <div className="bl-offre">
-            <div className="bl-offre-tete">🕊️ {v.nom} offre sa reddition</div>
+            <div className="bl-offre-tete">{v.nom} offre sa reddition</div>
             <div className="bl-offre-texte">
               Ils ouvrent la porte et paient rançon — {Math.round(partRancon(e) * 100)} % de ce qu’un sac aurait rapporté,
               sans un mort de votre côté. Zeus Xenios approuve qu’on tienne une supplication ; Arès ne compte pas les
@@ -278,7 +279,7 @@ function BlocusEnCours() {
               journée. Leur offre, elle, n’expire pas.
             </div>
             <button className="principal" style={{ width: '100%' }} onClick={() => s.accepterReddition()}>
-              🕊️ Accepter la reddition
+              Accepter la reddition
             </button>
           </div>
         ) : (
@@ -289,7 +290,7 @@ function BlocusEnCours() {
         )}
         <div className="bl-boutons">
           <Astuce
-            titre="⚔️ Donner l’assaut maintenant"
+            titre="Donner l’assaut maintenant"
             resume="Vos hommes rentrent dans la place au lieu d’attendre qu’elle s’ouvre. C’est un vrai assaut, avec ses morts - mais contre une garnison désarmée."
             lignes={[
               { label: 'Garnison en face', valeur: motTroupes(vue.garnisonDesarmee) },
@@ -314,22 +315,22 @@ function BlocusEnCours() {
             note="Le blocus s’achève dans l’assaut : Zeus Xenios comptera un village saccagé de plus, et la garnison se renforcera pour la prochaine fois."
           >
             <button style={{ flex: 1 }} disabled={enBataille || resteCd > 0} onClick={() => s.donnerAssautBlocus()}>
-              ⚔️ Donner l’assaut
+              Donner l’assaut
             </button>
           </Astuce>
           <Astuce
-            titre="🏳️ Lever le siège"
+            titre="Lever le siège"
             resume="Les hommes rentrent, et il n’y a rien dans leurs mains. Le grain mangé là-bas, personne ne le rendra."
             note="Ambiance en baisse, et Arès n’aime pas qu’on renonce."
           >
             <button className="danger" style={{ flex: 1 }} onClick={() => s.leverBlocus()}>
-              🏳️ Lever le siège
+              Lever le siège
             </button>
           </Astuce>
         </div>
         {resteCd > 0 && (
           <div className="bl-motif">
-            ⏳ Vos hommes rentrent à peine de {v.nom} : l’assaut attendra {fmtDuree(resteCd)}. La ligne, elle, tient
+            Vos hommes rentrent à peine de {v.nom} : l’assaut attendra {fmtDuree(resteCd)}. La ligne, elle, tient
             pendant ce temps - et c’est justement ce qu’elle sait faire.
           </div>
         )}
@@ -375,7 +376,7 @@ function PoserLigne({ villageId, onRetour }: { villageId: string; onRetour: () =
   return (
     <>
       <div className="bl-place">
-        <span className="bl-emoji">{v.emoji}</span>
+        <span className="bl-emoji"><Picto e={v.emoji} /></span>
         <div>
           <div className="bl-nom">{v.nom}</div>
           <div className="bl-sous">{v.desc}</div>
@@ -384,7 +385,7 @@ function PoserLigne({ villageId, onRetour }: { villageId: string; onRetour: () =
       <div className="bl-bloc">
         <h3>Ce qu’il y a derrière le mur</h3>
         <div className="bl-note">
-          🧱 Remparts niveau {v.mur} · puissance ≈ <b>{puissance}</b>. Une ligne qui pèse à peu près autant les amène à
+          Remparts niveau {v.mur} · puissance ≈ <b>{puissance}</b>. Une ligne qui pèse à peu près autant les amène à
           parlementer en quatre à cinq journées de jeu — une saison. Une ligne deux fois plus légère n’y arrivera
           jamais : ils sortiront, et ils passeront.
         </div>
@@ -399,7 +400,7 @@ function PoserLigne({ villageId, onRetour }: { villageId: string; onRetour: () =
             <div className="infos">
               <div className="nom">{UNITS[u].nom}</div>
               <div className="stats">
-                disponibles : {s.army[u]} · ⚔{UNITS[u].atk} ❤{UNITS[u].hp}
+                disponibles : {s.army[u]} · <Picto id="epee" titre="attaque" /> {UNITS[u].atk} <Picto id="coeur" titre="vie" /> {UNITS[u].hp}
               </div>
             </div>
             <div className="actions">
@@ -415,7 +416,7 @@ function PoserLigne({ villageId, onRetour }: { villageId: string; onRetour: () =
           </div>
         ))}
         <div className={`bl-engage${part.partForce > 0.5 ? ' fort' : ''}`}>
-          ⚖️ Il resterait <b>{part.dedans}</b> homme(s) au village, soit{' '}
+          Il resterait <b>{part.dedans}</b> homme(s) au village, soit{' '}
           <b>{Math.round((1 - part.partForce) * 100)} %</b> de votre force sur les remparts. On ne poste jamais plus
           de {Math.round(PART_MAX_DEHORS * 100)} % : il faut du monde à la porte.
         </div>
@@ -426,7 +427,7 @@ function PoserLigne({ villageId, onRetour }: { villageId: string; onRetour: () =
         </div>
         {hommes > MAX_TROUPES && (
           <div className="bl-motif">
-            ⚔️ Une ligne peut être plus grosse qu’une colonne, mais si vous finissez par donner l’assaut, {MAX_TROUPES}{' '}
+            Une ligne peut être plus grosse qu’une colonne, mais si vous finissez par donner l’assaut, {MAX_TROUPES}{' '}
             hommes seulement entreront dans la place - les {hommes - MAX_TROUPES} autres resteront au village.
           </div>
         )}
@@ -441,7 +442,7 @@ function PoserLigne({ villageId, onRetour }: { villageId: string; onRetour: () =
           disabled={refus !== null}
           onClick={() => s.ouvrirBlocus(villageId, postes)}
         >
-          ⛓️ Poster la ligne
+          Poster la ligne
         </button>
       </div>
       {refus !== null && <div className="bl-motif">{motifRefusBlocus(refus, snap)}</div>}
@@ -465,7 +466,7 @@ export function PanneauBlocus({ onFermer }: { onFermer: () => void }) {
   if (enCours) {
     return (
       <Modale
-        titre="⛓️ Le blocus"
+        titre="Le blocus"
         large
         onFermer={onFermer}
         sous="On ne perce pas la muraille : on ferme la place et l’on attend. Cela se compte en journées, et cela se paie en grain."
@@ -477,7 +478,7 @@ export function PanneauBlocus({ onFermer }: { onFermer: () => void }) {
 
   if (cible) {
     return (
-      <Modale titre="⛓️ Poster une ligne" onFermer={onFermer} fermerTexte={null}>
+      <Modale titre="Poster une ligne" onFermer={onFermer} fermerTexte={null}>
         <PoserLigne villageId={cible} onRetour={() => setCible(null)} />
       </Modale>
     )
@@ -486,7 +487,7 @@ export function PanneauBlocus({ onFermer }: { onFermer: () => void }) {
   const jour = jourDe(s)
   return (
     <Modale
-      titre="⛓️ Le blocus - assiéger au lieu de razzier"
+      titre="Le blocus - assiéger au lieu de razzier"
       large
       onFermer={onFermer}
       sous="Poster des hommes devant une place, couper l’eau, brûler les moissons, et attendre qu’elle négocie. Aucune bataille - une durée."
@@ -505,16 +506,16 @@ export function PanneauBlocus({ onFermer }: { onFermer: () => void }) {
           const bloque = allie || (v.maritime && merFermee(s))
           return (
             <div key={v.id} className={`bl-choix${bloque ? ' bloquee' : ''}`}>
-              <span className="bl-emoji">{v.emoji}</span>
+              <span className="bl-emoji"><Picto e={v.emoji} /></span>
               <div className="bl-choix-corps">
                 <div className="bl-nom">
                   {v.nom}{' '}
                   <span className="badge-statut" style={{ color: fiche.couleur, borderColor: `${fiche.couleur}66` }}>
-                    {fiche.emoji} {fiche.nom}
+                    {fiche.nom}
                   </span>
                 </div>
                 <div className="bl-sous">
-                  Puissance ≈ {puissanceEffective(v, pillages)} · 🧱 niveau {v.mur}
+                  Puissance ≈ {puissanceEffective(v, pillages)} · remparts niveau {v.mur}
                   {pillages > 0 && ` · ${pillages} pillage${pillages > 1 ? 's' : ''} encaissé${pillages > 1 ? 's' : ''} - garnison renforcée`}
                   {v.maritime && ' · outre-mer : il faut des coques libres'}
                 </div>
@@ -539,7 +540,7 @@ export function PanneauBlocus({ onFermer }: { onFermer: () => void }) {
                 </div>
               </div>
               <button disabled={bloque} onClick={() => setCible(v.id)}>
-                ⛓️ Fermer la place
+                Fermer la place
               </button>
               {allie && <div className="bl-motif">Votre allié. Rompez le pacte d’abord.</div>}
             </div>

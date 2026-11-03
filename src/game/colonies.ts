@@ -889,14 +889,14 @@ export function motLoyaute(loyaute: number): string {
  * garnison qu'il n'a pas laissée.
  */
 export function explicationLoyaute(c: Colonie): string[] {
-  const out: string[] = [`🏛️ La colonie s’installe : +${LOYAUTE_PAR_JOUR} par journée.`]
+  const out: string[] = [`La colonie s’installe : +${LOYAUTE_PAR_JOUR} par journée.`]
   if (!garnisonSuffisante(c))
     out.push(
-      `🛡️ ${c.garnison} homme(s) sur ${garnisonRequise(c)} : ils se sentent exposés, −${LOYAUTE_GARNISON_MANQUANTE} par journée.`,
+      `${c.garnison} homme(s) sur ${garnisonRequise(c)} : ils se sentent exposés, −${LOYAUTE_GARNISON_MANQUANTE} par journée.`,
     )
-  else out.push(`🛡️ La palissade est tenue (${c.garnison}/${garnisonRequise(c)}) : un raid sera repoussé sans vous.`)
+  else out.push(`La palissade est tenue (${c.garnison}/${garnisonRequise(c)}) : un raid sera repoussé sans vous.`)
   if (c.epreuve)
-    out.push(`${EPREUVES[c.epreuve.id].emoji} Un appel sans réponse : −${LOYAUTE_EPREUVE_IGNOREE} par journée.`)
+    out.push(`Un appel sans réponse : −${LOYAUTE_EPREUVE_IGNOREE} par journée.`)
   const net = loyauteApres(c) - c.loyaute
   out.push(`Au total : ${net > 0 ? '+' : ''}${net} par journée, soit ${motLoyaute(loyauteApres(c))} demain.`)
   return out

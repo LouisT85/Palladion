@@ -24,6 +24,7 @@ import {
   SuiviActe,
 } from './components/ui/Campagne'
 import { Astuce } from './components/ui/Infobulle'
+import { Picto } from './components/ui/Picto'
 import { ControleSon, useSons } from './components/ui/Son'
 import { Tutoriel } from './components/ui/Tutoriel'
 import { AnimationVictoire } from './components/ui/Victoire'
@@ -107,7 +108,7 @@ export default function App() {
         {/* les libellés s'effacent sur écran étroit : les pictogrammes suffisent */}
         <div className="hud-actions">
           <Astuce
-            titre="🗺️ Expéditions"
+            titre="Expéditions"
             resume="Les huit places fortes de la Troade : les piller pour leur butin, ou les secourir pour en faire des alliés. Et ce que chacune pense de vous."
             note={appel ? 'Un village assiégé appelle à l’aide - la fenêtre se referme vite.' : undefined}
           >
@@ -116,21 +117,21 @@ export default function App() {
               onClick={() => openPanel('expeditions')}
               className={appel ? 'appelle' : undefined}
             >
-              🗺️<span className="lbl"> Expéditions</span>
+              <Picto id="carte" /><span className="lbl"> Expéditions</span>
               {/* un émoji seul ne disait rien à qui ne le remarquait pas : on écrit le mot */}
-              {appel ? <span className="badge-secours">🙏 SECOURS</span> : etoiles > 0 ? ` ★${etoiles}` : ''}
+              {appel ? <span className="badge-secours">SECOURS</span> : etoiles > 0 ? ` ★${etoiles}` : ''}
             </button>
           </Astuce>
           <Astuce
-            titre="⚡ Le Panthéon"
+            titre="Le Panthéon"
             resume="Quatre Olympiens, leurs bénédictions, et l’arbre de faveur : la relation à un dieu se dépense en grâces permanentes."
           >
             <button data-tuto="bouton-pantheon" onClick={() => openPanel('pantheon')}>
-              ⚡<span className="lbl"> Panthéon</span>
+              <Picto id="foudre" /><span className="lbl"> Panthéon</span>
             </button>
           </Astuce>
           <Astuce
-            titre="🛡️ Les héros"
+            titre="Les héros"
             resume="Les huit noms de la matière troyenne : les recruter, les faire monter, trancher leurs dilemmes. Ce sont des hôtes exigeants, pas une collection."
             note={herosARecruter > 0 ? `${herosARecruter} héros accepteraient de vous servir dès maintenant.` : undefined}
           >
@@ -139,13 +140,13 @@ export default function App() {
               onClick={() => openPanel('heros')}
               className={herosARecruter > 0 ? 'appelle' : undefined}
             >
-              🛡️<span className="lbl"> Héros</span>
+              <Picto id="casque" /><span className="lbl"> Héros</span>
               {herosARecruter > 0 ? ` ${herosARecruter}` : ''}
             </button>
           </Astuce>
           {!campagne && (
             <Astuce
-              titre="🏅 Le fil rouge"
+              titre="Le fil rouge"
               resume="Cinquante-cinq missions à récompense, acte par acte : la main courante du bac à sable, qui vous montre ce qu’il reste à découvrir."
               note={missionsPretes > 0 ? `${missionsPretes} récompense(s) vous attendent.` : undefined}
             >
@@ -154,8 +155,8 @@ export default function App() {
                 onClick={() => openPanel('missions')}
                 className={missionsPretes > 0 ? 'appelle' : undefined}
               >
-                🏅<span className="lbl"> Missions</span>
-                {missionsPretes > 0 ? ` 🎁${missionsPretes}` : ''}
+                <Picto id="laurier" /><span className="lbl"> Missions</span>
+                {missionsPretes > 0 && <span className="pastille-nb">{missionsPretes}</span>}
               </button>
             </Astuce>
           )}
@@ -166,7 +167,7 @@ export default function App() {
             cent journées sans soupçonner qu'une campagne existe.
           */}
           <Astuce
-            titre="🐴 « La Chute »"
+            titre="« La Chute »"
             resume={
               campagne
                 ? 'Les cinq actes qui suivent l’Iliade, du débarquement achéen à la nuit du cheval - et où vous en êtes.'
@@ -175,35 +176,35 @@ export default function App() {
             note={campagne ? undefined : 'Vous jouez en bac à sable : entrer dans la campagne remplacera votre cité.'}
           >
             <button onClick={() => openPanel('campagne')} className={campagne ? undefined : 'campagne-decouverte'}>
-              🐴<span className="lbl"> La Chute</span>
+              <Picto id="cheval" /><span className="lbl"> La Chute</span>
             </button>
           </Astuce>
           <Astuce
-            titre="👑 Hauts faits et prestige"
+            titre="Hauts faits et prestige"
             resume="Cinquante et un hauts faits, du premier mur à la légende. C’est aussi d’ici qu’on abdique pour voir le bilan de son règne."
           >
             <button onClick={() => openPanel('hauts-faits')}>
-              👑<span className="lbl"> Hauts faits</span>
+              <Picto id="etoile" /><span className="lbl"> Hauts faits</span>
             </button>
           </Astuce>
           <Astuce
-            titre="📜 Le journal"
+            titre="Le journal"
             resume="Rapports de bataille, dilemmes tranchés, arrivées et départs : tout ce qui s’est passé, dans l’ordre où c’est arrivé."
           >
             <button onClick={() => openPanel('journal')}>
-              📜<span className="lbl"> Journal</span>
+              <Picto id="parchemin" /><span className="lbl"> Journal</span>
             </button>
           </Astuce>
           <Astuce
-            titre="📈 Les annales"
+            titre="Les annales"
             resume="Les courbes du règne : greniers, menace, garnison, ambiance, prestige. Un relevé toutes les trente secondes - de quoi voir venir une pente avant qu’elle ne coûte cher."
           >
             <button onClick={() => openPanel('annales')}>
-              📈<span className="lbl"> Annales</span>
+              <Picto id="tablette" /><span className="lbl"> Annales</span>
             </button>
           </Astuce>
-          <Astuce titre="❔ Comment jouer" resume="Toutes les règles, dans l’ordre où elles servent - et de quoi refaire la leçon de Zeus.">
-            <button onClick={() => openPanel('aide')}>❔</button>
+          <Astuce titre="Comment jouer" resume="Toutes les règles, dans l’ordre où elles servent - et de quoi refaire la leçon de Zeus.">
+            <button className="bouton-aide" onClick={() => openPanel('aide')}>?</button>
           </Astuce>
           <ControleSon />
           <BoutonPleinEcran />

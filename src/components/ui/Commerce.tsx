@@ -33,6 +33,7 @@ import { ChoixEscorte, flotteDe } from './Flotte'
 import { Icone, Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════ LE COMPTOIR ET LES CARAVANES ═══════════════════
@@ -209,7 +210,7 @@ function LigneCaravane({ car, now, snap }: { car: Caravane; now: number; snap: S
     <div style={{ ...CADRE, borderColor: '#2f5b7b' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ color: '#e8d9b5' }}>
-          🐫 {v?.emoji ?? '·'} {v?.nom ?? car.villageId}
+          {v && <Picto e={v.emoji} />} {v?.nom ?? car.villageId}
         </b>
         <span style={{ color: '#93a7b4', fontSize: 12.5 }}>
           {chargees.map((r, i) => (
@@ -274,7 +275,7 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="⚖️ Le comptoir"
+      titre="Le comptoir"
       onFermer={onFermer}
       large
       sous={
@@ -285,12 +286,12 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
     >
       <>
         <div style={{ display: 'flex', gap: 14, color: '#93a7b4', fontSize: 12.5, marginBottom: 10, flexWrap: 'wrap' }}>
-          <span>⚓ Port niveau {port}</span>
+          <span>Port niveau {port}</span>
           {marge > 0 && <span>Marge du comptoir : {Math.round((marge - 1) * 100)} %</span>}
           <span>
             <Icone id="bronze" taille={15} /> {Math.floor(s.resources.bronze ?? 0)} lingots
           </span>
-          <span>🐫 {caravanes.length}/{maxCar} caravanes</span>
+          <span>{caravanes.length}/{maxCar} caravanes</span>
         </div>
 
         <div style={TITRE_BLOC}>Les cours du jour</div>
@@ -361,10 +362,10 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
                   <div key={d.village.id} style={CADRE}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                       <b style={{ color: '#e8d9b5' }}>
-                        {d.village.emoji} {d.village.nom}
+                        <Picto e={d.village.emoji} /> {d.village.nom}
                       </b>
                       <span style={{ color: fiche.couleur, fontSize: 12 }}>
-                        {fiche.emoji} {fiche.nom}
+                        {fiche.nom}
                       </span>
                       <span style={{ marginLeft: 'auto', color: '#93a7b4', fontSize: 12 }}>
                         {d.etapes} étape{d.etapes > 1 ? 's' : ''} · {mmss(d.duree)}
@@ -380,7 +381,7 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
                       </span>
                       <span style={{ color: '#7f97a8', fontSize: 12 }}>prix majoré de {Math.round((d.prime - 1) * 100)} %</span>
                       <Astuce
-                        titre={`🐫 Caravane vers ${d.village.nom}`}
+                        titre={`Caravane vers ${d.village.nom}`}
                         resume={`${d.etapes} étapes de route. Le prix du bout est majoré de ${Math.round((d.prime - 1) * 100)} %, et se fait au cours du RETOUR.`}
                         lignes={[
                           { label: 'Charge', valeur: `${aBord} ${RES[res].nom.toLowerCase()}` },
@@ -429,10 +430,10 @@ export function PanneauCommerce({ onFermer }: { onFermer: () => void }) {
                 <div key={v.id} style={{ ...CADRE, borderColor: '#4a2a24', background: '#170f10' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                     <b style={{ color: '#d8b6a8' }}>
-                      ⛔ {v.emoji} {v.nom}
+                      <Picto id="interdit" /> {v.nom}
                     </b>
                     <span style={{ color: fiche.couleur, fontSize: 12 }}>
-                      {fiche.emoji} {fiche.nom}
+                      {fiche.nom}
                     </span>
                     <span style={{ marginLeft: 'auto', color: '#8898a6', fontSize: 12 }}>
                       {etapesVers(v.id)} étape{etapesVers(v.id) > 1 ? 's' : ''}

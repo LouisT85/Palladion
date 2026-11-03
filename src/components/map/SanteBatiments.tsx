@@ -1,5 +1,6 @@
 import { BUILDINGS, BUILDING_IDS, hpAcropole, structureMax } from '../../game/data'
 import { useGame } from '../../game/store'
+import { Picto } from '../ui/Picto'
 
 /*
  * La santé des bâtiments, pendant un assaut seulement.
@@ -49,6 +50,7 @@ export function Jauge({
         rx={h / 2}
         fill={couleur(part)}
       />
+      {coeur && <Picto e={emoji ?? 'temple'} centre={[-w / 2 - 9, h / 2]} taille={12} couleur="#f0e8d8" />}
       {nomme && (
         <text
           x={0}
@@ -61,7 +63,7 @@ export function Jauge({
           stroke="#000000aa"
           strokeWidth={2.4}
         >
-          {coeur ? `${emoji ?? '🏛️'} ` : ''}
+          
           {nom}
         </text>
       )}

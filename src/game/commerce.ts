@@ -257,14 +257,14 @@ export function explicationCours(res: ResourceId, snap: SnapCommerce): string[] 
   if (res === NUMERAIRE) return ['Le lingot est l’unité de compte : tous les prix se disent en bronze.']
   const s = SAISONS[snap.saison]
   const prodSaison = s?.prod[res] ?? 1
-  if (prodSaison < 0.95) out.push(`${s.emoji} ${s.nom} : la ressource se fait rare, le cours monte.`)
-  if (prodSaison > 1.05) out.push(`${s.emoji} ${s.nom} : les réserves débordent, le cours cède.`)
-  if (snap.merFermee) out.push('❄️ La mer est fermée : plus un bateau, donc tout renchérit.')
-  if (snap.secheresse && res === 'grain') out.push('🔥 La sécheresse brûle les champs : le grain flambe.')
+  if (prodSaison < 0.95) out.push(`${s.nom} : la ressource se fait rare, le cours monte.`)
+  if (prodSaison > 1.05) out.push(`${s.nom} : les réserves débordent, le cours cède.`)
+  if (snap.merFermee) out.push('La mer est fermée : plus un bateau, donc tout renchérit.')
+  if (snap.secheresse && res === 'grain') out.push('La sécheresse brûle les champs : le grain flambe.')
   const chantiers = Math.min(3, Math.max(0, snap.ruines))
   if (chantiers > 0 && (res === 'pierre' || res === 'bois'))
-    out.push('🧱 On rebâtit partout après l’assaut : les matériaux sont demandés.')
-  if (snap.menace > 55) out.push(`🗡️ La région est en armes (menace ${Math.round(snap.menace)}) : les routes coûtent cher.`)
+    out.push('On rebâtit partout après l’assaut : les matériaux sont demandés.')
+  if (snap.menace > 55) out.push(`La région est en armes (menace ${Math.round(snap.menace)}) : les routes coûtent cher.`)
   if (out.length === 0) out.push('Rien ne pousse ce cours dans un sens ou dans l’autre : il revient au pair.')
   return out
 }

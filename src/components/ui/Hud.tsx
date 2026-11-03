@@ -24,6 +24,7 @@ import { HerosRapides } from './Heros'
 import { Icone, Montant } from './Icones'
 import { Astuce, Infobulle } from './Infobulle'
 import { BarreOrdres } from './Ordres'
+import { Picto } from './Picto'
 import { JetonPlanDefense } from './PlanDefense'
 import { PanneauPopulation } from './Population'
 import type { ResourceId } from '../../game/types'
@@ -58,11 +59,11 @@ export function ControleVitesse() {
       ]}
       note={
         enBataille
-          ? '⏸ On ne double pas la vitesse d’un assaut : les dieux et les héros s’invoquent en temps réel.'
-          : '⚠️ Accélérer rapproche aussi l’ennemi. Bâtissez vite, mais regardez le compte à rebours.'
+          ? 'On ne double pas la vitesse d’un assaut : les dieux et les héros s’invoquent en temps réel.'
+          : 'Accélérer rapproche aussi l’ennemi. Bâtissez vite, mais regardez le compte à rebours.'
       }
     >
-      <span className="ico">{enBataille ? '⏸' : '⏩'}</span>
+      <span className="ico"><Picto id={enBataille ? 'pause' : 'accelere'} /></span>
       {VITESSES.map((v) => (
         <button
           key={v}
@@ -201,15 +202,15 @@ export function BarreRessources() {
                   valeur: MODE_TEST ? 'illimité' : `${t >= 0 ? '+' : ''}${t.toFixed(1)}`,
                   couleur: t < 0 ? '#d05a41' : '#7fc79b',
                 },
-                { label: 'Saison', valeur: `${SAISONS[s.saison].emoji} ×${(SAISONS[s.saison].prod[r] ?? 1).toFixed(2)}` },
-                { label: 'Ciel', valeur: `${METEOS[s.meteo].emoji} ×${METEOS[s.meteo].prod.toFixed(2)}` },
-                { label: 'Ambiance', valeur: `🎭 ×${(0.5 + (s.morale / 100) * 0.75).toFixed(2)}` },
+                { label: 'Saison', valeur: `${SAISONS[s.saison].nom} ×${(SAISONS[s.saison].prod[r] ?? 1).toFixed(2)}` },
+                { label: 'Ciel', valeur: `${METEOS[s.meteo].nom} ×${METEOS[s.meteo].prod.toFixed(2)}` },
+                { label: 'Ambiance', valeur: `×${(0.5 + (s.morale / 100) * 0.75).toFixed(2)}` },
               ]}
               note={
                 part > 0.97
-                  ? '⚠️ Entrepôt plein : ce qui rentre est perdu. Agrandissez l’Agora.'
+                  ? 'Entrepôt plein : ce qui rentre est perdu. Agrandissez l’Agora.'
                   : r === 'grain' && t < 0
-                    ? '⚠️ Le grain baisse : à zéro, c’est la famine puis la désertion.'
+                    ? 'Le grain baisse : à zéro, c’est la famine puis la désertion.'
                     : `Capacité fixée par l’Agora (niveau ${s.buildings.agora.level}).`
               }
             >
@@ -263,14 +264,14 @@ export function BarreRessources() {
       </div>
       <div className="hud-groupe">
         {MODE_TEST && (
-          <Astuce titre="🧪 Mode test" resume="Ressources illimitées, chantiers instantanés. N’existe pas en production.">
-            <span className="pastille test">🧪 TEST</span>
+          <Astuce titre="Mode test" resume="Ressources illimitées, chantiers instantanés. N’existe pas en production.">
+            <span className="pastille test">TEST</span>
           </Astuce>
         )}
         {MODE_TEST && (
-          <Astuce titre="🧪 Attaque forcée" resume="Déclenche un assaut dans trois secondes, sans attendre le calendrier.">
+          <Astuce titre="Attaque forcée" resume="Déclenche un assaut dans trois secondes, sans attendre le calendrier.">
             <button onClick={() => s.attaqueTest()} style={{ padding: '3px 9px', fontSize: 12.5 }}>
-              🧪 Attaque
+              Attaque test
             </button>
           </Astuce>
         )}
@@ -291,12 +292,12 @@ export function BarreRessources() {
           ]}
           note={
             postesVides > 0
-              ? '⚠️ Un atelier sans ouvrier ne produit rien. Cliquez pour affecter vos villageois.'
+              ? 'Un atelier sans ouvrier ne produit rien. Cliquez pour affecter vos villageois.'
               : 'Cliquez pour ouvrir le recensement du village.'
           }
         >
           <button className="pastille" onClick={() => s.ouvrirRecensement(true)}>
-            👥<span className="opt">Habitants</span> <b>{s.pop}</b>/{cap}
+            <Picto id="groupe" /><span className="opt">Habitants</span> <b>{s.pop}</b>/{cap}
             <span className={`oisifs${sansEmploi === 0 ? ' zero' : ''}`}>
               ({sansEmploi} oisif{sansEmploi > 1 ? 's' : ''})
             </span>
@@ -316,7 +317,7 @@ export function BarreRessources() {
           ]}
           note="Les archers ne tirent depuis un pan de mur que tant qu’il tient debout."
         >
-          ⚔️<span className="opt">Garnison</span> <b>{armeeTotale(s.army)}</b>
+          <Picto id="epees" /><span className="opt">Garnison</span> <b>{armeeTotale(s.army)}</b>
         </Infobulle>
       </div>
       {popOuvert && <PanneauPopulation onFermer={() => s.ouvrirRecensement(false)} />}
@@ -352,7 +353,7 @@ export function JetonsEtat() {
           ]}
           note="Sous 25, les meneurs s’agitent ; à 0, les soldats désertent."
         >
-          🎭
+          <Picto id="masque" />
           <b className="ambiance-mot" style={{ color: morale.c }}>
             {morale.txt}
           </b>
@@ -374,7 +375,7 @@ export function JetonsEtat() {
           ]}
           note="Une tour d’archers protège - et attire. Un pillage aussi."
         >
-          🔥<span className="opt">Menace</span> <b>{Math.round(s.threat)}</b>
+          <Picto id="flamme" /><span className="opt">Menace</span> <b>{Math.round(s.threat)}</b>
         </Infobulle>
         <Infobulle
           className="pastille"
@@ -390,7 +391,7 @@ export function JetonsEtat() {
         >
           {/* « Jour 10 - Jour » se lisait deux fois : le moment de la journée
               passe en minuscules, à sa place de complément */}
-          ☀️<span className="opt">Jour</span> <b>{jour}</b>
+          <Picto id="soleil" /><span className="opt">Jour</span> <b>{jour}</b>
           <span className="opt2">· {phase.toLowerCase()}</span>
         </Infobulle>
         <Infobulle
@@ -414,15 +415,15 @@ export function JetonsEtat() {
           ]}
           note={
             <>
-              {METEOS[s.meteo].emoji} <b>{METEOS[s.meteo].nom}</b> - {METEOS[s.meteo].desc}
+              <b>{METEOS[s.meteo].nom}</b> - {METEOS[s.meteo].desc}
               {/* la grâce « Mer ouverte » lève la saison morte : l'écriteau doit la suivre */}
-              {merFermee(s) && <div>❄️ La mer est prise : port au tiers, îles hors d’atteinte.</div>}
+              {merFermee(s) && <div>La mer est prise : port au tiers, îles hors d’atteinte.</div>}
             </>
           }
         >
-          {SAISONS[s.saison].emoji}
+          <Picto e={SAISONS[s.saison].emoji} />
           <b>{SAISONS[s.saison].nom}</b>
-          <span className="meteo-ico">{METEOS[s.meteo].emoji}</span>
+          <span className="meteo-ico"><Picto e={METEOS[s.meteo].emoji} /></span>
         </Infobulle>
         <ControleVitesse />
     </div>
@@ -502,7 +503,7 @@ function BandeauSecours() {
   return (
     <div className="bandeau secours">
       <div className="gros">
-        🙏 {v?.nom ?? 'Un village'} implore votre aide
+        {v?.nom ?? 'Un village'} implore votre aide
         <span className="compte">
           {Math.floor(reste / 60000)}:{String(Math.floor((reste % 60000) / 1000)).padStart(2, '0')}
         </span>
@@ -513,15 +514,15 @@ function BandeauSecours() {
       </div>
       <div className="secours-actions">
         <button className="principal" disabled={enCours} onClick={() => openPanel('expeditions')}>
-          🤝 Voir et porter secours
+          Voir et porter secours
         </button>
         <Astuce
-          titre="🚪 Fermer la porte"
+          titre="Fermer la porte"
           resume="Zeus Xenios protège les suppliants : refuser se paie auprès de lui, et le village tombera sans vous."
           note="Une bande de plus rôdera dans la région."
         >
           <button className="danger" onClick={() => ignorer()}>
-            🚪 Fermer la porte (Zeus −4)
+            Fermer la porte (Zeus −4)
           </button>
         </Astuce>
       </div>
@@ -579,13 +580,13 @@ export function BandeauAlerte() {
        * Nord dès qu'une vague ouvrait trois fronts (45 % de son arc masqué, mesuré).
        */
       <div className="bandeau assaut">
-        <div className="gros">⚔️ ASSAUT EN COURS - {restants} assaillants</div>
+        <div className="gros">ASSAUT EN COURS - {restants} assaillants</div>
         {/*
           « Vos remparts encaissent le choc » ne disait rien que les jauges de
           secteur ne disent mieux, et coûtait 14 px des 316 que le panneau a le
           droit d'occuper sans mordre sur elles. La brèche, elle, se crie.
         */}
-        {battle.breche && <div className="detail">💥 Les remparts sont percés : mêlée dans le village !</div>}
+        {battle.breche && <div className="detail">Les remparts sont percés : mêlée dans le village !</div>}
         <div className="detail moral-ligne">
           <span className={`moral-jauge${rompt ? ' rompt' : ''}`}>
             <div style={{ width: `${Math.round(moral * 100)}%` }} />
@@ -605,7 +606,7 @@ export function BandeauAlerte() {
           */}
           {heroTient && (
             <Astuce
-              titre="🛡️ Un héros rallie la ligne"
+              titre="Un héros rallie la ligne"
               resume="Tant qu’un héros tient debout de votre côté, vos hommes endurent bien plus avant de rompre."
               lignes={[
                 { label: 'Rupture, sans héros', valeur: `${Math.round(SEUIL_PANIQUE * 100)} %` },
@@ -613,21 +614,21 @@ export function BandeauAlerte() {
               ]}
               note="S’il tombe ou s’enfuit, le seuil remonte aussitôt."
             >
-              <b className="moral-heros">🛡️</b>
+              <b className="moral-heros"><Picto id="bouclier" titre="Un héros rallie la ligne" /></b>
             </Astuce>
           )}
         </div>
         {champ && def && (
           <div className={`champion-ligne${champ.abattu ? ' abattu' : ''}`}>
             <span className="champion-nom">
-              {champ.emoji} {champ.nom}
+              <Picto e={champ.emoji} /> {champ.nom}
             </span>
             {champ.abattu ? (
-              <span className="champion-mort">💀 abattu - sa manœuvre est morte avec lui</span>
+              <span className="champion-mort">abattu - sa manœuvre est morte avec lui</span>
             ) : (
               <>
                 <Astuce
-                  titre={`${champ.emoji} ${champ.nom}`}
+                  titre={champ.nom}
                   resume={`${Math.round(vieChamp * 100)} % de ses forces. Abattez-le et sa manœuvre meurt avec lui - c’est la seule façon de l’éteindre.`}
                 >
                   <span className="champion-vie">
@@ -635,7 +636,7 @@ export function BandeauAlerte() {
                   </span>
                 </Astuce>
                 <Astuce
-                  titre={`${def.capacite.emoji} ${def.capacite.nom}`}
+                  titre={def.capacite.nom}
                   resume={def.capacite.desc}
                   note={
                     champ.lancee
@@ -645,8 +646,8 @@ export function BandeauAlerte() {
                 >
                   <span className="champion-manoeuvre">
                     {champ.lancee
-                      ? `${def.capacite.emoji} ${def.capacite.nom} - en cours`
-                      : `${def.capacite.emoji} ${def.capacite.nom} dans ${Math.ceil(avantManoeuvre / 1000)} s`}
+                      ? `${def.capacite.nom} - en cours`
+                      : `${def.capacite.nom} dans ${Math.ceil(avantManoeuvre / 1000)} s`}
                   </span>
                 </Astuce>
               </>
@@ -673,7 +674,7 @@ export function BandeauAlerte() {
     return (
       <div className="bandeau">
         <div className="gros">
-          🐎 Attaque ennemie dans{' '}
+          Attaque ennemie dans{' '}
           <span className="compte">
             {Math.floor(dans / 60000)}:{String(Math.floor((dans % 60000) / 1000)).padStart(2, '0')}
           </span>
@@ -685,8 +686,8 @@ export function BandeauAlerte() {
         {fronts && (
           <div className="detail" style={{ color: '#cbd8e2' }}>
             {revele
-              ? `🐎 Ulysse a fait parler un éclaireur : ils frapperont ${fronts.join(' et ')}.`
-              : `👁️ Rien ne monte de la plaine sans que Zeus le voie : ils frapperont ${fronts.join(' et ')}.`}
+              ? `Ulysse a fait parler un éclaireur : ils frapperont ${fronts.join(' et ')}.`
+              : `Rien ne monte de la plaine sans que Zeus le voie : ils frapperont ${fronts.join(' et ')}.`}
           </div>
         )}
         {/* un nom en tête de colonne : on doit pouvoir s'y préparer, pas le
@@ -694,18 +695,18 @@ export function BandeauAlerte() {
         {champAnnonce && (
           <div className="detail champion-presage">
             <b style={{ color: '#ffb9a5' }}>
-              {ficheChampion(champAnnonce.id).emoji} {champAnnonce.titre}
+              <Picto e={ficheChampion(champAnnonce.id).emoji} /> {champAnnonce.titre}
             </b>
             <div>{champAnnonce.presage}</div>
             <div style={{ color: '#e8c04a' }}>
-              {champAnnonce.capacite.emoji} {champAnnonce.capacite.nom} - {champAnnonce.capacite.desc} Abattez-le et
+              {champAnnonce.capacite.nom} - {champAnnonce.capacite.desc} Abattez-le et
               elle meurt avec lui.
             </div>
           </div>
         )}
         {defRecompense && (
           <div className="detail recompense">
-            🎁 Récompense si repoussé : <b><Montant n={defRecompense.bronze} id="bronze" taille={14} signe /></b> ·{' '}
+            Récompense si repoussé : <b><Montant n={defRecompense.bronze} id="bronze" taille={14} signe /></b> ·{' '}
             <b><Montant n={defRecompense.faveur} id="faveur" taille={14} signe /></b> · ambiance +10
           </div>
         )}
@@ -714,10 +715,10 @@ export function BandeauAlerte() {
           <JetonPlanDefense />
         </div>
         {expedition ? (
-          <div className="detail">⏳ Vos troupes sont en expédition - l’ennemi attend leur retour…</div>
+          <div className="detail">Vos troupes sont en expédition - l’ennemi attend leur retour…</div>
         ) : (
           <button className="danger lancer-now" onClick={() => lancerMaintenant()}>
-            ⚔️ Lancer l’assaut maintenant (récompense +25 %)
+            Lancer l’assaut maintenant (récompense +25 %)
           </button>
         )}
       </div>
@@ -734,7 +735,7 @@ export function Toasts() {
     <div className="toasts">
       {toasts.map((t) => (
         <div key={t.id} className="toast">
-          {t.emoji} {t.msg}
+          <Picto e={t.emoji} className="toast-picto" /> {t.msg}
         </div>
       ))}
     </div>

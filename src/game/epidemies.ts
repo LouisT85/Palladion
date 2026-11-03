@@ -903,10 +903,10 @@ export function resoudreAbsence(snap: SnapEpidemie, tirer: () => number): IssueJ
   const coutGrain = litsOccupes(snap.villageois) * GRAIN_PAR_LIT * journees
   const lignes = [
     morts.length > 0
-      ? `🕯️ La fièvre a fait son temps pendant votre absence : ${morts.length} bûcher${morts.length > 1 ? 's' : ''}, ${gueris.length} relevé${gueris.length > 1 ? 's' : ''}.`
-      : '🕯️ La fièvre a fait son temps pendant votre absence, sans prendre personne.',
+      ? `La fièvre a fait son temps pendant votre absence : ${morts.length} bûcher${morts.length > 1 ? 's' : ''}, ${gueris.length} relevé${gueris.length > 1 ? 's' : ''}.`
+      : 'La fièvre a fait son temps pendant votre absence, sans prendre personne.',
   ]
-  if (coutGrain > 0) lignes.push(`🌾 ${coutGrain} mesures sont passées en bouillons et en linges bouillis.`)
+  if (coutGrain > 0) lignes.push(`${coutGrain} mesures de grain sont passées en bouillons et en linges bouillis.`)
   return { morts, gueris, nouveaux: [], coutGrain, finie: true, lignes }
 }
 
@@ -933,7 +933,7 @@ export function resumeEpidemie(e: EtatEpidemie, jour: number): string[] {
   const def = SOUCHES[e.souche]
   const duree = Math.max(1, (e.finLe ?? jour) - e.jourEntree)
   return [
-    `${def.emoji} ${def.nom}, entrée par ${def.porte}.`,
+    `${def.nom}, entrée par ${def.porte}.`,
     `${e.cas} cas en ${duree} journée${duree > 1 ? 's' : ''} : ${e.morts} mort${e.morts > 1 ? 's' : ''}, ${e.gueris} relevé${e.gueris > 1 ? 's' : ''}.`,
     def.lecon,
   ]

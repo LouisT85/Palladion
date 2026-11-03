@@ -29,6 +29,7 @@ import { jourDe, totalEtoiles, useGame, type GameState } from '../../game/store'
 import { Icone, Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════ LE DOMAINE DIVIN ═══════════════════
@@ -123,7 +124,7 @@ export function PanneauOracles({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="🔮 Les oracles"
+      titre="Les oracles"
       onFermer={onFermer}
       large
       sous={
@@ -134,7 +135,7 @@ export function PanneauOracles({ onFermer }: { onFermer: () => void }) {
     >
       <>
         <div style={{ display: 'flex', gap: 14, color: '#93a7b4', fontSize: 12.5, marginBottom: 10 }}>
-          <span>🏛️ Temple niveau {temple}</span>
+          <span>Temple niveau {temple}</span>
           <span>
             <Icone id="faveur" taille={14} /> {Math.floor(s.faveur)} faveur
           </span>
@@ -155,7 +156,7 @@ export function PanneauOracles({ onFermer }: { onFermer: () => void }) {
             <div key={q} style={{ ...CADRE, borderColor: c.ok ? '#2f5b7b' : '#1e3346' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                 <b style={{ color: '#e8d9b5' }}>
-                  {def.emoji} {def.nom}
+                  <Picto e={def.emoji} /> {def.nom}
                 </b>
                 <span style={{ color: '#7f97a8', fontSize: 12.5, fontStyle: 'italic' }}>« {def.question} »</span>
                 <span style={{ marginLeft: 'auto', color: '#93a7b4', fontSize: 12 }}>
@@ -180,7 +181,7 @@ export function PanneauOracles({ onFermer }: { onFermer: () => void }) {
                   >
                     {VILLAGES_CIBLES.map((v) => (
                       <option key={v.id} value={v.id}>
-                        {v.emoji} {v.nom}
+                        {v.nom}
                       </option>
                     ))}
                   </select>
@@ -189,7 +190,7 @@ export function PanneauOracles({ onFermer }: { onFermer: () => void }) {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <Astuce
-                  titre={`${def.emoji} ${def.nom}`}
+                  titre={def.nom}
                   resume={def.desc}
                   note={`Une question par ${duree(def.cooldown)}. Temple niveau ${def.temple} requis.`}
                 >
@@ -343,7 +344,7 @@ function Fiche({
   }[etat]
   return (
     <Astuce
-      titre={`${def.emoji} ${def.nom}`}
+      titre={def.nom}
       resume={def.desc}
       lignes={[
         { label: 'Effet', valeur: def.effet, fort: true },
@@ -363,7 +364,7 @@ function Fiche({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 15 }}>{def.emoji}</span>
+          <span style={{ fontSize: 15 }}><Picto e={def.emoji} /></span>
           <b style={{ color: etat === 'exposee' ? '#e8cf94' : '#c8d6e0', fontSize: 13 }}>{def.nom}</b>
           <span style={{ color: '#7f97a8', fontSize: 11.5 }}>{NOM_RARETE[def.rarete]}</span>
           <span style={{ marginLeft: 'auto', color: '#8fb27f', fontSize: 12 }}>{def.effet}</span>
@@ -393,7 +394,7 @@ export function PanneauReliques({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="🏺 Les reliques du temple"
+      titre="Les reliques du temple"
       onFermer={onFermer}
       large
       sous={

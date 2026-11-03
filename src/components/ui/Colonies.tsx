@@ -38,6 +38,7 @@ import { jourDe, peutPayer, useGame } from '../../game/store'
 import type { ResourceId } from '../../game/types'
 import { Icone, Montant } from './Icones'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════════ LE PANNEAU DES COLONIES ═══════════════════════
@@ -136,7 +137,7 @@ function Epreuve({ c }: { c: Colonie }) {
   return (
     <div className="col-epreuve">
       <div className="col-epreuve-tete">
-        <span className="col-emoji">{def.emoji}</span>
+        <span className="col-emoji"><Picto e={def.emoji} /></span>
         <div>
           <div className="col-nom">{def.nom}</div>
           <div className="col-sursis">
@@ -195,13 +196,13 @@ function Arbitrages({ c }: { c: Colonie }) {
   return (
     <div className="col-arbitrages">
       <div className="col-boutons">
-        <button onClick={() => setOuvert(ouvert === 'vocation' ? null : 'vocation')}>🧭 Réorienter</button>
-        <button onClick={() => setOuvert(ouvert === 'garnison' ? null : 'garnison')}>🛡️ Renforcer</button>
+        <button onClick={() => setOuvert(ouvert === 'vocation' ? null : 'vocation')}>Réorienter</button>
+        <button onClick={() => setOuvert(ouvert === 'garnison' ? null : 'garnison')}>Renforcer</button>
         <button
           className="danger"
           onClick={() => (confirmeAbandon ? s.abandonnerColonie(c.site) : setConfirmeAbandon(true))}
         >
-          {confirmeAbandon ? `Confirmer : ${colonsDe(c)} colons restent là-bas` : '🏳️ Abandonner'}
+          {confirmeAbandon ? `Confirmer : ${colonsDe(c)} colons restent là-bas` : 'Abandonner'}
         </button>
       </div>
       {confirmeAbandon && (
@@ -284,7 +285,7 @@ function CarteColonie({ c }: { c: Colonie }) {
   return (
     <div className={`col-carte${c.epreuve ? ' en-peril' : ''}`}>
       <div className="col-carte-tete">
-        <span className="col-emoji">{site.emoji}</span>
+        <span className="col-emoji"><Picto e={site.emoji} /></span>
         <div>
           <div className="col-nom">{site.nom}</div>
           <div className="col-sous">
@@ -309,7 +310,7 @@ function CarteColonie({ c }: { c: Colonie }) {
       </div>
 
       <div className={`col-garnison${garnisonSuffisante(c) ? '' : ' insuffisante'}`}>
-        🛡️ Garnison {c.garnison}/{garnisonRequise(c)}
+        Garnison {c.garnison}/{garnisonRequise(c)}
         {garnisonSuffisante(c) ? ' — un raid sera repoussé sans vous' : ' — la palissade ne tiendra pas seule'}
       </div>
 
@@ -380,7 +381,7 @@ function Fondation({ sites }: { sites: SiteColonie[] }) {
               className={`col-site${x.id === site.id ? ' actif' : ''}`}
               onClick={() => setSiteId(x.id)}
             >
-              <span className="col-emoji">{x.emoji}</span>
+              <span className="col-emoji"><Picto e={x.emoji} /></span>
               <span className="col-nom">{x.nom}</span>
               <span className="col-sous">
                 {journees(x.journees)} de mer · {x.menace} hommes à laisser
@@ -530,7 +531,7 @@ export function PanneauColonies({ onFermer }: { onFermer: () => void }) {
   const libres = sitesLibres(colonies)
   return (
     <Modale
-      titre="🏝️ Les colonies"
+      titre="Les colonies"
       onFermer={onFermer}
       large
       sous="Un second foyer outre-mer. Des habitants qui partent pour de bon, une nef qui ne revient plus, et quatre décisions par règne - pas une de plus."
@@ -583,7 +584,7 @@ export function BlocColonies() {
   const enPeril = colonies.filter((c) => c.epreuve !== null).length
   return (
     <div className="bloc">
-      <h3>🏝️ Outre-mer</h3>
+      <h3>Outre-mer</h3>
       <div className="desc" style={{ fontSize: 12 }}>
         Fonder une colonie, c’est embarquer des habitants pour toujours. Elle envoie des convois, elle réclame des
         secours, et elle retient une nef tant qu’elle vit.
@@ -594,8 +595,8 @@ export function BlocColonies() {
         onClick={() => s.openPanel('colonies')}
       >
         {enPeril > 0
-          ? `⚠️ ${enPeril} colonie${enPeril > 1 ? 's' : ''} appelle${enPeril > 1 ? 'nt' : ''} au secours`
-          : `🏝️ Colonies (${colonies.length}/${COLONIES_MAX})`}
+          ? `${enPeril} colonie${enPeril > 1 ? 's' : ''} appelle${enPeril > 1 ? 'nt' : ''} au secours`
+          : `Colonies (${colonies.length}/${COLONIES_MAX})`}
       </button>
     </div>
   )

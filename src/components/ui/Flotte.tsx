@@ -32,6 +32,7 @@ import { merFermee, peutPayer, useGame, type GameState } from '../../game/store'
 import { Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════════ LE CHANTIER NAVAL ═══════════════════════
@@ -149,14 +150,14 @@ export function ChoixEscorte({
   if (!possible) {
     return (
       <div style={{ ...CADRE, color: '#7f97a8', fontSize: 12.5 }}>
-        ⚔️ {motifPasEscortable(villageId)}
+        {motifPasEscortable(villageId)}
       </div>
     )
   }
   if (total === 0) {
     return (
       <div style={{ ...CADRE, color: '#7f97a8', fontSize: 12.5 }}>
-        ⚔️ Cette route se longe par l’eau : une pentécontère y ferait tomber le risque d’un tiers. Vous n’en avez
+        Cette route se longe par l’eau : une pentécontère y ferait tomber le risque d’un tiers. Vous n’en avez
         aucune - le chantier naval est au port.
       </div>
     )
@@ -164,7 +165,7 @@ export function ChoixEscorte({
   return (
     <div style={{ ...CADRE, borderColor: galeres > 0 ? '#2f5b7b' : '#1e3346' }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <b style={{ color: '#e8d9b5', fontSize: 12.5 }}>⚔️ Escorte</b>
+        <b style={{ color: '#e8d9b5', fontSize: 12.5 }}>Escorte</b>
         {Array.from({ length: ESCORTE_MAX + 1 }, (_, n) => n).map((n) => (
           <button
             key={n}
@@ -218,7 +219,7 @@ export function BlocTraversee({ villageId, hommes }: { villageId: string; hommes
     <div style={cadre}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ color: t.passage === 'manque' ? '#d8b6a8' : '#e8d9b5', fontSize: 12.5 }}>
-          {t.passage === 'flotte' ? '🚢 Le détroit forcé' : t.passage === 'manque' ? '❄️ La mer est prise' : '🚢 La traversée'}
+          {t.passage === 'flotte' ? 'Le détroit forcé' : t.passage === 'manque' ? 'La mer est prise' : 'La traversée'}
         </b>
         <span style={{ marginLeft: 'auto', color: '#93a7b4', fontSize: 12 }}>
           {nbLibres(f, 'nef')} cale{nbLibres(f, 'nef') > 1 ? 's' : ''} · {nbLibres(f, 'pentecontere')} galère
@@ -274,7 +275,7 @@ function LigneChantier({ type, finAt, now }: { type: TypeNavire; finAt: number; 
     <div style={{ ...CADRE, borderColor: '#2f5b7b' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ color: '#e8d9b5' }}>
-          🪵 {def.emoji} {def.nom}
+          <Picto e={def.emoji} /> {def.nom}
         </b>
         <span style={{ marginLeft: 'auto', color: '#c9a86a', fontSize: 12.5 }}>à l’eau dans {mmss(finAt - now)}</span>
       </div>
@@ -300,7 +301,7 @@ function CarteNavire({ type }: { type: TypeNavire }) {
     <div style={{ ...CADRE, opacity: bloque ? 0.72 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ color: '#e8d9b5' }}>
-          {def.emoji} {def.nom}
+          <Picto e={def.emoji} /> {def.nom}
         </b>
         <span style={{ marginLeft: 'auto', color: '#93a7b4', fontSize: 12 }}>
           {coquesDe(f, type).length} à votre flotte · chantier {mmss(def.chantierMs)}
@@ -345,7 +346,7 @@ export function PanneauFlotte({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="🚢 Le chantier naval"
+      titre="Le chantier naval"
       onFermer={onFermer}
       large
       sous={
@@ -356,16 +357,16 @@ export function PanneauFlotte({ onFermer }: { onFermer: () => void }) {
     >
       <>
         <div style={{ display: 'flex', gap: 14, color: '#93a7b4', fontSize: 12.5, marginBottom: 10, flexWrap: 'wrap' }}>
-          <span>⚓ Port niveau {port}</span>
+          <span>Port niveau {port}</span>
           <span>
-            🚢 {coquesDe(f).length}/{coquesMax(port)} coques
+            {coquesDe(f).length}/{coquesMax(port)} coques
             {places === 0 && coquesMax(port) > 0 && <span style={{ color: '#c9a86a' }}> - complet</span>}
           </span>
           <span>
-            🪵 {cales}/{calesMax(port)} cale{calesMax(port) > 1 ? 's' : ''}
+            {cales}/{calesMax(port)} cale{calesMax(port) > 1 ? 's' : ''}
           </span>
           <span>
-            ⚔️ {nbLibres(f, 'pentecontere')} galère{nbLibres(f, 'pentecontere') > 1 ? 's' : ''} · 📦{' '}
+            {nbLibres(f, 'pentecontere')} galère{nbLibres(f, 'pentecontere') > 1 ? 's' : ''} ·{' '}
             {nbLibres(f, 'nef')} cale{nbLibres(f, 'nef') > 1 ? 's' : ''} au mouillage
           </span>
         </div>
@@ -387,13 +388,13 @@ export function PanneauFlotte({ onFermer }: { onFermer: () => void }) {
               const recup = recuperationDesarmement(coque.type)
               return (
                 <div key={coque.id} style={{ ...CADRE, display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 18 }}>{def.emoji}</span>
+                  <span style={{ fontSize: 18 }}><Picto e={def.emoji} /></span>
                   <div>
                     <div style={{ color: '#e8d9b5', fontSize: 12.5 }}>{def.nom}</div>
                     <div style={{ color: coque.retenue ? '#c9a86a' : '#7f97a8', fontSize: 12 }}>{etatCoque(coque)}</div>
                   </div>
                   <Astuce
-                    titre={`🪓 Désarmer la ${def.nom.toLowerCase()}`}
+                    titre={`Désarmer la ${def.nom.toLowerCase()}`}
                     resume={`On la dépèce sur la grève : ${recup.bois ?? 0} de bois se rescie, le bronze est reparti dans les armes depuis longtemps.`}
                     lignes={[
                       { label: 'Rendu', valeur: `${recup.bois ?? 0} bois (${Math.round(DESARME_RECUP * 100)} %)`, fort: true },
@@ -427,19 +428,19 @@ export function PanneauFlotte({ onFermer }: { onFermer: () => void }) {
         <div style={TITRE_BLOC}>Ce que la mer prend</div>
         <div style={{ ...CADRE, color: '#93a7b4', fontSize: 12.5, lineHeight: 1.6 }}>
           <div>
-            🌊 <b style={{ color: '#e8d9b5' }}>{pourcent(partPerte({}))}</b> par coque à chaque retour d’expédition,
+            <Picto id="vagues" /> <b style={{ color: '#e8d9b5' }}>{pourcent(partPerte({}))}</b> par coque à chaque retour d’expédition,
             même après un triomphe. La mer prend son dû.
           </div>
           <div>
-            🏳️ <b style={{ color: '#e8d9b5' }}>{pourcent(partPerte({ echec: true }))}</b> si le raid échoue : on
+            <Picto id="etendard" /> <b style={{ color: '#e8d9b5' }}>{pourcent(partPerte({ echec: true }))}</b> si le raid échoue : on
             rembarque sous les traits et l’on abandonne des coques sur la grève.
           </div>
           <div>
-            ❄️ <b style={{ color: '#e8d9b5' }}>{pourcent(partPerte({ echec: true, hiver: true }))}</b> pour un raid
+            <Picto id="flocon" /> <b style={{ color: '#e8d9b5' }}>{pourcent(partPerte({ echec: true, hiver: true }))}</b> pour un raid
             d’hiver manqué, le pire des cas : près d’une coque sur deux ne revient pas du détroit.
           </div>
           <div>
-            ⚔️ Une galère d’escorte coule avec le convoi qu’elle n’a pas su sauver, une fois sur six environ.
+            <Picto id="epees" /> Une galère d’escorte coule avec le convoi qu’elle n’a pas su sauver, une fois sur six environ.
           </div>
         </div>
 

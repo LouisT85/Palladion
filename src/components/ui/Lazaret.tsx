@@ -31,6 +31,7 @@ import { peutPayer, snapEpidemie, useGame } from '../../game/store'
 import type { ResourceId } from '../../game/types'
 import { Icone, Montant } from './Icones'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════════ LE LAZARET ═══════════════════════
@@ -82,7 +83,7 @@ function JaugeSanitaire({ snap }: { snap: SnapEpidemie }) {
   return (
     <div className={`laz-sanitaire ${etat.cle}`}>
       <div className="laz-sanitaire-tete">
-        <span>🩺 État sanitaire — {etat.mot}</span>
+        <span>État sanitaire — {etat.mot}</span>
         <span className="laz-sanitaire-chiffre">
           {etat.risque <= 0.0005 ? 'aucun foyer possible' : `${(etat.risque * 100).toFixed(1)} % par journée`}
         </span>
@@ -113,7 +114,7 @@ function BlocMurs({ snap }: { snap: SnapEpidemie }) {
   return (
     <div className="laz-murs">
       <div className="laz-murs-tete">
-        <span className="laz-emoji">⛺</span>
+        <span className="laz-emoji"><Picto id="tente" /></span>
         <div>
           <div className="laz-nom">
             {niveau === 0 ? 'Aucun lazaret' : `Lazaret niveau ${niveau}`} — {litsTotal(niveau)} lit
@@ -138,7 +139,7 @@ function BlocMurs({ snap }: { snap: SnapEpidemie }) {
       )}
       {snap.grain <= 0 && niveau > 0 && (
         <div className="laz-avertit">
-          ⚠️ Les greniers sont vides : plus de bouillon, plus de linge bouilli. Les lits ne soignent plus personne.
+          Les greniers sont vides : plus de bouillon, plus de linge bouilli. Les lits ne soignent plus personne.
         </div>
       )}
       {temple < TEMPLE_LAZARET ? (
@@ -204,7 +205,7 @@ function FicheMalade({ v, snap }: { v: Habitant; snap: SnapEpidemie }) {
         </span>
       </div>
       <div className={`laz-pronostic${alite ? ' soigne' : ''}`}>
-        {alite ? '🛏️ Couché et veillé' : '🚶 Debout à son poste'} — {pronostic(v, snap)}
+        {alite ? 'Couché et veillé' : 'Debout à son poste'} — {pronostic(v, snap)}
         {/*
           PRIS CE MATIN : il ne peut PAS mourir aujourd'hui, et il faut le dire.
           Sans cette incise, un pronostic « il peut ne pas voir demain » lu le
@@ -243,7 +244,7 @@ function BlocFievreEnCours({ snap }: { snap: SnapEpidemie }) {
   return (
     <div className="laz-fievre">
       <div className="laz-fievre-tete">
-        <span className="laz-emoji">{def.emoji}</span>
+        <span className="laz-emoji"><Picto e={def.emoji} /></span>
         <div>
           <div className="laz-nom">{def.nom}</div>
           <div className="laz-sous">Entrée par {def.porte}.</div>
@@ -318,7 +319,7 @@ export function PanneauLazaret({ onFermer }: { onFermer: () => void }) {
   const active = epidemieActive(s.epidemie)
   return (
     <Modale
-      titre="⛺ Le lazaret"
+      titre="Le lazaret"
       onFermer={onFermer}
       sous={
         active
@@ -348,7 +349,7 @@ export function BlocLazaret() {
   const etat = etatSanitaire(snap)
   return (
     <div className="bloc">
-      <h3>⛺ Santé du village</h3>
+      <h3>Santé du village</h3>
       <div className="desc" style={{ fontSize: 12 }}>
         Les prêtres tiennent les purifications, les veilles et les linges. C’est ici qu’on ouvre un lazaret — avant
         d’en avoir besoin, sinon il ne sert qu’à la fièvre suivante.
@@ -356,12 +357,12 @@ export function BlocLazaret() {
       <div className="laz-resume">
         {active ? (
           <span className="laz-alerte">
-            {SOUCHES[s.epidemie!.souche].emoji} {nb} malade{nb > 1 ? 's' : ''} · {litsOccupes(snap.villageois)}/
+            <Picto e={SOUCHES[s.epidemie!.souche].emoji} /> {nb} malade{nb > 1 ? 's' : ''} · {litsOccupes(snap.villageois)}/
             {litsTotal(snap.lazaret)} lits
           </span>
         ) : (
           <span>
-            🩺 État sanitaire : <b>{etat.mot}</b> · lazaret {s.lazaret ?? 0}/{LAZARET_MAX} ({litsTotal(s.lazaret ?? 0)}{' '}
+            État sanitaire : <b>{etat.mot}</b> · lazaret {s.lazaret ?? 0}/{LAZARET_MAX} ({litsTotal(s.lazaret ?? 0)}{' '}
             lits)
           </span>
         )}
@@ -371,7 +372,7 @@ export function BlocLazaret() {
         style={{ width: '100%', marginTop: 6 }}
         onClick={() => s.openPanel('lazaret')}
       >
-        {active ? `${SOUCHES[s.epidemie!.souche].emoji} Trier les malades` : '⛺ Ouvrir le lazaret'}
+        {active ? 'Trier les malades' : 'Ouvrir le lazaret'}
       </button>
     </div>
   )
@@ -392,7 +393,7 @@ export function BlocFievre() {
   return (
     <div className="bloc laz-recensement">
       <h3>
-        {def.emoji} {def.nom} — {liste.length} malade{liste.length > 1 ? 's' : ''}
+        {def.nom} — {liste.length} malade{liste.length > 1 ? 's' : ''}
       </h3>
       <div className="laz-note" style={{ marginTop: 0 }}>
         Un fiévreux debout ne rend qu’un tiers à son poste et contamine ses voisins ; couché au lazaret il ne rend plus
@@ -401,7 +402,7 @@ export function BlocFievre() {
       <ul className="laz-liste">
         {liste.map((v) => (
           <li key={v.id}>
-            <span className={v.malade!.alite ? 'laz-couche' : 'laz-alerte'}>{v.malade!.alite ? '🛏️' : '🚶'}</span>{' '}
+            <span className={v.malade!.alite ? 'laz-couche' : 'laz-alerte'}>{v.malade!.alite ? <Picto id="asclepios" titre="couché au lazaret" /> : <Picto id="personne" titre="debout" />}</span>{' '}
             {v.nom} — {v.poste ? BUILDINGS[v.poste].nom.toLowerCase() : 'sans emploi'} · {pronostic(v, snap)}
           </li>
         ))}
@@ -411,7 +412,7 @@ export function BlocFievre() {
         style={{ width: '100%', marginTop: 6 }}
         onClick={() => s.openPanel('lazaret')}
       >
-        ⛺ Trier les malades ({debout.length} encore debout, {litsLibres(snap)} lit
+        Trier les malades ({debout.length} encore debout, {litsLibres(snap)} lit
         {litsLibres(snap) > 1 ? 's' : ''} libre{litsLibres(snap) > 1 ? 's' : ''})
       </button>
     </div>

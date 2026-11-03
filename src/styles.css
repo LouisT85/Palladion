@@ -227,6 +227,40 @@ header.hud {
   padding: 5px 11px;
   white-space: nowrap;
 }
+/* le pictogramme du bouton porte l'or ; le libellé garde la couleur du texte */
+.hud-actions button > .picto {
+  color: var(--gold);
+  margin-right: 1px;
+}
+.hud-actions .bouton-aide {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  min-width: 34px;
+}
+/* le nombre de récompenses en attente : une pastille, pas un paquet-cadeau */
+.pastille-nb {
+  display: inline-block;
+  margin-left: 6px;
+  min-width: 17px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--gold);
+  color: #241c08;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+/*
+ * Pictogrammes « figure noire » (Picto.tsx) : la taille et la couleur du texte.
+ * Un léger décalage vertical les pose sur la ligne de base comme une lettre.
+ */
+.picto {
+  display: inline-block;
+  vertical-align: -0.14em;
+  flex: 0 0 auto;
+}
 .pastille {
   background: #10202e;
   border: 1px solid var(--bord);
@@ -5387,4 +5421,29 @@ button.plan-jeton.hero.vide:disabled {
   border-radius: 6px;
   padding: 8px 9px;
   margin-top: 6px;
+}
+
+/* — migration pictos : Hud.tsx (toasts) — */
+.toast .toast-picto {
+  color: var(--gold);
+  margin-right: 2px;
+}
+
+/*
+ * Aperçu d'un bâtiment (ou de l'enceinte) pas encore construit : au survol, le
+ * niveau 1 apparaît en transparence. Un court fondu, pour que l'esquisse se
+ * pose plutôt qu'elle ne clignote. L'opacité finale est portée par l'attribut.
+ */
+@keyframes apercu-construction {
+  from {
+    opacity: 0;
+  }
+}
+.apercu-construction {
+  animation: apercu-construction 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .apercu-construction {
+    animation: none;
+  }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Picto } from './Picto'
 
 /*
  * L'infobulle du bandeau du haut.
@@ -102,7 +103,7 @@ export function Infobulle({
           style={pos ? { left: pos.x, top: pos.y } : { opacity: 0 }}
         >
           <div className="ib-titre">
-            {emoji && <span className="ib-emoji">{emoji}</span>}
+            {emoji && <span className="ib-emoji">{typeof emoji === 'string' ? <Picto e={emoji} /> : emoji}</span>}
             {titre}
           </div>
           {resume && <div className="ib-resume">{resume}</div>}
@@ -191,7 +192,7 @@ export function Astuce({
       {ouvert && (
         <div ref={bulle} className="infobulle" role="tooltip" style={pos ? { left: pos.x, top: pos.y } : { opacity: 0 }}>
           <div className="ib-titre">
-            {emoji && <span className="ib-emoji">{emoji}</span>}
+            {emoji && <span className="ib-emoji">{typeof emoji === 'string' ? <Picto e={emoji} /> : emoji}</span>}
             {titre}
           </div>
           {resume && <div className="ib-resume">{resume}</div>}

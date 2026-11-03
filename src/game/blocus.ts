@@ -567,7 +567,7 @@ export function motifRefusBlocus(r: RefusBlocus, s: SnapOuverture): string {
     case 'garde':
       return `On ne poste pas plus de ${Math.round(PART_MAX_DEHORS * 100)} % de l’armée : il faut des hommes sur les remparts. Il vous en faut donc ${Math.ceil(dehors / PART_MAX_DEHORS - dehors)} de plus au village.`
     case 'vivres':
-      return `Une ligne se nourrit : ${dehors * RATION_PAR_JOUR} mesures par journée, et l’on n’en ouvre pas une sans ${JOURS_DE_VIVRES_EXIGES} journées de vivres en magasin (${dehors * RATION_PAR_JOUR * JOURS_DE_VIVRES_EXIGES} 🌾).`
+      return `Une ligne se nourrit : ${dehors * RATION_PAR_JOUR} mesures par journée, et l’on n’en ouvre pas une sans ${JOURS_DE_VIVRES_EXIGES} journées de vivres en magasin (${dehors * RATION_PAR_JOUR * JOURS_DE_VIVRES_EXIGES} grain).`
   }
 }
 
@@ -864,7 +864,7 @@ export function resoudreJournee(e: EtatBlocus, s: SnapJournee, tirage: number): 
     if (emoji === '⛓️') {
       lignes.push(
         e.travaux.length > 0
-          ? `${e.travaux.map((t) => TRAVAUX[t].emoji).join(' ')} Les travaux font leur ouvrage : volonté de la place −${Math.round(u)}.`
+          ? `Les travaux font leur ouvrage : volonté de la place −${Math.round(u)}.`
           : `Rien n’a bougé de la journée. Volonté de la place −${Math.round(u)} : on les regarde compter leurs jarres.`,
       )
     }
@@ -1077,7 +1077,7 @@ export function accepterReddition(e: EtatBlocus, v: VillageCible): Reddition {
       `Après ${e.jours} journée${e.jours > 1 ? 's' : ''} de ligne, la porte de ${v.nom} s’ouvre d’elle-même.`,
       'Leur chef sort le premier, sans armes, et l’on ne touche pas à un cheveu de sa cité : c’était le marché.',
       `Rançon versée : ${(Object.entries(r) as [ResourceId, number][])
-        .map(([k, n]) => `${n} ${RES[k].emoji}`)
+        .map(([k, n]) => `${n} ${RES[k].nom.toLowerCase()}`)
         .join(', ')}.`,
       ...(brule ? ['Il n’y avait plus de grain à donner : vous l’avez brûlé vous-même.'] : []),
       `Zeus Xenios ${REDDITION_ZEUS >= 0 ? '+' : '−'}${Math.abs(REDDITION_ZEUS)} - on a reçu une supplication et on l’a tenue. Arès ${Math.abs(REDDITION_ARES)} de moins : il ne compte pas les victoires qu’on remporte sans lance.`,

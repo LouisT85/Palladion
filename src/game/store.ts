@@ -2022,7 +2022,7 @@ function volerPct(s: GameState, p: number, quoi?: ResourceId[]): string {
     const perdu = Math.floor(s.resources[r] * p)
     if (perdu > 0) {
       s.resources[r] -= perdu
-      parts.push(`${perdu} ${RES[r].emoji}`)
+      parts.push(`${perdu} ${RES[r].nom.toLowerCase()}`)
     }
   }
   return parts.length ? parts.join(', ') : 'presque rien'
@@ -3011,7 +3011,7 @@ function verserTributs(s: GameState, now: number): void {
     for (const [r, n] of Object.entries(tributDe(v)) as [ResourceId, number][]) {
       const du = n * mult
       s.resources[r] = clampRes(s, r, s.resources[r] + du)
-      parts.push(`+${du} ${RES[r].emoji}`)
+      parts.push(`+${du} ${RES[r].nom.toLowerCase()}`)
     }
     if (parts.length) {
       pushToast(s, a.mariage ? '💍' : '🤝', `Tribut de ${v.nom} : ${parts.join(', ')}${a.mariage ? ' (parenté)' : ''}`)
@@ -3067,9 +3067,9 @@ function appliquerEffetDiffere(s: GameState, eff: PendingEffect, now: number): v
       s.resources.grain = clampRes(s, 'grain', s.resources.grain + 60)
       pushReport(s, '🏰', 'La gratitude de Troie', [
         'Un char aux couleurs de Priam livre votre part du butin de la sortie d’Hector.',
-        '+120 🪙, +60 🌾. Vos soldats reviendront couverts de gloire - ceux qui reviendront.',
+        '+120 bronze, +60 grain. Vos soldats reviendront couverts de gloire - ceux qui reviendront.',
       ])
-      pushToast(s, '🏰', 'Troie partage le butin : +120 🪙, +60 🌾')
+      pushToast(s, '🏰', 'Troie partage le butin : +120 bronze, +60 grain')
       break
     }
   }
@@ -3506,10 +3506,10 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
     }
   }
   if (releves > 0) {
-    lignes.push(`🦉 ${releves} blessé${releves > 1 ? 's' : ''} relevé${releves > 1 ? 's' : ''} par la prudence d’Athéna.`)
+    lignes.push(`${releves} blessé${releves > 1 ? 's' : ''} relevé${releves > 1 ? 's' : ''} par la prudence d’Athéna.`)
   }
   if (alliesTombes > 0) {
-    lignes.push(`🤝 ${alliesTombes} allié${alliesTombes > 1 ? 's' : ''} sont tombés pour vos murs.`)
+    lignes.push(`${alliesTombes} allié${alliesTombes > 1 ? 's' : ''} sont tombés pour vos murs.`)
   }
   s.renfortsEngages = null
   const morts = b.fighters.filter((f) => f.camp === 'attaque' && f.hp <= 0).length
@@ -3556,7 +3556,7 @@ function finirBataille(s: GameState, victoire: boolean, fuite: boolean, now: num
     const r = pushReport(s, '🏆', fuite ? 'L’ennemi est en déroute !' : 'Assaut repoussé !', [
       `La bande (${descVague(b.wave)}) a été ${fuite ? 'mise en fuite' : 'anéantie'} : ${morts} assaillants abattus${fuyards ? `, ${fuyards} en fuite` : ''}.`,
       lignes.length ? `Vos pertes : ${lignes.join(', ')}.` : 'Aucune perte dans vos rangs - les aèdes chanteront ce jour.',
-      `🎁 Récompense : +${bronze} 🪙, +${faveur} ✨${rec.bonus ? ' (bonus d’audace +25 %)' : ''}. Ambiance +10.`,
+      `Récompense : +${bronze} bronze, +${faveur} faveur${rec.bonus ? ' (bonus d’audace +25 %)' : ''}. Ambiance +10.`,
     ])
     s.battleReport = r
     // la salve de victoire : trois secondes de lauriers par-dessus la scène
@@ -3669,7 +3669,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
   if (partEnee > 0) s.sauverTroupes = 0
   const noteEpargne =
     relevesTotal > 0
-      ? ` 🦉 La prudence d’Athéna en a fait relever ${relevesTotal} au lieu de les laisser au sol.`
+      ? ` La prudence d’Athéna en a fait relever ${relevesTotal} au lieu de les laisser au sol.`
       : ''
 
   const etat = s.expeditions[v.id]
@@ -3692,14 +3692,14 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       s.moraleMods.push({ id: uid('m'), label: 'Le village sauvé', delta: 9, expiresAt: now + 12 * 60_000 })
       gagnerXp(s, XP_EXPEDITION + etoiles * XP_PAR_ETOILE)
       const trib = (Object.entries(tributDe(v)) as [ResourceId, number][])
-        .map(([r, n]) => `${n} ${RES[r].emoji}`)
+        .map(([r, n]) => `${n} ${RES[r].nom.toLowerCase()}`)
         .join(', ')
       const renf = renfortsDe(v)
       lignes.push(
         `Le siège de ${v.nom} est levé ! ${'★'.repeat(etoiles)}${'☆'.repeat(3 - etoiles)}`,
         'Aucun butin : on ne pille pas ceux qu’on vient de sauver.',
         pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Pas un homme perdu - les aèdes s’en empareront.',
-        `🤝 ${v.nom} devient votre allié : tribut de ${trib} toutes les ${Math.round(TRIBUT_MS / 60_000)} min, et ${UNIT_IDS.filter((u) => renf[u] > 0).map((u) => `${renf[u]} ${UNITS[u].nom.toLowerCase()}${renf[u] > 1 ? 's' : ''}`).join(', ')} en renfort à chaque assaut.`,
+        `${v.nom} devient votre allié : tribut de ${trib} toutes les ${Math.round(TRIBUT_MS / 60_000)} min, et ${UNIT_IDS.filter((u) => renf[u] > 0).map((u) => `${renf[u]} ${UNITS[u].nom.toLowerCase()}${renf[u] > 1 ? 's' : ''}`).join(', ')} en renfort à chaque assaut.`,
         'Zeus +12, Athéna +7, ambiance +9.',
       )
       exp.result = { victoire: true, etoiles, lignes }
@@ -3712,7 +3712,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       lignes.push(
         `Vos hommes n’ont pas percé les lignes qui étranglent ${v.nom}.`,
         pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Vos troupes ont dû refluer.',
-        ...(sauvesParEnee > 0 ? [`🔥 Énée couvre la retraite : ${sauvesParEnee} homme(s) rentrent quand même.`] : []),
+        ...(sauvesParEnee > 0 ? [`Énée couvre la retraite : ${sauvesParEnee} homme(s) rentrent quand même.`] : []),
         'Mourir pour rien reste mourir : ambiance −8, Zeus −3.',
       )
       exp.result = { victoire: false, etoiles: 0, lignes }
@@ -3749,7 +3749,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
     for (const [r, n] of Object.entries(v.butin) as [ResourceId, number][]) {
       const gain = Math.round(n * mult)
       s.resources[r] = clampRes(s, r, s.resources[r] + gain)
-      butinTxt.push(`+${gain} ${RES[r].emoji}`)
+      butinTxt.push(`+${gain} ${RES[r].nom.toLowerCase()}`)
     }
     gagnerXp(s, XP_EXPEDITION + etoiles * XP_PAR_ETOILE)
     s.gods.ares.relation = Math.min(100, s.gods.ares.relation + 4)
@@ -3802,13 +3802,13 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       `Butin : ${butinTxt.join(', ')}${deja > 0 ? ' (village déjà pillé : butin réduit)' : ''}.`,
       ...(rase > 0
         ? [
-            `🔥 ${Math.round(rase * 100)} % des ouvrages de la place ont été abattus : +${Math.round(rase * 25)} % de butin.`,
+            `${Math.round(rase * 100)} % des ouvrages de la place ont été abattus : +${Math.round(rase * 25)} % de butin.`,
           ]
         : []),
       pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Aucune perte - un triomphe digne d’Achille.',
       `Arès +4, ambiance +6 - mais Zeus Xenios −5, et la région retient votre nom (menace +4).`,
       `Ils s’en souviendront : à votre prochaine visite, la garnison sera plus fournie (${pillages + 1} pillage${pillages > 0 ? 's' : ''} encaissé${pillages > 0 ? 's' : ''}).`,
-      ...(trahison ? ['🗡️ L’alliance est rompue : on ne pille pas impunément ceux qu’on a sauvés.'] : []),
+      ...(trahison ? ['L’alliance est rompue : on ne pille pas impunément ceux qu’on a sauvés.'] : []),
     )
     exp.result = { victoire: true, etoiles, lignes }
     s.victoire = { at: now, type: 'expedition', etoiles, detail: `${v.nom} est tombé` }
@@ -3821,7 +3821,7 @@ function finirExpedition(s: GameState, v: VillageCible, victoire: boolean, now: 
       `L’assaut sur ${v.nom} a échoué.`,
       pertesTxt.length ? `Vos pertes : ${pertesTxt.join(', ')}.${noteEpargne}` : 'Vos troupes ont battu en retraite à temps.',
       ...(sauvesParEnee > 0
-        ? [`🔥 Énée couvre la retraite : ${sauvesParEnee} homme${sauvesParEnee > 1 ? 's' : ''} qu’on croyait perdu${sauvesParEnee > 1 ? 's' : ''} rentre${sauvesParEnee > 1 ? 'nt' : ''} au village.`]
+        ? [`Énée couvre la retraite : ${sauvesParEnee} homme${sauvesParEnee > 1 ? 's' : ''} qu’on croyait perdu${sauvesParEnee > 1 ? 's' : ''} rentre${sauvesParEnee > 1 ? 'nt' : ''} au village.`]
         : []),
       'Les survivants rentrent la tête basse. Ambiance −6.',
     )
@@ -3954,7 +3954,7 @@ function simulerHorsLigne(s: GameState, now: number): void {
     const avant = s.resources[r]
     s.resources[r] = clampRes(s, r, s.resources[r] + taux[r] * minutes)
     const delta = Math.round(s.resources[r] - avant)
-    if (delta !== 0) lignes.push(`${delta > 0 ? '+' : ''}${delta} ${RES[r].emoji} ${RES[r].nom.toLowerCase()}`)
+    if (delta !== 0) lignes.push(`${delta > 0 ? '+' : ''}${delta} ${RES[r].nom.toLowerCase()}`)
   }
   s.faveur = Math.min(
     FAVEUR_MAX,
@@ -3976,8 +3976,8 @@ function simulerHorsLigne(s: GameState, now: number): void {
       delete b.niveauAvant
       lignes.push(
         releve
-          ? `🏗️ ${BUILDINGS[bId].nom} relevé(e) au niveau ${b.level}`
-          : `🏗️ ${BUILDINGS[bId].nom} achevé(e) au niveau ${b.level}`,
+          ? `${BUILDINGS[bId].nom} relevé(e) au niveau ${b.level}`
+          : `${BUILDINGS[bId].nom} achevé(e) au niveau ${b.level}`,
       )
       delete b.targetLevel
       delete b.busyUntil
@@ -3994,14 +3994,14 @@ function simulerHorsLigne(s: GameState, now: number): void {
     if (job.restant <= 0) s.recruitQueue.shift()
     else job.finishAt += UNITS[job.unit].time * 1000
   }
-  if (formes > 0) lignes.push(`🛡️ ${formes} recrue(s) ont terminé leur formation`)
+  if (formes > 0) lignes.push(`${formes} recrue(s) ont terminé leur formation`)
 
   // croissance de population
   const cap = popCap(s)
   const gagnes = Math.min(Math.floor(dt / 45_000), Math.max(0, cap - s.pop))
   if (gagnes > 0 && s.resources.grain > 0) {
     s.pop += gagnes
-    lignes.push(`👥 +${gagnes} villageois`)
+    lignes.push(`+${gagnes} villageois`)
   }
 
   // attaques survenues hors-ligne (max 3)
@@ -4028,7 +4028,7 @@ function simulerHorsLigne(s: GameState, now: number): void {
     )
     if (champNuit) {
       const fiche = ficheChampion(champNuit)
-      lignes.push(`${fiche.emoji} ${fiche.nom} menait la colonne cette nuit-là.`)
+      lignes.push(`${fiche.nom} menait la colonne cette nuit-là.`)
     }
     for (const [u, p] of Object.entries(res.pertes) as [UnitId, number][]) {
       s.army[u] = Math.max(0, s.army[u] - p)
@@ -4041,19 +4041,19 @@ function simulerHorsLigne(s: GameState, now: number): void {
     if (res.victoire) {
       s.stats.repousses++
       const nomsPans = res.anglesOuverts.length > 0 ? ` - ${motPans(res.anglesOuverts)} à relever` : ''
-      lignes.push(`⚔️ Assaut nocturne (${descVague(wave)}) repoussé par la garnison !${nomsPans}`)
+      lignes.push(`Assaut nocturne (${descVague(wave)}) repoussé par la garnison !${nomsPans}`)
     } else {
       s.stats.perdus++
       const vol = volerPct(s, res.volePct)
       const par = res.anglesOuverts.length > 0 ? ` par ${motPans(res.anglesOuverts)}` : ''
-      lignes.push(`💀 Assaut nocturne (${descVague(wave)}) : le village a été pillé${par} (${vol})`)
+      lignes.push(`Assaut nocturne (${descVague(wave)}) : le village a été pillé${par} (${vol})`)
       s.moraleMods.push({ id: uid('m'), label: 'Pillé pendant la nuit', delta: -10, expiresAt: now + 8 * 60_000 })
       // un sac coûte des vies, pas seulement des réserves
       const civils = Math.min(Math.max(0, s.pop - 2), 1 + Math.floor(Math.random() * 2))
       if (civils > 0) {
         s.pop -= civils
         noter(s, 'pertesCiviles', civils)
-        lignes.push(`⚰️ ${civils} habitant${civils > 1 ? 's' : ''} n’${civils > 1 ? 'ont' : 'a'} pas survécu au sac.`)
+        lignes.push(`${civils} habitant${civils > 1 ? 's' : ''} n’${civils > 1 ? 'ont' : 'a'} pas survécu au sac.`)
       }
     }
     s.incomingWave = null
@@ -4956,7 +4956,7 @@ if (s.blocus) {
             pushReport(s, champ.emoji, `${champ.nom} est tombé`, [
               `On a dépouillé le corps d’un héros devant votre porte. Les aèdes s’en empareront.`,
               `Sa manœuvre - ${def.capacite.nom} - s’est éteinte avec lui.`,
-              `Butin : +${def.butin.bronze} 🪙, +${def.butin.faveur} ✨. Arès, qui aime le sang versé, vous en sait gré (+10).`,
+              `Butin : +${def.butin.bronze} bronze, +${def.butin.faveur} faveur. Arès, qui aime le sang versé, vous en sait gré (+10).`,
             ])
           }
           if (out.finie) finirBataille(s, out.victoireDefense, out.fuite, now)
@@ -5182,7 +5182,7 @@ if (s.blocus) {
         if (manque <= 0) return
         const cout = Math.ceil(manque / 8)
         if (!payer(s, { pierre: cout })) {
-          pushToast(s, '❌', `Il faut ${cout} 🪨 pour réparer.`)
+          pushToast(s, '❌', `Il faut ${cout} pierre pour réparer.`)
           return
         }
         s.wallHp = max
@@ -5307,7 +5307,7 @@ if (s.blocus) {
         s.resources[res] -= quantite
         const paye = charretees * prixVente(res, s.cours, marge)
         s.resources.bronze = clampRes(s, 'bronze', s.resources.bronze + paye)
-        pushToast(s, '⚓', `${quantite} ${RES[res].emoji} vendus pour ${paye} 🪙.`)
+        pushToast(s, '⚓', `${quantite} ${RES[res].nom.toLowerCase()} vendus pour ${paye} bronze.`)
       })
       get().save()
     },
@@ -5319,12 +5319,12 @@ if (s.blocus) {
         const charretees = Math.max(1, Math.min(4, Math.round(lots)))
         const prix = charretees * prixAchat(res, s.cours, marge)
         if (s.resources.bronze < prix) {
-          pushToast(s, '⚓', `Il faut ${prix} 🪙 pour cet achat.`)
+          pushToast(s, '⚓', `Il faut ${prix} bronze pour cet achat.`)
           return
         }
         s.resources.bronze -= prix
         s.resources[res] = clampRes(s, res, s.resources[res] + charretees * LOT_VENTE)
-        pushToast(s, '⚓', `${charretees * LOT_VENTE} ${RES[res].emoji} achetés pour ${prix} 🪙.`)
+        pushToast(s, '⚓', `${charretees * LOT_VENTE} ${RES[res].nom.toLowerCase()} achetés pour ${prix} bronze.`)
       })
       get().save()
     },
@@ -5414,7 +5414,7 @@ if (s.blocus) {
           return
         }
         if (!payer(s, defNav.cout)) {
-          pushToast(s, '❌', `Il faut ${defNav.cout.bois ?? 0} 🪵 et ${defNav.cout.bronze ?? 0} 🪙 pour cette coque.`)
+          pushToast(s, '❌', `Il faut ${defNav.cout.bois ?? 0} bois et ${defNav.cout.bronze ?? 0} bronze pour cette coque.`)
           return
         }
         s.flotte.chantiers.push(creerChantier(uid('coque'), type, now))
@@ -5453,7 +5453,7 @@ if (s.blocus) {
         for (const [r, n] of Object.entries(rendu) as [ResourceId, number][]) {
           s.resources[r] = clampRes(s, r, s.resources[r] + n)
         }
-        pushToast(s, '🪓', `${defNav.nom} dépecée sur la grève : +${rendu.bois ?? 0} 🪵, un mouillage libéré.`)
+        pushToast(s, '🪓', `${defNav.nom} dépecée sur la grève : +${rendu.bois ?? 0} bois, un mouillage libéré.`)
       })
       get().save()
     },
@@ -5567,11 +5567,11 @@ if (s.blocus) {
           return
         }
         if (!payer(s, cout)) {
-          pushToast(s, '❌', `Il faut ${coutDonne} ${RES[donner].emoji} pour cet échange.`)
+          pushToast(s, '❌', `Il faut ${coutDonne} ${RES[donner].nom.toLowerCase()} pour cet échange.`)
           return
         }
         s.resources[recevoir] = clampRes(s, recevoir, s.resources[recevoir] + LOT_ECHANGE)
-        pushToast(s, '⚓', `Échange : −${coutDonne} ${RES[donner].emoji} → +${LOT_ECHANGE} ${RES[recevoir].emoji}`)
+        pushToast(s, '⚓', `Échange : −${coutDonne} ${RES[donner].nom.toLowerCase()} → +${LOT_ECHANGE} ${RES[recevoir].nom.toLowerCase()}`)
       })
     },
 
@@ -5579,12 +5579,12 @@ if (s.blocus) {
       set((s) => {
         if (s.buildings.temple.level < GODS[g].temple) return
         if (!payer(s, { grain: 50 })) {
-          pushToast(s, '❌', 'Il faut 50 🌾 pour un sacrifice.')
+          pushToast(s, '❌', 'Il faut 50 grain pour un sacrifice.')
           return
         }
         s.gods[g].relation = Math.min(100, s.gods[g].relation + 8)
         s.faveur = Math.min(FAVEUR_MAX, s.faveur + 5)
-        pushToast(s, GODS[g].emoji, `La fumée du sacrifice plaît à ${GODS[g].nom}. (+8 relation, +5 ✨)`)
+        pushToast(s, GODS[g].emoji, `La fumée du sacrifice plaît à ${GODS[g].nom}. (+8 relation, +5 faveur)`)
       })
     },
 
@@ -5620,7 +5620,7 @@ if (s.blocus) {
           return
         }
         if (!payer(s, COUT_HECATOMBE)) {
-          pushToast(s, '❌', 'Il faut 350 🌾 et 90 🪙 pour cent bêtes.')
+          pushToast(s, '❌', 'Il faut 350 grain et 90 bronze pour cent bêtes.')
           return
         }
         s.faveur -= COUT_FAVEUR_HECATOMBE
@@ -5697,7 +5697,7 @@ if (s.blocus) {
           `${choisi.age} ans, ${choisi.metierNom.toLowerCase()} de son métier - le village perd ce bras.`,
           ...chef.traits.map((id) => {
             const d = TRAITS_PAR_ID[id]
-            return d ? `${d.emoji} ${d.nom} - ${d.effet}` : ''
+            return d ? `${d.nom} - ${d.effet}` : ''
           }).filter(Boolean),
           'L’interrègne s’achève : les corvées se répartissent de nouveau.',
         ])
@@ -5769,7 +5769,7 @@ if (s.blocus) {
         pushToast(s, site.emoji, `${site.nom} est fondée. ${partants.length} colons ne reverront pas le village.`)
         pushReport(s, site.emoji, `Fondation de ${site.nom}`, [
           `${partants.map((v) => v.nom).join(', ')} ont embarqué avec les vivres d’une saison.`,
-          `${voc.emoji} ${voc.nom} : le premier convoi est attendu dans ${site.journees} journée(s).`,
+          `${voc.nom} : le premier convoi est attendu dans ${site.journees} journée(s).`,
           laisses >= site.menace
             ? `${laisses} hommes tiennent la palissade : un raid sera repoussé sans vous.`
             : `${laisses} homme(s) sur ${site.menace} : la palissade ne tiendra pas seule, et ils le savent.`,
@@ -5934,7 +5934,7 @@ if (s.blocus) {
         }
         const cout = coutBenediction(s, g)
         if (s.faveur < cout) {
-          pushToast(s, '❌', `Il faut ${cout} ✨ de faveur.`)
+          pushToast(s, '❌', `Il faut ${cout} de faveur.`)
           return
         }
         s.faveur -= cout
@@ -6267,8 +6267,8 @@ if (s.blocus) {
         // on le laisse d'abord servir : son premier dilemme attendra quelques minutes
         e.prochainNoeudAt = Date.now() + DELAI_PREMIER_NOEUD_MS
         const ent = [
-          def.entretien.grain ? `${def.entretien.grain} 🌾/min` : '',
-          def.entretien.faveur ? `${def.entretien.faveur} ✨/min` : '',
+          def.entretien.grain ? `${def.entretien.grain} grain/min` : '',
+          def.entretien.faveur ? `${def.entretien.faveur} faveur/min` : '',
         ]
           .filter(Boolean)
           .join(' + ')
@@ -6276,7 +6276,7 @@ if (s.blocus) {
         pushReport(s, def.emoji, `${def.nom} rejoint la cité`, [
           def.desc,
           `Passif : ${def.passif.desc}`,
-          `${def.capacite.emoji} ${def.capacite.nom} - ${def.capacite.desc}`,
+          `${def.capacite.nom} - ${def.capacite.desc}`,
           `Entretien : ${ent || 'aucun'}. Un héros qu’on n’honore pas s’en va.`,
         ])
       })
@@ -6300,7 +6300,7 @@ if (s.blocus) {
           return
         }
         if (s.faveur < def.capacite.cout) {
-          pushToast(s, '❌', `Il faut ${def.capacite.cout} ✨ pour appeler ${def.nom}.`)
+          pushToast(s, '❌', `Il faut ${def.capacite.cout} faveur pour appeler ${def.nom}.`)
           return
         }
         // la puissance d'une capacité suit le niveau du héros : ×1 puis ×1.8
@@ -6402,13 +6402,13 @@ if (s.blocus) {
         // l'ordre compte : un plafond posé maintenant borne le gain de niveau
         if (f.plafond !== undefined) {
           e.plafond = Math.min(e.plafond, f.plafond)
-          lignes.push(`⛔ ${def.nom} ne dépassera plus le niveau ${e.plafond}.`)
+          lignes.push(`${def.nom} ne dépassera plus le niveau ${e.plafond}.`)
         }
         if (f.niveau) {
           const avant = e.niveau
           e.niveau = Math.min(Math.min(NIVEAU_MAX, e.plafond), e.niveau + f.niveau)
           e.xp = 0
-          if (e.niveau > avant) lignes.push(`⭐ ${def.nom} passe au niveau ${e.niveau}.`)
+          if (e.niveau > avant) lignes.push(`${def.nom} passe au niveau ${e.niveau}.`)
         }
         if (f.morale) {
           s.moraleMods.push({
@@ -6417,35 +6417,35 @@ if (s.blocus) {
             delta: f.morale.delta,
             expiresAt: f.morale.durMs ? now + f.morale.durMs : null,
           })
-          lignes.push(`🎭 Ambiance ${f.morale.delta > 0 ? '+' : ''}${f.morale.delta} - ${f.morale.label}.`)
+          lignes.push(`Ambiance ${f.morale.delta > 0 ? '+' : ''}${f.morale.delta} - ${f.morale.label}.`)
         }
         for (const r of f.relation ?? []) {
           s.gods[r.dieu].relation = Math.max(-100, Math.min(100, s.gods[r.dieu].relation + r.delta))
-          lignes.push(`${GODS[r.dieu].emoji} ${GODS[r.dieu].nom} ${r.delta > 0 ? '+' : ''}${r.delta}.`)
+          lignes.push(`${GODS[r.dieu].nom} ${r.delta > 0 ? '+' : ''}${r.delta}.`)
         }
         if (f.res) {
           const parts: string[] = []
           for (const [r, n] of Object.entries(f.res) as [ResourceId, number][]) {
             s.resources[r] = clampRes(s, r, s.resources[r] + n)
-            parts.push(`${n > 0 ? '+' : ''}${n} ${RES[r].emoji}`)
+            parts.push(`${n > 0 ? '+' : ''}${n} ${RES[r].nom.toLowerCase()}`)
           }
           if (parts.length) lignes.push(parts.join(', '))
         }
         if (f.faveur) {
           s.faveur = Math.max(0, Math.min(FAVEUR_MAX, s.faveur + f.faveur))
-          lignes.push(`✨ Faveur ${f.faveur > 0 ? '+' : ''}${f.faveur}.`)
+          lignes.push(`Faveur ${f.faveur > 0 ? '+' : ''}${f.faveur}.`)
         }
         if (f.pop) {
           s.pop = Math.max(0, s.pop + f.pop)
-          lignes.push(`👥 Habitants ${f.pop > 0 ? '+' : ''}${f.pop}.`)
+          lignes.push(`Habitants ${f.pop > 0 ? '+' : ''}${f.pop}.`)
         }
         if (f.boude) {
           e.boudeJusqua = now + f.boude
-          lignes.push(`😤 ${def.nom} boude : sa capacité est indisponible ${Math.round(f.boude / 60_000)} min.`)
+          lignes.push(`${def.nom} boude : sa capacité est indisponible ${Math.round(f.boude / 60_000)} min.`)
         }
         if (f.mort) {
           e.mort = true
-          lignes.push(`💀 ${def.nom} est mort. Son nom reste ; son bras, non.`)
+          lignes.push(`${def.nom} est mort. Son nom reste ; son bras, non.`)
         }
 
         e.arc++
@@ -6773,7 +6773,7 @@ if (s.blocus) {
           const butinTxt: string[] = []
           for (const [r, n] of Object.entries(c.butin) as [ResourceId, number][]) {
             s.resources[r] = clampRes(s, r, s.resources[r] + n)
-            butinTxt.push(`+${n} ${RES[r].emoji}`)
+            butinTxt.push(`+${n} ${RES[r].nom.toLowerCase()}`)
           }
           const gain = honneurAttaque(out.issue)
           s.duel.honneur += gain
@@ -6849,7 +6849,7 @@ if (s.blocus) {
         const prisTxt: string[] = []
         for (const [res, n] of Object.entries(cons.pris) as [ResourceId, number][]) {
           s.resources[res] = clampRes(s, res, s.resources[res] - n)
-          prisTxt.push(`−${n} ${RES[res].emoji}`)
+          prisTxt.push(`−${n} ${RES[res].nom.toLowerCase()}`)
         }
         s.duel = duelApresRapport(s.duel, r, cons, jourDe(s))
         const now = Date.now()
@@ -7541,10 +7541,10 @@ if (s.blocus) {
         const gains: string[] = []
         if (rec.res) {
           for (const [r, n] of Object.entries(rec.res) as [ResourceId, number][]) {
-            gains.push(`+${n} ${RES[r].emoji}`)
+            gains.push(`+${n} ${RES[r].nom.toLowerCase()}`)
           }
         }
-        if (rec.faveur) gains.push(`+${rec.faveur} ✨`)
+        if (rec.faveur) gains.push(`+${rec.faveur} faveur`)
         if (rec.pop) gains.push(`+${rec.pop} habitant${rec.pop > 1 ? 's' : ''}`)
         pushReport(s, def.emoji, `Mission ${rangMission(id)} - ${def.titre}`, [
           def.desc,
@@ -7639,7 +7639,7 @@ if (s.blocus) {
         pushToast(
           s,
           '🛏️',
-          `${v.nom} est couché au lazaret : ${GRAIN_PAR_LIT} 🌾 par journée, et son poste reste vide tant qu’il y est.`,
+          `${v.nom} est couché au lazaret : ${GRAIN_PAR_LIT} grain par journée, et son poste reste vide tant qu’il y est.`,
         )
       })
       get().save()

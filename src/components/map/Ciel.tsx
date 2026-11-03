@@ -220,6 +220,6 @@ export function libelleCiel(saison: SaisonId, meteo: MeteoId): { txt: string; em
   return {
     txt: s.nom,
     emoji: s.emoji,
-    detail: `${s.nom} - ${s.desc}\n${m.emoji} ${m.nom} : ${m.desc}`,
+    detail: `${s.nom} - ${s.desc}\n${m.nom} : ${m.desc}`,
   }
 }

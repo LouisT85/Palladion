@@ -132,7 +132,7 @@ export function PanneauAnnales() {
 
   return (
     <Modale
-      titre="📈 Annales du règne"
+      titre="Annales du règne"
       onFermer={() => s.openPanel(null)}
       sous={
         annales.length < 2

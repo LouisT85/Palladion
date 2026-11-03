@@ -53,7 +53,7 @@ describe('panneau des héros', () => {
     poser({ buildings: batiments({ remparts: 3 }) })
     m = monter(<PanneauHeros />)
     const apres = [...(carte(m, 'Hector')?.querySelectorAll('.heros-conds span') ?? [])].map((x) => x.textContent)
-    expect(apres).toContain('✔ Remparts niveau 3')
+    expect(apres).toContain('✓ Remparts niveau 3')
     expect(apres).toContain('✘ Relation Zeus ≥ 15')
   })
 
@@ -114,8 +114,8 @@ describe('panneau des héros', () => {
     m = monter(<PanneauHeros />)
     const c = carte(m, 'Agamemnon')
     const conds = [...(c?.querySelectorAll('.heros-conds span') ?? [])].map((s) => s.textContent)
-    expect(conds).toContain('✔ Agora niveau 3')
-    expect(conds).toContain('✔ 12 soldats sous les armes')
+    expect(conds).toContain('✓ Agora niveau 3')
+    expect(conds).toContain('✓ 12 soldats sous les armes')
     // le bronze manque, le grain non : chacun porte sa couleur
     const pied = c?.querySelector('.heros-pied')
     expect(pied?.querySelectorAll('.montant.ko')).toHaveLength(1)

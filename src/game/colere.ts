@@ -569,5 +569,5 @@ export function resumeColere(dieu: GodId, relation: number): string | null {
   const p = paliersColere(relation)
   if (p === 0) return null
   const d = GODS[dieu]
-  return `${d.emoji} ${d.nom} - ${nomPalier(p)} (${Math.round(relation)}). ${descPalier(p)} Un sacrifice à son autel le calme.`
+  return `${d.nom} - ${nomPalier(p)} (${Math.round(relation)}). ${descPalier(p)} Un sacrifice à son autel le calme.`
 }

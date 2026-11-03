@@ -36,6 +36,7 @@ import type { BuildingId, Cost, DefensesInterieures, ResourceId, UnitId } from '
 import { Icone, Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 import { court } from './Ordres'
 
 /*
@@ -405,11 +406,11 @@ function CodeADonner({ code, quoi }: { code: string; quoi: string }) {
             void copier(code).then((ok) => setEtat(ok ? 'copie' : 'manuel'))
           }}
         >
-          📋 Copier {quoi}
+          Copier {quoi}
         </button>
         <span className="duel-code-long">{code.length} caractères</span>
       </div>
-      {etat === 'copie' && <div className="duel-ok">✔ Copié. Collez-le dans votre message.</div>}
+      {etat === 'copie' && <div className="duel-ok">Copié. Collez-le dans votre message.</div>}
       {etat === 'manuel' && (
         <div className="duel-motif">
           Votre navigateur refuse le presse-papiers depuis cette page. Sélectionnez le code ci-dessus et copiez-le à la
@@ -435,7 +436,7 @@ function Troupes({ garnison }: { garnison: Partial<Record<UnitId, number>> }) {
           key={u}
           titre={UNITS[u].nom}
           emoji={<Icone id={u} taille={18} />}
-          resume={`⚔ ${UNITS[u].atk} · ❤ ${UNITS[u].hp}`}
+          resume={`attaque ${UNITS[u].atk} · vie ${UNITS[u].hp}`}
         >
           <span className="duel-troupe">
             <Icone id={u} taille={16} /> {garnison[u]}
@@ -467,14 +468,14 @@ function PlanCarte({ plan }: { plan: PlanDefense }) {
   return (
     <>
       <div className="duel-ordres">
-        <Astuce titre={`${l.emoji} ${l.nom}`} resume={l.desc}>
+        <Astuce titre={l.nom} resume={l.desc}>
           <span className="duel-ordre">
-            {l.emoji} {l.nom}
+            <Picto e={l.emoji} /> {l.nom}
           </span>
         </Astuce>
-        <Astuce titre={`${t.emoji} ${t.nom}`} resume={t.desc}>
+        <Astuce titre={t.nom} resume={t.desc}>
           <span className="duel-ordre">
-            {t.emoji} {t.nom}
+            <Picto e={t.emoji} /> {t.nom}
           </span>
         </Astuce>
       </div>
@@ -491,7 +492,7 @@ function PlanCarte({ plan }: { plan: PlanDefense }) {
                   <Icone id={u} taille={15} />
                 </Fragment>
               ))}
-              {x.heros.length > 0 && ` ${x.heros.map((h) => `${HEROS[h].emoji} ${HEROS[h].nom}`).join(', ')}`}
+              {x.heros.length > 0 && ` ${x.heros.map((h) => HEROS[h].nom).join(', ')}`}
             </li>
           ))}
         </ul>
@@ -517,9 +518,9 @@ function Interieur({ d }: { d: DefensesInterieures }) {
         const def = DEFENSES_DEFS[id]
         const n = id === 'acropole' ? d.acropole : 1
         return (
-          <Astuce key={id} titre={`${def.emoji} ${def.nom}`} resume={def.desc} note={def.effet(Math.max(1, n))}>
+          <Astuce key={id} titre={def.nom} resume={def.desc} note={def.effet(Math.max(1, n))}>
             <span className="duel-bat">
-              {def.emoji} {def.nom}
+              <Picto e={def.emoji} /> {def.nom}
               {def.max > 1 ? ` ${n}` : ''}
             </span>
           </Astuce>
@@ -542,7 +543,7 @@ function ResumeCarte({ carte, mienne }: { carte: CarteDefense; mienne?: boolean 
   return (
     <div className="duel-carte">
       <div className="duel-carte-tete">
-        <span className="duel-emoji">🏛️</span>
+        <span className="duel-emoji"><Picto id="temple" /></span>
         <div>
           <div className="duel-nom">{carte.cite}</div>
           <div className="duel-sous">
@@ -553,7 +554,7 @@ function ResumeCarte({ carte, mienne }: { carte: CarteDefense; mienne?: boolean 
 
       <div className="duel-fiches">
         <div className="duel-fiche">
-          <h4>🧱 L’enceinte</h4>
+          <h4>L’enceinte</h4>
           {/*
             On écrit les points de structure SANS dénominateur, et c'est un choix.
             Le maximum d'un mur dépend de six sources que la carte ne porte pas
@@ -565,17 +566,17 @@ function ResumeCarte({ carte, mienne }: { carte: CarteDefense; mienne?: boolean 
             Remparts niveau {carte.mur} — {Math.round(carte.murHp)} points de structure au sceau
           </div>
           <div className="duel-ligne">
-            🏹 {carte.tours} tour{carte.tours > 1 ? 's' : ''} d’archers
+            {carte.tours} tour{carte.tours > 1 ? 's' : ''} d’archers
             {carte.tours === 0 ? ' — les créneaux sont nus' : ''}
           </div>
           <div className="duel-ligne">
-            🎯 Redoute niveau {carte.redoute}
+            Redoute niveau {carte.redoute}
             {carte.redoute === 0 ? ' — aucun scorpion du dedans' : ''}
           </div>
         </div>
 
         <div className="duel-fiche">
-          <h4>🛡️ La garnison</h4>
+          <h4>La garnison</h4>
           <Troupes garnison={carte.garnison} />
           {carte.heros.length === 0 ? (
             <div className="duel-sous">Aucun héros aux remparts.</div>
@@ -584,11 +585,11 @@ function ResumeCarte({ carte, mienne }: { carte: CarteDefense; mienne?: boolean 
               {carte.heros.map((h) => (
                 <Astuce
                   key={h.id}
-                  titre={`${HEROS[h.id]?.emoji ?? '🛡️'} ${HEROS[h.id]?.nom ?? h.id}`}
+                  titre={HEROS[h.id]?.nom ?? h.id}
                   resume={HEROS[h.id]?.passif?.desc}
                 >
                   <span className="duel-hero">
-                    {HEROS[h.id]?.emoji ?? '🛡️'} {HEROS[h.id]?.nom ?? h.id} — niveau {h.niveau}
+                    <Picto e={HEROS[h.id]?.emoji ?? 'bouclier'} /> {HEROS[h.id]?.nom ?? h.id} — niveau {h.niveau}
                   </span>
                 </Astuce>
               ))}
@@ -602,7 +603,7 @@ function ResumeCarte({ carte, mienne }: { carte: CarteDefense; mienne?: boolean 
         </div>
 
         <div className="duel-fiche">
-          <h4>🏯 Ce qui reste après la brèche</h4>
+          <h4>Ce qui reste après la brèche</h4>
           <Interieur d={carte.interieur} />
           {/*
             `atk` et `reduc` au lieu des traits du chef et de la liste des passifs.
@@ -612,13 +613,13 @@ function ResumeCarte({ carte, mienne }: { carte: CarteDefense; mienne?: boolean 
             sources se croit sur parole. On les dit donc pour ce qu'ils sont.
           */}
           <div className="duel-ligne">
-            ⚔ Ses coups portent ×<b>{carte.atk.toFixed(2)}</b> · 🛡 ses hommes encaissent ×
+            Ses coups portent ×<b>{carte.atk.toFixed(2)}</b> · ses hommes encaissent ×
             <b>{carte.reduc.toFixed(2)}</b>
           </div>
           <div className="duel-batiments">
             {interieurs.map((b) => (
               <span key={b} className={`duel-bat${BUILDINGS[b].interieur ? '' : ' dehors'}`}>
-                {BUILDINGS[b].emoji} {BUILDINGS[b].nom} {carte.niveaux[b]}
+                <Picto e={BUILDINGS[b].emoji} /> {BUILDINGS[b].nom} {carte.niveaux[b]}
               </span>
             ))}
           </div>
@@ -630,7 +631,7 @@ function ResumeCarte({ carte, mienne }: { carte: CarteDefense; mienne?: boolean 
       </div>
 
       <div className={`duel-plafond${mienne ? ' mienne' : ''}`}>
-        <h4>{mienne ? '⚖️ Ce que cette carte met en jeu' : '💰 Ce qu’il y a à prendre'}</h4>
+        <h4>{mienne ? 'Ce que cette carte met en jeu' : 'Ce qu’il y a à prendre'}</h4>
         <div className="duel-prix">
           {RES_IDS.filter((r) => (carte.butin[r] ?? 0) > 0).map((r) => (
             <Montant key={r} n={carte.butin[r] ?? 0} id={r} taille={14} />
@@ -672,7 +673,7 @@ function OngletMaCite({ bump }: { bump: () => void }) {
   return (
     <div className="duel-onglet">
       <div className="duel-avertit">
-        <h4>⚠️ Une carte de défense n’est pas une sauvegarde</h4>
+        <h4>Une carte de défense n’est pas une sauvegarde</h4>
         Elle publie une CIBLE : vos murs, votre garnison, votre plan, vos héros, et le butin qu’un raid pourra vous
         prendre. Elle ne contient ni vos réserves, ni vos chantiers, ni vos habitants — la lire ne donne aucun moyen de
         reprendre votre règne. Donnez-la à qui vous voulez : c’est une invitation à vous attaquer, et elle ne s’annule
@@ -681,7 +682,7 @@ function OngletMaCite({ bump }: { bump: () => void }) {
 
       {d.cartes.length > 0 && codes.carte === null && (
         <div className="duel-motif">
-          ⛔ Votre carte est publiée et elle sera honorée, mais l’écrivain des codes n’est pas encore en place dans ce
+          Votre carte est publiée et elle sera honorée, mais l’écrivain des codes n’est pas encore en place dans ce
           règne : il n’y a rien à copier. Republiez-la quand il le sera.
         </div>
       )}
@@ -697,7 +698,7 @@ function OngletMaCite({ bump }: { bump: () => void }) {
           {lueMienne?.ok ? (
             <ResumeCarte carte={lueMienne.valeur} mienne />
           ) : (
-            <div className="duel-motif">⛔ {lueMienne?.motif}</div>
+            <div className="duel-motif">{lueMienne?.motif}</div>
           )}
         </>
       ) : (
@@ -715,7 +716,7 @@ function OngletMaCite({ bump }: { bump: () => void }) {
           <h3>Les cartes encore honorées</h3>
           {d.cartes.map((f) => (
             <div key={f.ref} className="duel-ligne">
-              {f.pille ? '🕳️' : '⚖️'}{' '}
+              <Picto id={f.pille ? 'croix' : 'balance'} />{' '}
               {!f.pille && ORDRE_BUTIN.some((r) => (f.butin[r] ?? 0) > 0 && (s.resources[r] ?? 0) > 0) ? (
                 <>
                   Carte du jour {f.jour} - en jeu : <Butin b={f.butin} />.
@@ -730,17 +731,17 @@ function OngletMaCite({ bump }: { bump: () => void }) {
 
       <div className="duel-bloc">
         <h3>
-          {rang.emoji} {rang.nom} — {d.honneur} d’honneur
+          <Picto e={rang.emoji} /> {rang.nom} — {d.honneur} d’honneur
         </h3>
         <div className="duel-sous">
           {suite
-            ? `Encore ${suite.manque} d’honneur pour ${suite.rang.emoji} ${suite.rang.nom}. On en gagne en frappant, et en tenant ses murs contre un rapport qu’on refuse d’avoir mérité.`
+            ? `Encore ${suite.manque} d’honneur pour ${suite.rang.nom}. On en gagne en frappant, et en tenant ses murs contre un rapport qu’on refuse d’avoir mérité.`
             : 'Il n’y a plus de rang au-dessus. Les aèdes n’ont plus rien à ajouter.'}
         </div>
       </div>
 
       <Astuce
-        titre="✍️ Sceller une carte de défense"
+        titre="Sceller une carte de défense"
         resume="Le conseil relève l’état de la place - murs, tours, redoute, ouvrages, garnison, plan, héros - et en scelle un code à donner."
         lignes={[
           { label: 'Jour du règne', valeur: String(jourDe(s)) },
@@ -761,7 +762,7 @@ function OngletMaCite({ bump }: { bump: () => void }) {
             bump()
           }}
         >
-          {codes.carte ? '✍️ Sceller une carte à jour' : '✍️ Sceller ma carte de défense'}
+          {codes.carte ? 'Sceller une carte à jour' : 'Sceller ma carte de défense'}
         </button>
       </Astuce>
       {/* la phrase que `duel.ts` écrit lui-même, chiffres compris : c'est la SEULE
@@ -810,7 +811,7 @@ function ChoixPans({ pans, setPans }: { pans: PanId[]; setPans: (p: PanId[]) => 
               className={pris ? 'actif' : undefined}
               onClick={() => setPans(pris ? pans.filter((x) => x !== p.id) : [...pans, p.id])}
             >
-              {pris ? '⚔️' : '○'} {court(p.nom)}
+              {pris ? <Picto id="epees" /> : '○'} {court(p.nom)}
             </button>
           )
         })}
@@ -858,7 +859,7 @@ function Colonne({
           <div className="infos">
             <div className="nom">{UNITS[u].nom}</div>
             <div className="stats">
-              disponibles : {s.army[u]} · ⚔{UNITS[u].atk} ❤{UNITS[u].hp}
+              disponibles : {s.army[u]} · <Picto id="epee" titre="attaque" /> {UNITS[u].atk} <Picto id="coeur" titre="vie" /> {UNITS[u].hp}
             </div>
           </div>
           <div className="actions">
@@ -930,7 +931,7 @@ function OngletAttaquer({ revanche, bump }: { revanche: Revanche | null; bump: (
     <div className="duel-onglet">
       {codes.pli && (
         <div className="duel-pli">
-          <h4>📨 Un pli à renvoyer — {codes.pli.cite}</h4>
+          <h4>Un pli à renvoyer — {codes.pli.cite}</h4>
           <div className="duel-sous">
             {codes.pli.victoire
               ? 'Vous avez pris la place. Ce rapport porte la graine du combat : son roi le rejouera chez lui, et il ne pourra pas le refuser.'
@@ -938,7 +939,7 @@ function OngletAttaquer({ revanche, bump }: { revanche: Revanche | null; bump: (
           </div>
           {codes.pli.code === null ? (
             <div className="duel-motif">
-              ⛔ Le rapport existe, mais l’écrivain des codes n’est pas encore en place : il n’y a rien à renvoyer. Vos
+              Le rapport existe, mais l’écrivain des codes n’est pas encore en place : il n’y a rien à renvoyer. Vos
               hommes se sont battus pour rien de transmissible.
             </div>
           ) : (
@@ -951,14 +952,14 @@ function OngletAttaquer({ revanche, bump }: { revanche: Revanche | null; bump: (
               bump()
             }}
           >
-            🗑️ Pli renvoyé, l’écarter
+            Pli renvoyé, l’écarter
           </button>
         </div>
       )}
 
       {revanche ? (
         <div className="duel-bloc">
-          <h3>⚔️ La revanche de {revanche.cite}</h3>
+          <h3>La revanche de {revanche.cite}</h3>
           <div className="duel-sous">
             Elle vous a pris <Butin b={revanche.pris} /> au jour {revanche.jour} du règne. Sa carte est arrivée dans
             son propre rapport : c’est elle que vous allez frapper, et vous n’avez pas eu besoin de la demander.
@@ -971,7 +972,7 @@ function OngletAttaquer({ revanche, bump }: { revanche: Revanche | null; bump: (
             Collez ce qu’on vous a envoyé, phrase comprise et retours à la ligne compris : on n’en garde que le code.
           </div>
           <ChampCode valeur={brut} onChange={setBrut} invite="PALL-D1-…" />
-          {lecture && !lecture.ok && <div className="duel-motif">⛔ {lecture.motif}</div>}
+          {lecture && !lecture.ok && <div className="duel-motif">{lecture.motif}</div>}
           {!lecture && (
             <div className="duel-sous">
               Vous ne pouvez frapper que les cités dont vous avez le code. Aucune liste, aucun classement : ce sont vos
@@ -987,7 +988,7 @@ function OngletAttaquer({ revanche, bump }: { revanche: Revanche | null; bump: (
           <ChoixPans pans={pans} setPans={setPans} />
           <Colonne troupes={troupes} setTroupes={setTroupes} />
           <Astuce
-            titre="⚔️ Marcher sur cette cité"
+            titre="Marcher sur cette cité"
             resume="Le combat se joue chez vous, sur une graine que l’assaut lui-même détermine. Le rapport qui en sort est vérifiable : son roi le rejouera et obtiendra le même résultat."
             lignes={[
               { label: 'En face', valeur: `puissance ≈ ${puissanceCarte(cible.carte)}`, fort: true },
@@ -1026,7 +1027,7 @@ function OngletAttaquer({ revanche, bump }: { revanche: Revanche | null; bump: (
                 bump()
               }}
             >
-              ⚔️ Marcher sur {cible.carte.cite}
+              Marcher sur {cible.carte.cite}
             </button>
           </Astuce>
           {refus !== null && <div className="duel-motif">{refus}</div>}
@@ -1048,7 +1049,7 @@ function Pretention({ r }: { r: RapportRaid }) {
     <div className="duel-bloc">
       <h3>Ce que {r.cite} prétend</h3>
       <div className={`duel-issue${r.issue.victoire ? ' pris' : ' repousse'}`}>
-        {r.issue.victoire ? '🔥 « Nous avons pris la place »' : '🛡️ « Vos murs ont tenu »'}
+        {r.issue.victoire ? '« Nous avons pris la place »' : '« Vos murs ont tenu »'}
       </div>
       <div className="duel-ligne">
         Contre votre carte du jour {r.cible.jour}, par {fronts.length === 0 ? 'aucun front' : fronts.join(' et ')}.
@@ -1137,14 +1138,24 @@ function OngletCourrier({ onRiposter }: { onRiposter: (r: Revanche) => void }) {
           rapport est refusé — et vous ne perdez rien.
         </div>
         <ChampCode valeur={brut} onChange={setBrut} invite="PALL-R1-…" />
-        {lecture && !lecture.ok && <div className="duel-motif">⛔ {lecture.motif}</div>}
+        {lecture && !lecture.ok && <div className="duel-motif">{lecture.motif}</div>}
       </div>
 
       {rapport && (
         <>
           <Pretention r={rapport} />
           <div className={`duel-verdict${refusVerdict === null ? ' ok' : ' ko'}`}>
-            <h4>{refusVerdict === null ? '✅ La simulation confirme' : '⛔ Refusé'}</h4>
+            <h4>
+              {refusVerdict === null ? (
+                <>
+                  <Picto id="coche" /> La simulation confirme
+                </>
+              ) : (
+                <>
+                  <Picto id="interdit" /> Refusé
+                </>
+              )}
+            </h4>
             <div>
               {refusVerdict === null
                 ? rejoue?.victoire
@@ -1176,7 +1187,7 @@ function OngletCourrier({ onRiposter }: { onRiposter: (r: Revanche) => void }) {
               if (a.juger?.(rapport)) setBrut('')
             }}
           >
-            {rapport.issue.victoire ? '📨 Encaisser le rapport' : '📨 Classer le rapport'}
+            {rapport.issue.victoire ? 'Encaisser le rapport' : 'Classer le rapport'}
           </button>
           {refus !== null && <div className="duel-motif">{refus}</div>}
         </>
@@ -1200,7 +1211,7 @@ function OngletCourrier({ onRiposter }: { onRiposter: (r: Revanche) => void }) {
                 </div>
               </div>
               <div>
-                <button onClick={() => onRiposter(r)}>⚔️ Riposter</button>
+                <button onClick={() => onRiposter(r)}>Riposter</button>
                 {/* renoncer est un geste du jeu, pas un ménage : trois vengeances au
                     plus, et la quatrième chasse la plus ancienne. Qui veut garder
                     celle qui compte doit pouvoir écarter celle qui ne vaut rien. */}
@@ -1210,7 +1221,7 @@ function OngletCourrier({ onRiposter }: { onRiposter: (r: Revanche) => void }) {
                     title="Renoncer à cette vengeance"
                     style={{ marginLeft: 5 }}
                   >
-                    🕊️
+                    <Picto id="rameau" />
                   </button>
                 )}
               </div>
@@ -1268,7 +1279,7 @@ export function PanneauDuel({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="🏺 Les hérauts — frapper la cité d’un autre roi"
+      titre="Les hérauts — frapper la cité d’un autre roi"
       large
       onFermer={onFermer}
       sous="Aucun serveur, aucun compte : trois codes qui voyagent en texte. Vous publiez une cible, vous frappez celle d’un ami, et chaque rapport reçu est rejoué chez vous avant d’être cru."
@@ -1276,7 +1287,7 @@ export function PanneauDuel({ onFermer }: { onFermer: () => void }) {
       <div className="duel">
         <div className="duel-onglets">
           <button className={onglet === 'cite' ? 'actif' : ''} onClick={() => setOnglet('cite')}>
-            🏛️ Ma cité{codes.carte ? '' : ' · à sceller'}
+            Ma cité{codes.carte ? '' : ' · à sceller'}
           </button>
           <button
             className={onglet === 'attaquer' ? 'actif' : ''}
@@ -1285,10 +1296,10 @@ export function PanneauDuel({ onFermer }: { onFermer: () => void }) {
               setOnglet('attaquer')
             }}
           >
-            ⚔️ Attaquer{codes.pli ? ' · 📨 1 pli' : ''}
+            Attaquer{codes.pli ? ' · 1 pli' : ''}
           </button>
           <button className={onglet === 'courrier' ? 'actif' : ''} onClick={() => setOnglet('courrier')}>
-            📨 Le courrier{d.revanches.length > 0 ? ` · ${d.revanches.length}` : ''}
+            Le courrier{d.revanches.length > 0 ? ` · ${d.revanches.length}` : ''}
           </button>
         </div>
 
@@ -1331,15 +1342,15 @@ export function BlocDuel() {
   const codes = CODES
   const urgent = codes.pli !== null || d.revanches.length > 0
   const libelle = codes.pli
-    ? `📨 Un pli à renvoyer à ${codes.pli.cite}`
+    ? `Un pli à renvoyer à ${codes.pli.cite}`
     : d.revanches.length > 0
-      ? `⚔️ ${d.revanches.length} revanche${d.revanches.length > 1 ? 's' : ''} à prendre`
+      ? `${d.revanches.length} revanche${d.revanches.length > 1 ? 's' : ''} à prendre`
       : codes.carte
-        ? '🏺 Les hérauts — ma carte est publiée'
-        : '🏺 Les hérauts — frapper un autre roi'
+        ? 'Les hérauts — ma carte est publiée'
+        : 'Les hérauts — frapper un autre roi'
   return (
     <div className="bloc">
-      <h3>🏺 Les hérauts</h3>
+      <h3>Les hérauts</h3>
       <div className="desc" style={{ fontSize: 12 }}>
         Il n’y a pas de serveur : on s’échange des codes. Publiez votre cité comme cible, frappez celle d’un ami, et
         rejouez chez vous chaque rapport qu’on vous envoie avant de le croire.

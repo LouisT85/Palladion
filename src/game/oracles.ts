@@ -201,7 +201,7 @@ function reponseAssaut(snap: SnapOracle): string[] {
   }
   if (snap.incomingChampion) {
     const h = HEROS[snap.incomingChampion]
-    if (h) out.push(`${h.emoji} ${h.nom} mène la colonne. Abattez-le et sa manœuvre meurt avec lui.`)
+    if (h) out.push(`${h.nom} mène la colonne. Abattez-le et sa manœuvre meurt avec lui.`)
   } else {
     out.push('Aucun nom connu ne la mène : ce ne sont que des soldats.')
   }
@@ -216,7 +216,7 @@ function reponseDilemme(snap: SnapOracle): string[] {
   if (!ev) return []
   const def = EVENTS_BY_ID[ev.defId]
   if (!def) return []
-  const out = [`${def.emoji} ${def.titre} - voici où mène chaque voie :`]
+  const out = [`${def.titre} - voici où mène chaque voie :`]
   for (const c of def.choices) {
     /*
      * On lit le murmure sur l'issue DÉJÀ tirée depuis le roll de l'instance :
@@ -235,9 +235,9 @@ function reponseCiel(snap: SnapOracle): string[] {
   const m = METEOS[snap.meteo]
   if (!s || !m) return []
   const out = [
-    `${m.emoji} ${m.nom} - ${m.desc}`,
+    `${m.nom} - ${m.desc}`,
     `Il en reste ${minutes(snap.meteoJusqua - snap.now)}.`,
-    `${s.emoji} ${s.nom} : ${s.desc}`,
+    `${s.nom} : ${s.desc}`,
   ]
   const joursRestants = JOURS_PAR_SAISON - (snap.jour % JOURS_PAR_SAISON)
   /*
@@ -248,7 +248,7 @@ function reponseCiel(snap: SnapOracle): string[] {
    */
   const suivante = SAISONS[SAISON_IDS[(SAISON_IDS.indexOf(snap.saison) + 1) % SAISON_IDS.length]]
   out.push(
-    `${suivante.emoji} ${suivante.nom} dans ${joursRestants} journée${joursRestants > 1 ? 's' : ''} : ${suivante.desc}`,
+    `${suivante.nom} dans ${joursRestants} journée${joursRestants > 1 ? 's' : ''} : ${suivante.desc}`,
   )
   /*
    * La météo suivante n'est PAS encore tirée : la prédire serait mentir. Le devin
@@ -258,7 +258,7 @@ function reponseCiel(snap: SnapOracle): string[] {
   const somme = suivante.meteos.reduce((a, x) => a + x.poids, 0)
   const chances = [...suivante.meteos]
     .sort((a, b) => b.poids - a.poids)
-    .map((x) => `${METEOS[x.id].emoji} ${METEOS[x.id].nom} ${Math.round((x.poids / somme) * 100)} %`)
+    .map((x) => `${METEOS[x.id].nom} ${Math.round((x.poids / somme) * 100)} %`)
   out.push(`Ce que ce ciel-là peut porter : ${chances.join(', ')}.`)
   return out
 }
@@ -272,7 +272,7 @@ function reponseGarnison(snap: SnapOracle): string[] {
   const pillages = etat?.pillages ?? 0
   const g = garnisonEffective(v, pillages)
   const lignes = UNIT_IDS.filter((u) => (g[u] ?? 0) > 0).map((u) => `· ${g[u]} ${UNITS[u].nom}`)
-  const out = [`${v.emoji} ${v.nom} - ce que le devin voit derrière le mur :`, ...lignes]
+  const out = [`${v.nom} - ce que le devin voit derrière le mur :`, ...lignes]
   if (lignes.length === 0) out.push('· pas un homme en armes : la place est vide.')
   out.push(v.mur > 0 ? `Mur de niveau ${v.mur}, qu’il faudra ouvrir.` : 'Aucun mur : on entre de plain-pied.')
   if (pillages > 0) {
@@ -318,12 +318,12 @@ function reponseHeros(snap: SnapOracle): string[] {
   const prets = classes.filter((c) => c.manque.length === 0)
   for (const c of prets) {
     const d = HEROS[c.h]
-    out.push(`${d.emoji} ${d.nom} peut entrer à votre service dès maintenant : ${d.titre}.`)
+    out.push(`${d.nom} peut entrer à votre service dès maintenant : ${d.titre}.`)
   }
   const proche = classes.find((c) => c.manque.length > 0)
   if (proche) {
     const d = HEROS[proche.h]
-    out.push(`${d.emoji} ${d.nom} viendrait, mais il attend : ${proche.manque.join(', ')}.`)
+    out.push(`${d.nom} viendrait, mais il attend : ${proche.manque.join(', ')}.`)
   }
   if (out.length === 0) return []
   return out

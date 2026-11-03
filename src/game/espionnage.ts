@@ -415,7 +415,7 @@ function detailButin(v: VillageCible, pillages: number): string {
   const part = pillages > 0 ? BUTIN_REPETE : 1
   const parts = (Object.entries(v.butin) as [ResourceId, number][])
     .filter(([, n]) => n > 0)
-    .map(([r, n]) => `${Math.round(n * part)} ${RES[r].emoji}`)
+    .map(([r, n]) => `${Math.round(n * part)} ${RES[r].nom.toLowerCase()}`)
   return parts.join(', ')
 }
 

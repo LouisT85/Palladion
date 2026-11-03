@@ -15,6 +15,7 @@ import type { ResourceId } from '../../game/types'
 import { Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * LE FIL ROUGE.
@@ -44,18 +45,18 @@ function Recompense({ m }: { m: MissionDef }) {
           <Montant n={m.recompense.faveur} id="faveur" taille={13} signe />{' '}
         </>
       ) : null}
-      {m.recompense.pop ? <span className="montant">+{m.recompense.pop} 👥</span> : null}
+      {m.recompense.pop ? <span className="montant">+{m.recompense.pop} habitants</span> : null}
     </>
   )
 }
 
 /** ce que le bouton « y aller » va ouvrir, dit en clair */
 function libelleCible(c: CibleMission): string {
-  if (c.quoi === 'batiment') return `${BUILDINGS[c.id].emoji} ${BUILDINGS[c.id].nom}`
-  if (c.quoi === 'habitants') return '👥 Recensement'
-  if (c.id === 'expeditions') return '🗺️ Expéditions'
-  if (c.id === 'pantheon') return '⚡ Panthéon'
-  return '🛡️ Héros'
+  if (c.quoi === 'batiment') return BUILDINGS[c.id].nom
+  if (c.quoi === 'habitants') return 'Recensement'
+  if (c.id === 'expeditions') return 'Expéditions'
+  if (c.id === 'pantheon') return 'Panthéon'
+  return 'Héros'
 }
 
 /** bouton d'accès direct - absent quand la mission ne s'accomplit sur aucun écran */
@@ -94,14 +95,14 @@ export function MissionsTracker() {
     <div className={`missions${replie ? ' replie' : ''}`} data-tuto="missions">
       <div className="missions-tete">
         <button className="missions-titre" onClick={() => setReplie(!replie)} aria-expanded={!replie}>
-          🏅 Missions{' '}
+          <Picto id="laurier" /> Missions{' '}
           {/* l'acte en cours est le repère de récit : il s'affiche sans qu'on clique */}
           <span className="compte-missions">
             {ACTES[acteCourant(s.missionsReclamees)].nom.split(' - ')[0]} ·{' '}
             {s.missionsReclamees.length}/{MISSIONS.length}
           </span>
           {/* replié, le tracker signale quand une récompense attend */}
-          {replie && aReclamer > 0 && <span className="mission-compteur">🎁 {aReclamer}</span>}
+          {replie && aReclamer > 0 && <span className="mission-compteur"><Picto id="coffre" /> {aReclamer}</span>}
           <span className="chevron">{replie ? '▸' : '▾'}</span>
         </button>
         {!replie && (
@@ -123,7 +124,7 @@ export function MissionsTracker() {
             return (
               <div key={m.id} className={`mission${fait ? ' faite' : ''}`}>
                 <div className="mission-ligne">
-                  <span className="mission-emoji">{m.emoji}</span>
+                  <span className="mission-emoji"><Picto e={m.emoji} /></span>
                   <div className="mission-corps">
                     <div className="mission-nom">
                       {m.titre}
@@ -141,7 +142,7 @@ export function MissionsTracker() {
                       </div>
                     )}
                     <div className="mission-rec">
-                      🎁 <Recompense m={m} />
+                      <Recompense m={m} />
                     </div>
                   </div>
                 </div>
@@ -173,8 +174,8 @@ function EnteteActe({ i, courant, reclamees }: { i: number; courant: number; rec
     <div className={`acte-tete ${etat}`}>
       <span className="acte-nom">{ACTES[i].nom}</span>
       {etat === 'courant' && <span className="acte-marque">◆ acte en cours</span>}
-      {etat === 'acheve' && <span className="acte-marque">✔ achevé</span>}
-      {etat === 'scelle' && <span className="acte-marque">🔒 scellé</span>}
+      {etat === 'acheve' && <span className="acte-marque">✓ achevé</span>}
+      {etat === 'scelle' && <span className="acte-marque">scellé</span>}
       <span className="acte-compte">
         {faites}/{total}
       </span>
@@ -204,7 +205,7 @@ export function PanneauMissions() {
 
   return (
     <Modale
-      titre="🏅 Le fil rouge du village"
+      titre="Le fil rouge du village"
       large
       onFermer={() => s.openPanel(null)}
       sous={
@@ -240,7 +241,7 @@ export function PanneauMissions() {
                 ref={ouverte && m.id === actives[0]?.id ? premiereOuverte : undefined}
               >
                 <span className="mlt-rang">{rang}</span>
-                <span className="mlt-emoji">{reclamee ? '✔' : ouverte ? m.emoji : '🔒'}</span>
+                <span className="mlt-emoji">{reclamee ? <Picto id="coche" /> : ouverte ? <Picto e={m.emoji} /> : <Picto id="cadenas" />}</span>
                 <div className="mlt-corps">
                   <div className="mlt-nom">{m.titre}</div>
                   {/* une mission verrouillée garde son intitulé mais tait sa consigne :
@@ -252,7 +253,7 @@ export function PanneauMissions() {
                     </div>
                   )}
                   <div className="mlt-rec">
-                    🎁 <Recompense m={m} />
+                    <Recompense m={m} />
                     {ouverte && p.max > 1 && (
                       <span className="mission-compteur">
                         {' '}
@@ -266,7 +267,7 @@ export function PanneauMissions() {
                     <span className="mlt-fait">reçue</span>
                   ) : fait && ouverte ? (
                     <button className="principal" onClick={() => s.reclamerMission(m.id)}>
-                      🎁 Réclamer
+                      Réclamer
                     </button>
                   ) : ouverte ? (
                     <BoutonYAller m={m} />

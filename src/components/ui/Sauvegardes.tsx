@@ -61,7 +61,7 @@ function Fiche({
           {r.occupe ? (
             <>
               <b>
-                {acte ? `${acte.emoji} ${acte.titre}` : '🌾 Bac à sable'}
+                {acte ? acte.titre : 'Bac à sable'}
                 {actif && <span className="emp-actif">en cours</span>}
               </b>
               <div className="emp-detail">
@@ -80,11 +80,11 @@ function Fiche({
       <div className="emp-actions">
         {!actif && (
           <button className="principal" onClick={onJouer}>
-            {r.occupe ? '▶ Reprendre' : '＋ Nouvelle partie'}
+            {r.occupe ? 'Reprendre' : '＋ Nouvelle partie'}
           </button>
         )}
-        {r.occupe && <button onClick={onExporter}>⬇ Exporter</button>}
-        <button onClick={onImporter}>⬆ Importer</button>
+        {r.occupe && <button onClick={onExporter}>Exporter</button>}
+        <button onClick={onImporter}>Importer</button>
         {r.occupe &&
           !actif &&
           (confirme ? (
@@ -96,7 +96,7 @@ function Fiche({
             </>
           ) : (
             <button className="danger" onClick={() => setConfirme(true)}>
-              🔥 Effacer
+              Effacer
             </button>
           ))}
       </div>
@@ -156,7 +156,7 @@ export function PanneauSauvegardes() {
 
   return (
     <Modale
-      titre="💾 Vos parties"
+      titre="Vos parties"
       onFermer={() => openPanel(null)}
       sous="Trois emplacements dans ce navigateur, et un fichier pour emporter une partie ailleurs. La partie en cours est rangée avant toute bascule."
     >

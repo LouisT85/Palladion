@@ -4,6 +4,7 @@ import { cleEmplacement, emplacementActif, exporterTexte } from '../../game/sauv
 import type { ResourceId, UnitId } from '../../game/types'
 import { Belier, Bonhomme, Char, lookUnite } from '../map/BatailleLayer'
 import { Montant } from './Icones'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════ LE GARDE-FOU ═══════════════════
@@ -66,7 +67,7 @@ export class GardeFou extends Component<{ children: ReactNode }, Etat> {
     return (
       <div className="garde-fou">
         <div className="gf-carte">
-          <h1>🏛️ Le jeu s’est arrêté</h1>
+          <h1>Le jeu s’est arrêté</h1>
           <p>
             Une faute a interrompu l’affichage. Votre partie est <b>intacte dans le navigateur</b> - rien n’a été
             effacé. Emportez-la avant toute chose : c’est le seul geste qui ne se rattrape pas.
@@ -77,11 +78,11 @@ export class GardeFou extends Component<{ children: ReactNode }, Etat> {
           </div>
           <div className="gf-actions">
             <button className="principal" onClick={this.exporter}>
-              💾 Exporter ma sauvegarde
+              Exporter ma sauvegarde
             </button>
             <button onClick={() => location.reload()}>↻ Réessayer</button>
             <button className="danger" onClick={this.repartir}>
-              🗑️ Repartir d’une partie neuve
+              Repartir d’une partie neuve
             </button>
           </div>
           <p className="gf-note">
@@ -246,8 +247,14 @@ export function RolesGarnison({ army }: { army?: Record<UnitId, number> }): Reac
               </div>
               <div style={{ fontSize: 11, color: '#93a7b4', marginTop: 3, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <span>
-                  ⚔{def.atk} ❤{def.hp}
-                  {def.wallDps >= 20 ? ' 🧱' + def.wallDps : ''}
+                  <Picto id="epee" titre="attaque" />{def.atk} <Picto id="coeur" titre="vie" />{def.hp}
+                  {def.wallDps >= 20 && (
+                    <>
+                      {' '}
+                      <Picto id="mur" titre="sape" />
+                      {def.wallDps}
+                    </>
+                  )}
                 </span>
                 <span style={{ display: 'inline-flex', gap: 6 }}>
                   {(Object.entries(def.cost) as [ResourceId, number][]).map(([res, n]) => (

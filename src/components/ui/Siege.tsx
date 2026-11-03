@@ -10,6 +10,7 @@ import {
   type EtatSiege,
 } from '../../game/siege'
 import { useGame } from '../../game/store'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════════ L'AFFICHAGE DU SIÈGE ═══════════════════════
@@ -65,7 +66,7 @@ export function BandeauSiege() {
   return (
     <div className="bandeau">
       <div className="gros">
-        🏛️ VAGUE {Math.max(1, prochaine)}
+        VAGUE {Math.max(1, prochaine)}
         {!enBataille && (
           <>
             {' '}
@@ -87,15 +88,15 @@ export function BandeauSiege() {
       {champ && (
         <div className="detail champion-presage">
           <b style={{ color: '#ffb9a5' }}>
-            {ficheChampion(champ.id).emoji} {champ.titre}
+            <Picto e={ficheChampion(champ.id).emoji} /> {champ.titre}
           </b>
           <div>
-            {champ.capacite.emoji} {champ.capacite.nom} - {champ.capacite.desc}
+            {champ.capacite.nom} - {champ.capacite.desc}
           </div>
         </div>
       )}
       <div className="detail recompense">
-        ⭐ <b>{siege.points}</b> points · {rangSiege(siege.points)} · vagues tenues <b>{siege.tenues}</b> · record{' '}
+        <b>{siege.points}</b> points · {rangSiege(siege.points)} · vagues tenues <b>{siege.tenues}</b> · record{' '}
         <b>{siege.record}</b>
       </div>
     </div>
@@ -119,18 +120,18 @@ export function ModaleFinSiege({ onFermer }: { onFermer: () => void }) {
   return (
     <div className="voile">
       <div className="modale fin-regne">
-        <h2>🏛️ Le Palladion est tombé</h2>
+        <h2>Le Palladion est tombé</h2>
         <div className="fin-score">{siege.tenues}</div>
         <div className="fin-titre">{siege.tenues === 1 ? 'vague tenue' : 'vagues tenues'}</div>
         <div className="fin-desc">
           {titre} - {palier}ᵉ des huit titres que donnent les aèdes.
         </div>
         <div className="fin-detail">
-          <span>⭐ {siege.points} points</span>
-          <span>💀 {siege.pertes} défenseurs tombés</span>
-          <span>⏳ {minutes} min de siège</span>
+          <span>{siege.points} points</span>
+          <span>{siege.pertes} défenseurs tombés</span>
+          <span>{minutes} min de siège</span>
           <span>
-            🏅 record {nouveauRecord ? 'battu' : `à ${Math.max(siege.record, siege.tenues)}`}
+            record {nouveauRecord ? 'battu' : `à ${Math.max(siege.record, siege.tenues)}`}
           </span>
         </div>
         {suivant && (
@@ -140,7 +141,7 @@ export function ModaleFinSiege({ onFermer }: { onFermer: () => void }) {
         )}
         {nouveauRecord && (
           <div style={{ fontSize: 13, color: '#e8c04a', marginTop: 8, textAlign: 'center' }}>
-            🏅 Nouveau record : jamais vos murs n’avaient tenu si longtemps.
+            Nouveau record : jamais vos murs n’avaient tenu si longtemps.
           </div>
         )}
         {siege.tenues < siege.record && (
@@ -150,7 +151,7 @@ export function ModaleFinSiege({ onFermer }: { onFermer: () => void }) {
         )}
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
           <button className="principal" style={{ flex: 1 }} onClick={onFermer}>
-            ⚔️ Recommencer le siège
+            Recommencer le siège
           </button>
         </div>
       </div>

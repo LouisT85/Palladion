@@ -3,6 +3,7 @@ import { HEROS, type HeroId } from '../../game/heros'
 import type { BattleEffect, GodId } from '../../game/types'
 import { PAL, alea } from './art'
 import { Anim, AnimM, AnimT } from './smil'
+import { Picto } from '../ui/Picto'
 
 /*
  * ═══════════════ LA MAIN DES DIEUX, À LA MESURE DE LA FERVEUR ═══════════════
@@ -947,9 +948,7 @@ export function EffetHeros({ e }: { e: BattleEffect; now: number }) {
       </circle>
       <circle r={26} fill={def.couleur} opacity={0.16} />
       <circle r={26} fill="none" stroke={def.couleur} strokeWidth={2.4} />
-      <text y={8} textAnchor="middle" fontSize={22}>
-        {def.emoji}
-      </text>
+      <Picto e={def.emoji} centre={[0, 0]} taille={24} couleur="#f4ecd8" />
       <text
         y={-32}
         textAnchor="middle"

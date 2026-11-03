@@ -18,6 +18,7 @@ import { Icone } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 import { JetonsLigne, JetonsTir, SchemaEnceinte, court, usePlanDefense, useReglerPlan, type PanCarte } from './Ordres'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════ LE PLAN DE DÉFENSE ═══════════════════
@@ -91,7 +92,7 @@ export function BlocPlanDefense() {
   const fronts = nbFronts(menace)
   return (
     <div className="bloc">
-      <h3>🗺️ Plan de défense</h3>
+      <h3>Plan de défense</h3>
       <div className="desc" style={{ fontSize: 12 }}>
         Quel pan chaque troupe tient, comment la ligne encaisse, comment les tireurs tirent. Décidé <b>maintenant</b>,
         adopté au premier choc : plus besoin d’attendre que les Achéens soient sous les murs pour poster ses hommes.
@@ -112,9 +113,9 @@ export function JetonPlanDefense() {
   const ouvrir = useOuvrirPlan()
   const plan = usePlanDefense()
   return (
-    <Astuce titre="🗺️ Plan de défense" resume={resumePlan(plan)} note="Réglez l’emplacement de vos troupes avant le choc.">
+    <Astuce titre="Plan de défense" resume={resumePlan(plan)} note="Réglez l’emplacement de vos troupes avant le choc.">
       <button className="plan-lien" onClick={ouvrir}>
-        🗺️ Plan de défense
+        <Picto id="carte" /> Plan de défense
       </button>
     </Astuce>
   )
@@ -180,7 +181,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="🗺️ Plan de défense"
+      titre="Plan de défense"
       sous={resumePlan(plan)}
       onFermer={onFermer}
       classe="plan-modale"
@@ -193,7 +194,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
 
       {enBataille && (
         <div className="bloc" style={{ borderColor: '#7a3f2c', background: '#1b0d08' }}>
-          ⚔️ <b>L’assaut est engagé.</b> On ne réécrit pas un plan sous les flèches : les ordres se donnent maintenant
+          <b>L’assaut est engagé.</b> On ne réécrit pas un plan sous les flèches : les ordres se donnent maintenant
           sur la <b>barre d’ordres</b>, en bas de l’alerte, où un ordre se tient cinq secondes avant qu’on en change. Le
           plan reprendra la main à la prochaine bataille.
         </div>
@@ -201,7 +202,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
 
       {niveauMur === 0 && (
         <div className="bloc" style={{ borderColor: '#7a3f2c' }}>
-          🧱 Vous n’avez pas d’enceinte : il n’y a pas encore de pan à tenir. La posture et le tir, eux, valent déjà.
+          Vous n’avez pas d’enceinte : il n’y a pas encore de pan à tenir. La posture et le tir, eux, valent déjà.
         </div>
       )}
 
@@ -229,7 +230,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
       </div>
 
       <div className="bloc">
-        <h3>⚔ Où chacun se poste</h3>
+        <h3>Où chacun se poste</h3>
         {niveauMur > 0 && !enBataille && (
           <SchemaEnceinte
             pans={pans}
@@ -249,7 +250,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
         )}
         {enBataille && (
           <div style={{ fontSize: 12, color: '#93a7b4' }}>
-            L’emplacement se règle pendant l’assaut sur la barre d’ordres, jeton <b>⚔ Pans</b> - il y montre le même
+            L’emplacement se règle pendant l’assaut sur la barre d’ordres, jeton <b>Pans</b> - il y montre le même
             schéma, avec l’état réel de chaque mur.
           </div>
         )}
@@ -263,7 +264,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
         */}
         {annonces ? (
           <div style={{ fontSize: 12, color: '#e8c04a', marginTop: 8 }}>
-            🔍 Vos éclaireurs annoncent l’assaut sur{' '}
+            Vos éclaireurs annoncent l’assaut sur{' '}
             <b>
               {annonces
                 .map((id) => SECTEURS.find((s) => s.id === id)?.nom ?? id)
@@ -274,7 +275,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
           </div>
         ) : (
           <div style={{ fontSize: 11.5, color: '#93a7b4', marginTop: 8 }}>
-            🐎 À une menace de {Math.round(menace)}, une vague se scinde en <b>{fronts}</b> colonne
+            À une menace de {Math.round(menace)}, une vague se scinde en <b>{fronts}</b> colonne
             {fronts > 1 ? 's' : ''} : {fronts === 1 ? 'un seul pan sera assailli' : `${fronts} pans seront assaillis`},
             et la porte de l’est en est toujours.
           </div>
@@ -285,7 +286,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
         </div>
         {sansHommes.length > 0 && (
           <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
-            ⚠ Vous postez{' '}
+            <Picto id="alerte" /> Vous postez{' '}
             {sansHommes.map((u, i) => (
               <Fragment key={u}>
                 {i > 0 && ', '}
@@ -298,14 +299,14 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
         {/* le pendant, pour les hommes qu'on désigne par leur nom */}
         {absents.length > 0 && (
           <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
-            ⚠ {absents.map((h) => `${HEROS[h].emoji} ${HEROS[h].nom}`).join(', ')}{' '}
+            <Picto id="alerte" /> {absents.map((h) => HEROS[h].nom).join(', ')}{' '}
             {absents.length > 1 ? 'sont postés mais ne descendront pas' : 'est posté mais ne descendra pas'} - pas
             encore engagé, tombé, ou sous sa tente. L’ordre est gardé pour son retour.
           </div>
         )}
         {dormantsHeros.length > 0 && (
           <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
-            ⚠ {dormantsHeros.map((h) => `${HEROS[h].emoji} ${HEROS[h].nom}`).join(', ')} garde
+            <Picto id="alerte" /> {dormantsHeros.map((h) => HEROS[h].nom).join(', ')} garde
             {dormantsHeros.length > 1 ? 'nt' : ''} un pan que les éclaireurs n’annoncent pas : il
             {dormantsHeros.length > 1 ? 's iront' : ' ira'} au plus pressé.
           </div>
@@ -320,7 +321,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
       {/* la traduction du plan en ordres, pour que rien ne soit magique */}
       {niveauMur > 0 && (postes.length > 0 || postesHeros.length > 0) && (
         <div className="bloc" style={{ fontSize: 11.5, color: '#93a7b4' }}>
-          <h3>📋 Ce que la prochaine bataille entendra</h3>
+          <h3>Ce que la prochaine bataille entendra</h3>
           {UNITES_PLAN.filter((u) => plan.pans[u]).map((u) => {
             const pan = PANS.find((p) => p.id === plan.pans[u])
             return (
@@ -335,7 +336,7 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
             const pan = PANS.find((p) => p.id === h.pan)
             return (
               <div key={h.id} style={{ color: h.present ? '#c7b48f' : '#d98a4e' }}>
-                {h.emoji} {h.nom} → {pan ? court(pan.nom) : '—'}
+                {h.nom} → {pan ? court(pan.nom) : '—'}
                 {h.present ? ` (niveau ${h.niveau})` : ' (absent - l’ordre attend son retour)'}
               </div>
             )
@@ -350,11 +351,14 @@ export function PanneauPlanDefense({ onFermer }: { onFermer: () => void }) {
                   </Fragment>
                 ))
               : '—'}
-            {cartesHeros.filter((h) => h.pan === null).length > 0 &&
-              ` ${cartesHeros
-                .filter((h) => h.pan === null)
-                .map((h) => h.emoji)
-                .join(' ')}`}
+            {cartesHeros
+              .filter((h) => h.pan === null)
+              .map((h) => (
+                <Fragment key={h.id}>
+                  {' '}
+                  <Picto e={h.emoji} titre={h.nom} />
+                </Fragment>
+              ))}
           </div>
         </div>
       )}

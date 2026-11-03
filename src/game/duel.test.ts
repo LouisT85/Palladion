@@ -1083,8 +1083,8 @@ describe('rien ne se refuse ni ne se propose sans être dit au joueur', () => {
     expect(forte).toBeGreaterThan(200)
   })
 
-  it('un butin se dit en emojis, et « rien à prendre » quand il n’y a rien', () => {
-    expect(resumeButin({ grain: 120, bronze: 90 })).toBe('120 🌾, 90 🪙')
+  it('un butin se dit en mots, et « rien à prendre » quand il n’y a rien', () => {
+    expect(resumeButin({ grain: 120, bronze: 90 })).toBe('120 grain, 90 bronze')
     expect(resumeButin({})).toBe('rien à prendre')
   })
 })

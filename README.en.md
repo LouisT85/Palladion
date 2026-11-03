@@ -1,6 +1,6 @@
-# 🏛️ PALLADION - Chronicles of the Trojan War
+# PALLADION - Chronicles of the Trojan War
 
-[🇫🇷 Français](README.md) | 🇬🇧 English
+[Français](README.md) | English
 
 > The *Palladion*: Athena's statue, fallen from the sky - as long as it stands in the city,
 > Troy cannot fall. A divine talisman the town's survival depends on: exactly the wager of
@@ -18,9 +18,9 @@ Not one image, not one sound downloaded: **everything is drawn and synthesised b
 | --------------------------------------------------- | ------------------------------------------------------------- |
 | ![Village in its first spring](docs/village-debut.jpg) | ![Complete city, eleven domains at level 4](docs/village-max.jpg) |
 
-## ✨ What makes PALLADION different
+## What makes PALLADION different
 
-### 🏺 The duel: raid another player's village, with no server
+### The duel: raid another player's village, with no server
 
 The game has **no server and no accounts**. Multiplayer therefore takes the shape of **mail**:
 three codes that travel as text, in a message, an email, whatever you like.
@@ -43,7 +43,7 @@ never signing a blank cheque.
 
 It is also the first time the **defence plan** you set in peacetime faces an actual person.
 
-### 🐴 "The Fall" - a campaign in five acts
+### "The Fall" - a campaign in five acts
 
 The campaign follows the Iliad - the thousand ships, Achilles' wrath, beneath the walls, the
 river, the horse - but from a vantage point the epic never takes: **you are not Troy**. You
@@ -61,7 +61,7 @@ the Scamander in flood, the ash of Ilion.
 
 ![The prologue of Act I](docs/campagne.jpg)
 
-### ⚡ Zeus takes you by the hand
+### Zeus takes you by the hand
 
 Your first game doesn't open on a wall of help text: the lord of Olympus comes down and teaches
 the lesson himself, in fifteen steps. Each time, the whole screen goes dark **except the thing
@@ -71,7 +71,7 @@ nor skim.
 
 ![Zeus's lesson](docs/tutoriel.jpg)
 
-### 🧱 Buildings that evolve **visually**
+### Buildings that evolve **visually**
 
 Every building is drawn **in SVG by code**, in textured volumes (tiles, stone, thatch, furrows),
 with a distinct look per level. The ramparts go from a stake palisade → to a dry-stone wall → to
@@ -82,7 +82,7 @@ tie-beam ends and stairs inside. The same holds for the ten other domains. Damag
 **raise themselves** over five seconds back to the level they had. And the village **lives**:
 villagers strolling, an ox cart, goats, sheep, smoke and braziers.
 
-### 🌱 Four seasons and a sky that changes everything
+### Four seasons and a sky that changes everything
 
 Four game days per season. **Spring** brings up the wheat, **summer** hardens the ground and
 opens the sea, **autumn** fills the granaries, **winter closes the sea** - the port runs at a
@@ -93,7 +93,7 @@ then falls, snowdrifts settle in.
 
 ![Winter over the Troad](docs/saisons.jpg)
 
-### ⚔️ Assaults played out before your eyes, and orders to give
+### Assaults played out before your eyes, and orders to give
 
 Armed bands attack regularly, and your scouts announce **the composition of the wave, the
 promised reward, and sometimes the name of the champion leading it** - one of the eight heroes
@@ -114,7 +114,7 @@ opens fire at the breach on whatever has *come in*.
 
 ![An assault on three fronts](docs/bataille.jpg)
 
-### 👷 Every inhabitant has a name, a trade, an age - and a family
+### Every inhabitant has a name, a trade, an age - and a family
 
 A villager is born a farmhand, woodcutter, stonecutter, smith, priest or docker. **At his own
 trade he gives fully; elsewhere, 55%.** Nobody takes a post on their own: it's your decision
@@ -129,7 +129,7 @@ with him.
 The same trade-off applies to the army: **a soldier is one villager fewer** - he leaves the
 workshop, stops producing, and eats double.
 
-### 👑 A chief who ages, dies, and is replaced
+### A chief who ages, dies, and is replaced
 
 You are no longer an abstraction. Your chief has a name, a house, an age, and **two traits out
 of twelve** that change the game - builder, man of war, son of the soil, impious, beloved of the
@@ -144,7 +144,7 @@ village**: you lose an arm, and his trade with him. That's the trade-off.
 The founder has no traits at all: he is the flat baseline, and temperament enters the dynasty at
 the first succession.
 
-### 🛡️ Eight heroes - fed, and lost
+### Eight heroes - fed, and lost
 
 They aren't bought: they come when the city is worthy of them. Hector wants level-3 ramparts and
 Zeus in favour; Odysseus a port and Athena's trust; Achilles blood already spilt. Each brings a
@@ -165,7 +165,7 @@ than comfortable.
 | ------------------------------------- | ------------------------------------- |
 | ![Heroes panel](docs/heros.png) | ![Hector's arc](docs/heros-arc.png) |
 
-### 🗺️ Raid, rescue… or besiege
+### Raid, rescue… or besiege
 
 Eight strongholds of the Troad, each with its **painted setting** and its **works to bring down**
 - the chief's tent, the warehouse, the keep, the guardhouse - one of which is a **heart** whose
@@ -185,7 +185,7 @@ fall decides the raid. Three ways to march on them:
 
 ![The assault on the city of Lesbos](docs/expedition.jpg)
 
-### ⚡ The Olympians, allies and judges - and it shows
+### The Olympians, allies and judges - and it shows
 
 - **Zeus** - lightning falls on the attackers; his law of hospitality (*xenia*) punishes whoever
   shuts his door on a suppliant.
@@ -213,7 +213,7 @@ panic breathed into the ranks. Always repairable in the same beat by a sacrifice
 
 ![The pantheon](docs/pantheon.png)
 
-### 🏺 Moral dilemmas with consequences
+### Moral dilemmas with consequences
 
 Forty-one dilemmas with **multiple outcomes**, drawn when they open: refugees begging for asylum
 (sincere… or infiltrated raiders), Zeus disguised as a beggar, a wooden horse abandoned at your
@@ -223,7 +223,7 @@ outcomes are **deferred**: traitors strike after dark. Athena's whisper reads th
 
 ![A dilemma](docs/evenement.png)
 
-### 💰 A living market, convoys, and a fleet
+### A living market, convoys, and a fleet
 
 The port is no longer a vending machine. Commodity **prices** drift towards what the world
 imposes - drought burns the fields and grain rises, winter closes the sea and makes everything
@@ -241,7 +241,7 @@ And the port **builds hulls**: the penteconter that fights, the freighter that c
 back extra loot. The port's level caps the fleet, and the sea **takes** hulls on every return:
 this is not a one-off purchase.
 
-### 📜 Discoveries, wonders, scouts
+### Discoveries, wonders, scouts
 
 **Twenty-three Bronze Age discoveries** with their prerequisites - the ploughshare, twisted rope,
 the potter's wheel, Linear B, water supply - and **only one research at a time**: launching the
@@ -255,7 +255,7 @@ reign, and it cannot be taken back.
 villager - one arm fewer while he's out - or you pay a tradesman. The report is true; if there's
 nothing to see, you aren't charged.
 
-### 🤝 A Troad that remembers
+### A Troad that remembers
 
 Each stronghold keeps its own **standing** (−100 to +100), and the region is small: what you do
 to one, the other seven learn. A **gift** buys back a grudge. A **pact** can be bought from
@@ -263,7 +263,7 @@ someone who already likes you. A **marriage** costs an inhabitant forever but se
 nothing undoes, at double tribute. An ordinary alliance breaks if standing falls back - and a
 hostile village swells the threat hanging over you.
 
-### 🌾 The fever, and the lazaret
+### The fever, and the lazaret
 
 Plague isn't a dilemma but a **cycle**. It comes in through an identifiable door - a convoy back
 from the Troad, the charnel left before the wall after an assault, a raid's loot, the crowding of
@@ -275,7 +275,7 @@ bed saves a man **and** removes a carrier. A feverish man left standing gives on
 post and infects his neighbours every day: the illness costs before it kills. Three medical
 discoveries slow it down.
 
-### 🏝️ Founding a colony
+### Founding a colony
 
 A second home overseas, which is **not** a second playable village - that would double the game.
 It's managed by rare, heavy trade-offs: what it devotes itself to, what it ships, how you defend
@@ -286,7 +286,7 @@ trades** - the panel names what the village loses -, a ship held for as long as 
 and soldiers left behind. Four coasts, four vocations, and a colony you neglect eventually stops
 being yours.
 
-### 🏅 Feats, prestige and the end of a reign
+### Feats, prestige and the end of a reign
 
 Fifty-four feats in five categories - "hold an assault on three fronts without losing a man",
 "chosen of all four Olympians", "cross a winter without emptying the granary", "breach the walls
@@ -300,7 +300,7 @@ match, and **the Troad remembers** - a raider's reign starts again surrounded by
 
 ![Feats and prestige](docs/hauts-faits.png)
 
-### 🎖️ Fifty-five missions as a through-line
+### Fifty-five missions as a through-line
 
 Always an objective on screen, always a reward at the end: from the first day's provisions to the
 Palladion itself. Each claim funds the next step: no dead time.
@@ -314,20 +314,20 @@ act**.
 | ------------------------------------------- | ---------------------------------------------- |
 | ![Mission tracker](docs/missions.jpg) | ![The full through-line](docs/missions-fil.png) |
 
-### 📈 The annals of the reign
+### The annals of the reign
 
 A numeric reading every thirty seconds: granaries, garrison, threat, mood, favour, ramparts,
 prestige. Four graphs drawn in SVG like the rest of the game, with each series' **slope per
 minute** - that's what answers "is this going up?". The annals cross the acts, where the journal
 starts over with each chapter.
 
-### 🎭 The village's mood
+### The village's mood
 
 Feasts, victories and full granaries **elate** the village (higher output). Famine, defeats and
 cruel choices make it **sullen**. Below 25: **mutiny** - open the granaries, promise (and keep
 your word!), or put it down in blood. At 0, your soldiers desert.
 
-### 🎵 A fully synthesised soundtrack
+### A fully synthesised soundtrack
 
 Not one byte of downloaded audio: everything is made on the fly in **Web Audio**. In the village,
 a shepherd's flute plays a **major pentatonic** (no semitones: it is musically impossible to sound
@@ -337,7 +337,7 @@ twenty-four a minute where the previous version had a hundred and sixty. War hor
 alert, the siege drum takes over when the column reaches the walls, and the bard's song salutes
 victory.
 
-### 🌙 Time goes on without you - and you drive the camera
+### Time goes on without you - and you drive the camera
 
 A real-time day/night cycle. Tab closed, the village lives on: production, construction, growth…
 and night assaults, resolved automatically. On your return, a report tells you everything.
@@ -349,7 +349,7 @@ The top bar reads in **two rows**: what the village *has*, then what is *happeni
 token opens a **numeric tooltip** on hover that says what it's for, what it's worth and what
 moves it. And every menu closes three ways: its **cross**, the **Esc** key, or a click outside.
 
-## 🎮 Game systems, in one table
+## Game systems, in one table
 
 | Area | What it holds |
 | --- | --- |
@@ -376,7 +376,7 @@ moves it. And every menu closes three ways: its **cross**, the **Esc** key, or a
 | **Tests** | **1,525** Vitest tests and **7** end-to-end Playwright journeys |
 | **Saves** | `localStorage`, 3 slots, text export/import - no server, no account |
 
-## 🛠️ Stack
+## Stack
 
 - [Vite](https://vitejs.dev) + [React 18](https://react.dev) + TypeScript (strict)
 - [zustand](https://github.com/pmndrs/zustand) + immer for game state (4 Hz tick)
@@ -388,12 +388,12 @@ The art direction (light from the north-west, shadows cast to the south-east, no
 deterministic randomness) is documented in [`docs/STYLE-ART.md`](docs/STYLE-ART.md). The roadmap
 and known debt live in [`docs/ROADMAP.md`](docs/ROADMAP.md). Both are written in French.
 
-## 🚀 Development
+## Development
 
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm run dev:test  # 🧪 test mode: unlimited resources, instant builds and recruits,
+npm run dev:test  # test mode: unlimited resources, instant builds and recruits,
                   #    an "Attack" button to trigger an assault on demand
 npm run build     # production into dist/ (shell, art and story in three chunks)
 npm run preview   # test the build
@@ -408,7 +408,7 @@ npm run dev:test -- --port 5199 --strictPort   # in one terminal
 python3 scripts/e2e.py                         # in another
 ```
 
-### 📸 Regenerating the README screenshots
+### Regenerating the README screenshots
 
 The images in this file are **reproducible**: each one sets a precise game state (season,
 buildings, heroes, open panel…) before photographing the screen.
@@ -422,7 +422,7 @@ The script looks for an **already installed** browser before downloading one: th
 or Edge first, then the Python Playwright chromium used by the e2e journeys. It fails if any
 JavaScript error occurs while capturing: it doubles as the project's smoke test.
 
-## 🗺️ What's left
+## What's left
 
 Details live in [`docs/ROADMAP.md`](docs/ROADMAP.md). In short:
 
@@ -435,4 +435,4 @@ Details live in [`docs/ROADMAP.md`](docs/ROADMAP.md). In short:
 
 ---
 
-*A personal project - written with love for Greek mythology.* 🏺
+*A personal project - written with love for Greek mythology.*

@@ -42,6 +42,7 @@ import type { Cost, ResourceId, UnitId } from '../../game/types'
 import type { VillageCible } from '../../game/expeditions'
 import { Icone, Montant } from './Icones'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 import { BatailleLayer } from '../map/BatailleLayer'
 import { SanteOuvrages } from '../map/SanteOuvrages'
 import { useCamera, type VueScene } from '../map/camera'
@@ -66,7 +67,7 @@ function JaugeRelation({ valeur, couleur, statut }: { valeur: number; couleur: s
   const pos = ((Math.max(-100, Math.min(100, valeur)) + 100) / 200) * 100
   return (
     <Astuce
-      titre={`${STATUTS[statut].emoji} Relation : ${motRelation(valeur)}`}
+      titre={`Relation : ${motRelation(valeur)}`}
       resume={STATUTS[statut].desc}
       lignes={[
         { label: 'Mariage possible à partir de', valeur: motRelation(SEUIL_MARIAGE), fort: valeur >= SEUIL_MARIAGE },
@@ -134,17 +135,17 @@ function DiplomatieVillage({
   return (
     <div className="diplo">
       <Astuce
-        titre="🎁 Porter un présent"
+        titre="Porter un présent"
         resume={`+${GAIN_PRESENT} de relation avec ${v.nom}, et rien pour les autres. Réparer coûte plus cher que casser : il faut plus de deux présents pour effacer un seul pillage.`}
         note={relation >= 100 ? `${v.nom} ne peut pas mieux vous vouloir.` : undefined}
       >
         <button onClick={() => s.offrirPresent(v.id)} disabled={relation >= 100}>
-          🎁 Présent (<Prix cout={present} />)
+          Présent (<Prix cout={present} />)
         </button>
       </Astuce>
       {!allie && (
         <Astuce
-          titre="🤝 Négocier un pacte"
+          titre="Négocier un pacte"
           resume="L’alliance achetée plutôt que méritée : tribut régulier et renforts sur vos remparts, sans qu’un coup soit porté."
           note={
             relation < SEUIL_PACTE
@@ -153,13 +154,13 @@ function DiplomatieVillage({
           }
         >
           <button onClick={() => s.proposerPacte(v.id)} disabled={relation < SEUIL_PACTE}>
-            🤝 Pacte (<Prix cout={pacte} />)
+            Pacte (<Prix cout={pacte} />)
           </button>
         </Astuce>
       )}
       {!marie && (
         <Astuce
-          titre="💍 Sceller une parenté"
+          titre="Sceller une parenté"
           resume="Vous donnez un habitant - définitivement - et recevez une alliance que rien ne dénoue, au tribut doublé. Le seul engagement irréversible du jeu."
           note={
             relation < SEUIL_MARIAGE
@@ -173,7 +174,7 @@ function DiplomatieVillage({
             onClick={() => setChoisirPromis((x) => !x)}
             disabled={relation < SEUIL_MARIAGE || promis.length === 0}
           >
-            💍 Mariage (<Prix cout={dot} /> + 1 habitant)
+            Mariage (<Prix cout={dot} /> + 1 habitant)
           </button>
         </Astuce>
       )}
@@ -183,7 +184,7 @@ function DiplomatieVillage({
           {promis.slice(0, 8).map((x) => (
             <Astuce
               key={x.id}
-              titre={`${BUILDINGS[x.metier].emoji} ${x.nom}${x.lignee ? ` des ${x.lignee}` : ''}`}
+              titre={`${x.nom}${x.lignee ? ` des ${x.lignee}` : ''}`}
               resume={`${BUILDINGS[x.metier].nom} de son métier, ${ageDe(x, jour)} ans. Il quittera le village pour toujours : c’est un bras et un métier de moins.`}
             >
               <button
@@ -192,7 +193,7 @@ function DiplomatieVillage({
                   setChoisirPromis(false)
                 }}
               >
-                {BUILDINGS[x.metier].emoji} {x.nom}
+                <Picto e={BUILDINGS[x.metier].emoji} /> {x.nom}
               </button>
             </Astuce>
           ))}
@@ -260,7 +261,7 @@ export function PanneauExpeditions() {
     const leurPuissance = secours ? puissanceAssiegeants(cible) : puissanceEffective(cible, pillages)
     return (
       <Modale
-        titre={`${cible.emoji} ${secours ? `Délivrer ${cible.nom}` : `Marcher sur ${cible.nom}`}`}
+        titre={secours ? `Délivrer ${cible.nom}` : `Marcher sur ${cible.nom}`}
         onFermer={() => setCibleId(null)}
         fermerTexte={null}
       >
@@ -269,13 +270,13 @@ export function PanneauExpeditions() {
           <div className={`intention ${intention}`}>
             {secours ? (
               <>
-                <b>🤝 Secourir</b> - aucun butin, mais Zeus et Athéna vous en sauront gré, et {cible.nom} deviendra un
+                <b>Secourir</b> - aucun butin, mais Zeus et Athéna vous en sauront gré, et {cible.nom} deviendra un
                 allié : tribut régulier et renforts à chaque assaut sur vos murs. Vous pouvez y perdre des hommes pour
                 rien.
               </>
             ) : (
               <>
-                <b>🏴‍☠️ Piller</b> - butin élevé, mais Zeus Xenios n’aime pas cela (−5), la menace monte, et le village
+                <b>Piller</b> - butin élevé, mais Zeus Xenios n’aime pas cela (−5), la menace monte, et le village
                 s’en souviendra : sa garnison sera plus fournie la prochaine fois.
               </>
             )}
@@ -283,7 +284,7 @@ export function PanneauExpeditions() {
           <div className="bloc">
             <h3>{secours ? 'Les assiégeants' : 'Leur défense'}</h3>
             <div className="ligne-exp">
-              {secours ? '⚔️ Rase campagne - aucun mur à briser' : `🧱 Remparts niveau ${cible.mur} (${WALL_HP[cible.mur]} pts)`}{' '}
+              {secours ? 'Rase campagne - aucun mur à briser' : `Remparts niveau ${cible.mur} (${WALL_HP[cible.mur]} pts)`}{' '}
               ·{' '}
               {UNIT_IDS.filter((u) => face[u] > 0).map((u, i) => (
                 <Fragment key={u}>
@@ -314,7 +315,7 @@ export function PanneauExpeditions() {
                 <div className="infos">
                   <div className="nom">{UNITS[u].nom}</div>
                   <div className="stats">
-                    disponibles : {s.army[u]} · ⚔{UNITS[u].atk} ❤{UNITS[u].hp}
+                    disponibles : {s.army[u]} · <Picto id="epee" titre="attaque" /> {UNITS[u].atk} <Picto id="coeur" titre="vie" /> {UNITS[u].hp}
                     {u === 'archer' ? ' · peu efficace contre les murs' : ''}
                   </div>
                 </div>
@@ -332,10 +333,10 @@ export function PanneauExpeditions() {
             ))}
             <div style={{ fontSize: 12, color: maPuissance >= leurPuissance ? '#5fae7d' : '#d98a4e', marginTop: 6 }}>
               {maPuissance >= leurPuissance * 1.3
-                ? '⚖️ Rapport de force très favorable.'
+                ? 'Rapport de force très favorable.'
                 : maPuissance >= leurPuissance
-                  ? '⚖️ Rapport de force favorable - mais la guerre a ses caprices.'
-                  : '⚠️ Rapport de force défavorable : vos troupes risquent d’y rester.'}
+                  ? 'Rapport de force favorable - mais la guerre a ses caprices.'
+                  : 'Rapport de force défavorable : vos troupes risquent d’y rester.'}
             </div>
           </div>
           {/*
@@ -356,7 +357,7 @@ export function PanneauExpeditions() {
               disabled={total === 0 || s.battle !== null || s.expedition !== null}
               onClick={() => s.lancerExpedition(cible.id, troupes, intention)}
             >
-              {secours ? '🤝 Courir à leur secours' : '🏴‍☠️ Lancer l’assaut'}
+              {secours ? 'Courir à leur secours' : 'Lancer l’assaut'}
             </button>
           </div>
         </>
@@ -366,7 +367,7 @@ export function PanneauExpeditions() {
 
   return (
     <Modale
-      titre="🗺️ Expéditions - la Troade à feu et à sang"
+      titre="Expéditions - la Troade à feu et à sang"
       dataTuto="modale-expeditions"
       large
       onFermer={() => s.openPanel(null)}
@@ -382,7 +383,7 @@ export function PanneauExpeditions() {
         {appel && s.appelSecours && (
           <div className="appel-secours">
             <div className="appel-titre">
-              🙏 {appel.nom} est assiégé et implore votre aide
+              {appel.nom} est assiégé et implore votre aide
               <span className="appel-compte">{fmtDuree(Math.max(0, s.appelSecours.expireAt - now))}</span>
             </div>
             <div className="appel-texte">
@@ -395,15 +396,15 @@ export function PanneauExpeditions() {
                 disabled={s.battle !== null || s.expedition !== null}
                 onClick={() => ouvrir(appel.id, 'secours')}
               >
-                🤝 Porter secours
+                Porter secours
               </button>
               <Astuce
-                titre="🚪 Fermer la porte"
+                titre="Fermer la porte"
                 resume="Zeus Xenios protège les suppliants : refuser son aide se paie auprès de lui, et le village tombera sans vous."
                 note="Une bande de plus rôdera dans la région : la menace monte."
               >
                 <button className="danger" onClick={() => s.ignorerSecours()}>
-                  🚪 Fermer la porte (Zeus −4)
+                  Fermer la porte (Zeus −4)
                 </button>
               </Astuce>
             </div>
@@ -428,26 +429,26 @@ export function PanneauExpeditions() {
           const fiche = STATUTS[statut]
           return (
             <div key={v.id} className={`exp-village${allie ? ' allie' : ''}`}>
-              <div className="embleme">{v.emoji}</div>
+              <div className="embleme"><Picto e={v.emoji} /></div>
               <div className="corps">
                 <div className="ligne-titre">
                   <h3>{v.nom}</h3>
                   <Etoiles n={etat?.etoiles ?? 0} />
                   <Astuce
-                    titre={`${fiche.emoji} ${fiche.nom}`}
+                    titre={fiche.nom}
                     resume={fiche.desc}
                     note={allie ? `Allié depuis ${fmtDuree(now - allie.depuis)}.` : undefined}
                   >
                     <span className="badge-statut" style={{ color: fiche.couleur, borderColor: `${fiche.couleur}66` }}>
-                      {fiche.emoji} {fiche.nom}
+                      {fiche.nom}
                     </span>
                   </Astuce>
                   {allie?.mariage && (
                     <Astuce
-                      titre={`💍 ${allie.mariage.villageois}`}
+                      titre={`Parenté : ${allie.mariage.villageois}`}
                       resume={`${allie.mariage.villageois}${allie.mariage.lignee ? ` des ${allie.mariage.lignee}` : ''} y vit désormais. Cette parenté ne se dénoue pas, et le tribut en est doublé.`}
                     >
-                      <span className="badge-allie">💍 {allie.mariage.villageois}</span>
+                      <span className="badge-allie"><Picto id="anneau" titre="marié(e) à" /> {allie.mariage.villageois}</span>
                     </Astuce>
                   )}
                 </div>
@@ -460,14 +461,14 @@ export function PanneauExpeditions() {
                 <JaugeRelation valeur={relation} couleur={fiche.couleur} statut={statut} />
                 <DiplomatieVillage v={v} relation={relation} allie={!!allie} marie={!!allie?.mariage} />
                 <div className="ligne-exp">
-                  🛡️ Puissance ≈ <b>{puissanceEffective(v, pillages)}</b> · 🧱 niv. {v.mur} ·{' '}
+                  Puissance ≈ <b>{puissanceEffective(v, pillages)}</b> · remparts niv. {v.mur} ·{' '}
                   {UNIT_IDS.filter((u) => garnison[u] > 0).map((u, i) => (
                     <Fragment key={u}>
                       {i > 0 && ' '}
                       <Montant n={garnison[u]} id={u} taille={16} />
                     </Fragment>
                   ))}
-                  {'  ·  '}🎁{' '}
+                  {'  ·  '}butin{' '}
                   {(Object.entries(v.butin) as [ResourceId, number][]).map(([r, n]) => (
                     <Montant key={r} n={Math.round(n * (etat?.etoiles ? 0.4 : 1))} id={r} />
                   ))}
@@ -491,22 +492,22 @@ export function PanneauExpeditions() {
                   1,
                 ).possible ? (
                   <Astuce
-                    titre="❄️ La mer est prise"
+                    titre="La mer est prise"
                     resume="L’hiver ferme la mer : les places d’outre-mer sont hors d’atteinte jusqu’au printemps - à moins d’avoir la flotte pour forcer le détroit."
                     note="Une nef de charge et une pentécontère suffisent à passer. La grâce « Mer ouverte » de Poséidon lève la saison morte sans une seule coque."
                   >
-                    <span className="cd">❄️ mer prise</span>
+                    <span className="cd"><Picto id="flocon" /> mer prise</span>
                   </Astuce>
                 ) : resteCd > 0 ? (
                   <Astuce
-                    titre="⏳ Trop tôt"
+                    titre="Trop tôt"
                     resume={`Vos hommes rentrent à peine. On ne remarche pas sur ${v.nom} avant ${fmtDuree(resteCd)}.`}
                   >
-                    <span className="cd">⏳ {fmtDuree(resteCd)}</span>
+                    <span className="cd"><Picto id="sablier" /> {fmtDuree(resteCd)}</span>
                   </Astuce>
                 ) : (
                   <Astuce
-                    titre={allie ? '🗡️ Trahir un allié' : `⚔️ Piller ${v.nom}`}
+                    titre={allie ? 'Trahir un allié' : `Piller ${v.nom}`}
                     resume={
                       allie
                         ? 'L’alliance est rompue sur-le-champ, la relation tombe au plus bas, et TOUTE la côte l’apprend. Le butin est là, le prix aussi.'
@@ -531,7 +532,7 @@ export function PanneauExpeditions() {
                   est le plus utile.
                 */}
                 <Astuce
-                  titre={`⛓️ Assiéger ${v.nom}`}
+                  titre={`Assiéger ${v.nom}`}
                   resume="Aucune bataille : on poste des hommes devant la place, ils y mangent votre grain des journées entières, et elle finit par offrir sa reddition. Ils ne défendront pas le village pendant ce temps."
                   lignes={[
                     { label: 'Rançon d’une reddition', valeur: 'de 70 à 100 % du butin, même si la place a déjà été pillée' },
@@ -544,7 +545,7 @@ export function PanneauExpeditions() {
                     disabled={s.battle !== null || s.expedition !== null || s.blocus !== null}
                     onClick={() => s.openPanel('blocus')}
                   >
-                    ⛓️ Assiéger
+                    Assiéger
                   </button>
                 </Astuce>
               </div>
@@ -592,7 +593,7 @@ export function ExpeditionScene() {
         onClick={(e) => e.stopPropagation()}
       >
         <h2>
-          {exp.intention === 'secours' ? `🤝 Délivrance de ${v.nom}` : `${v.emoji} Assaut sur ${v.nom}`}
+          {exp.intention === 'secours' ? `Délivrance de ${v.nom}` : `Assaut sur ${v.nom}`}
         </h2>
         {/* hauteur pilotée, largeur déduite du ratio 900×560 : aucune bande noire */}
         <svg
@@ -660,14 +661,14 @@ export function ExpeditionScene() {
         ) : (
           <>
             <div className="statut-exp">
-              ⚔️ Vos troupes : <b>{vivantsJoueur}</b> · Défenseurs : <b>{vivantsEnnemis}</b>
-              {v.mur > 0 && exp.battle.breche && ' · 💥 brèche ouverte !'}
+              Vos troupes : <b>{vivantsJoueur}</b> · Défenseurs : <b>{vivantsEnnemis}</b>
+              {v.mur > 0 && exp.battle.breche && ' · brèche ouverte !'}
             </div>
             {/* les mêmes hommes obéissent aux mêmes ordres, loin de chez eux */}
             <BarreOrdres />
             <DieuxRapides />
             <button className="danger" style={{ width: '100%', marginTop: 8 }} onClick={() => s.retraiteExpedition()}>
-              🏳️ Sonner la retraite
+              Sonner la retraite
             </button>
           </>
         )}

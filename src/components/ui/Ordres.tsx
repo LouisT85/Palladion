@@ -7,6 +7,7 @@ import { useGame } from '../../game/store'
 import type { BattleState, HeroId, OrdreLigne, OrdreTir, UnitId } from '../../game/types'
 import { Icone } from './Icones'
 import { Astuce } from './Infobulle'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════ LE VOCABULAIRE DES ORDRES ═══════════════════
@@ -91,7 +92,7 @@ export function JetonsLigne({
         return (
           <Astuce
             key={id}
-            titre={`${e.emoji} ${e.nom}`}
+            titre={e.nom}
             resume={e.desc}
             note={
               gele && !actif
@@ -106,7 +107,7 @@ export function JetonsLigne({
             }
           >
             <button className={`ordre${actif ? ' actif' : ''}`} disabled={gele && !actif} onClick={() => onChoisir(id)}>
-              {e.emoji} {e.nom.split(' ')[0]}
+              <Picto e={e.emoji} /> {e.nom.split(' ')[0]}
             </button>
           </Astuce>
         )
@@ -139,14 +140,14 @@ export function JetonsTir({
 }) {
   return (
     <div className="ordres-rangee">
-      <span className="ordres-etiquette">🏹 Tir</span>
+      <span className="ordres-etiquette"><Picto id="arc" /> Tir</span>
       {(Object.keys(EFFETS_TIR) as OrdreTir[]).map((id) => {
         const e = EFFETS_TIR[id]
         const actif = valeur === id
         return (
           <Astuce
             key={id}
-            titre={`${e.emoji} ${e.nom}`}
+            titre={e.nom}
             resume={e.desc}
             note={
               gele && !actif && contexte === 'plan'
@@ -163,7 +164,7 @@ export function JetonsTir({
               disabled={gele && !actif}
               onClick={() => onChoisir(id)}
             >
-              {e.emoji} {id === 'tendu' ? 'Tendu' : 'Cloche'}
+              <Picto e={e.emoji} /> {id === 'tendu' ? 'Tendu' : 'Cloche'}
             </button>
           </Astuce>
         )
@@ -275,7 +276,7 @@ function lirePiece(code: string): Piece | null {
  * garder leur hauteur au pixel près.
  */
 const emblemePiece = (p: Piece, taille = 13): ReactNode =>
-  p.quoi === 'unite' ? <Icone id={p.id} taille={taille} /> : HEROS[p.id].emoji
+  p.quoi === 'unite' ? <Icone id={p.id} taille={taille} /> : <Picto e={HEROS[p.id].emoji} taille={taille} />
 
 /** un type d'unité, posé quelque part : pictogramme, effectif, et l'état de son ordre */
 function JetonUnite({
@@ -363,7 +364,7 @@ function JetonHero({
   const piece: Piece = { quoi: 'hero', id: h.id }
   return (
     <Astuce
-      titre={`${h.emoji} ${h.nom}`}
+      titre={h.nom}
       resume={`Niveau ${h.niveau}. Un héros vaut une dizaine d’hommes sur le pan qu’il tient - et il n’en tient qu’un.`}
       note={
         !h.present
@@ -390,7 +391,7 @@ function JetonHero({
         onClick={() => onChoisir(choisi ? null : piece)}
         aria-pressed={choisi}
       >
-        {h.emoji}
+        <Picto e={h.emoji} />
         <i>{h.niveau}</i>
       </button>
     </Astuce>
@@ -923,7 +924,7 @@ export function BarreOrdres() {
           */}
           {parPan && (
             <Astuce
-              titre="⚔ Tenir un pan"
+              titre="Tenir un pan"
               resume="Désignez une troupe, puis le pan qu’elle doit tenir : ces hommes-là s’y postent et n’y frappent que ce qui l’assaille. C’est la seule réponse à un assaut sur trois fronts quand on n’a qu’une garnison."
               note="Se règle à froid dans le plan de défense, aux remparts - c'est là que les héros se postent aussi."
             >
@@ -932,8 +933,8 @@ export function BarreOrdres() {
                 aria-expanded={ouvert}
                 onClick={() => setOuvert((v) => !v)}
               >
-                ⚔ Pans{assignes > 0 ? ` · ${assignes}` : ''}
-                {dormants.length > 0 ? ' ⚠' : ''}
+                <Picto id="epees" /> Pans{assignes > 0 ? ` · ${assignes}` : ''}
+                {dormants.length > 0 && <> <Picto id="alerte" /></>}
               </button>
             </Astuce>
           )}
@@ -977,7 +978,7 @@ export function BarreOrdres() {
             note={
               dormants.length > 0 ? (
                 <>
-                  ⚠{' '}
+                  <Picto id="alerte" />{' '}
                   {dormants.map((u, i) => (
                     <Fragment key={u}>
                       {i > 0 && ' '}

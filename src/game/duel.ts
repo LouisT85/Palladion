@@ -1426,11 +1426,11 @@ export function puissanceCarte(c: CarteDefense): number {
 export function resumeCarte(c: CarteDefense): string {
   const hommes = hommesDe(c.garnison)
   const parts = [
-    `🧱 mur ${c.mur}`,
-    `👥 ${hommes} homme${hommes > 1 ? 's' : ''}`,
-    ...(c.tours > 0 ? [`🏹 ${c.tours} tour${c.tours > 1 ? 's' : ''}`] : []),
-    ...(c.redoute > 0 ? [`🛡️ redoute ${c.redoute}`] : []),
-    ...(c.heros.length > 0 ? [c.heros.map((h) => HEROS[h.id].emoji).join('')] : []),
+    `mur ${c.mur}`,
+    `${hommes} homme${hommes > 1 ? 's' : ''}`,
+    ...(c.tours > 0 ? [`${c.tours} tour${c.tours > 1 ? 's' : ''}`] : []),
+    ...(c.redoute > 0 ? [`redoute ${c.redoute}`] : []),
+    ...(c.heros.length > 0 ? [c.heros.map((h) => HEROS[h.id].nom).join(', ')] : []),
   ]
   return `${c.cite} - ${parts.join(' · ')}`
 }
@@ -1442,7 +1442,7 @@ export function resumeDefense(c: CarteDefense): string {
 
 /** le butin d'une carte, en une ligne lisible : « 120 🌾, 90 🪙 » */
 export function resumeButin(b: Cost): string {
-  const parts = ORDRE_RES.filter((r) => (b[r] ?? 0) > 0).map((r) => `${b[r]} ${RES[r].emoji}`)
+  const parts = ORDRE_RES.filter((r) => (b[r] ?? 0) > 0).map((r) => `${b[r]} ${RES[r].nom.toLowerCase()}`)
   return parts.length > 0 ? parts.join(', ') : 'rien à prendre'
 }
 

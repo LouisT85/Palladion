@@ -8,6 +8,7 @@ import { candidatsPour, fmtDuree, metierDe, murMax, oisifs, peutPayer, popCap, p
 import type { BuildingId, ResourceId } from '../../game/types'
 import { Icone, Montant, type IconeId } from './Icones'
 import { Astuce } from './Infobulle'
+import { Picto } from './Picto'
 import { chantiersMenes } from '../../game/store'
 import { VILLAGES_PAR_ID } from '../../game/expeditions'
 import { riteActif } from '../../game/hecatombe'
@@ -106,7 +107,7 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
   return (
     <div className="bloc">
       <h3>
-        👷 Ouvriers - {pourvus}/{total}
+        Ouvriers - {pourvus}/{total}
       </h3>
       <div className="ligne">
         <div className="barre">
@@ -123,7 +124,7 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
       {equipe.map((v) => (
         <div key={v.id} className="ligne" style={{ margin: '4px 0' }}>
           <span style={{ fontSize: 12.5 }}>
-            {BUILDINGS[v.metier].emoji} <b>{v.nom}</b>{' '}
+            <Picto e={BUILDINGS[v.metier].emoji} /> <b>{v.nom}</b>{' '}
             {v.metier === id ? (
               <span style={{ color: '#7fc79b' }}>· {metier} de métier</span>
             ) : (
@@ -170,7 +171,7 @@ function BlocOuvriers({ id, onVoirHabitants }: { id: BuildingId; onVoirHabitants
         </>
       )}
       <button style={{ width: '100%', marginTop: 6 }} onClick={onVoirHabitants}>
-        👥 Voir les habitants
+        Voir les habitants
       </button>
     </div>
   )
@@ -182,7 +183,7 @@ function BlocHabitants({ onVoirHabitants }: { onVoirHabitants: () => void }) {
   const libres = oisifs(s)
   return (
     <div className="bloc">
-      <h3>👥 Habitants - {s.pop}/{cap}</h3>
+      <h3>Habitants - {s.pop}/{cap}</h3>
       <div className="ligne">
         <div className="barre">
           <div style={{ width: `${Math.min(1, s.pop / cap) * 100}%` }} />
@@ -197,7 +198,7 @@ function BlocHabitants({ onVoirHabitants }: { onVoirHabitants: () => void }) {
           : 'Tous les habitants ont un métier : aucun bras libre pour l’enrôlement.'}
       </div>
       <button style={{ width: '100%', marginTop: 7 }} onClick={onVoirHabitants}>
-        👥 Voir les habitants
+        Voir les habitants
       </button>
     </div>
   )
@@ -219,7 +220,7 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
         </div>
         {dispo === 0 && (
           <div style={{ fontSize: 12, color: '#d98a4e', marginBottom: 6 }}>
-            👥 Aucun bras libre : retirez un artisan de son atelier pour l’enrôler.
+            Aucun bras libre : retirez un artisan de son atelier pour l’enrôler.
           </div>
         )}
         {UNIT_IDS.map((u) => {
@@ -233,7 +234,7 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
                   {def.nom} <span style={{ color: '#93a7b4', fontWeight: 400 }}>×{s.army[u]}</span>
                 </div>
                 <div className="stats">
-                  ⚔{def.atk} ❤{def.hp} · {def.time}s ·{' '}
+                  <Picto id="epee" titre="attaque" /> {def.atk} <Picto id="coeur" titre="vie" /> {def.hp} · {def.time}s ·{' '}
                   {(Object.entries(def.cost) as [ResourceId, number][]).map(([r, n]) => (
                     <Montant key={r} n={n} id={r} taille={13} />
                   ))}
@@ -281,7 +282,7 @@ function BlocCaserne({ onVoirHabitants }: { onVoirHabitants: () => void }) {
           )
         })}
         <button style={{ width: '100%', marginTop: 8 }} onClick={onVoirHabitants}>
-          👥 Voir les habitants
+          Voir les habitants
         </button>
       </div>
       {s.recruitQueue.length > 0 && (
@@ -367,7 +368,7 @@ function BlocPort() {
 
   return (
     <div className="bloc">
-      <h3>⚓ Comptoir d’échange</h3>
+      <h3>Comptoir d’échange</h3>
       <div className="desc" style={{ fontSize: 12, color: '#93a7b4', marginBottom: 7 }}>
         Les marchands prélèvent <b style={{ color: '#d98a4e' }}>+{Math.round((marge - 1) * 100)} %</b> sur la valeur
         échangée. Le bronze vaut quatre charretées de bois, la pierre un peu plus qu’une : le comptoir compte en valeur,
@@ -448,7 +449,7 @@ function BlocDefenses() {
   const d = s.defenses ?? { acropole: 0, bastion: false, galeries: false, poterne: false, citerne: false }
   return (
     <div className="bloc">
-      <h3>🏯 Ouvrages de l’intérieur</h3>
+      <h3>Ouvrages de l’intérieur</h3>
       <div className="desc" style={{ fontSize: 12 }}>
         Ce qui reste quand le mur est tombé. Les assaillants doivent désormais abattre vos bâtiments un à un, et le
         Palladion en dernier : ces cinq ouvrages — tous attestés à Mycènes, Tirynthe et Troie — décident de ce
@@ -464,7 +465,7 @@ function BlocDefenses() {
           <div key={id} className="bloc" style={{ marginTop: 8, background: '#0f1c28' }}>
             <div className="ligne">
               <span style={{ fontWeight: 700, fontSize: 13 }}>
-                {def.emoji} {def.nom}
+                <Picto e={def.emoji} /> {def.nom}
                 {def.max > 1 ? ` ${n}/${def.max}` : ''}
               </span>
               {complet && <span style={{ color: '#5fae7d', fontSize: 12 }}>✓ bâti</span>}
@@ -473,7 +474,7 @@ function BlocDefenses() {
             <div style={{ fontSize: 12, color: '#e8c04a' }}>{def.effet(Math.max(1, n))}</div>
             {verrou ? (
               <div style={{ fontSize: 11.5, color: '#d98a4e', marginTop: 4 }}>
-                🧱 Remparts de niveau {def.rempartsRequis} requis.
+                Remparts de niveau {def.rempartsRequis} requis.
               </div>
             ) : (
               cout && (
@@ -505,7 +506,7 @@ function BlocTours() {
   return (
     <div className="bloc">
       <h3>
-        🏹 Tours d’archers - {s.tours}/{max}
+        Tours d’archers - {s.tours}/{max}
       </h3>
       <div className="desc">
         Postées sur l’enceinte, elles arrosent de flèches tout assaillant à portée ({TOUR_PORTEE} pas) tant que la
@@ -513,7 +514,7 @@ function BlocTours() {
       </div>
       {max === 0 ? (
         <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
-          🧱 Des remparts de niveau 2 sont nécessaires pour asseoir une tour.
+          Des remparts de niveau 2 sont nécessaires pour asseoir une tour.
         </div>
       ) : s.tours >= max ? (
         <div style={{ fontSize: 12, color: '#93a7b4', marginTop: 5 }}>
@@ -551,7 +552,7 @@ function BlocScorpions() {
   return (
     <div className="bloc">
       <h3>
-        🎯 Scorpions en batterie - {n}/{REDOUTE_MAX}
+        Scorpions en batterie - {n}/{REDOUTE_MAX}
       </h3>
       <div className="desc">
         Elle est <b>muette tant que l’enceinte tient</b> - elle ne voit pas la plaine - et ouvre le feu dès la brèche
@@ -567,8 +568,8 @@ function BlocScorpions() {
               {' '}
               <span style={{ color: b.hp <= 0 ? '#e0715a' : '#d98a4e' }}>
                 {b.hp <= 0
-                  ? '💥 Réduite au silence : ses scorpions ne tirent plus.'
-                  : `🛠️ Entamée : ${Math.round(b.hp)} / ${structureMax('redoute', n)}`}
+                  ? 'Réduite au silence : ses scorpions ne tirent plus.'
+                  : `Entamée : ${Math.round(b.hp)} / ${structureMax('redoute', n)}`}
               </span>
             </>
           )}
@@ -610,7 +611,7 @@ export function PanneauBatiment() {
         ✕
       </button>
       <h2>
-        {def.emoji} {def.nom}
+        <Picto e={def.emoji} /> {def.nom}
       </h2>
       <div className="sous">
         Niveau {b.level}/4 {!def.interieur && '· hors des murs'}
@@ -635,7 +636,7 @@ export function PanneauBatiment() {
       {/* le port ouvre le marché : cours, caravanes, routes */}
       {id === 'port' && b.level > 0 && (
         <div className="bloc">
-          <h3>🐫 Le marché</h3>
+          <h3>Le marché</h3>
           <div className="desc" style={{ fontSize: 12 }}>
             Les cours dérivent avec la saison, le ciel et ce qu’il faut rebâtir. Vendre au bon moment, ou lever un
             convoi vers une place forte : meilleur prix, mais du temps et du risque.
@@ -650,7 +651,7 @@ export function PanneauBatiment() {
             justement ce nombre qui décide si l'on peut escorter ou traverser.
           */}
           <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('flotte')}>
-            🚢 Le chantier naval ({resumeFlotte(flotteDe(s))}
+            Le chantier naval ({resumeFlotte(flotteDe(s))}
             {nbLibres(flotteDe(s)) > 0 ? `, ${nbLibres(flotteDe(s))} au mouillage` : ''})
           </button>
         </div>
@@ -660,16 +661,16 @@ export function PanneauBatiment() {
       {/* l'agora tient le conseil : c'est là qu'on cherche et qu'on rêve grand */}
       {id === 'agora' && b.level >= 2 && (
         <div className="bloc">
-          <h3>📜 Le conseil</h3>
+          <h3>Le conseil</h3>
           <div className="desc" style={{ fontSize: 12 }}>
             Une découverte à la fois - c’est un arbitrage, pas une liste de courses. Et un seul grand chantier par
             règne : la merveille qui définira votre nom.
           </div>
           <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('technologies')}>
-            📜 Arbre des découvertes
+            Arbre des découvertes
           </button>
           <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('merveilles')}>
-            🏛️ Merveille du règne
+            Merveille du règne
           </button>
         </div>
       )}
@@ -684,7 +685,7 @@ export function PanneauBatiment() {
       {/* la caserne envoie aussi des hommes qui ne se battent pas */}
       {id === 'caserne' && b.level > 0 && (
         <div className="bloc">
-          <h3>🔍 Éclaireurs</h3>
+          <h3>Éclaireurs</h3>
           <div className="desc" style={{ fontSize: 12 }}>
             Voir la vague avant qu’elle arrive, ou la garnison d’une place forte avant d’y marcher. L’homme qu’on
             envoie peut ne pas revenir.
@@ -700,8 +701,8 @@ export function PanneauBatiment() {
           */}
           <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('blocus')}>
             {s.blocus
-              ? `⛓️ Ligne devant ${VILLAGES_PAR_ID[s.blocus.villageId]?.nom ?? 'une place'} (jour ${s.blocus.jours})`
-              : '⛓️ Assiéger une place forte'}
+              ? `Ligne devant ${VILLAGES_PAR_ID[s.blocus.villageId]?.nom ?? 'une place'} (jour ${s.blocus.jours})`
+              : 'Assiéger une place forte'}
           </button>
         </div>
       )}
@@ -710,14 +711,14 @@ export function PanneauBatiment() {
           <h3>Culte</h3>
           <div className="desc">La faveur s’accumule ici. Honorez les Olympiens et invoquez leurs bénédictions.</div>
           <button className="principal" style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('pantheon')}>
-            ⚡ Ouvrir le panthéon
+            Ouvrir le panthéon
           </button>
           {/* les deux autres usages du temple : interroger l'avenir, exposer le passé */}
           <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('oracles')}>
-            🔮 Consulter un oracle
+            Consulter un oracle
           </button>
           <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('reliques')}>
-            🏺 Reliques et niches ({(s.reliquesExposees ?? []).length}/{nichesTemple(b.level)})
+            Reliques et niches ({(s.reliquesExposees ?? []).length}/{nichesTemple(b.level)})
           </button>
           {/*
             L'HÉCATOMBE, quatrième usage du temple. Le libellé porte le rite EN
@@ -729,7 +730,7 @@ export function PanneauBatiment() {
             const rite = riteActif(s.hecatombe, Date.now(), s.createdAt)
             return (
               <button style={{ width: '100%', marginTop: 6 }} onClick={() => s.openPanel('hecatombe')}>
-                {rite ? `🔥 ${rite.emoji} ${rite.nom}` : '🔥 Offrir une hécatombe'}
+                {rite ? `Hécatombe : ${rite.nom}` : 'Offrir une hécatombe'}
               </button>
             )
           })()}
@@ -753,10 +754,10 @@ export function PanneauBatiment() {
             « {def.niveaux[cible - 1]} »
           </div>
           <LigneCout cout={def.costs[cible - 1]} resources={s.resources} />
-          <div style={{ fontSize: 12, color: '#93a7b4' }}>⏱ {fmtDuree(def.times[cible - 1] * 1000)}</div>
+          <div style={{ fontSize: 12, color: '#93a7b4' }}><Picto id="sablier" titre="durée" /> {fmtDuree(def.times[cible - 1] * 1000)}</div>
           {enChantier ? (
             <div style={{ marginTop: 8, color: '#e8c04a' }}>
-              🏗️ En chantier - fin dans {fmtDuree((b.busyUntil ?? 0) - s.lastSeen)}
+              En chantier - fin dans {fmtDuree((b.busyUntil ?? 0) - s.lastSeen)}
             </div>
           ) : (
             <>
@@ -770,17 +771,17 @@ export function PanneauBatiment() {
               </button>
               {!agoraOk && (
                 <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>
-                  🏛️ L’Agora doit d’abord atteindre le niveau {cible}.
+                  L’Agora doit d’abord atteindre le niveau {cible}.
                 </div>
               )}
               {agoraOk && chantiers >= 2 && (
-                <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>🏗️ Déjà 2 chantiers en cours.</div>
+                <div style={{ fontSize: 12, color: '#d98a4e', marginTop: 5 }}>Déjà 2 chantiers en cours.</div>
               )}
             </>
           )}
         </div>
       )}
-      {auMax && <div className="bloc">🏆 Niveau maximal atteint - digne des grandes cités de l’Égée.</div>}
+      {auMax && <div className="bloc">Niveau maximal atteint - digne des grandes cités de l’Égée.</div>}
     </aside>
   )
 }

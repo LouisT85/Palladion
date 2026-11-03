@@ -364,7 +364,7 @@ export function motifRefus(r: RefusHecatombe, dieu: GodId): string {
     case 'relation':
       return `${GODS[dieu].nom} ne vous écoute pas encore assez (relation ${RELATION_MINIMUM} exigée). Un sacrifice ordinaire y mène.`
     case 'faveur':
-      return `Il faut ${COUT_FAVEUR_HECATOMBE} ✨ de faveur pour que le devin conduise le rite.`
+      return `Il faut ${COUT_FAVEUR_HECATOMBE} de faveur pour que le devin conduise le rite.`
     case 'deja':
       return 'Une hécatombe brûle déjà cette saison. On n’en offre qu’une.'
     case 'tard':

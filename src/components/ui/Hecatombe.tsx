@@ -15,6 +15,7 @@ import { peutPayer, relationEffective, useGame } from '../../game/store'
 import type { GodId } from '../../game/types'
 import { Montant } from './Icones'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════════ LE PANNEAU DE L'HÉCATOMBE ═══════════════════════
@@ -53,7 +54,7 @@ function BandeauSaison() {
     <div className={`hec-saison${tard ? ' tard' : ''}`}>
       <div className="hec-saison-tete">
         <span>
-          {def.emoji} {def.nom}
+          <Picto e={def.emoji} /> {def.nom}
         </span>
         <span className="hec-reste">
           {tard ? 'trop tard pour offrir' : `${min} min ${String(sec).padStart(2, '0')} s d’effet`}
@@ -77,7 +78,7 @@ function RiteActif({ dieu }: { dieu: GodId }) {
   return (
     <div className="hec-actif">
       <div className="hec-actif-tete">
-        <span className="hec-emoji">{rite.emoji}</span>
+        <span className="hec-emoji"><Picto e={rite.emoji} /></span>
         <div>
           <div className="hec-nom">{rite.nom}</div>
           <div className="hec-dieu">
@@ -92,7 +93,7 @@ function RiteActif({ dieu }: { dieu: GodId }) {
       </ul>
       {rite.effet.romptSiGuerre && (
         <div className="hec-avertit">
-          ⚡ Zeus Xenios juge les serments : lancer une expédition rompt cette trêve et vous coûtera sa relation.
+          Zeus Xenios juge les serments : lancer une expédition rompt cette trêve et vous coûtera sa relation.
         </div>
       )}
     </div>
@@ -119,7 +120,7 @@ function CarteRite({ dieu, onOffrir }: { dieu: GodId; onOffrir: (d: GodId) => vo
   return (
     <div className={`hec-carte${bloque ? ' bloquee' : ''}`}>
       <div className="hec-carte-tete">
-        <span className="hec-emoji">{rite.emoji}</span>
+        <span className="hec-emoji"><Picto e={rite.emoji} /></span>
         <div>
           <div className="hec-nom">{rite.nom}</div>
           <div className="hec-dieu">{GODS[dieu].nom}</div>
@@ -155,7 +156,7 @@ export function PanneauHecatombe({ onFermer }: { onFermer: () => void }) {
   const actif = riteActif(s.hecatombe, Date.now(), s.createdAt)
   return (
     <Modale
-      titre="🔥 L’hécatombe"
+      titre="L’hécatombe"
       onFermer={onFermer}
       sous="Cent bêtes sur l’autel, une fois par saison. Le rite engage la saison entière - et le troupeau saigné se paiera en grain."
     >

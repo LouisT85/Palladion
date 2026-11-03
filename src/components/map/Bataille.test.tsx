@@ -142,11 +142,11 @@ describe('jauges de secteur', () => {
     m = monterSvg(<BatailleLayer battle={b} now={1000} wallHp={300} wallMax={2000} />)
     const t = m.texte()
     expect(t).toContain('Porte de l’est')
-    expect(t).toContain('🧱 300 / 1000')
+    expect(t).toContain('300 / 1000')
     // un pan tombé ne montre plus de chiffres : il se dit en mots
     expect(t).toContain('Mur du nord')
     expect(t).toContain('pan effondré')
-    expect(t).not.toContain('🧱 0 / 1000')
+    expect(t).not.toMatch(/(^|[^\d])0 \/ 1000/)
   })
 })
 

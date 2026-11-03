@@ -974,7 +974,7 @@ function FigurineCombattant({
             strokeWidth={2.4}
             style={{ paintOrder: 'stroke' }}
           >
-            {estJoueur ? HEROS[f.heros].nom : `⚔ ${HEROS[f.heros].nom}`}
+            {HEROS[f.heros].nom}
           </text>
         </g>
       )}
@@ -1068,7 +1068,7 @@ function JaugeSecteur({ s, chaud }: { s: SecteurBataille; chaud: boolean }) {
       {/* l'émoji explosion qui clignotait à gauche de la jauge est parti : les
           moellons à terre se voient sur le mur lui-même, le mot suffit ici */}
       <text x={0} y={14.8} textAnchor="middle" fontSize={8.8} fill={s.breche ? '#e8916f' : '#cfc4a8'} fontWeight={600}>
-        {s.breche ? 'pan effondré' : `🧱 ${Math.round(Math.max(0, s.hp))} / ${Math.round(s.max)}`}
+        {s.breche ? 'pan effondré' : `${Math.round(Math.max(0, s.hp))} / ${Math.round(s.max)}`}
       </text>
     </g>
   )
@@ -1203,7 +1203,7 @@ export function BatailleLayer({
               <rect x={0} y={0} width={60} height={7} rx={3.5} fill="#1d1d1d" opacity={0.75} />
               <rect x={1} y={1} width={Math.max(2, 58 * (wallHp / wallMax))} height={5} rx={2.5} fill={tonStructure(wallHp / wallMax)} />
               <text x={30} y={-4} textAnchor="middle" fontSize={10} fill="#f0e8d8" fontWeight={700} style={{ paintOrder: 'stroke' }} stroke="#00000088" strokeWidth={2}>
-                🧱 {Math.ceil(wallHp)}
+                mur {Math.ceil(wallHp)}
               </text>
             </g>
           )}

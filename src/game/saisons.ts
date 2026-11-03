@@ -249,5 +249,5 @@ export function modsBataille(meteo: MeteoId): ModsBataille {
 export function resumeCiel(saison: SaisonId, meteo: MeteoId): string {
   const s = SAISONS[saison]
   const m = METEOS[meteo]
-  return `${s.emoji} ${s.nom} · ${m.emoji} ${m.nom} - ${m.desc}`
+  return `${s.nom} · ${m.nom} - ${m.desc}`
 }

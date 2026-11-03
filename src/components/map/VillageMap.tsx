@@ -26,6 +26,7 @@ import { Murailles } from './Murailles'
 import { SanteBatiments } from './SanteBatiments'
 import { Terrain, Vignette, VoileJourNuit, phaseJour } from './Terrain'
 import { Villageois } from './Villageois'
+import { Picto } from '../ui/Picto'
 
 /** stade d'un chantier : 0 = fondations, puis paliers à 25 / 50 / 75 % de la durée */
 function stadeChantier(progress: number): number {
@@ -86,9 +87,7 @@ function ManqueOuvriers({ id, manque, vide }: { id: BuildingId; manque: number; 
         <rect x={-w / 2} y={-9} width={w} height={18} rx={4.5} fill="#171009" opacity={0.8} />
         <rect x={-w / 2} y={-9} width={w} height={18} rx={4.5} fill="none" stroke={c} strokeWidth={1.5} />
         {/* le pictogramme reste : c'est lui qu'on repère du coin de l'œil */}
-        <text x={-w / 2 + 10} y={3.6} textAnchor="middle" fontSize={11}>
-          👷
-        </text>
+        <Picto id="marteau" centre={[-w / 2 + 10, -0.2]} taille={11} couleur={c} />
         <text x={-w / 2 + 19} y={3.4} fontSize={9.4} fill={c} fontWeight={700}>
           {texte}
         </text>
@@ -169,10 +168,10 @@ function Emplacement({
   const fracH = STADES_H[stade]
 
   const label = enChantier
-    ? `${def.emoji} ${def.nom} - niv. ${b.targetLevel} en chantier (${Math.round(progress * 100)} %)`
+    ? `${def.nom} - niv. ${b.targetLevel} en chantier (${Math.round(progress * 100)} %)`
     : b.level === 0
-      ? `${def.emoji} ${def.nom} - à construire`
-      : `${def.emoji} ${def.nom} - niveau ${b.level}/4`
+      ? `${def.nom} - à construire`
+      : `${def.nom} - niveau ${b.level}/4`
 
   return (
     <g
@@ -193,15 +192,29 @@ function Emplacement({
         <ellipse cx={0} cy={4} rx={46} ry={16} fill="none" stroke="#e8c04a" strokeWidth={2} strokeDasharray="6 5" opacity={0.9} />
       )}
       {b.level === 0 && !enChantier ? (
-        <g opacity={0.7}>
-          <ellipse cx={0} cy={2} rx={34} ry={12} fill="#00000018" stroke="#5f584a" strokeWidth={1.4} strokeDasharray="5 5" />
-          <text x={0} y={2} textAnchor="middle" fontSize={19}>
-            {def.emoji}
-          </text>
-          <text x={0} y={17} textAnchor="middle" fontSize={9.5} fill="#3d3a30" fontWeight={700} letterSpacing={0.5}>
-            ＋ CONSTRUIRE
-          </text>
-        </g>
+        /*
+         * APERÇU AU SURVOL. Un cercle en pointillés ne disait pas ce qui allait
+         * se dresser là : au survol (et tant que l'emplacement est sélectionné,
+         * donc pendant qu'on lit le panneau de construction), le niveau 1 se
+         * dessine en transparence, comme une esquisse posée sur le terrain.
+         */
+        hover || selected === id ? (
+          <g pointerEvents="none">
+            <ellipse cx={0} cy={2} rx={34} ry={12} fill="#00000010" stroke="#5f584a" strokeWidth={1.2} strokeDasharray="5 5" opacity={0.6} />
+            <g className="apercu-construction" transform="scale(1.18)" opacity={0.62}>
+              <BatimentArt id={id} level={1} />
+            </g>
+          </g>
+        ) : (
+          <g opacity={0.7}>
+            <ellipse cx={0} cy={2} rx={34} ry={12} fill="#00000018" stroke="#5f584a" strokeWidth={1.4} strokeDasharray="5 5" />
+            {/* le port se bâtit sur l'eau : la terre sombre y disparaissait, le parchemin s'y lit */}
+            <Picto e={def.emoji} centre={[0, -6]} taille={23} couleur={id === 'port' ? '#efe3c4' : '#3d3120'} />
+            <text x={0} y={17} textAnchor="middle" fontSize={9.5} fill={id === 'port' ? '#efe3c4' : '#3d3a30'} fontWeight={700} letterSpacing={0.5}>
+              ＋ CONSTRUIRE
+            </text>
+          </g>
+        )
       ) : (
         <g>
           {b.level > 0 && (
@@ -350,6 +363,12 @@ export function VillageMap() {
 
   // chantier des remparts : l'enceinte cible se dresse arc par arc (25 / 50 / 75 %)
   const rempartsChantier = remparts.targetLevel !== undefined && remparts.busyUntil !== undefined
+  /*
+   * Esquisse de l'enceinte : tant qu'aucun mur ne ceint le village, survoler la
+   * porte (ou la sélectionner) dessine la palissade du niveau 1 en transparence,
+   * tout autour - on voit ce qu'on s'apprête à bâtir avant de payer.
+   */
+  const apercuMur = wallLevel === 0 && !rempartsChantier && !battle && (hoverMur || selected === 'remparts')
   let progMur = 0
   if (rempartsChantier && remparts.targetLevel !== undefined && remparts.busyUntil !== undefined) {
     const dur = BUILDINGS.remparts.times[remparts.targetLevel - 1] * 1000
@@ -366,10 +385,10 @@ export function VillageMap() {
   const portePercee = brechesAngles.some((a) => Math.cos(a) > 0 && Math.abs(Math.sin(a)) < 0.35)
 
   const labelMur = rempartsChantier
-    ? `🧱 Remparts - niv. ${remparts.targetLevel} en chantier (${Math.round(progMur * 100)} %)`
+    ? `Remparts - niv. ${remparts.targetLevel} en chantier (${Math.round(progMur * 100)} %)`
     : wallLevel === 0
-      ? '🧱 Remparts - à construire'
-      : `🧱 Remparts - niveau ${wallLevel}/4${tours > 0 ? ` · ${tours} tour${tours > 1 ? 's' : ''} 🏹` : ''}`
+      ? 'Remparts - à construire'
+      : `Remparts - niveau ${wallLevel}/4${tours > 0 ? ` · ${tours} tour${tours > 1 ? 's' : ''}` : ''}`
 
   // ordre du peintre : nord (hors les murs) → mur arrière → intérieur → mur avant → sud
   const dedans = BUILDING_IDS.filter((b) => b !== 'remparts' && BUILDINGS[b].interieur).sort(
@@ -432,6 +451,11 @@ export function VillageMap() {
           {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
             <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="back" span={spanMur} />
           )}
+          {apercuMur && (
+            <g className="apercu-construction" opacity={0.5} pointerEvents="none">
+              <Murailles niveau={1} hp={1} max={1} breche={false} layer="back" />
+            </g>
+          )}
 
           {dedans.map((b) => (
             <Emplacement key={b} id={b} now={now} paisible={paisible} cadre={camera.cadre} palier={camera.palier} />
@@ -454,6 +478,11 @@ export function VillageMap() {
           {rempartsChantier && spanMur > 0 && remparts.targetLevel !== undefined && (
             <Murailles niveau={remparts.targetLevel} hp={1} max={1} breche={false} layer="front" span={spanMur} />
           )}
+          {apercuMur && (
+            <g className="apercu-construction" opacity={0.5} pointerEvents="none">
+              <Murailles niveau={1} hp={1} max={1} breche={false} layer="front" />
+            </g>
+          )}
 
           {/* la garnison monte la garde tant qu'aucune bataille ne fait rage */}
           <Garnison army={army} wallLevel={wallLevel} visible={battle === null} />
@@ -474,11 +503,9 @@ export function VillageMap() {
             {selected === 'remparts' && (
               <ellipse cx={0} cy={-6} rx={50} ry={30} fill="none" stroke="#e8c04a" strokeWidth={2} strokeDasharray="6 5" />
             )}
-            {wallLevel === 0 && !rempartsChantier && !battle && (
+            {wallLevel === 0 && !rempartsChantier && !battle && !apercuMur && (
               <g opacity={0.8}>
-                <text x={0} y={-8} textAnchor="middle" fontSize={19}>
-                  🧱
-                </text>
+                <Picto id="mur" centre={[0, -16]} taille={22} couleur="#3d3120" />
                 <text x={0} y={8} textAnchor="middle" fontSize={9.5} fill="#3d3a30" fontWeight={700}>
                   ＋ REMPARTS
                 </text>
@@ -572,7 +599,7 @@ export function VillageMap() {
           </button>
         </Astuce>
         <Astuce
-          titre="🔍 La caméra"
+          titre="La caméra"
           resume={
             camera.manuel
               ? 'Vous tenez la vue. Elle ne bougera plus d’elle-même tant que vous ne l’aurez pas recentrée.'

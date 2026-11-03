@@ -124,7 +124,7 @@ describe('bloc des ouvriers', () => {
     m = monter(<PanneauBatiment />)
     // deux postes au niveau 2, un seul tenu : la moitié du rendement
     expect(POSTES.ferme?.[2]).toBe(2)
-    expect(m.texte()).toContain('👷 Ouvriers - 1/2')
+    expect(m.texte()).toContain('Ouvriers - 1/2')
     expect(m.texte()).toContain('50 %')
   })
 
@@ -132,7 +132,7 @@ describe('bloc des ouvriers', () => {
     poser({ selected: 'ferme', buildings: batiments({ agora: 4, ferme: 1 }), pop: 0, villageois: [] })
     m = monter(<PanneauBatiment />)
     expect(m.texte()).toContain('Personne ici')
-    expect(m.texte()).toContain('👷 Ouvriers - 0/1')
+    expect(m.texte()).toContain('Ouvriers - 0/1')
   })
 
   it('nomme l’ouvrier déplacé hors de son métier et le rendement qu’il y perd', () => {

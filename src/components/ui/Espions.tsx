@@ -17,6 +17,7 @@ import { herosActifs, oisifs, useGame, type GameState } from '../../game/store'
 import { Icone } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════════ LE PANNEAU DES ÉCLAIREURS ═══════════════════════
@@ -116,7 +117,7 @@ function useMaintenant(actif: boolean): number {
 
 function prixLisible(cout: Partial<Record<keyof typeof RES, number>>): string {
   return (Object.entries(cout) as [keyof typeof RES, number][])
-    .map(([r, n]) => `${n} ${RES[r].emoji}`)
+    .map(([r, n]) => `${n} ${RES[r].nom.toLowerCase()}`)
     .join(' · ')
 }
 
@@ -142,19 +143,19 @@ export function PanneauEspions({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="🕵️ Les éclaireurs"
+      titre="Les éclaireurs"
       onFermer={onFermer}
       large
       sous="Un homme parti au-devant de la colonne rapporte du vrai - ou ne rapporte rien. On voit le risque avant de l’envoyer, et s’il n’y a rien à voir, on ne paie pas."
     >
       <>
         <div style={{ display: 'flex', gap: 14, color: '#93a7b4', fontSize: 12.5, marginBottom: 10, flexWrap: 'wrap' }}>
-          <span>🧍 {libres.length} bras libre{libres.length === 1 ? '' : 's'}</span>
+          <span>{libres.length} bras libre{libres.length === 1 ? '' : 's'}</span>
           <span>
             <Icone id="bronze" taille={14} /> {Math.floor(s.resources.bronze)} bronze
           </span>
           <span>
-            {snap.saison === 'hiver' ? '❄️' : '🌤️'} {snap.meteo === 'brume' ? 'brume' : snap.meteo} · menace {Math.round(snap.threat)}
+            <Picto id={snap.saison === 'hiver' ? 'flocon' : 'soleil'} /> {snap.meteo === 'brume' ? 'brume' : snap.meteo} · menace {Math.round(snap.threat)}
           </span>
         </div>
 
@@ -176,7 +177,7 @@ export function PanneauEspions({ onFermer }: { onFermer: () => void }) {
               <div key={m.id} style={{ ...CADRE, borderColor: '#4a3a22' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                   <b style={{ color: '#e8d9b5' }}>
-                    {CIBLES[m.type].emoji} {m.nom}
+                    <Picto e={CIBLES[m.type].emoji} /> {m.nom}
                   </b>
                   <span style={{ color: '#7f97a8', fontSize: 12.5 }}>
                     {CIBLES[m.type].nom}
@@ -206,10 +207,10 @@ export function PanneauEspions({ onFermer }: { onFermer: () => void }) {
             <div key={o.type} style={{ ...CADRE, borderColor: o.dispo ? '#2f5b7b' : '#1e3346' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                 <b style={{ color: '#e8d9b5' }}>
-                  {o.emoji} {o.nom}
+                  <Picto e={o.emoji} /> {o.nom}
                 </b>
                 <span style={{ marginLeft: 'auto', color: '#93a7b4', fontSize: 12 }}>
-                  ⏳ {duree(o.duree)} · <span style={{ color: teinteRisque(risque) }}>{pct(risque)} de risque</span>
+                  <Picto id="sablier" /> {duree(o.duree)} · <span style={{ color: teinteRisque(risque) }}>{pct(risque)} de risque</span>
                 </span>
               </div>
               <div style={{ color: '#93a7b4', fontSize: 12.5, lineHeight: 1.45, margin: '5px 0 7px' }}>{o.quoi}</div>
@@ -228,14 +229,14 @@ export function PanneauEspions({ onFermer }: { onFermer: () => void }) {
                   <select value={ou} onChange={(ev) => setOu(ev.target.value)} style={SELECT}>
                     {VILLAGES_CIBLES.map((v) => (
                       <option key={v.id} value={v.id}>
-                        {v.emoji} {v.nom}
+                        {v.nom}
                       </option>
                     ))}
                   </select>
                 )}
 
                 <Astuce
-                  titre={`${o.emoji} ${o.nom}`}
+                  titre={o.nom}
                   resume={o.quoi}
                   note={`${duree(o.duree)} de marche. ${pct(risque)} de chances qu’il soit pris : on perd l’homme et l’ennemi apprend qu’on l’observe. Un éclaireur de métier risque un cinquième de moins et ne coûte pas un habitant.`}
                 >
@@ -280,7 +281,7 @@ export function PanneauEspions({ onFermer }: { onFermer: () => void }) {
             }}
           >
             <div style={{ color: m.pris ? '#e0836a' : '#e8d9b5', fontSize: 12.5, fontWeight: 600 }}>
-              {CIBLES[m.type].emoji} {m.nom} - {CIBLES[m.type].nom}
+              <Picto e={CIBLES[m.type].emoji} /> {m.nom} - {CIBLES[m.type].nom}
               {m.villageId ? ` (${VILLAGES_CIBLES.find((v) => v.id === m.villageId)?.nom ?? m.villageId})` : ''}
             </div>
             {(m.rapport ?? []).map((l, i) => (

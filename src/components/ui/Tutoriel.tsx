@@ -290,7 +290,7 @@ export function Tutoriel() {
             )}
             <Astuce
               titre="Passer la leçon"
-              resume="Zeus remonte à l’Olympe et vous laisse la main. Rien n’est perdu : vous pourrez tout relire dans l’aide (❔), et même refaire la leçon depuis le début."
+              resume="Zeus remonte à l’Olympe et vous laisse la main. Rien n’est perdu : vous pourrez tout relire dans l’aide (?), et même refaire la leçon depuis le début."
             >
               <button className="tuto-passer" onClick={arreter}>
                 Passer la leçon

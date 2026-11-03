@@ -18,6 +18,7 @@ import { descVague, tailleVague } from '../../game/combat'
 import { avertir, basculerNotifs, etatNotifs, type EtatNotifs } from '../../game/notifications'
 import { useGame } from '../../game/store'
 import { Astuce } from './Infobulle'
+import { Picto } from './Picto'
 
 /*
  * Le pont entre l'état du jeu et le son. Aucune ligne de bruit dans le store :
@@ -68,7 +69,7 @@ export function useSons(): void {
           'assaut',
           // un nom en tête de colonne mérite d'être dit dans le titre : c'est ce
           // qui décide si l'on revient tout de suite ou si l'on finit son café
-          champ ? `⚔️ ${ficheChampion(champ.id).nom} marche sur votre village` : '⚔️ Assaut annoncé sur votre village',
+          champ ? `${ficheChampion(champ.id).nom} marche sur votre village` : 'Assaut annoncé sur votre village',
           champ
             ? champ.presage
             : s.incomingWave
@@ -80,7 +81,7 @@ export function useSons(): void {
       if (s.appelSecours && !prec.appelSecours) {
         avertir(
           'secours',
-          '🙏 Un village implore votre aide',
+          'Un village implore votre aide',
           'Aucun butin à espérer - mais une alliance, et Zeus qui compte qui vient.',
         )
       }
@@ -148,12 +149,12 @@ export function ControleSon() {
     setReglages(reglagesAudio())
   }
 
-  const icone = reglages.muet ? '🔇' : reglages.volume > 0.55 ? '🔊' : '🔉'
+  const icone = reglages.muet ? <Picto id="lyre-muette" /> : <Picto id="lyre" />
 
   return (
     <span className="son">
       <Astuce
-        titre="🎵 Son et musique"
+        titre="Son et musique"
         resume={
           reglages.muet
             ? 'Tout est coupé. Ouvrez pour régler le volume, l’ambiance du village et les alertes.'
@@ -175,7 +176,7 @@ export function ControleSon() {
         <div className="son-panneau">
           {/* même sortie que les grands panneaux : une croix, pas un clic dans le vide */}
           <div className="son-tete">
-            <span>🎵 Son et musique</span>
+            <span>Son et musique</span>
             <button className="son-croix" onClick={() => setOuvert(false)} aria-label="Fermer">
               ✕
             </button>
@@ -184,7 +185,7 @@ export function ControleSon() {
             className="son-muet"
             onClick={() => maj(() => setMuet(!reglages.muet))}
           >
-            {reglages.muet ? '🔇 Son coupé - rétablir' : '🔊 Couper le son'}
+            {reglages.muet ? 'Son coupé - rétablir' : 'Couper le son'}
           </button>
           <label>
             <span>Général</span>
@@ -210,12 +211,12 @@ export function ControleSon() {
               quand l'onglet n'est pas regardé, et le jeu continue sans nous */}
           <button className="son-muet" onClick={() => void basculerNotifs().then(setNotifs)} disabled={notifs === 'indisponible' || notifs === 'refuse'}>
             {notifs === 'allume'
-              ? '🔔 Avertir hors de l’onglet - activé'
+              ? 'Avertir hors de l’onglet - activé'
               : notifs === 'refuse'
-                ? '🔕 Avertissements bloqués par le navigateur'
+                ? 'Avertissements bloqués par le navigateur'
                 : notifs === 'indisponible'
-                  ? '🔕 Avertissements indisponibles ici'
-                  : '🔔 Avertir hors de l’onglet (assauts, secours)'}
+                  ? 'Avertissements indisponibles ici'
+                  : 'Avertir hors de l’onglet (assauts, secours)'}
           </button>
           <div className="son-note">
             Lyre, flûte de berger et bourdon chaud au village ; cors à l’alerte, tambour au siège. Tout est synthétisé,

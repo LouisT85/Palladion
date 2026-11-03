@@ -6,6 +6,7 @@ import { ApercuDivin } from '../map/EffetsDivins'
 import { Icone, Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /** ×1.60 → « 1.6 », ×1.00 → « 1 » : on ne montre que les décimales qui portent du sens */
 function fmtMult(f: number): string {
@@ -133,7 +134,7 @@ function ArbreDuDieu({ dieu, relation }: { dieu: GodId; relation: number }) {
         return (
           <Astuce
             key={g.id}
-            titre={`${g.emoji} ${g.nom}`}
+            titre={g.nom}
             resume={g.desc}
             lignes={
               prise
@@ -153,7 +154,7 @@ function ArbreDuDieu({ dieu, relation }: { dieu: GodId; relation: number }) {
           >
             <div className={`grace${prise ? ' acquise' : offerte ? ' offerte' : ' lointaine'}`}>
               <span className="cran" />
-              <span className="grace-emoji">{g.emoji}</span>
+              <span className="grace-emoji"><Picto e={g.emoji} /></span>
               <div className="grace-corps">
                 <div className="grace-nom">
                   {g.nom}
@@ -188,7 +189,7 @@ export function Pantheon() {
 
   return (
     <Modale
-      titre="⚡ Le Panthéon"
+      titre="Le Panthéon"
       dataTuto="modale-pantheon"
       onFermer={() => s.openPanel(null)}
       sous={
@@ -270,7 +271,7 @@ export function Pantheon() {
                 </div>
                 <JaugeRelation relation={rel} />
                 {verrouille ? (
-                  <div style={{ fontSize: 12, color: '#d98a4e' }}>🏛️ Temple niveau {dieu.temple} requis</div>
+                  <div style={{ fontSize: 12, color: '#d98a4e' }}>Temple niveau {dieu.temple} requis</div>
                 ) : (
                   <>
                     <div style={{ fontSize: 12.5, marginTop: 6 }}>
@@ -291,7 +292,7 @@ export function Pantheon() {
                         onClick={() => s.benir(g)}
                       >
                         {cd > 0 ? (
-                          `⏳ ${Math.ceil(cd / 1000)}s`
+                          `prêt dans ${Math.ceil(cd / 1000)} s`
                         ) : (
                           <>
                             Invoquer (<Montant n={cout} id="faveur" taille={13} />)
@@ -299,7 +300,7 @@ export function Pantheon() {
                         )}
                       </button>
                       <Astuce
-                        titre={`🔥 Sacrifice à ${dieu.nom}`}
+                        titre={`Sacrifice à ${dieu.nom}`}
                         resume="Cinquante mesures de grain sur l’autel : +8 de relation et +5 de faveur. C’est le seul levier direct sur ce qu’un dieu pense de vous."
                         note="La relation gagnée sert deux fois : elle renforce ses bénédictions, et elle paie ses grâces."
                       >
@@ -315,7 +316,7 @@ export function Pantheon() {
                         être écouté, on est écouté pour pouvoir offrir.
                       */}
                       <Astuce
-                        titre={`🔥 Hécatombe à ${dieu.nom}`}
+                        titre={`Hécatombe à ${dieu.nom}`}
                         resume="Cent bêtes, une fois par saison : l’effet tient jusqu’au basculement. Chaque Olympien a son rite, et ils ne se ressemblent pas."
                         note="Le troupeau saigné coûte un cinquième du grain tant que la fumée monte. Offrez au MATIN d’une saison : à son soir, le rite se refuse."
                       >

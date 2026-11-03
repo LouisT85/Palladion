@@ -66,7 +66,7 @@ export function SanteOuvrages({ ouvrages, actif }: { ouvrages: Ouvrage[] | undef
             part={part}
             nom={o.nom}
             coeur={o.coeur}
-            emoji="🏴"
+            emoji="etendard"
             titre
           />
         )

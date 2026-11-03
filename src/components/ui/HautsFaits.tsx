@@ -10,6 +10,7 @@ import {
 import { snapHautFait, useGame } from '../../game/store'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * Le tableau d'honneur. Il doit répondre à deux questions en un coup d'œil :
@@ -30,7 +31,7 @@ export function PanneauHautsFaits() {
   const enBataille = s.battle !== null || (s.expedition !== null && !s.expedition.result)
 
   return (
-    <Modale titre="🏅 Hauts faits et prestige" large onFermer={() => s.openPanel(null)}>
+    <Modale titre="Hauts faits et prestige" large onFermer={() => s.openPanel(null)}>
       <>
         <div className="prestige-bloc">
           <div className="prestige-score">
@@ -66,7 +67,7 @@ export function PanneauHautsFaits() {
           return (
             <div key={cat}>
               <h3 className="heros-section">
-                {CATEGORIES[cat].emoji} {CATEGORIES[cat].nom}
+                {CATEGORIES[cat].nom}
                 <span style={{ color: '#93a7b4', fontWeight: 400, marginLeft: 8, fontSize: 12 }}>
                   {faits}/{liste.length}
                 </span>
@@ -77,13 +78,13 @@ export function PanneauHautsFaits() {
                   return (
                     <Astuce
                       key={h.id}
-                      titre={`${ok ? h.emoji : '🔒'} ${h.titre}`}
+                      titre={h.titre}
                       resume={h.desc}
                       lignes={[{ label: 'Prestige', valeur: `+${h.points}`, fort: ok, couleur: ok ? '#12c97c' : undefined }]}
                       note={ok ? 'Acquis - un haut fait ne se reprend jamais.' : 'Pas encore accompli.'}
                     >
                       <div className={`hf${ok ? ' obtenu' : ''}`}>
-                        <span className="hf-emoji">{ok ? h.emoji : '🔒'}</span>
+                        <span className="hf-emoji">{ok ? <Picto e={h.emoji} /> : <Picto id="cadenas" />}</span>
                         <span className="hf-corps">
                           <b>{h.titre}</b>
                           <span className="hf-desc">{h.desc}</span>
@@ -111,18 +112,18 @@ export function PanneauHautsFaits() {
                   s.abdiquer()
                 }}
               >
-                👑 Achever ce règne
+                Achever ce règne
               </button>
               <button onClick={() => setConfirme(false)}>Régner encore</button>
             </>
           ) : (
             <Astuce
-              titre="👑 Abdiquer"
+              titre="Abdiquer"
               resume="Choisir la fin de son règne : le score se fige, les aèdes donnent un titre, puis la cité repart de zéro. Rien d’autre ne termine une partie - un village peut être pillé cent fois et se relever."
               note={enBataille ? 'On n’abdique pas au milieu d’un assaut.' : 'Geste sans retour.'}
             >
               <button disabled={enBataille} onClick={() => setConfirme(true)}>
-                👑 Abdiquer et voir le bilan du règne
+                Abdiquer et voir le bilan du règne
               </button>
             </Astuce>
           )}
@@ -140,7 +141,7 @@ export function ModaleFinPartie() {
   return (
     <div className="voile">
       <div className="modale fin-regne">
-        <h2>👑 Fin du règne</h2>
+        <h2>Fin du règne</h2>
         <div className="fin-score">{fin.score}</div>
         <div className="fin-titre">{fin.titre}</div>
         <div className="fin-desc">{fin.desc}</div>
@@ -165,7 +166,7 @@ export function ModaleFinPartie() {
               s.reset()
             }}
           >
-            🏛️ Fonder une nouvelle cité
+            Fonder une nouvelle cité
           </button>
         </div>
       </div>

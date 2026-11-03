@@ -8,6 +8,7 @@ import {
   effetsChef,
 } from '../../game/successions'
 import { jourDe, useGame } from '../../game/store'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════════ LE TRÔNE ═══════════════════════
@@ -45,7 +46,7 @@ function TraitsDuChef({ traits }: { traits: string[] }) {
         return (
           <li key={id}>
             <span className="trone-trait-nom">
-              {t.emoji} {t.nom}
+              {t.nom}
             </span>
             <span className="trone-trait-effet">{t.effet}</span>
           </li>
@@ -70,7 +71,7 @@ export function BlocTrone() {
         <h3>Le sceptre</h3>
         <div className="trone-chef">
           <div className="trone-tete">
-            <span className="trone-emoji">👑</span>
+            <span className="trone-emoji"><Picto id="laurier" /></span>
             <div>
               <div className="trone-nom">
                 {chef.nom} des {chef.lignee}
@@ -84,7 +85,7 @@ export function BlocTrone() {
           <TraitsDuChef traits={chef.traits} />
           {age >= 60 && (
             <div className="trone-avertit">
-              ⚱️ Il se fait vieux. Songez à qui, dans les maisons, pourrait prendre le sceptre - et à quel métier le
+              Il se fait vieux. Songez à qui, dans les maisons, pourrait prendre le sceptre - et à quel métier le
               village peut se passer.
             </div>
           )}
@@ -110,7 +111,7 @@ export function BlocTrone() {
   const liste = candidats(s.villageois, jour, s.dynastie?.passes.at(-1)?.lignee ?? null)
   return (
     <div className="bloc trone-vacant">
-      <h3>⚱️ Le trône est vide</h3>
+      <h3>Le trône est vide</h3>
       <div className="trone-interregne">
         Interrègne depuis {cout.jours} journée{cout.jours > 1 ? 's' : ''} : ambiance {cout.morale}, récoltes{' '}
         {Math.round(cout.grainPct * 100)} %.

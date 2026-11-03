@@ -107,7 +107,7 @@ export function HerosVillage({
               style={{ paintOrder: 'stroke' }}
               pointerEvents="none"
             >
-              {def.emoji} {def.nom}
+              {def.nom}
               {h.blesse ? ' · blessé' : ''}
             </text>
           </g>

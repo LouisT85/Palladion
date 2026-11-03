@@ -230,7 +230,7 @@ describe('production pendant l’absence', () => {
     }
     // le résumé annonce la perte réelle - 80, pas les milliers de grains
     // théoriquement mangés : le joueur ne peut pas perdre ce qu'il n'avait pas
-    expect(s.offlineSummary).toContain('-80 🌾 grain')
+    expect(s.offlineSummary).toContain('-80 grain')
     // la disette n'arrête pas les autres chantiers
     expect(s.resources.bois).toBeGreaterThan(50)
   })
@@ -543,7 +543,7 @@ describe('chantiers, recrues et effets différés échus', () => {
     // pièces de bronze ne peuvent venir que de là
     expect(s.resources.bronze).toBe(120)
     expect(s.reports[0].titre).toBe('La gratitude de Troie')
-    expect(s.reports[0].lignes.join(' ')).toContain('+120 🪙, +60 🌾')
+    expect(s.reports[0].lignes.join(' ')).toContain('+120 bronze, +60 grain')
 
     /*
      * L'effet à échéance lointaine est conservé INTACT. Le vérifier par ses

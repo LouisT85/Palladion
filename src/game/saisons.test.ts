@@ -264,7 +264,7 @@ describe('les six météos', () => {
     // la description du ciel en dernier. Intervertir les deux arguments donnerait
     // « Neige · Hiver », que le HUD affiche tel quel
     const txt = resumeCiel('hiver', 'neige')
-    expect(txt.startsWith(`${SAISONS.hiver.emoji} ${SAISONS.hiver.nom}`)).toBe(true)
+    expect(txt.startsWith(SAISONS.hiver.nom)).toBe(true)
     expect(txt.endsWith(METEOS.neige.desc)).toBe(true)
     expect(txt).toContain(METEOS.neige.nom)
     // et les 24 croisements donnent 24 phrases différentes : un argument ignoré

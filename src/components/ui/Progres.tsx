@@ -26,6 +26,7 @@ import { Montant } from './Icones'
 import { Astuce } from './Infobulle'
 import { Modale } from './Modale'
 import type { Cost, ResourceId } from '../../game/types'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════ LES DEUX ÉCRANS DU PROGRÈS ═══════════════════
@@ -116,7 +117,7 @@ export function PanneauTechnologies({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="📜 Les découvertes"
+      titre="Les découvertes"
       onFermer={onFermer}
       large
       sous={
@@ -127,9 +128,9 @@ export function PanneauTechnologies({ onFermer }: { onFermer: () => void }) {
     >
       <>
         <div style={{ display: 'flex', gap: 14, color: '#93a7b4', fontSize: 12.5, marginBottom: 10, flexWrap: 'wrap' }}>
-          <span>🏛️ Agora niveau {s.buildings.agora.level}</span>
+          <span>Agora niveau {s.buildings.agora.level}</span>
           <span>
-            📜 {acquises.length} / {arbreTechnos().reduce((a, c) => a + c.length, 0)} découvertes
+            {acquises.length} / {arbreTechnos().reduce((a, c) => a + c.length, 0)} découvertes
           </span>
         </div>
 
@@ -199,7 +200,7 @@ function EnCours({ id, finAt, now, snap }: { id: string; finAt: number; now: num
     <div style={{ ...CADRE, borderColor: '#c9a86a', background: '#11202e' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ color: '#e2d6bb' }}>
-          {def?.emoji ?? '📜'} {def?.nom ?? id}
+          <Picto e={def?.emoji ?? 'parchemin'} /> {def?.nom ?? id}
         </b>
         <span style={{ color: '#93a7b4', fontSize: 12.5, fontStyle: 'italic' }}>recherche en cours</span>
         <span style={{ marginLeft: 'auto', color: '#c9a86a', fontSize: 12.5 }}>
@@ -242,13 +243,13 @@ function Tuile({
     >
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ color: acquise ? '#9ed4a0' : '#e8d9b5' }}>
-          {def.emoji} {def.nom}
+          <Picto e={def.emoji} /> {def.nom}
         </b>
         {acquise && <span style={{ color: '#9ed4a0', fontSize: 12 }}>✓ acquise</span>}
         <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 12, alignItems: 'baseline' }}>
           {!acquise && <Cout cout={coutTechno(def.id)} avoir={snap.resources} />}
           {!acquise && (
-            <span style={{ color: '#93a7b4', fontSize: 12 }}>⏳ {fmtDuree(dureeTechno(def.id, snap))}</span>
+            <span style={{ color: '#93a7b4', fontSize: 12 }}><Picto id="sablier" /> {fmtDuree(dureeTechno(def.id, snap))}</span>
           )}
         </span>
       </div>
@@ -258,7 +259,7 @@ function Tuile({
       {!acquise && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Astuce
-            titre={`${def.emoji} ${def.nom}`}
+            titre={def.nom}
             resume={def.effet}
             lignes={
               ouvre.length > 0 ? [{ label: 'Ouvre', valeur: ouvre.map((t) => t.nom).join(', ') }] : undefined
@@ -302,7 +303,7 @@ export function PanneauMerveilles({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="🏛️ Les merveilles"
+      titre="Les merveilles"
       onFermer={onFermer}
       large
       sous="Six projets, et l’on n’en bâtira QU’UN seul de tout le règne. Le choix ne se défait pas."
@@ -320,7 +321,7 @@ export function PanneauMerveilles({ onFermer }: { onFermer: () => void }) {
 
         {!engagee && (
           <div style={{ ...CADRE, borderColor: '#7d5a2c', background: '#231a10' }}>
-            <b style={{ color: '#e8c98b', fontSize: 13 }}>⚠️ Un règne, une merveille</b>
+            <b style={{ color: '#e8c98b', fontSize: 13 }}>Un règne, une merveille</b>
             <div style={{ color: '#c2a884', fontSize: 12.5, lineHeight: 1.5, marginTop: 4 }}>
               Dès que le premier bloc est posé, les cinq autres projets se ferment pour toute la partie - il n’y a ni
               démolition ni changement d’avis. Lisez les six avant d’en engager un.
@@ -370,7 +371,7 @@ function ChantierMerveille({
     <div style={{ ...CADRE, borderColor: faite ? '#3d6b45' : '#c9a86a', background: '#11202e' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ color: faite ? '#9ed4a0' : '#e2d6bb', fontSize: 14 }}>
-          {def?.emoji ?? '🏛️'} {def?.nom ?? id}
+          <Picto e={def?.emoji ?? 'temple'} /> {def?.nom ?? id}
         </b>
         <span style={{ marginLeft: 'auto', color: faite ? '#9ed4a0' : '#c9a86a', fontSize: 12.5 }}>
           {faite ? 'debout, et pour toujours' : restant > 0 ? `encore ${fmtDuree(restant)}` : 'les derniers blocs'}
@@ -412,11 +413,11 @@ function Fiche({
     >
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ color: sienne ? '#9ed4a0' : '#e8d9b5', fontSize: 13.5 }}>
-          {def.emoji} {def.nom}
+          <Picto e={def.emoji} /> {def.nom}
         </b>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 12, alignItems: 'baseline' }}>
           <Cout cout={def.cout} avoir={snap.resources} />
-          <span style={{ color: '#93a7b4', fontSize: 12 }}>⏳ {fmtDuree(dureeMerveille(def.id, technos))}</span>
+          <span style={{ color: '#93a7b4', fontSize: 12 }}><Picto id="sablier" /> {fmtDuree(dureeMerveille(def.id, technos))}</span>
         </span>
       </div>
       <div style={{ color: '#93a7b4', fontSize: 12.5, lineHeight: 1.45, margin: '5px 0 5px' }}>{def.desc}</div>
@@ -430,7 +431,7 @@ function Fiche({
       {!engagee && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Astuce
-            titre={`${def.emoji} ${def.nom}`}
+            titre={def.nom}
             resume={def.promesse}
             lignes={[
               {

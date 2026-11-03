@@ -14,6 +14,7 @@ import type { Cost, ResourceId } from '../../game/types'
 import { Icone, Montant } from './Icones'
 import { Astuce, Infobulle } from './Infobulle'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * Les héros ne sont pas une collection : ce sont des hôtes exigeants. Ce panneau
@@ -90,7 +91,7 @@ function Entretien({ h }: { h: HeroId }) {
 function Niveaux({ niveau, plafond }: { niveau: number; plafond: number }) {
   return (
     <Astuce
-      titre={`⭐ Niveau ${niveau} sur ${NIVEAU_MAX}`}
+      titre={`Niveau ${niveau} sur ${NIVEAU_MAX}`}
       resume="Un héros monte en assistant aux assauts repoussés et en marchant en expédition. Chaque niveau renforce son passif, sa capacité et ce qu’il vaut au corps à corps."
       note={
         plafond < NIVEAU_MAX
@@ -129,7 +130,7 @@ export function HerosRapides() {
         return (
           <Astuce
             key={h}
-            titre={`${def.emoji} ${def.capacite.nom}`}
+            titre={def.capacite.nom}
             resume={def.capacite.desc}
             lignes={[
               { label: 'Coût', valeur: <Montant n={def.capacite.cout} id="faveur" taille={12} />, fort: faveur >= def.capacite.cout },
@@ -143,8 +144,8 @@ export function HerosRapides() {
               onClick={() => capacite(h)}
               style={{ borderColor: `${def.couleur}88` }}
             >
-              {def.emoji}{' '}
-              {boude ? '😤' : cd > 0 ? `${Math.ceil(cd / 1000)}s` : <Montant n={def.capacite.cout} id="faveur" taille={13} />}
+              <Picto e={def.emoji} />{' '}
+              {boude ? <Picto id="masque-tragique" titre="boude" /> : cd > 0 ? `${Math.ceil(cd / 1000)}s` : <Montant n={def.capacite.cout} id="faveur" taille={13} />}
             </button>
           </Astuce>
         )
@@ -179,7 +180,7 @@ export function PanneauHeros() {
     return (
       <div key={h} className={`heros-carte${e.mort ? ' mort' : ''}${!e.recrute && !dispo ? ' verrouille' : ''}`}>
         <div className="heros-embleme" style={{ background: `${def.couleur}22`, borderColor: `${def.couleur}66` }}>
-          <span>{def.emoji}</span>
+          <span style={{ color: def.couleur }}><Picto e={def.emoji} /></span>
           {e.recrute && !e.mort && <Niveaux niveau={e.niveau} plafond={e.plafond} />}
         </div>
         <div className="heros-corps">
@@ -191,7 +192,7 @@ export function PanneauHeros() {
 
           {e.mort ? (
             <div className="heros-epitaphe">
-              💀 Tombé au niveau {e.niveau}. Les aèdes le chantent encore ; il ne défendra plus rien.
+              Tombé au niveau {e.niveau}. Les aèdes le chantent encore ; il ne défendra plus rien.
             </div>
           ) : e.recrute ? (
             <>
@@ -199,15 +200,13 @@ export function PanneauHeros() {
                 <b>Passif</b> - {def.passif.desc}
               </div>
               <div className="heros-ligne">
-                <b>
-                  {def.capacite.emoji} {def.capacite.nom}
-                </b>{' '}
+                <b>{def.capacite.nom}</b>{' '}
                 - {def.capacite.desc}
                 <span className="heros-force"> (puissance ×{forceNiveau(e.niveau).toFixed(1)})</span>
               </div>
               {progresse ? (
                 <Astuce
-                  titre="⭐ Expérience"
+                  titre="Expérience"
                   resume="Un héros apprend en servant : chaque assaut repoussé et chaque expédition le rapprochent du niveau suivant."
                   lignes={[{ label: 'Vers le niveau ' + (e.niveau + 1), valeur: `${Math.floor(e.xp)} / ${seuil}`, fort: true }]}
                 >
@@ -218,25 +217,25 @@ export function PanneauHeros() {
               ) : (
                 <div className="heros-ligne heros-plafond">
                   {e.plafond < NIVEAU_MAX
-                    ? `⛔ Son arc l’a brisé : il ne dépassera pas le niveau ${e.plafond}.`
-                    : '🏅 Au sommet de sa légende.'}
+                    ? `Son arc l’a brisé : il ne dépassera pas le niveau ${e.plafond}.`
+                    : 'Au sommet de sa légende.'}
                 </div>
               )}
               <div className="heros-pied">
                 <Astuce
-                  titre="🍖 Entretien"
+                  titre="Entretien"
                   resume="Prélevé en continu sur vos réserves, chaque minute qu’il passe à votre table. Greniers vides et autels muets : trois rappels sans réponse et il reprend la route."
                   note="La grâce « Entretien des braves » d’Arès en retranche les deux cinquièmes."
                 >
                   <span className="heros-entretien">
-                    🍖 <Entretien h={h} />
+                    entretien <Entretien h={h} />
                   </span>
                 </Astuce>
                 {/* on dit QUAND vient le prochain dilemme : son histoire ne doit
                     plus se dérouler dans le dos du joueur */}
                 <Infobulle
                   className="heros-arc"
-                  titre={`📜 L’arc de ${def.nom}`}
+                  titre={`L’arc de ${def.nom}`}
                   resume={
                     attente > 0
                       ? `Son prochain dilemme s’ouvrira dans ${fmtDuree(attente)}. Un héros a le temps de servir avant que son histoire ne le rattrape.`
@@ -245,11 +244,11 @@ export function PanneauHeros() {
                         : 'Son prochain dilemme peut s’ouvrir à tout moment - dès qu’il aura le niveau requis.'
                   }
                 >
-                  📜 arc {Math.min(e.arc, etapes)}/{etapes}
+                  arc {Math.min(e.arc, etapes)}/{etapes}
                   {attente > 0 && <span className="heros-attente"> · {fmtDuree(attente)}</span>}
                 </Infobulle>
                 <Astuce
-                  titre={`${def.capacite.emoji} ${def.capacite.nom}`}
+                  titre={def.capacite.nom}
                   resume={def.capacite.desc}
                   note={
                     boude
@@ -267,12 +266,12 @@ export function PanneauHeros() {
                     onClick={() => s.capaciteHeros(h)}
                   >
                     {boude
-                      ? `😤 boude ${fmtDuree(e.boudeJusqua - now)}`
+                      ? `boude ${fmtDuree(e.boudeJusqua - now)}`
                       : cd > 0
-                        ? `⏳ ${fmtDuree(cd)}`
+                        ? `prêt dans ${fmtDuree(cd)}`
                         : (
                             <>
-                              {def.capacite.emoji} Appeler (<Montant n={def.capacite.cout} id="faveur" taille={13} />)
+                              Appeler (<Montant n={def.capacite.cout} id="faveur" taille={13} />)
                             </>
                           )}
                   </button>
@@ -285,23 +284,21 @@ export function PanneauHeros() {
                 <b>Passif</b> - {def.passif.desc}
               </div>
               <div className="heros-ligne">
-                <b>
-                  {def.capacite.emoji} {def.capacite.nom}
-                </b>{' '}
+                <b>{def.capacite.nom}</b>{' '}
                 - {def.capacite.desc}
               </div>
               <div className="heros-conds">
                 {conds.map((c, i) => (
                   <span key={i} className={c.ok ? 'ok' : 'ko'}>
-                    {c.ok ? '✔' : '✘'} {c.txt}
+                    {c.ok ? '✓' : '✘'} {c.txt}
                   </span>
                 ))}
               </div>
               <div className="heros-pied">
                 <span className="heros-entretien">
-                  🎁 <CoutExigeant c={def.coutRecrutement} resources={s.resources} />
+                  présents <CoutExigeant c={def.coutRecrutement} resources={s.resources} />
                 </span>
-                <span className="heros-entretien">🍖 <Entretien h={h} /></span>
+                <span className="heros-entretien">entretien <Entretien h={h} /></span>
                 <button
                   className="principal"
                   disabled={!dispo || !assezPourLui}
@@ -323,7 +320,7 @@ export function PanneauHeros() {
 
   return (
     <Modale
-      titre="🛡️ Les héros de la matière troyenne"
+      titre="Les héros de la matière troyenne"
       dataTuto="modale-heros"
       large
       onFermer={() => s.openPanel(null)}
@@ -332,7 +329,7 @@ export function PanneauHeros() {
       <>
         {(ent.grain > 0 || ent.faveur > 0) && (
           <div style={{ fontSize: 12.5, color: '#e0bc5c', marginTop: 6 }}>
-            🍖 Entretien de la maisonnée :{' '}
+            Entretien de la maisonnée :{' '}
             {ent.grain > 0 && (
               <>
                 {ent.grain.toFixed(1)} <Icone id="grain" taille={13} />
@@ -373,10 +370,10 @@ export function ModaleArcHeros() {
     <div className="voile">
       <div className="modale parchemin">
         <h2>
-          {noeud.emoji} {noeud.titre}
+          {noeud.titre}
         </h2>
         <div style={{ fontSize: 12.5, color: '#7a5f38', marginTop: -4, marginBottom: 8 }}>
-          {def.emoji} {def.nom} - {def.titre} · niveau {s.heros[s.arcHeros.heros].niveau}
+          {def.nom} - {def.titre} · niveau {s.heros[s.arcHeros.heros].niveau}
         </div>
         {s.arcIssue ? (
           <div className="issue">

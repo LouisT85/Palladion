@@ -1,6 +1,6 @@
-# 🏛️ PALLADION - Chroniques de la guerre de Troie
+# PALLADION - Chroniques de la guerre de Troie
 
-🇫🇷 Français | [🇬🇧 English](README.en.md)
+Français | [English](README.en.md)
 
 > Le *Palladion* : la statue d'Athéna tombée du ciel - tant qu'elle se tient dans la cité,
 > Troie ne peut pas tomber. Un talisman divin qui conditionne la survie de la ville :
@@ -19,9 +19,9 @@ Zéro image, zéro son téléchargé : **tout est dessiné et synthétisé par l
 | ------------------------------------------------------- | ------------------------------------------------------------------ |
 | ![Village au premier printemps](docs/village-debut.jpg) | ![Cité complète, onze domaines au niveau 4](docs/village-max.jpg) |
 
-## ✨ Ce qui rend PALLADION différent
+## Ce qui rend PALLADION différent
 
-### 🏺 Le duel : raider le village d'un autre joueur, sans serveur
+### Le duel : raider le village d'un autre joueur, sans serveur
 
 Le jeu n'a **ni serveur, ni compte**. Le multijoueur prend donc la forme du **courrier** :
 trois codes qui voyagent en texte, dans un message, un mail, ce que vous voulez.
@@ -45,7 +45,7 @@ aucune carte que vous avez émise est refusé. Et le butin est plafonné, calcul
 C'est aussi la première fois que le **plan de défense** que vous réglez en temps de paix
 affronte quelqu'un.
 
-### 🐴 « La Chute » - une campagne en cinq actes
+### « La Chute » - une campagne en cinq actes
 
 La campagne suit l'Iliade - les mille nefs, la colère d'Achille, sous les murs, le fleuve, le
 cheval - mais d'un point de vue qui n'est pas celui de l'épopée : **vous n'êtes pas Troie**.
@@ -64,7 +64,7 @@ la poussière du siège, la crue du Scamandre, la cendre d'Ilion.
 
 ![Le prologue de l'acte I](docs/campagne.jpg)
 
-### ⚡ Zeus vous prend par la main
+### Zeus vous prend par la main
 
 La première partie ne commence pas par un pavé d'aide : le maître de l'Olympe descend et fait
 la leçon lui-même, en quinze étapes. À chaque fois, tout l'écran s'éteint **sauf ce qu'il faut
@@ -74,7 +74,7 @@ ni se perdre, ni survoler.
 
 ![La leçon de Zeus](docs/tutoriel.jpg)
 
-### 🧱 Une évolution **visuelle** des bâtiments
+### Une évolution **visuelle** des bâtiments
 
 Chaque bâtiment est dessiné **en SVG par code**, en volumes texturés (tuiles, pierre, chaume,
 sillons) avec une apparence distincte par niveau. Les remparts passent de la palissade de
@@ -86,7 +86,7 @@ arrachés - mais après un assaut, les bâtiments abattus **se relèvent d'eux-m
 secondes jusqu'à leur niveau d'avant. Et le village **vit** : villageois qui flânent, char à
 bœufs, chèvres, moutons, fumées et braseros.
 
-### 🌱 Quatre saisons et un ciel qui change tout
+### Quatre saisons et un ciel qui change tout
 
 Quatre journées de jeu par saison. Le **printemps** fait lever les blés, l'**été** durcit la
 terre et ouvre la mer, l'**automne** remplit les greniers, l'**hiver ferme la mer** - port au
@@ -97,7 +97,7 @@ tout cela n'est qu'un chiffre : le feuillage roussit puis tombe, les congères s
 
 ![L'hiver sur la Troade](docs/saisons.jpg)
 
-### ⚔️ Des assauts joués sous vos yeux, et des ordres à donner
+### Des assauts joués sous vos yeux, et des ordres à donner
 
 Des bandes armées attaquent régulièrement, et les éclaireurs annoncent **la composition de la
 vague, la récompense promise, et parfois le nom du champion qui la mène** - l'un des huit héros
@@ -119,7 +119,7 @@ muette tant que l'enceinte tient, qui ouvre le feu à la brèche sur ce qui est 
 
 ![Un assaut sur trois fronts](docs/bataille.jpg)
 
-### 👷 Chaque habitant a un nom, un métier, un âge - et une famille
+### Chaque habitant a un nom, un métier, un âge - et une famille
 
 Un villageois naît paysan, bûcheron, tailleur de pierre, forgeron, prêtre ou docker. **À son
 métier il rend pleinement ; ailleurs, 55 %.** Personne ne prend son poste tout seul : c'est
@@ -135,7 +135,7 @@ c'est perdre la forge avec lui.
 Et le même arbitrage vaut pour l'armée : **un soldat est un villageois en moins** - il quitte
 l'atelier, ne produit plus et mange le double.
 
-### 👑 Un chef qui vieillit, qui meurt, et qu'on remplace
+### Un chef qui vieillit, qui meurt, et qu'on remplace
 
 Vous n'êtes plus une abstraction. Votre chef porte un nom, une maison, un âge, et **deux traits
 parmi douze** qui changent le jeu - bâtisseur, homme de guerre, fils de la terre, impie, aimé
@@ -150,7 +150,7 @@ village, chacun avec ses propres traits, affichés avant le choix. Et couronner 
 Le fondateur, lui, n'a aucun trait : il est la mesure plate, et le tempérament entre dans la
 dynastie à la première succession.
 
-### 🛡️ Huit héros - qu'on nourrit, qu'on perd
+### Huit héros - qu'on nourrit, qu'on perd
 
 Ils ne s'achètent pas : ils viennent quand la cité en est digne. Hector veut des remparts de
 niveau 3 et Zeus en grâce ; Ulysse un port et la confiance d'Athéna ; Achille du sang déjà
@@ -172,7 +172,7 @@ qui rend leur présence tendue plutôt que confortable.
 | ------------------------------------- | ------------------------------------- |
 | ![Panneau des héros](docs/heros.png) | ![L'arc d'Hector](docs/heros-arc.png) |
 
-### 🗺️ Piller, secourir… ou assiéger
+### Piller, secourir… ou assiéger
 
 Huit places fortes de la Troade, chacune avec son **décor peint** et ses **ouvrages à abattre** -
 tente du chef, entrepôt, donjon, corps de garde - dont un **cœur** dont la chute décide du raid.
@@ -192,7 +192,7 @@ Trois façons d'y marcher :
 
 ![L'assaut de la cité de Lesbos](docs/expedition.jpg)
 
-### ⚡ Les Olympiens, alliés et juges - et ça se voit
+### Les Olympiens, alliés et juges - et ça se voit
 
 - **Zeus** - la foudre s'abat sur les assaillants ; sa loi de l'hospitalité (*xenia*) punit qui
   ferme sa porte aux suppliants.
@@ -221,7 +221,7 @@ panique soufflée dans les rangs. Toujours réparable dans le même battement pa
 
 ![Le panthéon](docs/pantheon.png)
 
-### 🏺 Des dilemmes moraux à conséquences
+### Des dilemmes moraux à conséquences
 
 Quarante-et-un dilemmes à **issues multiples**, tirées à l'ouverture : des réfugiés qui implorent
 l'asile (sincères… ou pillards infiltrés), Zeus déguisé en mendiant, un cheval de bois abandonné
@@ -231,7 +231,7 @@ tombée. Le murmure d'Athéna lit l'issue **déjà tirée** : il ne peut structu
 
 ![Un dilemme](docs/evenement.png)
 
-### 💰 Un comptoir vivant, des convois, et une flotte
+### Un comptoir vivant, des convois, et une flotte
 
 Le port n'est plus un distributeur. Les **cours** des marchandises dérivent vers ce que le monde
 impose - la sécheresse brûle les champs et le grain monte, l'hiver ferme la mer et renchérit
@@ -249,7 +249,7 @@ galère **escorte** un convoi et fait chuter son risque ; des cales permettent d
 détroit** en hiver et rapportent du butin. Le niveau du port plafonne la flotte, et la mer
 **prend** des coques à chaque retour : ce n'est pas un achat unique.
 
-### 📜 Découvertes, merveilles, éclaireurs
+### Découvertes, merveilles, éclaireurs
 
 **Vingt-trois découvertes** de l'âge du bronze avec leurs prérequis - charrue à soc, corde
 tressée, tour de potier, linéaire B, adduction d'eau - et **une seule recherche à la fois** :
@@ -263,7 +263,7 @@ L'**espionnage** est le moyen payant et risqué d'en savoir plus sans Ulysse ni 
 envoie un villageois - un bras de moins tant qu'il est dehors - ou l'on paie un homme de métier.
 Le rapport est vrai ; s'il n'y a rien à voir, on ne facture rien.
 
-### 🤝 Une Troade qui se souvient
+### Une Troade qui se souvient
 
 Chaque place forte tient sa **relation** (−100 à +100), et la région est petite : ce qu'on fait à
 l'une, les sept autres l'apprennent. Un **présent** rachète une rancune. Un **pacte** s'achète à
@@ -271,7 +271,7 @@ qui vous voit déjà d'un bon œil. Un **mariage** coûte un habitant pour toujo
 alliance que rien ne dénoue, au tribut doublé. Une alliance ordinaire, elle, se rompt si la
 relation retombe - et un village hostile grossit la menace qui pèse sur vous.
 
-### 🌾 La fièvre, et le lazaret
+### La fièvre, et le lazaret
 
 La peste n'est pas un dilemme mais un **cycle**. Elle entre par une porte identifiable - un
 convoi rentré de Troade, le charnier laissé devant la muraille après un assaut, le butin d'un
@@ -284,7 +284,7 @@ soignants. Un lit sauve un homme **et** retire un contagieux. Un fiévreux laiss
 qu'un tiers à son poste et contamine ses voisins chaque journée : la maladie coûte donc avant de
 tuer. Trois découvertes de médecine la ralentissent.
 
-### 🏝️ Fonder une colonie
+### Fonder une colonie
 
 Un second foyer outre-mer, qui n'est **pas** un second village jouable - ce serait doubler le
 jeu. Elle se gère par arbitrages rares : à quoi elle se consacre, ce qu'elle envoie, comment on
@@ -295,7 +295,7 @@ leurs métiers** - le panneau nomme ce que le village perd -, une nef retenue ta
 vit, et des soldats laissés sur place. Quatre côtes, quatre vocations, et une colonie qu'on
 néglige finit par ne plus être à vous.
 
-### 🏅 Hauts faits, prestige et fin de règne
+### Hauts faits, prestige et fin de règne
 
 Cinquante-quatre hauts faits en cinq catégories - « tenir un assaut sur trois fronts sans perdre
 un homme », « élu des quatre Olympiens », « traverser un hiver sans vider le grenier », « percer
@@ -309,7 +309,7 @@ Troade se souvient** - un règne de pillard recommence entouré d'ennemis.
 
 ![Hauts faits et prestige](docs/hauts-faits.png)
 
-### 🎖️ Cinquante-cinq missions comme fil rouge
+### Cinquante-cinq missions comme fil rouge
 
 Toujours un objectif à l'écran, toujours une récompense à la clé : des provisions du premier jour
 jusqu'au Palladion lui-même. Chaque réclamation finance l'étape suivante : pas de temps mort.
@@ -323,20 +323,20 @@ fois, **jamais au-delà de l'acte en cours**.
 | ------------------------------------------- | ---------------------------------------------- |
 | ![Le suivi des missions](docs/missions.jpg) | ![Le fil rouge complet](docs/missions-fil.png) |
 
-### 📈 Les annales du règne
+### Les annales du règne
 
 Un relevé chiffré toutes les trente secondes : greniers, garnison, menace, ambiance, faveur,
 remparts, prestige. Quatre graphes dessinés en SVG comme le reste du jeu, avec la **pente par
 minute** de chaque série - c'est elle qui répond à « est-ce que ça monte ? ». Les annales
 traversent les actes, là où le journal repart à chaque chapitre.
 
-### 🎭 L'ambiance du village
+### L'ambiance du village
 
 Fêtes, victoires et greniers pleins **exaltent** le village (production accrue). Famine, défaites
 et choix cruels le rendent **morose**. Sous 25 : **mutinerie** - ouvrez les greniers, promettez
 (et tenez parole !), ou réprimez dans le sang. À 0, vos soldats désertent.
 
-### 🎵 Une bande-son entièrement synthétisée
+### Une bande-son entièrement synthétisée
 
 Pas un octet d'audio téléchargé : tout est fabriqué à la volée en **Web Audio**. Au village, une
 flûte de berger égrène une **pentatonique majeure** (aucun demi-ton : il est musicalement
@@ -346,7 +346,7 @@ son mode ni son volume mais son nombre d'attaques, et celle-ci en compte vingt-q
 là où la version précédente en comptait cent soixante. Les cors montent à l'alerte, le tambour de
 siège prend le relais quand la colonne touche les murs, et le chant de l'aède salue la victoire.
 
-### 🌙 Le temps continue sans vous - et vous menez la caméra
+### Le temps continue sans vous - et vous menez la caméra
 
 Cycle jour/nuit en temps réel. Onglet fermé, le village vit : production, constructions,
 croissance… et assauts nocturnes, résolus automatiquement. Au retour, un rapport raconte tout.
@@ -360,7 +360,7 @@ Le bandeau du haut se lit en **deux rangs** : ce que le village *possède*, puis
 et ce qui le fait bouger. Et tout menu se referme de trois façons : sa **croix**, la touche
 **Échap**, ou un clic à côté.
 
-## 🎮 Systèmes de jeu, en un tableau
+## Systèmes de jeu, en un tableau
 
 | Domaine | Ce qu'il contient |
 | --- | --- |
@@ -387,7 +387,7 @@ et ce qui le fait bouger. Et tout menu se referme de trois façons : sa **croix*
 | **Tests** | **1 525 tests** Vitest et **7 parcours** Playwright de bout en bout |
 | **Sauvegarde** | `localStorage`, 3 emplacements, export/import en texte - aucun serveur, aucun compte |
 
-## 🛠️ Stack
+## Stack
 
 - [Vite](https://vitejs.dev) + [React 18](https://react.dev) + TypeScript (strict)
 - [zustand](https://github.com/pmndrs/zustand) + immer pour l'état du jeu (battement à 4 Hz)
@@ -399,12 +399,12 @@ Le style graphique (lumière au nord-ouest, ombres portées vers le sud-est, auc
 tirages déterministes) est documenté dans [`docs/STYLE-ART.md`](docs/STYLE-ART.md). La feuille de
 route et la dette connue vivent dans [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-## 🚀 Développement
+## Développement
 
 ```bash
 npm install
 npm run dev       # http://localhost:5173
-npm run dev:test  # 🧪 mode test : ressources illimitées, chantiers/recrues instantanés,
+npm run dev:test  # mode test : ressources illimitées, chantiers/recrues instantanés,
                   #    bouton « Attaque » pour déclencher un assaut à la demande
 npm run build     # production dans dist/ (châssis, art et récit en trois morceaux)
 npm run preview   # tester le build
@@ -419,7 +419,7 @@ npm run dev:test -- --port 5199 --strictPort   # dans un terminal
 python3 scripts/e2e.py                         # dans un autre
 ```
 
-### 📸 Regénérer les captures du README
+### Regénérer les captures du README
 
 Les images de ce fichier sont **reproductibles** : chaque vignette pose un état de jeu précis
 (saison, bâtiments, héros, panneau ouvert…) avant de photographier l'écran.
@@ -433,7 +433,7 @@ Le script cherche un navigateur **déjà installé** avant d'en télécharger un
 du poste d'abord, puis le chromium du Playwright Python qui sert aux parcours e2e. Il échoue si la
 moindre erreur JavaScript survient pendant les captures : c'est aussi le test de fumée du projet.
 
-## 🗺️ Ce qui reste
+## Ce qui reste
 
 Le détail vit dans [`docs/ROADMAP.md`](docs/ROADMAP.md). En résumé :
 
@@ -446,4 +446,4 @@ Le détail vit dans [`docs/ROADMAP.md`](docs/ROADMAP.md). En résumé :
 
 ---
 
-*Projet personnel - codé avec amour pour la mythologie grecque.* 🏺
+*Projet personnel - codé avec amour pour la mythologie grecque.*

@@ -27,6 +27,7 @@ import {
 } from '../../game/ngplus'
 import { prestigeCourant, useGame } from '../../game/store'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════ RECOMMENCER : LE BILAN, L'HÉRITAGE, LE DÉFI ═══════════════
@@ -110,7 +111,7 @@ export function EcranFinDePartie({ onFermer }: { onFermer: () => void }) {
   return (
     <div className="voile">
       <div className="modale fin-regne">
-        <h2>👑 Fin du règne</h2>
+        <h2>Fin du règne</h2>
         <div className="fin-score">{score}</div>
         <div className="fin-titre">{fin.titre}</div>
         <div className="fin-desc">{fin.desc}</div>
@@ -130,7 +131,7 @@ export function EcranFinDePartie({ onFermer }: { onFermer: () => void }) {
             <span className="unite">POINTS D’HÉRITAGE</span>
           </div>
           <div className="prestige-titre">
-            <b>{vu.record ? '🏅 Votre plus beau règne' : `Règne n° ${Math.max(1, archive.regnes)}`}</b>
+            <b>{vu.record ? 'Votre plus beau règne' : `Règne n° ${Math.max(1, archive.regnes)}`}</b>
             <span>
               {vu.gagnes > 0
                 ? `${vu.gagnes} points de plus qu’avant ce règne. À dépenser au départ du suivant.`
@@ -141,7 +142,7 @@ export function EcranFinDePartie({ onFermer }: { onFermer: () => void }) {
 
         {rancunes.length > 0 && (
           <div style={{ fontSize: 12.5, color: '#c0563f', marginTop: 10 }}>
-            🗡️ La Troade se souvient : {rancunes.length} village{rancunes.length > 1 ? 's' : ''} vous
+            La Troade se souvient : {rancunes.length} village{rancunes.length > 1 ? 's' : ''} vous
             {rancunes.length > 1 ? ' garderont' : ' gardera'} rancune dans la partie suivante.
           </div>
         )}
@@ -155,7 +156,7 @@ export function EcranFinDePartie({ onFermer }: { onFermer: () => void }) {
             style={{ flex: 1 }}
             onClick={() => (vu.points > 0 ? setHeritageOuvert(true) : (onFermer(), reset()))}
           >
-            {vu.points > 0 ? '🏛️ Léguer et refonder' : '🏛️ Fonder une nouvelle cité'}
+            {vu.points > 0 ? 'Léguer et refonder' : 'Fonder une nouvelle cité'}
           </button>
         </div>
       </div>
@@ -205,7 +206,7 @@ export function PanneauHeritage({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre="🏛️ L’héritage du règne"
+      titre="L’héritage du règne"
       sous={`${archive.regnes} règne${archive.regnes > 1 ? 's' : ''} achevé${archive.regnes > 1 ? 's' : ''} · ${archive.prestigeCumule} de prestige cumulé · meilleur règne ${archive.meilleur}`}
       large
       onFermer={onFermer}
@@ -240,7 +241,7 @@ export function PanneauHeritage({ onFermer }: { onFermer: () => void }) {
           return (
             <div key={cat} style={{ marginTop: 14 }}>
               <div style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: '#e8c04a' }}>
-                {CATEGORIES_DON[cat].emoji} {CATEGORIES_DON[cat].nom}
+                <Picto e={CATEGORIES_DON[cat].emoji} /> {CATEGORIES_DON[cat].nom}
               </div>
               {liste.map((d) => {
                 const pris = choix[d.id] ?? 0
@@ -251,7 +252,7 @@ export function PanneauHeritage({ onFermer }: { onFermer: () => void }) {
                       className="heros-embleme"
                       style={{ borderColor: pris > 0 ? '#e8c04a' : '#2b3f52', color: pris > 0 ? '#e8c04a' : '#cfd8de' }}
                     >
-                      {d.emoji}
+                      <Picto e={d.emoji} />
                       <span className="heros-niveaux">{d.cout} PT</span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -295,7 +296,7 @@ export function PanneauHeritage({ onFermer }: { onFermer: () => void }) {
               else reset()
             }}
           >
-            🏛️ Fonder la cité{depense > 0 ? ` avec ${depense} point${depense > 1 ? 's' : ''} d’héritage` : ' sans héritage'}
+            Fonder la cité{depense > 0 ? ` avec ${depense} point${depense > 1 ? 's' : ''} d’héritage` : ' sans héritage'}
           </button>
         </div>
       </>
@@ -351,7 +352,7 @@ export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
 
   return (
     <Modale
-      titre={`🗓️ Défi de la semaine n° ${defi.numero}`}
+      titre={`Défi de la semaine n° ${defi.numero}`}
       sous={`Semaine ${defi.semaine} de ${defi.annee} · graine ${defi.graine} · la même Troade pour tous, jusqu’à dimanche soir`}
       large
       onFermer={onFermer}
@@ -364,7 +365,7 @@ export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
             <span className="unite">MULTIPLICATEUR</span>
           </div>
           <div className="prestige-titre">
-            <b>🎯 {defi.objectif.label}</b>
+            <b>{defi.objectif.label}</b>
             <span>{defi.objectif.desc}</span>
           </div>
         </div>
@@ -373,7 +374,7 @@ export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
           {defi.contraintes.map((c) => (
             <div key={c.id} className="heros-carte">
               <div className="heros-embleme" style={{ borderColor: '#c0563f', color: '#ffb9a5' }}>
-                {c.emoji}
+                <Picto e={c.emoji} />
                 <span className="heros-niveaux">{c.poids} PT</span>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -391,7 +392,7 @@ export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
                 Objectif : {Math.round(part * 100)} %{score.objectifAtteint ? ' - tenu' : ''}
               </span>
               <span>
-                ⭐ <b style={{ color: '#e8c04a' }}>{score.points}</b> points
+                <b style={{ color: '#e8c04a' }}>{score.points}</b> points
                 {enCours?.points ? ` (enregistré : ${enCours.points})` : ''}
               </span>
             </div>
@@ -409,7 +410,7 @@ export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
         )}
 
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: '#e8c04a' }}>🏅 Vos semaines passées</div>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: '#e8c04a' }}>Vos semaines passées</div>
           {classement.length === 0 && (
             <div style={{ color: '#93a7b4', fontSize: 13, marginTop: 6 }}>
               Aucun défi terminé. Le score s’inscrit ici à la fin du règne, une ligne par semaine, et seule la meilleure
@@ -423,7 +424,7 @@ export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
               style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}
             >
               <span>
-                {e.numero === defi.numero ? '👉 ' : ''}Défi n° {e.numero} · semaine {e.semaine} de {e.annee}
+                {e.numero === defi.numero && <><Picto id="lecture" />{' '}</>}Défi n° {e.numero} · semaine {e.semaine} de {e.annee}
               </span>
               <b style={{ color: e.objectifAtteint ? '#7fb069' : '#cfd8de' }}>
                 {e.points} pts {e.objectifAtteint ? '· objectif tenu' : ''}
@@ -435,11 +436,11 @@ export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
 
         {confirmeDefi && !actif && (
           <div className="ce-avertissement" style={{ marginTop: 14 }}>
-            ⚠️ Le défi impose <b>son propre village</b> - la même Troade et les mêmes vagues pour tout le monde, sans
+            Le défi impose <b>son propre village</b> - la même Troade et les mêmes vagues pour tout le monde, sans
             quoi les scores ne se compareraient pas. <b>Votre cité actuelle sera remplacée.</b> Rangez-la d’abord dans
             un autre emplacement si vous y tenez.
             <div style={{ marginTop: 8 }}>
-              <button onClick={() => s.openPanel('sauvegardes')}>💾 Mettre ma cité à l’abri</button>
+              <button onClick={() => s.openPanel('sauvegardes')}>Mettre ma cité à l’abri</button>
             </div>
           </div>
         )}
@@ -458,11 +459,11 @@ export function PanneauDefi({ onFermer }: { onFermer: () => void }) {
                   onFermer()
                 }}
               >
-                🗓️ Oui, remplacer ma cité
+                Oui, remplacer ma cité
               </button>
             ) : (
               <button className="principal" style={{ flex: 2 }} onClick={() => setConfirmeDefi(true)}>
-                🗓️ Relever le défi{fait ? ` (au mieux ${fait.points} pts)` : ''}
+                Relever le défi{fait ? ` (au mieux ${fait.points} pts)` : ''}
               </button>
             ))}
         </div>
@@ -486,19 +487,19 @@ export function BandeauDefi() {
     jour: s.dernierJourVecu,
   }
   const part = progressionObjectif(snap, defi.objectif)
-  const contraintes = defi.contraintes.map((c) => `${c.emoji} ${c.nom}`).join(' · ')
+  const contraintes = defi.contraintes.map((c) => c.nom).join(' · ')
 
   return (
     <div className="bandeau">
       <div className="gros">
-        🗓️ DÉFI n° {defi.numero} - {defi.objectif.label}
+        DÉFI n° {defi.numero} - {defi.objectif.label}
       </div>
       <div className="acte-jauge" style={{ margin: '6px 0' }}>
         <div style={{ width: `${Math.round(part * 100)}%` }} />
       </div>
       <div className="detail">{contraintes}</div>
       <div className="detail recompense">
-        ⭐ <b>{scoreDefi(snap, defi).points}</b> points · multiplicateur ×{defi.mult.toFixed(2)}
+        <b>{scoreDefi(snap, defi).points}</b> points · multiplicateur ×{defi.mult.toFixed(2)}
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import { EVENTS_BY_ID } from '../../game/events'
 import { bonusHeros, peutPayer, useGame } from '../../game/store'
 import { Icone } from './Icones'
 import { Modale } from './Modale'
+import { Picto } from './Picto'
 
 export function ModaleEvenement() {
   const s = useGame()
@@ -17,7 +18,7 @@ export function ModaleEvenement() {
     <div className="voile">
       <div className="modale parchemin">
         <h2>
-          {def.emoji} {def.titre}
+          <Picto e={def.emoji} /> {def.titre}
         </h2>
         {s.eventOutcome ? (
           <div className="issue">
@@ -46,14 +47,14 @@ export function ModaleEvenement() {
                       {c.label}
                       {!reqOk && c.requiertLabel ? ` - ${c.requiertLabel}` : ''}
                     </button>
-                    {indice && <div className="murmure">🦉 {indice}</div>}
+                    {indice && <div className="murmure"><Picto id="chouette" /> {indice}</div>}
                   </div>
                 )
               })}
             </div>
             {!sagesse && def.choices.some((c) => c.hint) && (
               <div style={{ fontSize: 11.5, color: '#8c7a55', marginTop: 10, fontStyle: 'italic' }}>
-                🦉 Avec la confiance d’Athéna (relation ≥ 25) - ou Cassandre à votre table - la vérité cachée de ce
+                Avec la confiance d’Athéna (relation ≥ 25) - ou Cassandre à votre table - la vérité cachée de ce
                 dilemme vous serait murmurée…
               </div>
             )}
@@ -73,7 +74,7 @@ export function ModaleJournal() {
   const s = useGame()
   return (
     <Modale
-      titre="📜 Journal du village"
+      titre="Journal du village"
       onFermer={() => s.openPanel(null)}
       sous={`${s.stats.repousses} assaut(s) repoussé(s) · ${s.stats.perdus} pillage(s) subi(s) · ${s.stats.evenements} dilemme(s) tranché(s)`}
     >
@@ -85,7 +86,7 @@ export function ModaleJournal() {
           <div key={r.id} className="rapport">
             <TempsRelatif at={r.at} now={s.lastSeen} />
             <h4>
-              {r.emoji} {r.titre}
+              <Picto e={r.emoji} /> {r.titre}
             </h4>
             {r.lignes.map((l, i) => (
               <p key={i}>{l}</p>
@@ -103,7 +104,7 @@ export function ModaleHorsLigne() {
   return (
     <div className="voile">
       <div className="modale">
-        <h2>🌙 Pendant votre absence…</h2>
+        <h2>Pendant votre absence…</h2>
         {s.offlineSummary.map((l, i) => (
           <p key={i} style={{ margin: '5px 0', color: i === 0 ? '#e8dcc0' : '#cfc4a8' }}>
             {l}
@@ -125,7 +126,7 @@ export function ModaleRapportBataille() {
     <div className="voile">
       <div className="modale">
         <h2>
-          {r.emoji} {r.titre}
+          <Picto e={r.emoji} /> {r.titre}
         </h2>
         {r.lignes.map((l, i) => (
           <p key={i} style={{ margin: '6px 0', color: '#cfc4a8', lineHeight: 1.5 }}>
@@ -145,7 +146,7 @@ export function ModaleAide() {
   const [confirmeReset, setConfirmeReset] = useState(false)
   return (
     <Modale
-      titre="🏛️ PALLADION - survivre à l’ombre de Troie"
+      titre="PALLADION - survivre à l’ombre de Troie"
       onFermer={() => s.openPanel(null)}
       fermerTexte={null}
     >
@@ -161,9 +162,9 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>⚔️ Les assauts</h3>
+          <h3>Les assauts</h3>
           <p>
-            Des bandes armées attaquent régulièrement - la richesse attire les convoitises (🔥 menace). Vos éclaireurs
+            Des bandes armées attaquent régulièrement - la richesse attire les convoitises (la menace). Vos éclaireurs
             vous préviennent ~5 minutes avant, avec la <b>récompense</b> promise si vous tenez ; les impatients peuvent
             <b> lancer l’assaut immédiatement (+25 % de butin)</b>. Les archers tirent depuis les remparts ; si la
             muraille cède, la mêlée se joue dans le village. Dès les remparts de niveau 2, bâtissez des{' '}
@@ -180,7 +181,7 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>🗺️ Piller ou secourir</h3>
+          <h3>Piller ou secourir</h3>
           <p>
             Envoyez jusqu’à 20 soldats contre les 8 places fortes de la Troade. <b>Piller</b> rapporte gros - mais Zeus
             Xenios n’aime pas cela, la menace monte, et le village renforce sa garnison pour votre prochaine visite.
@@ -212,7 +213,7 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>🛡️ Les héros</h3>
+          <h3>Les héros</h3>
           <p>
             Huit héros de la matière troyenne peuvent entrer à votre service - mais seulement si la cité en est digne :
             Hector veut des remparts de niveau 3, Ulysse un port et la confiance d’Athéna, Achille du sang déjà versé.
@@ -222,7 +223,7 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>🌱 Saisons et météo</h3>
+          <h3>Saisons et météo</h3>
           <p>
             Quatre journées de jeu par saison. Le printemps fait lever les blés, l’été durcit la terre et ouvre la mer,
             l’automne remplit les greniers, l’<b>hiver ferme la mer</b> (port au tiers, îles inaccessibles). Par-dessus,
@@ -232,7 +233,7 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>🏅 Hauts faits et prestige</h3>
+          <h3>Hauts faits et prestige</h3>
           <p>
             Cinquante et un hauts faits jalonnent le règne - « tenir un assaut sur trois fronts sans perdre un homme »,
             « élu des quatre Olympiens », « trois étoiles sur les huit places fortes ». Ils alimentent votre{' '}
@@ -241,7 +242,7 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>⚡ Les dieux</h3>
+          <h3>Les dieux</h3>
           <p>
             Le temple génère la <b>faveur</b> (<Icone id="faveur" taille={15} />) qui alimente les bénédictions : foudre de Zeus, remparts de Poséidon,
             égide d’Athéna, fureur d’Arès. Vos choix dans les dilemmes forgent vos <b>relations</b> : Zeus punit qui
@@ -253,7 +254,7 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>👪 Familles et lignées</h3>
+          <h3>Familles et lignées</h3>
           <p>
             Une journée de jeu vaut <b>deux ans de vie</b>. Un <b>enfant</b> (moins de 16 ans) aide sans remplacer et ne
             porte pas les armes ; un <b>ancien</b> (plus de 56 ans) rend moins, et l’âge finit par l’emporter - son
@@ -265,7 +266,7 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>📈 Les annales</h3>
+          <h3>Les annales</h3>
           <p>
             Des scribes relèvent le village <b>toutes les trente secondes</b> : greniers, garnison, menace, ambiance,
             faveur, remparts, prestige. Le panneau <b>Annales</b> en trace les courbes et donne la <b>pente par
@@ -274,14 +275,14 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>🎭 L’ambiance</h3>
+          <h3>L’ambiance</h3>
           <p>
             Fêtes, victoires et greniers pleins exaltent le village (production accrue). Famine, défaites et choix
             cruels le minent - sous 25, gare à la <b>mutinerie</b>.
           </p>
         </div>
         <div className="aide-section">
-          <h3>⏩ La vitesse du temps</h3>
+          <h3>La vitesse du temps</h3>
           <p>
             Comme dans les Sims : les boutons <b>×1 ×2 ×4 ×8</b> (ou les touches 1-4) accélèrent tout - production,
             chantiers, recrues, cycle du jour… et le compte à rebours des attaques. Le jeu repasse automatiquement en
@@ -289,35 +290,35 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>🔎 Regarder de plus près</h3>
+          <h3>Regarder de plus près</h3>
           <p>
             <b>Molette</b> pour zoomer là où pointe le curseur, <b>glisser</b> pour déplacer la carte,{' '}
             <b>double-clic</b> pour rendre la main à la caméra. Pendant un assaut, elle se rapproche seule du front le
-            plus menacé - jusqu’à ce que vous y touchiez. Le bouton 🔊 règle la lyre, les cors et le tambour de siège.
+            plus menacé - jusqu’à ce que vous y touchiez. Le bouton <Picto id="lyre" /> règle la lyre, les cors et le tambour de siège.
             Tout menu se referme par sa <b>croix</b>, par <b>Échap</b>, ou d’un clic à côté.
           </p>
         </div>
         <div className="aide-section">
-          <h3>🏅 Les missions</h3>
+          <h3>Les missions</h3>
           <p>
-            Le suivi en haut à gauche affiche les trois missions ouvertes ; le bouton <b>🏅 Missions</b> du bandeau
+            Le suivi en haut à gauche affiche les trois missions ouvertes ; le bouton <b>Missions</b> du bandeau
             déroule le fil entier - <b>cinquante-cinq objectifs en cinq actes</b>, du premier toit à la cité de légende.
             Chacun rapporte une <b>récompense</b> (ressources, faveur, villageois) et laisse une ligne au journal. Si
-            vous ne savez pas où agir, le bouton de la mission (« 👥 Recensement », « 🏛️ Agora », « 🗺️ Expéditions »…){' '}
+            vous ne savez pas où agir, le bouton de la mission (« Recensement », « Agora », « Expéditions »…){' '}
             <b>vous emmène directement à l’écran concerné</b>.
           </p>
         </div>
         <div className="aide-section">
-          <h3>👷 Les métiers</h3>
+          <h3>Les métiers</h3>
           <p>
             Chaque habitant naît avec un métier - paysan, bûcheron, tailleur de pierre, forgeron, prêtre, docker - et
             les sept premiers en couvrent un de chaque. <b>Personne ne prend son poste tout seul</b> : c’est à vous
-            d’ouvrir le recensement (👥) et de placer chacun. À son métier il rend pleinement, ailleurs seulement 55 %.
-            Un atelier dont les postes ne sont pas tenus produit au prorata - un ⚠️ le signale.
+            d’ouvrir le recensement (bouton <b>Habitants</b>) et de placer chacun. À son métier il rend pleinement, ailleurs seulement 55 %.
+            Un atelier dont les postes ne sont pas tenus produit au prorata - un <Picto id="alerte" /> le signale.
           </p>
         </div>
         <div className="aide-section">
-          <h3>⚓ Le comptoir du port</h3>
+          <h3>Le comptoir du port</h3>
           <p>
             Le port échange <b>à la valeur</b>, pas au tas : le bronze vaut quatre charretées de bois, la pierre un peu
             plus qu’une. Les marchands prélèvent une marge - <b>+70 % au petit quai, +15 % au port franc</b> -, donc
@@ -325,7 +326,7 @@ export function ModaleAide() {
           </p>
         </div>
         <div className="aide-section">
-          <h3>🐴 « La Chute » - la campagne</h3>
+          <h3>« La Chute » - la campagne</h3>
           <p>
             Cinq actes qui suivent l’Iliade, du débarquement achéen à la nuit du cheval. Chaque acte{' '}
             <b>impose son village de départ</b> (bâtiments debout, garnison, saison, jusqu’à un pan de mur déjà à terre),
@@ -351,10 +352,10 @@ export function ModaleAide() {
             s.demarrerTutoriel()
           }}
         >
-          ⚡ Refaire la leçon de Zeus
+          Refaire la leçon de Zeus
         </button>
         <button style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('sauvegardes')}>
-          💾 Vos parties - trois emplacements, export et import
+          Vos parties - trois emplacements, export et import
         </button>
         {/*
           Un seul chemin vers la campagne, et il est ailleurs : le bouton 🐴 du
@@ -362,7 +363,7 @@ export function ModaleAide() {
           bas de huit sections d'aide - personne ne la trouvait.
         */}
         <button style={{ width: '100%', marginTop: 8 }} onClick={() => s.openPanel('campagne')}>
-          🐴 {s.campagne && !s.campagne.fini ? 'Relire les cinq actes de' : 'Jouer la campagne'} « La Chute »
+          {s.campagne && !s.campagne.fini ? 'Relire les cinq actes de' : 'Jouer la campagne'} « La Chute »
         </button>
         <div className="aide-reset">
           {confirmeReset ? (
@@ -381,7 +382,7 @@ export function ModaleAide() {
             </>
           ) : (
             <button className="danger" onClick={() => setConfirmeReset(true)}>
-              🔥 Recommencer une nouvelle partie
+              Recommencer une nouvelle partie
             </button>
           )}
         </div>

@@ -6,6 +6,7 @@ import { HEROS } from '../../game/heros'
 import { Montant } from './Icones'
 import { Modale } from './Modale'
 import { PortraitZeus } from './Zeus'
+import { Picto } from './Picto'
 
 /*
  * ═══════════════════════ L'ÉCRAN DE LA CAMPAGNE ═══════════════════════
@@ -40,7 +41,7 @@ function Recompense({ acte }: { acte: ActeCampagne }) {
         <Montant key={r} n={n} id={r} taille={14} signe />
       ))}
       {acte.recompense.faveur ? <Montant n={acte.recompense.faveur} id="faveur" taille={14} signe /> : null}
-      {acte.recompense.pop ? <span className="montant">+{acte.recompense.pop} 👥</span> : null}
+      {acte.recompense.pop ? <span className="montant">+{acte.recompense.pop} habitants</span> : null}
     </span>
   )
 }
@@ -59,14 +60,14 @@ export function ModaleChoixMode() {
         <div className="choix-zeus">
           <PortraitZeus taille={104} humeur="calme" />
         </div>
-        <h2>🏛️ PALLADION</h2>
+        <h2>PALLADION</h2>
         <p className="choix-intro">
           Un village de la Troade, sur la route des armées. Trois façons d’y régner - et l’on peut changer d’avis plus
           tard, dans l’aide.
         </p>
         <div className="choix-cartes">
           <button className="choix-carte" onClick={() => choisir('bac-a-sable')}>
-            <span className="cc-emoji">🌾</span>
+            <span className="cc-emoji"><Picto id="epi" /></span>
             <b>Bac à sable</b>
             <span className="cc-desc">
               Bâtir sans fin, à votre rythme. Zeus descend d’abord faire la leçon, puis cinquante-cinq missions jalonnent
@@ -74,7 +75,7 @@ export function ModaleChoixMode() {
             </span>
           </button>
           <button className="choix-carte principal" onClick={() => choisir('campagne')}>
-            <span className="cc-emoji">🐴</span>
+            <span className="cc-emoji"><Picto id="cheval" /></span>
             <b>La Chute - campagne</b>
             <span className="cc-desc">
               Cinq actes qui suivent l’Iliade, du débarquement achéen à la nuit du cheval. Objectifs imposés, situation
@@ -82,7 +83,7 @@ export function ModaleChoixMode() {
             </span>
           </button>
           <button className="choix-carte" onClick={() => choisir('siege')}>
-            <span className="cc-emoji">⚔️</span>
+            <span className="cc-emoji"><Picto id="epees" /></span>
             <b>Siège sans fin</b>
             <span className="cc-desc">
               Les vagues s’enchaînent sans répit et sans fin heureuse : on compte combien on en tient. Ni dilemme ni
@@ -107,7 +108,7 @@ export function ModaleProlologue() {
     <div className="voile">
       <div className="modale parchemin acte-modale">
         <div className="acte-bandeau">
-          <span className="acte-emoji">{acte.emoji}</span>
+          <span className="acte-emoji"><Picto e={acte.emoji} /></span>
           <div>
             <h2>{acte.titre}</h2>
             <div className="acte-lieu">{acte.lieu}</div>
@@ -132,11 +133,11 @@ export function ModaleProlologue() {
         </div>
         {acte.herosScriptes.length > 0 && (
           <div className="acte-heros">
-            🛡️ À votre service dès le premier matin :{' '}
-            {acte.herosScriptes.map((h) => `${HEROS[h].emoji} ${HEROS[h].nom}`).join(', ')}.
+            À votre service dès le premier matin :{' '}
+            {acte.herosScriptes.map((h) => HEROS[h].nom).join(', ')}.
           </div>
         )}
-        {acte.defaite && <div className="acte-defaite">⚠️ {acte.defaite.texte}</div>}
+        {acte.defaite && <div className="acte-defaite">{acte.defaite.texte}</div>}
         <button className="principal" style={{ width: '100%', marginTop: 14 }} onClick={commencer}>
           Prendre la tête du village
         </button>
@@ -157,7 +158,7 @@ export function ModaleEpilogue() {
     <div className="voile">
       <div className="modale parchemin acte-modale">
         <div className="acte-bandeau">
-          <span className="acte-emoji">{campagne.fini ? '👑' : acte.emoji}</span>
+          <span className="acte-emoji">{campagne.fini ? <Picto id="laurier" /> : <Picto e={acte.emoji} />}</span>
           <div>
             <h2>{campagne.fini ? 'La Chute - fin de la campagne' : `${acte.titre} - accompli`}</h2>
             <div className="acte-lieu">{acte.lieu}</div>
@@ -166,7 +167,7 @@ export function ModaleEpilogue() {
         <Recit paragraphes={acte.epilogue} />
         {!campagne.fini && (
           <div className="acte-recompense">
-            🎁 Butin de l’acte : <Recompense acte={acte} />
+            Butin de l’acte : <Recompense acte={acte} />
           </div>
         )}
         {campagne.fini ? (
@@ -193,7 +194,7 @@ export function ModaleEchecActe() {
   return (
     <div className="voile">
       <div className="modale parchemin acte-modale">
-        <h2>💀 {acte.titre} - le village est tombé</h2>
+        <h2>{acte.titre} - le village est tombé</h2>
         <Recit paragraphes={acte.echec ?? ['Il ne reste rien à défendre.']} />
         <button className="principal" style={{ width: '100%', marginTop: 14 }} onClick={rejouer}>
           Reprendre l’acte au premier matin
@@ -230,7 +231,7 @@ export function SuiviActe() {
   return (
     <div className={`missions suivi-acte${replie ? ' replie' : ''}`} data-tuto="objectifs">
       <button className="missions-titre" onClick={() => setReplie(!replie)} aria-expanded={!replie}>
-        {acte.emoji} {acte.titre.replace('Acte ', 'Acte ')}
+        <Picto e={acte.emoji} /> {acte.titre.replace('Acte ', 'Acte ')}
         <span className="compte-missions">
           {faits}/{total}
         </span>
@@ -245,7 +246,7 @@ export function SuiviActe() {
             return (
               <div key={o.id} className={`mission${ok ? ' faite' : ''}${o.facultatif ? ' facultatif' : ''}`}>
                 <div className="mission-ligne">
-                  <span className="mission-emoji">{ok ? '✔' : o.facultatif ? '◇' : '◆'}</span>
+                  <span className="mission-emoji">{ok ? <Picto id="coche" /> : o.facultatif ? '◇' : '◆'}</span>
                   <div className="mission-corps">
                     <div className="mission-nom">
                       {o.texte}
@@ -281,7 +282,7 @@ export function PanneauCampagne() {
   const iActe = s.campagne?.acte ?? -1
   return (
     <Modale
-      titre="🐴 La Chute - les cinq actes"
+      titre="La Chute - les cinq actes"
       large
       onFermer={() => s.openPanel(null)}
       sous="Cinq actes qui suivent l’Iliade. Chacun impose une situation de départ, des objectifs et parfois un héros - et chacun peut se perdre."
@@ -299,12 +300,12 @@ export function PanneauCampagne() {
             {confirme ? (
               <>
                 <div className="ce-avertissement">
-                  ⚠️ La campagne repart de son <b>premier acte</b> et impose son propre village : votre cité actuelle
+                  La campagne repart de son <b>premier acte</b> et impose son propre village : votre cité actuelle
                   sera remplacée. Rangez-la d’abord dans un autre emplacement si vous y tenez.
                 </div>
                 <div className="ce-actions">
                   <button className="principal" onClick={() => s.openPanel('sauvegardes')}>
-                    💾 Mettre ma cité à l’abri
+                    Mettre ma cité à l’abri
                   </button>
                   <button
                     className="danger"
@@ -314,7 +315,7 @@ export function PanneauCampagne() {
                       s.choisirMode('campagne')
                     }}
                   >
-                    🐴 Commencer l’acte I
+                    Commencer l’acte I
                   </button>
                   <button onClick={() => setConfirme(false)}>Garder ma cité</button>
                 </div>
@@ -326,7 +327,7 @@ export function PanneauCampagne() {
                   des objectifs imposés, une situation héritée d’un acte à l’autre - et l’on peut y perdre.
                 </div>
                 <button className="principal" onClick={() => setConfirme(true)}>
-                  🐴 Jouer la campagne
+                  Jouer la campagne
                 </button>
               </>
             )}
@@ -337,7 +338,7 @@ export function PanneauCampagne() {
           return (
             <div key={a.id} className={`acte-fiche ${etat}`}>
               <div className="acte-bandeau">
-                <span className="acte-emoji">{i > iActe ? '🔒' : a.emoji}</span>
+                <span className="acte-emoji">{i > iActe ? <Picto id="cadenas" /> : <Picto e={a.emoji} />}</span>
                 <div>
                   <b>{a.titre}</b>
                   <div className="acte-lieu">{a.lieu}</div>
